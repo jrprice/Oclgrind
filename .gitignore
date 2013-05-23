@@ -1,0 +1,20 @@
+# Autotools generated files
+aclocal.m4
+autom4te.cache
+config.h
+config.h.in
+config.log
+config.status
+configure
+depcomp
+.deps
+*.dirstamp
+install-sh
+Makefile
+Makefile.in
+missing
+stamp-h1
+
+# Compiler output
+*.o
+oclgrind
