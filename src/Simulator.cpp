@@ -1,7 +1,5 @@
 #include "config.h"
-#include <iomanip>
 #include <iostream>
-#include <map>
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
@@ -9,13 +7,7 @@
 #include "llvm/Support/InstIterator.h"
 
 #include "Simulator.h"
-
-// Structure for a private variable
-typedef struct
-{
-  size_t size;
-  unsigned char *data;
-} PrivateVariable;
+#include "WorkItem.h"
 
 using namespace std;
 
@@ -26,58 +18,27 @@ Simulator::Simulator(const llvm::Module *module)
 
 void Simulator::run(string kernel)
 {
-  llvm::Module::const_iterator fita;
-  llvm::const_inst_iterator iita;
+  llvm::Module::const_iterator fitr;
+  llvm::const_inst_iterator iitr;
 
-  // TODO: Extend to multiple work items
-  map<string,PrivateVariable> privateMemory;
+  // TODO: Multiple work-items
+  WorkItem workItem(0);
 
   // Iterate over functions in module
-  for(fita = m_module->begin(); fita != m_module->end(); fita++)
+  for(fitr = m_module->begin(); fitr != m_module->end(); fitr++)
   {
     // Check kernel name
-    if (fita->getName().str() != kernel)
+    if (fitr->getName().str() != kernel)
       continue;
 
-    cout << fita->getName().str() << ":" << endl;
-
     // Iterate over instructions in function
-    for (iita = inst_begin(fita); iita != inst_end(fita); iita++)
+    // TODO: Implement non-linear control flow
+    for (iitr = inst_begin(fitr); iitr != inst_end(fitr); iitr++)
     {
-      cout << "\t" << (&*iita)->getOpcodeName() << endl;
-
-      // TODO: Compute actual result
-      int result = 0;
-
-      // TODO: Only allocate if not in map already?
-      // TODO: Use actual size/type
-      string dest = (&*iita)->getName().str();
-      if (!dest.empty())
-      {
-        PrivateVariable var;
-        var.size = 4;
-        var.data = new unsigned char(var.size);
-        *((int*)var.data) = result;
-        privateMemory[dest] = var;
-      }
-
-      //cout << "\t\t" << (&*iita)->getOperand(0)->getName().str() << endl;
+      workItem.execute(*iitr);
     }
   }
 
   // Temporarily dump private memory (TODO: Remove)
-  cout << "Private memory:" << endl;
-  map<string,PrivateVariable>::iterator pmitr;
-  for (pmitr = privateMemory.begin(); pmitr != privateMemory.end(); pmitr++)
-  {
-    // TODO: Interpret type?
-    // TODO: Deal with larger private variables (e.g. arrays)
-    cout << setw(12) << setfill(' ') << pmitr->first << ":";
-    for (int i = 0; i < pmitr->second.size; i++)
-    {
-      cout << " " << hex << uppercase << setw(2) << setfill('0')
-           << (int)pmitr->second.data[i];
-    }
-    cout << setw(0) << endl;
-  }
+  workItem.dumpPrivateMemory();
 }
