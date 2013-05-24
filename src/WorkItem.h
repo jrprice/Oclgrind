@@ -26,6 +26,7 @@ public:
            size_t gid_x, size_t gid_y=0, size_t gid_z=0);
 
   void dumpPrivateMemory() const;
+  void enableDebugOutput(bool enable) {m_debugOutput = enable;};
   void execute(const llvm::Instruction& instruction);
 
   float FAdd(const llvm::Instruction& instruction);
@@ -37,4 +38,6 @@ private:
   size_t m_globalID[3];
   PrivateMemory m_privateMemory;
   GlobalMemory& m_globalMemory;
+
+  bool m_debugOutput;
 };

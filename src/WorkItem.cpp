@@ -16,7 +16,7 @@ using namespace std;
 
 WorkItem::WorkItem(const Kernel& kernel, GlobalMemory& globalMem,
                    size_t gid_x, size_t gid_y, size_t gid_z)
-  : m_globalMemory(globalMem)
+  : m_globalMemory(globalMem), m_debugOutput(false)
 {
   m_globalID[0] = gid_x;
   m_globalID[1] = gid_y;
@@ -79,17 +79,20 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   PrivateVariable result = {resultSize, new unsigned char[resultSize]};
 
   // Temporary: Dump instruction sequence (TODO: remove)
-  if (resultSize > 0)
+  if (m_debugOutput)
   {
-    cout << "%" << (&instruction) << "(" << resultSize << ") = ";
+    if (resultSize > 0)
+    {
+      cout << "%" << (&instruction) << "(" << resultSize << ") = ";
+    }
+    cout << left << setw(14) << instruction.getOpcodeName();
+    llvm::User::const_op_iterator opitr;
+    for (opitr = instruction.op_begin(); opitr != instruction.op_end(); opitr++)
+    {
+      cout << " %" << opitr->get();
+    }
+    cout << right << endl;
   }
-  cout << left << setw(14) << instruction.getOpcodeName();
-  llvm::User::const_op_iterator opitr;
-  for (opitr = instruction.op_begin(); opitr != instruction.op_end(); opitr++)
-  {
-    cout << " %" << opitr->get();
-  }
-  cout << right << endl;
 
   // Execute instruction
   switch (instruction.getOpcode())

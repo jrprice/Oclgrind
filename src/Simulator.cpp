@@ -62,6 +62,7 @@ void Simulator::run(string kernelName)
     {
       workItems[i] = new WorkItem(kernel, globalMemory, i);
     }
+    workItems[0]->enableDebugOutput(true);
 
     // Iterate over instructions in function
     // TODO: Implement non-linear control flow
@@ -75,10 +76,10 @@ void Simulator::run(string kernelName)
   }
 
   // Temporarily dump memories (TODO: Remove)
+  workItems[0]->dumpPrivateMemory();
+  globalMemory.dump();
   for (int i = 0; i < globalSize; i++)
   {
-    workItems[i]->dumpPrivateMemory();
     delete workItems[i];
   }
-  globalMemory.dump();
 }
