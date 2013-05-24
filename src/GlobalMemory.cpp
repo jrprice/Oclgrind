@@ -43,12 +43,26 @@ void GlobalMemory::dump() const
 
 unsigned char GlobalMemory::load(size_t address)
 {
-  // TODO: Bounds check
+  // Bounds check
+  // TODO: Improve reporting
+  if (address >= m_allocated)
+  {
+    cout << "Memory access out of bounds" << endl;
+    return 0;
+  }
+
   return m_memory[address];
 }
 
 void GlobalMemory::store(size_t address, unsigned char value)
 {
-  // TODO: Bounds check
+  // Bounds check
+  // TODO: Improve reporting
+  if (address >= m_allocated)
+  {
+    cout << "Memory access out of bounds" << endl;
+    return;
+  }
+
   m_memory[address] = value;
 }

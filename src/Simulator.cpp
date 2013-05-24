@@ -23,16 +23,24 @@ void Simulator::run(string kernelName)
   llvm::Module::const_iterator fitr;
   llvm::const_inst_iterator iitr;
 
+  // TODO: Dynamically set
+  int globalSize = 4;
+
   // Create global memory
-  // TODO: Allocate dynamically
+  // TODO: Allocate/initialise dynamically
   GlobalMemory globalMemory;
-  size_t a = globalMemory.allocateBuffer(4);
-  size_t b = globalMemory.allocateBuffer(4);
-  size_t c = globalMemory.allocateBuffer(4);
-  globalMemory.store(a, 0x13);
-  globalMemory.store(b, 0x2F);
+  size_t a = globalMemory.allocateBuffer(globalSize*sizeof(float));
+  size_t b = globalMemory.allocateBuffer(globalSize*sizeof(float));
+  size_t c = globalMemory.allocateBuffer(globalSize*sizeof(float));
+  for (int i = 0; i < globalSize; i++)
+  {
+    globalMemory.store(a+i*4, i);
+    globalMemory.store(b+i*4, i);
+  }
 
   Kernel kernel;
+
+  WorkItem *workItems[globalSize];
 
   // Iterate over functions in module
   for(fitr = m_module->begin(); fitr != m_module->end(); fitr++)
@@ -49,18 +57,28 @@ void Simulator::run(string kernelName)
     kernel.setArgument(aitr++, b);
     kernel.setArgument(aitr++, c);
 
-    // TODO: Multiple work-items
-    WorkItem workItem(kernel, globalMemory, 0);
+    // Initialise work-items
+    for (int i = 0; i < globalSize; i++)
+    {
+      workItems[i] = new WorkItem(kernel, globalMemory, i);
+    }
 
     // Iterate over instructions in function
     // TODO: Implement non-linear control flow
     for (iitr = inst_begin(fitr); iitr != inst_end(fitr); iitr++)
     {
-      workItem.execute(*iitr);
+      for (int i = 0; i < globalSize; i++)
+      {
+        workItems[i]->execute(*iitr);
+      }
     }
-
-    // Temporarily dump private memory (TODO: Remove)
-    workItem.dumpPrivateMemory();
-    globalMemory.dump();
   }
+
+  // Temporarily dump memories (TODO: Remove)
+  for (int i = 0; i < globalSize; i++)
+  {
+    workItems[i]->dumpPrivateMemory();
+    delete workItems[i];
+  }
+  globalMemory.dump();
 }

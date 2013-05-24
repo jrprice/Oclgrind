@@ -137,9 +137,10 @@ float WorkItem::FAdd(const llvm::Instruction& instruction)
 
 size_t WorkItem::getElementPtr(const llvm::Instruction& instruction)
 {
+  // TODO: Use actual size of type
   size_t base  = *m_privateMemory[instruction.getOperand(0)].data;
   size_t offset = *m_privateMemory[instruction.getOperand(1)].data;
-  return base + offset;
+  return base + offset*4;
 }
 
 void WorkItem::load(const llvm::Instruction& instruction,
