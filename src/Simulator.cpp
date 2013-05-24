@@ -6,6 +6,8 @@
 #include "llvm/IR/Module.h"
 #include "llvm/Support/InstIterator.h"
 
+#include "GlobalMemory.h"
+#include "Kernel.h"
 #include "Simulator.h"
 #include "WorkItem.h"
 
@@ -16,20 +18,37 @@ Simulator::Simulator(const llvm::Module *module)
   m_module = module;
 }
 
-void Simulator::run(string kernel)
+void Simulator::run(string kernelName)
 {
   llvm::Module::const_iterator fitr;
   llvm::const_inst_iterator iitr;
 
-  // TODO: Multiple work-items
-  WorkItem workItem(0);
+  // Create global memory
+  // TODO: Allocate dynamically
+  GlobalMemory globalMemory;
+  size_t a = globalMemory.allocateBuffer(4);
+  size_t b = globalMemory.allocateBuffer(4);
+  size_t c = globalMemory.allocateBuffer(4);
+
+  Kernel kernel;
 
   // Iterate over functions in module
   for(fitr = m_module->begin(); fitr != m_module->end(); fitr++)
   {
     // Check kernel name
-    if (fitr->getName().str() != kernel)
+    if (fitr->getName().str() != kernelName)
       continue;
+
+    // Set kernel arguments
+    // TODO: Set these dynamically
+    const llvm::Function::ArgumentListType& args = fitr->getArgumentList();
+    llvm::Function::const_arg_iterator aitr = args.begin();
+    kernel.setArgument(aitr++, a);
+    kernel.setArgument(aitr++, b);
+    kernel.setArgument(aitr++, c);
+
+    // TODO: Multiple work-items
+    WorkItem workItem(kernel, 0);
 
     // Iterate over instructions in function
     // TODO: Implement non-linear control flow
@@ -37,8 +56,9 @@ void Simulator::run(string kernel)
     {
       workItem.execute(*iitr);
     }
-  }
 
-  // Temporarily dump private memory (TODO: Remove)
-  workItem.dumpPrivateMemory();
+    // Temporarily dump private memory (TODO: Remove)
+    workItem.dumpPrivateMemory();
+    globalMemory.dump();
+  }
 }

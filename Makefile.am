@@ -8,4 +8,5 @@ AM_LDFLAGS = -L./llvm/build/lib/ -lLLVMSupport -lLLVMCore		\
 
 bin_PROGRAMS = oclgrind
 oclgrind_SOURCES = src/main.cpp src/Simulator.h src/Simulator.cpp	\
-src/WorkItem.h src/WorkItem.cpp
+src/WorkItem.h src/WorkItem.cpp src/Kernel.h src/Kernel.cpp		\
+src/GlobalMemory.h src/GlobalMemory.cpp

@@ -8,20 +8,31 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Type.h"
 
+#include "Kernel.h"
 #include "WorkItem.h"
 
 using namespace std;
 
-WorkItem::WorkItem(size_t gid_x, size_t gid_y, size_t gid_z)
+WorkItem::WorkItem(const Kernel& kernel,
+                   size_t gid_x, size_t gid_y, size_t gid_z)
 {
   m_globalID[0] = gid_x;
   m_globalID[1] = gid_y;
   m_globalID[2] = gid_z;
+
+  // Store kernel arguments in private memory
+  KernelArgs::const_iterator aitr;
+  for (aitr = kernel.args_begin(); aitr != kernel.args_end(); aitr++)
+  {
+    PrivateVariable arg = {4, new unsigned char[4]};
+    *arg.data = aitr->second;
+    m_privateMemory[aitr->first] = arg;
+  }
 }
 
 void WorkItem::dumpPrivateMemory() const
 {
-  cout << "Work-item ("
+  cout << endl << "Work-item ("
        << m_globalID[0] << ","
        << m_globalID[1] << ","
        << m_globalID[2] << "):" << endl;
@@ -82,8 +93,11 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   switch (instruction.getOpcode())
   {
   case llvm::Instruction::Call:
+    // TODO: Currently assume call is get_global_id(0)
+    *result.data = m_globalID[0];
     break;
   case llvm::Instruction::GetElementPtr:
+    *result.data = getElementPtr(instruction);
     break;
   case llvm::Instruction::Load:
     break;
@@ -103,4 +117,11 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   {
     m_privateMemory[&instruction] = result;
   }
+}
+
+size_t WorkItem::getElementPtr(const llvm::Instruction& instruction)
+{
+  size_t base  = *m_privateMemory[instruction.getOperand(0)].data;
+  size_t offset = *m_privateMemory[instruction.getOperand(1)].data;
+  return base + offset;
 }
