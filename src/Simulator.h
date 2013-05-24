@@ -3,9 +3,9 @@
 class Simulator
 {
 public:
-  Simulator(llvm::Module *module);
-  void run();
+  Simulator(const llvm::Module *module);
+  void run(std::string kernel);
 
 private:
-  llvm::Module *m_module;
+  const llvm::Module *m_module;
 };

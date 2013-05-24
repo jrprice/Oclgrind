@@ -31,5 +31,5 @@ int main(int argc, char *argv[])
   }
 
   Simulator simulator(module);
-  simulator.run();
+  simulator.run("vecadd");
 }
