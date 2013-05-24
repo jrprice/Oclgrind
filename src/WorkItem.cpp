@@ -8,13 +8,15 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Type.h"
 
+#include "GlobalMemory.h"
 #include "Kernel.h"
 #include "WorkItem.h"
 
 using namespace std;
 
-WorkItem::WorkItem(const Kernel& kernel,
+WorkItem::WorkItem(const Kernel& kernel, GlobalMemory& globalMem,
                    size_t gid_x, size_t gid_y, size_t gid_z)
+  : m_globalMemory(globalMem)
 {
   m_globalID[0] = gid_x;
   m_globalID[1] = gid_y;
@@ -100,10 +102,13 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     *result.data = getElementPtr(instruction);
     break;
   case llvm::Instruction::Load:
+    load(instruction, result.data);
     break;
   case llvm::Instruction::Store:
+    store(instruction);
     break;
   case llvm::Instruction::FAdd:
+    *result.data = FAdd(instruction);
     break;
   case llvm::Instruction::Ret:
     break;
@@ -119,9 +124,44 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   }
 }
 
+////////////////////////////////
+//// Instruction execution  ////
+////////////////////////////////
+
+float WorkItem::FAdd(const llvm::Instruction& instruction)
+{
+  float a = *m_privateMemory[instruction.getOperand(0)].data;
+  float b = *m_privateMemory[instruction.getOperand(1)].data;
+  return a + b;
+}
+
 size_t WorkItem::getElementPtr(const llvm::Instruction& instruction)
 {
   size_t base  = *m_privateMemory[instruction.getOperand(0)].data;
   size_t offset = *m_privateMemory[instruction.getOperand(1)].data;
   return base + offset;
+}
+
+void WorkItem::load(const llvm::Instruction& instruction,
+                    unsigned char *dest)
+{
+  // TODO: Load correct amount of data
+  // TODO: Endian-ness?
+  size_t address = *m_privateMemory[instruction.getOperand(0)].data;
+  for (int i = 0; i < 4; i++)
+  {
+    dest[i] = m_globalMemory.load(address + i);
+  }
+}
+
+void WorkItem::store(const llvm::Instruction& instruction)
+{
+  // TODO: Store correct amount of data
+  // TODO: Endian-ness?
+  unsigned char *data = m_privateMemory[instruction.getOperand(0)].data;
+  size_t address = *m_privateMemory[instruction.getOperand(1)].data;
+  for (int i = 0; i < 4; i++)
+  {
+    m_globalMemory.store(address + i, data[i]);
+  }
 }

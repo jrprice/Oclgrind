@@ -40,3 +40,15 @@ void GlobalMemory::dump() const
   }
   cout << endl;
 }
+
+unsigned char GlobalMemory::load(size_t address)
+{
+  // TODO: Bounds check
+  return m_memory[address];
+}
+
+void GlobalMemory::store(size_t address, unsigned char value)
+{
+  // TODO: Bounds check
+  m_memory[address] = value;
+}

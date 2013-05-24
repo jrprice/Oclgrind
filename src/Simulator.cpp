@@ -29,6 +29,8 @@ void Simulator::run(string kernelName)
   size_t a = globalMemory.allocateBuffer(4);
   size_t b = globalMemory.allocateBuffer(4);
   size_t c = globalMemory.allocateBuffer(4);
+  globalMemory.store(a, 0x13);
+  globalMemory.store(b, 0x2F);
 
   Kernel kernel;
 
@@ -48,7 +50,7 @@ void Simulator::run(string kernelName)
     kernel.setArgument(aitr++, c);
 
     // TODO: Multiple work-items
-    WorkItem workItem(kernel, 0);
+    WorkItem workItem(kernel, globalMemory, 0);
 
     // Iterate over instructions in function
     // TODO: Implement non-linear control flow
