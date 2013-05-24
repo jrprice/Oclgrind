@@ -3,6 +3,7 @@
 namespace llvm
 {
   class Instruction;
+  class Value;
 }
 
 // Structure for a private variable
@@ -13,7 +14,7 @@ typedef struct
 } PrivateVariable;
 
 // Private memory map type
-typedef std::map<std::string,PrivateVariable> PrivateMemory;
+typedef std::map<const llvm::Value*,PrivateVariable> PrivateMemory;
 
 class WorkItem
 {

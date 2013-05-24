@@ -28,9 +28,19 @@ void WorkItem::dumpPrivateMemory() const
   PrivateMemory::const_iterator pmitr;
   for (pmitr = m_privateMemory.begin(); pmitr != m_privateMemory.end(); pmitr++)
   {
+    // Output symbolic name if available
+    cout << setw(16) << setfill(' ');
+    if (pmitr->first->hasName())
+    {
+      cout << pmitr->first->getName().str() << ":";
+    }
+    else
+    {
+      cout << pmitr->first << ":";
+    }
+
     // TODO: Interpret type?
     // TODO: Deal with larger private variables (e.g. arrays)
-    cout << setw(12) << setfill(' ') << pmitr->first << ":";
     for (int i = 0; i < pmitr->second.size; i++)
     {
       cout << " " << hex << uppercase << setw(2) << setfill('0')
@@ -64,15 +74,21 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     break;
   }
 
+  // Temporary: Dump instruction sequence (TODO: remove)
+  cout << "%" << (&instruction) << " = " << instruction.getOpcodeName();
+  llvm::User::const_op_iterator opitr;
+  for (opitr = instruction.op_begin(); opitr != instruction.op_end(); opitr++)
+  {
+    cout << " %" << opitr->get();
+  }
+  cout << endl;
+
+  // TODO: Only store if instruction has result
   // TODO: Only allocate if not in map already?
   // TODO: Use actual size/type
-  string dest = instruction.getName().str();
-  if (!dest.empty())
-  {
-    PrivateVariable var;
-    var.size = 4;
-    var.data = new unsigned char(var.size);
-    *((int*)var.data) = result;
-    m_privateMemory[dest] = var;
-  }
+  PrivateVariable var;
+  var.size = 4;
+  var.data = new unsigned char(var.size);
+  *((int*)var.data) = result;
+  m_privateMemory[&instruction] = var;
 }
