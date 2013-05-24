@@ -7,4 +7,4 @@ AM_LDFLAGS = -L./llvm/build/lib/ -lLLVMSupport -lLLVMCore		\
 -lLLVMScalarOpts -lLLVMTarget -lLLVMIRReader
 
 bin_PROGRAMS = oclgrind
-oclgrind_SOURCES = src/main.cpp
+oclgrind_SOURCES = src/main.cpp src/Simulator.h src/Simulator.cpp

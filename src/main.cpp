@@ -9,6 +9,8 @@
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/SourceMgr.h"
 
+#include "Simulator.h"
+
 using namespace std;
 
 int main(int argc, char *argv[])
@@ -28,15 +30,6 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  for(llvm::Module::iterator fita = module->begin(); fita != module->end(); fita++)
-  {
-    cout << fita->getName().str() << ":" << endl;
-
-    for (llvm::inst_iterator iita = inst_begin(fita); iita != inst_end(fita); iita++)
-    {
-      cout << "\t" << (&*iita)->getOpcodeName() << endl;
-    }
-  }
-
-  delete module;
+  Simulator simulator(module);
+  simulator.run();
 }
