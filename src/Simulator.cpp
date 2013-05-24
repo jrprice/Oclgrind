@@ -1,10 +1,14 @@
 #include "config.h"
 #include <iostream>
+#include <istream>
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/InstIterator.h"
+#include "llvm/Support/SourceMgr.h"
 
 #include "GlobalMemory.h"
 #include "Kernel.h"
@@ -13,72 +17,147 @@
 
 using namespace std;
 
-Simulator::Simulator(const llvm::Module *module)
+Simulator::Simulator()
 {
-  m_module = module;
+  m_context = new llvm::LLVMContext;
+
+  m_globalMemory = new GlobalMemory();
+  m_kernel = new Kernel();
 }
 
-void Simulator::run(string kernelName)
+Simulator::~Simulator()
 {
-  llvm::Module::const_iterator fitr;
-  llvm::const_inst_iterator iitr;
+  delete m_globalMemory;
+  delete m_kernel;
+}
 
-  // TODO: Dynamically set
-  int globalSize = 4;
+bool Simulator::init(istream& input)
+{
+  string spir;
+  string kernelName;
 
-  // Create global memory
-  // TODO: Allocate/initialise dynamically
-  GlobalMemory globalMemory;
-  size_t a = globalMemory.allocateBuffer(globalSize*sizeof(float));
-  size_t b = globalMemory.allocateBuffer(globalSize*sizeof(float));
-  size_t c = globalMemory.allocateBuffer(globalSize*sizeof(float));
-  for (int i = 0; i < globalSize; i++)
+  input >> spir
+        >> kernelName
+        >> m_ndrange[0] >> m_ndrange[1] >> m_ndrange[2]
+        >> m_wgsize[0] >> m_wgsize[1] >> m_wgsize[2];
+
+  // Load IR module from file
+  llvm::SMDiagnostic err;
+  m_module = ParseIRFile(spir, err, *m_context);
+  if (!m_module)
   {
-    globalMemory.store(a+i*4, i);
-    globalMemory.store(b+i*4, i);
+    cout << "Failed to load SPIR." << endl;
+    return false;
   }
 
-  Kernel kernel;
-
-  WorkItem *workItems[globalSize];
-
-  // Iterate over functions in module
+  // Iterate over functions in module to find kernel
+  m_function = NULL;
+  llvm::Module::const_iterator fitr;
   for(fitr = m_module->begin(); fitr != m_module->end(); fitr++)
   {
     // Check kernel name
     if (fitr->getName().str() != kernelName)
       continue;
 
-    // Set kernel arguments
-    // TODO: Set these dynamically
-    const llvm::Function::ArgumentListType& args = fitr->getArgumentList();
-    llvm::Function::const_arg_iterator aitr = args.begin();
-    kernel.setArgument(aitr++, a);
-    kernel.setArgument(aitr++, b);
-    kernel.setArgument(aitr++, c);
+    m_function = fitr;
+    break;
+  }
+  if (m_function == NULL)
+  {
+    cout << "Failed to locate kernel." << endl;
+    return false;
+  }
 
-    // Initialise work-items
-    for (int i = 0; i < globalSize; i++)
-    {
-      workItems[i] = new WorkItem(kernel, globalMemory, i);
-    }
-    workItems[0]->enableDebugOutput(true);
+  // Clear global memory
+  m_globalMemory->clear();
 
-    // Iterate over instructions in function
-    // TODO: Implement non-linear control flow
-    for (iitr = inst_begin(fitr); iitr != inst_end(fitr); iitr++)
+  // Set kernel arguments
+  const llvm::Function::ArgumentListType& args = m_function->getArgumentList();
+  llvm::Function::const_arg_iterator aitr;
+  for (aitr = args.begin(); aitr != args.end(); aitr++)
+  {
+    char type;
+    size_t size;
+    size_t value;
+    int i;
+    int byte;
+
+    input >> type >> size;
+
+    switch (type)
     {
-      for (int i = 0; i < globalSize; i++)
+    case 'b':
+      // Allocate buffer
+      value = m_globalMemory->allocateBuffer(size);
+
+      // Initialise buffer
+      for (i = 0; i < size; i++)
       {
-        workItems[i]->execute(*iitr);
+        input >> byte;
+        m_globalMemory->store(value + i, (unsigned char)byte);
       }
+
+      break;
+    case 's':
+      // TODO: Handle scalar arguments
+      cout << "Scalar kernel arguments not implemented." << endl;
+      return false;
+      break;
+    default:
+      cout << "Unrecognised argument type '" << type << "'" << endl;
+      return false;
+    }
+
+    m_kernel->setArgument(aitr, value);
+  }
+
+  // Make sure there is no more input
+  std::string next;
+  input >> next;
+  if (input.good() || !input.eof())
+  {
+    cout << "Unexpected token '" << next << "' (expected EOF)" << endl;
+    return false;
+  }
+
+  return true;
+}
+
+void Simulator::run()
+{
+  // TODO: Work-groups
+
+  // Initialise work-items
+  size_t totalWorkItems = m_ndrange[0] * m_ndrange[1] * m_ndrange[2];
+  WorkItem *workItems[totalWorkItems];
+  for (int k = 0; k < m_ndrange[2]; k++)
+  {
+    for (int j = 0; j < m_ndrange[1]; j++)
+    {
+      for (int i = 0; i < m_ndrange[0]; i++)
+      {
+        workItems[i + (j + k*m_ndrange[1])*m_ndrange[0]] =
+          new WorkItem(*m_kernel, *m_globalMemory, i, j, k);
+      }
+    }
+  }
+  workItems[0]->enableDebugOutput(true);
+
+  // Iterate over instructions in function
+  // TODO: Implement non-linear control flow
+  llvm::const_inst_iterator iitr;
+  for (iitr = inst_begin(m_function); iitr != inst_end(m_function); iitr++)
+  {
+    for (int i = 0; i < totalWorkItems; i++)
+    {
+      workItems[i]->execute(*iitr);
     }
   }
 
   // Temporarily dump memories (TODO: Remove)
   workItems[0]->dumpPrivateMemory();
-  globalMemory.dump();
-  for (int i = 0; i < globalSize; i++)
+  m_globalMemory->dump();
+  for (int i = 0; i < totalWorkItems; i++)
   {
     delete workItems[i];
   }
