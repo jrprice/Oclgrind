@@ -108,7 +108,6 @@ bool Simulator::init(istream& input)
       // Create scalar argument
       value.size = size;
       value.data = new unsigned char[value.size];
-      cout << size << endl;
       for (i = 0; i < size; i++)
       {
         input >> byte;

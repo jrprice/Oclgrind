@@ -4,6 +4,7 @@
 #define __STDC_CONSTANT_MACROS
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Type.h"
+#include "llvm/IR/InstrTypes.h"
 
 #include "GlobalMemory.h"
 #include "Kernel.h"
@@ -63,11 +64,19 @@ void WorkItem::execute(const llvm::Instruction& instruction)
 {
   // Prepare private variable for instruction result
   size_t resultSize = instruction.getType()->getPrimitiveSizeInBits() >> 3;
+
   // TODO: Is this necessary for GEP?
   if (instruction.getOpcode() == llvm::Instruction::GetElementPtr)
   {
     // TODO: Configurable pointer size
     resultSize = 4;
+  }
+
+  // TODO: Is this necessary for ?Cmp instructions?
+  if (instruction.getOpcode() == llvm::Instruction::ICmp ||
+      instruction.getOpcode() == llvm::Instruction::FCmp)
+  {
+    resultSize = 1;
   }
 
   // TODO: Only allocate if not in map already?
@@ -96,19 +105,23 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     // TODO: Currently assume call is get_global_id(0)
     *result.data = m_globalID[0];
     break;
+  case llvm::Instruction::FAdd:
+    *result.data = fadd(instruction);
+    break;
   case llvm::Instruction::GetElementPtr:
-    *result.data = getElementPtr(instruction);
+    *result.data = gep(instruction);
+    break;
+  case llvm::Instruction::ICmp:
+    *result.data = icmp(instruction);
     break;
   case llvm::Instruction::Load:
     load(instruction, result.data);
     break;
+  case llvm::Instruction::Ret:
+    // TODO: Implement
+    break;
   case llvm::Instruction::Store:
     store(instruction);
-    break;
-  case llvm::Instruction::FAdd:
-    *result.data = FAdd(instruction);
-    break;
-  case llvm::Instruction::Ret:
     break;
   default:
     cout << "Unhandled instruction: " << instruction.getOpcodeName() << endl;
@@ -126,19 +139,56 @@ void WorkItem::execute(const llvm::Instruction& instruction)
 //// Instruction execution  ////
 ////////////////////////////////
 
-float WorkItem::FAdd(const llvm::Instruction& instruction)
+float WorkItem::fadd(const llvm::Instruction& instruction)
 {
   float a = *m_privateMemory[instruction.getOperand(0)].data;
   float b = *m_privateMemory[instruction.getOperand(1)].data;
   return a + b;
 }
 
-size_t WorkItem::getElementPtr(const llvm::Instruction& instruction)
+size_t WorkItem::gep(const llvm::Instruction& instruction)
 {
   // TODO: Use actual size of type
   size_t base  = *m_privateMemory[instruction.getOperand(0)].data;
   size_t offset = *m_privateMemory[instruction.getOperand(1)].data;
   return base + offset*4;
+}
+
+bool WorkItem::icmp(const llvm::Instruction& instruction)
+{
+  // Load operands
+  llvm::CmpInst::Predicate pred = ((llvm::CmpInst*)&instruction)->getPredicate();
+  unsigned int ua = *m_privateMemory[instruction.getOperand(0)].data;
+  unsigned int ub = *m_privateMemory[instruction.getOperand(1)].data;
+  int sa = *m_privateMemory[instruction.getOperand(0)].data;
+  int sb = *m_privateMemory[instruction.getOperand(1)].data;
+
+  switch (pred)
+  {
+  case llvm::CmpInst::ICMP_EQ:
+    return ua == ub;
+  case llvm::CmpInst::ICMP_NE:
+    return ua != ub;
+  case llvm::CmpInst::ICMP_UGT:
+    return ua > ub;
+  case llvm::CmpInst::ICMP_UGE:
+    return ua >= ub;
+  case llvm::CmpInst::ICMP_ULT:
+    return ua < ub;
+  case llvm::CmpInst::ICMP_ULE:
+    return ua <= ub;
+  case llvm::CmpInst::ICMP_SGT:
+    return sa > sb;
+  case llvm::CmpInst::ICMP_SGE:
+    return sa >= sb;
+  case llvm::CmpInst::ICMP_SLT:
+    return sa < sb;
+  case llvm::CmpInst::ICMP_SLE:
+    return sa <= sb;
+  default:
+    cout << "Unhandled ICmp predicated." << endl;
+    return false;
+  }
 }
 
 void WorkItem::load(const llvm::Instruction& instruction,
