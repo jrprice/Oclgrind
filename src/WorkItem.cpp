@@ -1,7 +1,4 @@
-#include "config.h"
-#include <iomanip>
-#include <iostream>
-#include <map>
+#include "common.h"
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
@@ -23,12 +20,10 @@ WorkItem::WorkItem(const Kernel& kernel, GlobalMemory& globalMem,
   m_globalID[2] = gid_z;
 
   // Store kernel arguments in private memory
-  KernelArgs::const_iterator aitr;
+  TypedValueMap::const_iterator aitr;
   for (aitr = kernel.args_begin(); aitr != kernel.args_end(); aitr++)
   {
-    PrivateVariable arg = {4, new unsigned char[4]};
-    *arg.data = aitr->second;
-    m_privateMemory[aitr->first] = arg;
+    m_privateMemory[aitr->first] = clone(aitr->second);
   }
 }
 
@@ -39,7 +34,7 @@ void WorkItem::dumpPrivateMemory() const
        << m_globalID[1] << ","
        << m_globalID[2] << "):" << endl;
 
-  PrivateMemory::const_iterator pmitr;
+  TypedValueMap::const_iterator pmitr;
   for (pmitr = m_privateMemory.begin(); pmitr != m_privateMemory.end(); pmitr++)
   {
     // Output symbolic name if available
@@ -76,7 +71,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   }
 
   // TODO: Only allocate if not in map already?
-  PrivateVariable result = {resultSize, new unsigned char[resultSize]};
+  TypedValue result = {resultSize, new unsigned char[resultSize]};
 
   // Temporary: Dump instruction sequence (TODO: remove)
   if (m_debugOutput)

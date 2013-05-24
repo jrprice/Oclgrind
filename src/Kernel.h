@@ -1,21 +1,14 @@
-#include "config.h"
-
-namespace llvm
-{
-  class Value;
-}
-
-typedef std::map<const llvm::Value*,size_t> KernelArgs;
+#include "common.h"
 
 class Kernel
 {
 public:
   Kernel();
 
-  KernelArgs::const_iterator args_begin() const {return m_arguments.begin();};
-  KernelArgs::const_iterator args_end() const {return m_arguments.end();};
-  void setArgument(const llvm::Value *arg, size_t value);
+  TypedValueMap::const_iterator args_begin() const {return m_arguments.begin();};
+  TypedValueMap::const_iterator args_end() const {return m_arguments.end();};
+  void setArgument(const llvm::Value *arg, TypedValue value);
 
 private:
-  KernelArgs m_arguments;
+  TypedValueMap m_arguments;
 };

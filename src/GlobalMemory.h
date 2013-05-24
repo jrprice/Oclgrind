@@ -1,4 +1,4 @@
-#include "config.h"
+#include "common.h"
 
 class GlobalMemory
 {

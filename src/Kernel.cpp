@@ -1,6 +1,4 @@
-#include "config.h"
-#include <iostream>
-#include <map>
+#include "common.h"
 
 #include "Kernel.h"
 
@@ -10,7 +8,7 @@ Kernel::Kernel()
 {
 }
 
-void Kernel::setArgument(const llvm::Value *arg, size_t value)
+void Kernel::setArgument(const llvm::Value *arg, TypedValue value)
 {
   m_arguments[arg] = value;
 }

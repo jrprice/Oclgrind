@@ -1,23 +1,12 @@
-#include "config.h"
+#include "common.h"
 
 namespace llvm
 {
   class Instruction;
-  class Value;
 }
 
 class GlobalMemory;
 class Kernel;
-
-// Structure for a private variable
-typedef struct
-{
-  size_t size;
-  unsigned char *data;
-} PrivateVariable;
-
-// Private memory map type
-typedef std::map<const llvm::Value*,PrivateVariable> PrivateMemory;
 
 class WorkItem
 {
@@ -36,7 +25,7 @@ public:
 
 private:
   size_t m_globalID[3];
-  PrivateMemory m_privateMemory;
+  TypedValueMap m_privateMemory;
   GlobalMemory& m_globalMemory;
 
   bool m_debugOutput;

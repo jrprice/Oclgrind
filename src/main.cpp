@@ -1,6 +1,5 @@
-#include "config.h"
+#include "common.h"
 #include <fstream>
-#include <iostream>
 
 #include "Simulator.h"
 

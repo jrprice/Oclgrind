@@ -1,5 +1,4 @@
-#include "config.h"
-#include <iostream>
+#include "common.h"
 #include <istream>
 
 #define __STDC_LIMIT_MACROS
@@ -78,9 +77,10 @@ bool Simulator::init(istream& input)
   {
     char type;
     size_t size;
-    size_t value;
+    size_t address;
     int i;
     int byte;
+    TypedValue value;
 
     input >> type >> size;
 
@@ -88,20 +88,33 @@ bool Simulator::init(istream& input)
     {
     case 'b':
       // Allocate buffer
-      value = m_globalMemory->allocateBuffer(size);
+      address = m_globalMemory->allocateBuffer(size);
 
       // Initialise buffer
       for (i = 0; i < size; i++)
       {
         input >> byte;
-        m_globalMemory->store(value + i, (unsigned char)byte);
+        m_globalMemory->store(address + i, (unsigned char)byte);
       }
+
+      // TODO: Pointer size
+      // TODO: Address assignment
+      value.size = 4;
+      value.data = new unsigned char[value.size];
+      *value.data = address;
 
       break;
     case 's':
-      // TODO: Handle scalar arguments
-      cout << "Scalar kernel arguments not implemented." << endl;
-      return false;
+      // Create scalar argument
+      value.size = size;
+      value.data = new unsigned char[value.size];
+      cout << size << endl;
+      for (i = 0; i < size; i++)
+      {
+        input >> byte;
+        value.data[i] = (unsigned char)byte;
+      }
+
       break;
     default:
       cout << "Unrecognised argument type '" << type << "'" << endl;

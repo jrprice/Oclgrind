@@ -1,7 +1,4 @@
-#include "config.h"
-#include <iomanip>
-#include <iostream>
-#include <vector>
+#include "common.h"
 
 #include "GlobalMemory.h"
 
