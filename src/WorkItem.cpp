@@ -6,6 +6,7 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 #include "llvm/IR/Instruction.h"
+#include "llvm/IR/Type.h"
 
 #include "WorkItem.h"
 
@@ -52,9 +53,32 @@ void WorkItem::dumpPrivateMemory() const
 
 void WorkItem::execute(const llvm::Instruction& instruction)
 {
-  // TODO: Compute actual result
-  int result = 0;
+  // Prepare private variable for instruction result
+  size_t resultSize = instruction.getType()->getPrimitiveSizeInBits() >> 3;
+  // TODO: Is this necessary for GEP?
+  if (instruction.getOpcode() == llvm::Instruction::GetElementPtr)
+  {
+    // TODO: Configurable pointer size
+    resultSize = 4;
+  }
 
+  // TODO: Only allocate if not in map already?
+  PrivateVariable result = {resultSize, new unsigned char[resultSize]};
+
+  // Temporary: Dump instruction sequence (TODO: remove)
+  if (resultSize > 0)
+  {
+    cout << "%" << (&instruction) << "(" << resultSize << ") = ";
+  }
+  cout << left << setw(14) << instruction.getOpcodeName();
+  llvm::User::const_op_iterator opitr;
+  for (opitr = instruction.op_begin(); opitr != instruction.op_end(); opitr++)
+  {
+    cout << " %" << opitr->get();
+  }
+  cout << right << endl;
+
+  // Execute instruction
   switch (instruction.getOpcode())
   {
   case llvm::Instruction::Call:
@@ -74,21 +98,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     break;
   }
 
-  // Temporary: Dump instruction sequence (TODO: remove)
-  cout << "%" << (&instruction) << " = " << instruction.getOpcodeName();
-  llvm::User::const_op_iterator opitr;
-  for (opitr = instruction.op_begin(); opitr != instruction.op_end(); opitr++)
+  // Store result
+  if (resultSize > 0)
   {
-    cout << " %" << opitr->get();
+    m_privateMemory[&instruction] = result;
   }
-  cout << endl;
-
-  // TODO: Only store if instruction has result
-  // TODO: Only allocate if not in map already?
-  // TODO: Use actual size/type
-  PrivateVariable var;
-  var.size = 4;
-  var.data = new unsigned char(var.size);
-  *((int*)var.data) = result;
-  m_privateMemory[&instruction] = var;
 }
