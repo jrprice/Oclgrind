@@ -38,28 +38,66 @@ void GlobalMemory::dump() const
   cout << endl;
 }
 
-unsigned char GlobalMemory::load(size_t address)
+
+bool GlobalMemory::load(size_t address, unsigned char *dest)
 {
   // Bounds check
-  // TODO: Improve reporting
-  if (address >= m_allocated)
+  if (address > m_allocated)
   {
-    cout << "Memory access out of bounds" << endl;
-    return 0;
+    return false;
   }
 
-  return m_memory[address];
+  // Load data
+  *dest = m_memory[address];
+
+  return true;
 }
 
-void GlobalMemory::store(size_t address, unsigned char value)
+
+bool GlobalMemory::load(size_t address, size_t size, unsigned char *dest)
 {
   // Bounds check
-  // TODO: Improve reporting
-  if (address >= m_allocated)
+  if (address+size > m_allocated)
   {
-    cout << "Memory access out of bounds" << endl;
-    return;
+    return false;
   }
 
-  m_memory[address] = value;
+  // Load data
+  for (int i = 0; i < size; i++)
+  {
+    dest[i] = m_memory[address + i];
+  }
+
+  return true;
+}
+
+bool GlobalMemory::store(size_t address, unsigned char source)
+{
+  // Bounds check
+  if (address > m_allocated)
+  {
+    return false;
+  }
+
+  // Store byte
+  m_memory[address] = source;
+
+  return true;
+}
+
+bool GlobalMemory::store(size_t address, size_t size, unsigned char *source)
+{
+  // Bounds check
+  if (address+size > m_allocated)
+  {
+    return false;
+  }
+
+  // Store data
+  for (int i = 0; i < size; i++)
+  {
+    m_memory[address + i] = source[i];
+  }
+
+  return true;
 }

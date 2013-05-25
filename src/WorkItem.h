@@ -1,10 +1,5 @@
 #include "common.h"
 
-namespace llvm
-{
-  class Instruction;
-}
-
 class GlobalMemory;
 class Kernel;
 
@@ -15,9 +10,12 @@ public:
            size_t gid_x, size_t gid_y=0, size_t gid_z=0);
 
   void dumpPrivateMemory() const;
-  void enableDebugOutput(bool enable) {m_debugOutput = enable;};
+  void enableDebugOutput(bool enable);
   void execute(const llvm::Instruction& instruction);
-  const llvm::Value* getNextBlock() const {return m_nextBlock;};
+  const llvm::Value* getNextBlock() const;
+  void outputMemoryError(const llvm::Instruction& instruction,
+                         const std::string& msg,
+                         size_t address, size_t size) const;
 
   void br(const llvm::Instruction& instruction);
   float fadd(const llvm::Instruction& instruction);

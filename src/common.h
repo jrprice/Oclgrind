@@ -9,6 +9,7 @@
 
 namespace llvm
 {
+  class Instruction;
   class Value;
 }
 
@@ -23,13 +24,13 @@ typedef struct
 typedef std::map<const llvm::Value*,TypedValue> TypedValueMap;
 
 // Clone a TypedValue
-static TypedValue clone(TypedValue source)
-{
-  TypedValue dest;
-  dest.size = source.size;
-  dest.data = new unsigned char[dest.size];
-  memcpy(dest.data, source.data, dest.size);
-  return dest;
-}
+extern TypedValue clone(const TypedValue& source);
+
+// Output an instruction in human-readable format
+extern void dumpInstruction(const llvm::Instruction& instruction,
+                            bool align=false);
+
+// Returns the size of an instruction's result
+extern size_t getInstructionResultSize(const llvm::Instruction& instruction);
 
 #endif // __common_h_

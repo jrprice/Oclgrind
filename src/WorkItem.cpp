@@ -36,18 +36,12 @@ void WorkItem::dumpPrivateMemory() const
        << m_globalID[2] << "):" << endl;
 
   TypedValueMap::const_iterator pmitr;
-  for (pmitr = m_privateMemory.begin(); pmitr != m_privateMemory.end(); pmitr++)
+  for (pmitr = m_privateMemory.begin();
+       pmitr != m_privateMemory.end(); pmitr++)
   {
-    // Output symbolic name if available
-    cout << setw(16) << setfill(' ');
-    if (pmitr->first->hasName())
-    {
-      cout << pmitr->first->getName().str() << ":";
-    }
-    else
-    {
-      cout << pmitr->first << ":";
-    }
+    // Output symbolic name
+    cout << setw(10) << setfill(' ') << left;
+    cout << pmitr->first->getName().str() << ":";
 
     // TODO: Interpret type?
     // TODO: Deal with larger private variables (e.g. arrays)
@@ -60,24 +54,15 @@ void WorkItem::dumpPrivateMemory() const
   }
 }
 
+void WorkItem::enableDebugOutput(bool enable)
+{
+  m_debugOutput = enable;
+}
+
 void WorkItem::execute(const llvm::Instruction& instruction)
 {
   // Prepare private variable for instruction result
-  size_t resultSize = instruction.getType()->getPrimitiveSizeInBits() >> 3;
-
-  // TODO: Is this necessary for GEP?
-  if (instruction.getOpcode() == llvm::Instruction::GetElementPtr)
-  {
-    // TODO: Configurable pointer size
-    resultSize = 4;
-  }
-
-  // TODO: Is this necessary for ?Cmp instructions?
-  if (instruction.getOpcode() == llvm::Instruction::ICmp ||
-      instruction.getOpcode() == llvm::Instruction::FCmp)
-  {
-    resultSize = 1;
-  }
+  size_t resultSize = getInstructionResultSize(instruction);
 
   // TODO: Only allocate if not in map already?
   TypedValue result = {resultSize, new unsigned char[resultSize]};
@@ -85,14 +70,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Temporary: Dump instruction sequence (TODO: remove)
   if (m_debugOutput)
   {
-    cout << "%" << (&instruction) << "(" << resultSize << ") = ";
-    cout << left << setw(14) << instruction.getOpcodeName();
-    llvm::User::const_op_iterator opitr;
-    for (opitr = instruction.op_begin(); opitr != instruction.op_end(); opitr++)
-    {
-      cout << " %" << opitr->get();
-    }
-    cout << right << endl;
+    dumpInstruction(instruction, true);
   }
 
   // Execute instruction
@@ -136,6 +114,26 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   }
 }
 
+const llvm::Value* WorkItem::getNextBlock() const
+{
+  return m_nextBlock;
+}
+
+void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
+                                 const std::string& msg,
+                                 size_t address, size_t size) const
+{
+  cout << endl << msg
+       << " of size " << size
+       << " at address " << hex << address
+       << " by work-item ("
+       << m_globalID[0] << ","
+       << m_globalID[1] << ","
+       << m_globalID[2] << ")"
+       << endl << "\t";
+  dumpInstruction(instruction);
+}
+
 ////////////////////////////////
 //// Instruction execution  ////
 ////////////////////////////////
@@ -175,7 +173,7 @@ size_t WorkItem::gep(const llvm::Instruction& instruction)
 bool WorkItem::icmp(const llvm::Instruction& instruction)
 {
   // Load operands
-  llvm::CmpInst::Predicate pred = ((llvm::CmpInst*)&instruction)->getPredicate();
+  llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
   unsigned int ua = *m_privateMemory[instruction.getOperand(0)].data;
   unsigned int ub = *m_privateMemory[instruction.getOperand(1)].data;
   int sa = *m_privateMemory[instruction.getOperand(0)].data;
@@ -214,10 +212,11 @@ void WorkItem::load(const llvm::Instruction& instruction,
 {
   // TODO: Load correct amount of data
   // TODO: Endian-ness?
+  size_t size = 4;
   size_t address = *m_privateMemory[instruction.getOperand(0)].data;
-  for (int i = 0; i < 4; i++)
+  if (!m_globalMemory.load(address, size, dest))
   {
-    dest[i] = m_globalMemory.load(address + i);
+    outputMemoryError(instruction, "Invalid write", address, size);
   }
 }
 
@@ -225,10 +224,11 @@ void WorkItem::store(const llvm::Instruction& instruction)
 {
   // TODO: Store correct amount of data
   // TODO: Endian-ness?
-  unsigned char *data = m_privateMemory[instruction.getOperand(0)].data;
+  size_t size = 4;
   size_t address = *m_privateMemory[instruction.getOperand(1)].data;
-  for (int i = 0; i < 4; i++)
+  unsigned char *data = m_privateMemory[instruction.getOperand(0)].data;
+  if (!m_globalMemory.store(address, size, data))
   {
-    m_globalMemory.store(address + i, data[i]);
+    outputMemoryError(instruction, "Invalid write", address, size);
   }
 }

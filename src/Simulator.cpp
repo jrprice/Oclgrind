@@ -6,8 +6,10 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
+#include "llvm/Pass.h"
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/SourceMgr.h"
+#include "llvm/Transforms/Scalar.h"
 
 #include "GlobalMemory.h"
 #include "Kernel.h"
@@ -35,6 +37,7 @@ bool Simulator::init(istream& input)
   string spir;
   string kernelName;
 
+  // Read simulation parameters
   input >> spir
         >> kernelName
         >> m_ndrange[0] >> m_ndrange[1] >> m_ndrange[2]
@@ -42,8 +45,8 @@ bool Simulator::init(istream& input)
 
   // Load IR module from file
   llvm::SMDiagnostic err;
-  m_module = ParseIRFile(spir, err, *m_context);
-  if (!m_module)
+  llvm::Module* module = ParseIRFile(spir, err, *m_context);
+  if (!module)
   {
     cout << "Failed to load SPIR." << endl;
     return false;
@@ -51,21 +54,31 @@ bool Simulator::init(istream& input)
 
   // Iterate over functions in module to find kernel
   m_function = NULL;
-  llvm::Module::const_iterator fitr;
-  for(fitr = m_module->begin(); fitr != m_module->end(); fitr++)
+  llvm::Function *function = NULL;
+  llvm::Module::iterator fitr;
+  for(fitr = module->begin(); fitr != module->end(); fitr++)
   {
     // Check kernel name
     if (fitr->getName().str() != kernelName)
       continue;
 
-    m_function = fitr;
+    function = fitr;
+
     break;
   }
-  if (m_function == NULL)
+  if (function == NULL)
   {
     cout << "Failed to locate kernel." << endl;
     return false;
   }
+
+  // Assign identifiers to unnamed temporaries
+  llvm::FunctionPass *instNamer = llvm::createInstructionNamerPass();
+  instNamer->runOnFunction(*((llvm::Function*)function));
+  delete instNamer;
+
+  m_module = module;
+  m_function = function;
 
   // Clear global memory
   m_globalMemory->clear();
