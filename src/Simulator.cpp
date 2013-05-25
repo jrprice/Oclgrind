@@ -155,14 +155,31 @@ void Simulator::run()
   }
   workItems[0]->enableDebugOutput(true);
 
-  // Iterate over instructions in function
-  // TODO: Implement non-linear control flow
-  llvm::const_inst_iterator iitr;
-  for (iitr = inst_begin(m_function); iitr != inst_end(m_function); iitr++)
+  // Iterate over work-items
+  // TODO: Non-sequential work-item execution
+  for (int i = 0; i < totalWorkItems; i++)
   {
-    for (int i = 0; i < totalWorkItems; i++)
+    // Iterate over basic blocks in function
+    llvm::Function::const_iterator bitr;
+    for (bitr = m_function->begin(); bitr != m_function->end();)
     {
-      workItems[i]->execute(*iitr);
+      // Iterate over instructions in block
+      llvm::BasicBlock::const_iterator iitr;
+      for (iitr = bitr->begin(); iitr != bitr->end(); iitr++)
+      {
+        workItems[i]->execute(*iitr);
+      }
+
+      // Get next block
+      if (workItems[i]->getNextBlock() == NULL)
+      {
+        // TODO: Cleaner way of handling ret terminator
+        break;
+      }
+      else
+      {
+        bitr = (const llvm::BasicBlock*)(workItems[i]->getNextBlock());
+      }
     }
   }
 

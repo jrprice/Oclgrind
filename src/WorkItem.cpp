@@ -85,10 +85,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Temporary: Dump instruction sequence (TODO: remove)
   if (m_debugOutput)
   {
-    if (resultSize > 0)
-    {
-      cout << "%" << (&instruction) << "(" << resultSize << ") = ";
-    }
+    cout << "%" << (&instruction) << "(" << resultSize << ") = ";
     cout << left << setw(14) << instruction.getOpcodeName();
     llvm::User::const_op_iterator opitr;
     for (opitr = instruction.op_begin(); opitr != instruction.op_end(); opitr++)
@@ -101,6 +98,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Execute instruction
   switch (instruction.getOpcode())
   {
+  case llvm::Instruction::Br:
+    br(instruction);
+    break;
   case llvm::Instruction::Call:
     // TODO: Currently assume call is get_global_id(0)
     *result.data = m_globalID[0];
@@ -118,7 +118,8 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     load(instruction, result.data);
     break;
   case llvm::Instruction::Ret:
-    // TODO: Implement
+    // TODO: Cleaner handling of ret
+    m_nextBlock = NULL;
     break;
   case llvm::Instruction::Store:
     store(instruction);
@@ -138,6 +139,23 @@ void WorkItem::execute(const llvm::Instruction& instruction)
 ////////////////////////////////
 //// Instruction execution  ////
 ////////////////////////////////
+
+void WorkItem::br(const llvm::Instruction& instruction)
+{
+  if (instruction.getNumOperands() == 1)
+  {
+    // Unconditional branch
+    m_nextBlock = instruction.getOperand(0);
+  }
+  else
+  {
+    // Conditional branch
+    bool pred = *m_privateMemory[instruction.getOperand(0)].data;
+    llvm::Value *iftrue = instruction.getOperand(2);
+    llvm::Value *iffalse = instruction.getOperand(1);
+    m_nextBlock = pred ? iftrue : iffalse;
+  }
+}
 
 float WorkItem::fadd(const llvm::Instruction& instruction)
 {

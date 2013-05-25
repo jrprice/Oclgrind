@@ -17,7 +17,9 @@ public:
   void dumpPrivateMemory() const;
   void enableDebugOutput(bool enable) {m_debugOutput = enable;};
   void execute(const llvm::Instruction& instruction);
+  const llvm::Value* getNextBlock() const {return m_nextBlock;};
 
+  void br(const llvm::Instruction& instruction);
   float fadd(const llvm::Instruction& instruction);
   bool icmp(const llvm::Instruction& instruction);
   size_t gep(const llvm::Instruction& instruction);
@@ -28,6 +30,8 @@ private:
   size_t m_globalID[3];
   TypedValueMap m_privateMemory;
   GlobalMemory& m_globalMemory;
+
+  const llvm::Value *m_nextBlock;
 
   bool m_debugOutput;
 };
