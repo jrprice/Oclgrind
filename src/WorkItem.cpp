@@ -2,6 +2,7 @@
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
+#include "llvm/DebugInfo.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/InstrTypes.h"
@@ -132,6 +133,20 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
        << m_globalID[2] << ")"
        << endl << "\t";
   dumpInstruction(instruction);
+
+  // Output debug information
+  cout << "\t";
+  llvm::MDNode *md = instruction.getMetadata("dbg");
+  if (!md)
+  {
+    cout << "Debugging information not available." << endl;
+  }
+  else
+  {
+    llvm::DILocation loc(md);
+    cout << "At line " << dec << loc.getLineNumber()
+         << " of " << loc.getFilename().str() << endl;
+  }
 }
 
 ////////////////////////////////
