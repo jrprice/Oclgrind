@@ -18,10 +18,13 @@ TypedValue clone(const TypedValue& source)
 
 void dumpInstruction(const llvm::Instruction& instruction, bool align)
 {
+  cout << setfill(' ');
+
   size_t resultSize = getInstructionResultSize(instruction);
   if (resultSize > 0)
   {
-    cout << "%" << setw(10) << left << instruction.getName().str()
+    cout << "%" << setw(10) <<  left
+         << instruction.getName().str()
          << "(" << resultSize << ") = ";
   }
   else if (align)

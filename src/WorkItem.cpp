@@ -34,7 +34,8 @@ void WorkItem::dumpPrivateMemory() const
   cout << endl << "Work-item ("
        << m_globalID[0] << ","
        << m_globalID[1] << ","
-       << m_globalID[2] << "):" << endl;
+       << m_globalID[2]
+       << ") Private Memory:" << endl;
 
   TypedValueMap::const_iterator pmitr;
   for (pmitr = m_privateMemory.begin();
@@ -115,6 +116,11 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   }
 }
 
+const size_t* WorkItem::getGlobalID() const
+{
+  return m_globalID;
+}
+
 const llvm::Value* WorkItem::getNextBlock() const
 {
   return m_nextBlock;
@@ -147,6 +153,7 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
     cout << "At line " << dec << loc.getLineNumber()
          << " of " << loc.getFilename().str() << endl;
   }
+  cout << endl;
 }
 
 ////////////////////////////////

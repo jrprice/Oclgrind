@@ -18,6 +18,8 @@
 
 using namespace std;
 
+#define SEPARATOR "--------------------------------"
+
 Simulator::Simulator()
 {
   m_context = new llvm::LLVMContext;
@@ -161,17 +163,31 @@ void Simulator::run()
     {
       for (int i = 0; i < m_ndrange[0]; i++)
       {
-        workItems[i + (j + k*m_ndrange[1])*m_ndrange[0]] =
-          new WorkItem(*m_kernel, *m_globalMemory, i, j, k);
+        WorkItem *workItem = new WorkItem(*m_kernel, *m_globalMemory, i, j, k);
+        workItem->enableDebugOutput(m_outputMask & OUTPUT_INSTRUCTIONS);
+        workItems[i + (j + k*m_ndrange[1])*m_ndrange[0]] = workItem;
       }
     }
   }
-  workItems[0]->enableDebugOutput(true);
 
   // Iterate over work-items
   // TODO: Non-sequential work-item execution
   for (int i = 0; i < totalWorkItems; i++)
   {
+    if (m_outputMask & (OUTPUT_PRIVATE_MEM | OUTPUT_INSTRUCTIONS))
+    {
+      cout << SEPARATOR << endl;
+    }
+    if (m_outputMask & OUTPUT_INSTRUCTIONS)
+    {
+      const size_t *gid = workItems[i]->getGlobalID();
+      cout << "Work-item ("
+           << gid[0] << ","
+           << gid[1] << ","
+           << gid[2]
+           << ") Instructions:" << endl;
+    }
+
     // Iterate over basic blocks in function
     llvm::Function::const_iterator bitr;
     for (bitr = m_function->begin(); bitr != m_function->end();)
@@ -194,13 +210,32 @@ void Simulator::run()
         bitr = (const llvm::BasicBlock*)(workItems[i]->getNextBlock());
       }
     }
+
+    if (m_outputMask & OUTPUT_PRIVATE_MEM)
+    {
+      workItems[i]->dumpPrivateMemory();
+    }
+
+    if (m_outputMask & (OUTPUT_PRIVATE_MEM | OUTPUT_INSTRUCTIONS))
+    {
+      cout << SEPARATOR << endl;
+    }
   }
 
-  // Temporarily dump memories (TODO: Remove)
-  workItems[0]->dumpPrivateMemory();
-  m_globalMemory->dump();
+  // Delete work-items and output private memory dump if required
   for (int i = 0; i < totalWorkItems; i++)
   {
     delete workItems[i];
   }
+
+  // Output global memory dump if required
+  if (m_outputMask & OUTPUT_GLOBAL_MEM)
+  {
+    m_globalMemory->dump();
+  }
+}
+
+void Simulator::setOutputMask(unsigned char mask)
+{
+  m_outputMask = mask;
 }

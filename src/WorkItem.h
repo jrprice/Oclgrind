@@ -12,6 +12,7 @@ public:
   void dumpPrivateMemory() const;
   void enableDebugOutput(bool enable);
   void execute(const llvm::Instruction& instruction);
+  const size_t* getGlobalID() const;
   const llvm::Value* getNextBlock() const;
   void outputMemoryError(const llvm::Instruction& instruction,
                          const std::string& msg,
