@@ -29,7 +29,8 @@ void GlobalMemory::dump() const
   {
     if (i%4 == 0)
     {
-      cout << endl << hex << uppercase << setw(16) << setfill(' ')
+      cout << endl << hex << uppercase
+           << setw(16) << setfill(' ') << right
            << i << ":";
     }
     cout << " " << hex << uppercase << setw(2) << setfill('0')

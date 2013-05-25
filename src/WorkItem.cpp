@@ -3,6 +3,7 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 #include "llvm/DebugInfo.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/InstrTypes.h"
@@ -187,6 +188,7 @@ float WorkItem::fadd(const llvm::Instruction& instruction)
 size_t WorkItem::gep(const llvm::Instruction& instruction)
 {
   // TODO: Use actual size of type
+  // TODO: Non-instruction operands
   size_t base  = *m_privateMemory[instruction.getOperand(0)].data;
   size_t offset = *m_privateMemory[instruction.getOperand(1)].data;
   return base + offset*4;
@@ -244,13 +246,55 @@ void WorkItem::load(const llvm::Instruction& instruction,
 
 void WorkItem::store(const llvm::Instruction& instruction)
 {
-  // TODO: Store correct amount of data
-  // TODO: Endian-ness?
-  size_t size = 4;
+  // TODO: Address space
   size_t address = *m_privateMemory[instruction.getOperand(1)].data;
-  unsigned char *data = m_privateMemory[instruction.getOperand(0)].data;
+
+  // TODO: Genericise operand handling
+  const llvm::Value *value = instruction.getOperand(0);
+  size_t size = value->getType()->getPrimitiveSizeInBits() >> 3;
+  unsigned char *data = new unsigned char[size];
+
+  switch (value->getValueID())
+  {
+  case llvm::Value::ConstantFPVal:
+    if (size == 4)
+    {
+      (*(float*)data) =
+        ((llvm::ConstantFP*)value)->getValueAPF().convertToFloat();
+    }
+    else if (size == 8)
+    {
+      (*(double*)data) =
+        ((llvm::ConstantFP*)value)->getValueAPF().convertToDouble();
+    }
+    else
+    {
+      cout << "Unhandled APFloat size." << endl;
+    }
+    break;
+  case llvm::Value::ConstantIntVal:
+    memcpy((uint64_t*)data,
+           ((llvm::ConstantInt*)value)->getValue().getRawData(),
+           size);
+    break;
+  default:
+    if (m_privateMemory.find(value) != m_privateMemory.end())
+    {
+      // TODO: Cleaner solution for this
+      memcpy(data, m_privateMemory[value].data, size);
+    }
+    else
+    {
+      cout << "Unhandled operand type." << endl;
+    }
+    break;
+  }
+
+  // TODO: Endian-ness?
   if (!m_globalMemory.store(address, size, data))
   {
     outputMemoryError(instruction, "Invalid write", address, size);
   }
+
+  delete[] data;
 }

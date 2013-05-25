@@ -156,7 +156,7 @@ void Simulator::run()
 
   // Initialise work-items
   size_t totalWorkItems = m_ndrange[0] * m_ndrange[1] * m_ndrange[2];
-  WorkItem *workItems[totalWorkItems];
+  WorkItem **workItems = new WorkItem*[totalWorkItems];
   for (int k = 0; k < m_ndrange[2]; k++)
   {
     for (int j = 0; j < m_ndrange[1]; j++)
@@ -227,6 +227,7 @@ void Simulator::run()
   {
     delete workItems[i];
   }
+  delete[] workItems;
 
   // Output global memory dump if required
   if (m_outputMask & OUTPUT_GLOBAL_MEM)
