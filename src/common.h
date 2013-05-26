@@ -33,4 +33,7 @@ extern void dumpInstruction(const llvm::Instruction& instruction,
 // Returns the size of an instruction's result
 extern size_t getInstructionResultSize(const llvm::Instruction& instruction);
 
+// Returns true if the operand is a constant value
+extern bool isConstantOperand(const llvm::Value *operand);
+
 #endif // __common_h_

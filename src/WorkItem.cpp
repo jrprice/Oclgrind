@@ -5,6 +5,7 @@
 #include "llvm/DebugInfo.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/InstrTypes.h"
 
@@ -44,7 +45,7 @@ void WorkItem::dumpPrivateMemory() const
   {
     // Output symbolic name
     cout << setw(10) << setfill(' ') << left;
-    cout << pmitr->first->getName().str() << ":";
+    cout << pmitr->first->getName().str() << right << ":";
 
     // TODO: Interpret type?
     // TODO: Deal with larger private variables (e.g. arrays)
@@ -187,11 +188,30 @@ float WorkItem::fadd(const llvm::Instruction& instruction)
 
 size_t WorkItem::gep(const llvm::Instruction& instruction)
 {
-  // TODO: Use actual size of type
-  // TODO: Non-instruction operands
-  size_t base  = *m_privateMemory[instruction.getOperand(0)].data;
-  size_t offset = *m_privateMemory[instruction.getOperand(1)].data;
-  return base + offset*4;
+  const llvm::GetElementPtrInst *gepInst =
+    (const llvm::GetElementPtrInst*)&instruction;
+
+  const llvm::Value *baseOperand = gepInst->getPointerOperand();
+  size_t base = *m_privateMemory[baseOperand].data;
+
+  // TODO: Multiple indices (use GEP instruction)
+  size_t offset;
+  const llvm::Value *offsetOperand = instruction.getOperand(1);
+  if (isConstantOperand(offsetOperand))
+  {
+    // TODO: Is this a valid method of extracting offset?
+    offset = ((llvm::ConstantInt*)offsetOperand)->getLimitedValue();
+  }
+  else
+  {
+    offset = *m_privateMemory[offsetOperand].data;
+  }
+
+  // Get element size
+  const llvm::Type *ptrType = gepInst->getPointerOperandType();
+  size_t size = ptrType->getPointerElementType()->getPrimitiveSizeInBits()>>3;
+
+  return base + offset*size;
 }
 
 bool WorkItem::icmp(const llvm::Instruction& instruction)

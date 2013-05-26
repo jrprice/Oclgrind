@@ -36,6 +36,7 @@ void dumpInstruction(const llvm::Instruction& instruction, bool align)
   llvm::User::const_op_iterator opitr;
   for (opitr = instruction.op_begin(); opitr != instruction.op_end(); opitr++)
   {
+    // TODO: Constant values
     cout << " %" << opitr->get()->getName().str();
   }
 
@@ -61,4 +62,11 @@ size_t getInstructionResultSize(const llvm::Instruction& instruction)
   }
 
   return resultSize;
+}
+
+bool isConstantOperand(const llvm::Value *operand)
+{
+  unsigned id = operand->getValueID();
+  return (id >= llvm::Value::ConstantFirstVal &&
+          id <= llvm::Value::ConstantLastVal);
 }
