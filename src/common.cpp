@@ -50,15 +50,14 @@ size_t getInstructionResultSize(const llvm::Instruction& instruction)
   // TODO: Is this necessary for GEP?
   if (instruction.getOpcode() == llvm::Instruction::GetElementPtr)
   {
-    // TODO: Configurable pointer size
-    resultSize = 4;
+    resultSize = sizeof(size_t);
   }
 
   // TODO: Is this necessary for ?Cmp instructions?
   if (instruction.getOpcode() == llvm::Instruction::ICmp ||
       instruction.getOpcode() == llvm::Instruction::FCmp)
   {
-    resultSize = 1;
+    resultSize = sizeof(bool);
   }
 
   return resultSize;

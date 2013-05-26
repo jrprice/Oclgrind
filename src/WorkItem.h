@@ -19,10 +19,10 @@ public:
                          size_t address, size_t size) const;
 
   void br(const llvm::Instruction& instruction);
-  float fadd(const llvm::Instruction& instruction);
-  bool icmp(const llvm::Instruction& instruction);
-  size_t gep(const llvm::Instruction& instruction);
-  void load(const llvm::Instruction& instruction, unsigned char *dest);
+  void fadd(const llvm::Instruction& instruction, TypedValue& result);
+  void icmp(const llvm::Instruction& instruction, TypedValue& result);
+  void gep(const llvm::Instruction& instruction, TypedValue& result);
+  void load(const llvm::Instruction& instruction, TypedValue& result);
   void store(const llvm::Instruction& instruction);
 
 private:

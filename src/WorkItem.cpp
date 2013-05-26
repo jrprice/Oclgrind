@@ -88,16 +88,16 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     *result.data = m_globalID[0];
     break;
   case llvm::Instruction::FAdd:
-    *result.data = fadd(instruction);
+    fadd(instruction, result);
     break;
   case llvm::Instruction::GetElementPtr:
-    *result.data = gep(instruction);
+    gep(instruction, result);
     break;
   case llvm::Instruction::ICmp:
-    *result.data = icmp(instruction);
+    icmp(instruction, result);
     break;
   case llvm::Instruction::Load:
-    load(instruction, result.data);
+    load(instruction, result);
     break;
   case llvm::Instruction::Ret:
     // TODO: Cleaner handling of ret
@@ -179,14 +179,15 @@ void WorkItem::br(const llvm::Instruction& instruction)
   }
 }
 
-float WorkItem::fadd(const llvm::Instruction& instruction)
+void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
 {
+  // TODO: double
   float a = *m_privateMemory[instruction.getOperand(0)].data;
   float b = *m_privateMemory[instruction.getOperand(1)].data;
-  return a + b;
+  *((float*)result.data) = (a + b);
 }
 
-size_t WorkItem::gep(const llvm::Instruction& instruction)
+void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::GetElementPtrInst *gepInst =
     (const llvm::GetElementPtrInst*)&instruction;
@@ -211,10 +212,10 @@ size_t WorkItem::gep(const llvm::Instruction& instruction)
   const llvm::Type *ptrType = gepInst->getPointerOperandType();
   size_t size = ptrType->getPointerElementType()->getPrimitiveSizeInBits()>>3;
 
-  return base + offset*size;
+  *((size_t*)result.data) = base + offset*size;
 }
 
-bool WorkItem::icmp(const llvm::Instruction& instruction)
+void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
 {
   // Load operands
   llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
@@ -223,44 +224,55 @@ bool WorkItem::icmp(const llvm::Instruction& instruction)
   int sa = *m_privateMemory[instruction.getOperand(0)].data;
   int sb = *m_privateMemory[instruction.getOperand(1)].data;
 
+  bool b;
   switch (pred)
   {
   case llvm::CmpInst::ICMP_EQ:
-    return ua == ub;
+    b = ua == ub;
+    break;
   case llvm::CmpInst::ICMP_NE:
-    return ua != ub;
+    b = ua != ub;
+    break;
   case llvm::CmpInst::ICMP_UGT:
-    return ua > ub;
+    b = ua > ub;
+    break;
   case llvm::CmpInst::ICMP_UGE:
-    return ua >= ub;
+    b = ua >= ub;
+    break;
   case llvm::CmpInst::ICMP_ULT:
-    return ua < ub;
+    b = ua < ub;
+    break;
   case llvm::CmpInst::ICMP_ULE:
-    return ua <= ub;
+    b = ua <= ub;
+    break;
   case llvm::CmpInst::ICMP_SGT:
-    return sa > sb;
+    b = sa > sb;
+    break;
   case llvm::CmpInst::ICMP_SGE:
-    return sa >= sb;
+    b = sa >= sb;
+    break;
   case llvm::CmpInst::ICMP_SLT:
-    return sa < sb;
+    b = sa < sb;
+    break;
   case llvm::CmpInst::ICMP_SLE:
-    return sa <= sb;
+    b = sa <= sb;
+    break;
   default:
     cout << "Unhandled ICmp predicated." << endl;
-    return false;
+    break;
   }
+
+  *((bool*)result.data) = b;
 }
 
 void WorkItem::load(const llvm::Instruction& instruction,
-                    unsigned char *dest)
+                    TypedValue& result)
 {
-  // TODO: Load correct amount of data
   // TODO: Endian-ness?
-  size_t size = 4;
   size_t address = *m_privateMemory[instruction.getOperand(0)].data;
-  if (!m_globalMemory.load(address, size, dest))
+  if (!m_globalMemory.load(address, result.size, result.data))
   {
-    outputMemoryError(instruction, "Invalid write", address, size);
+    outputMemoryError(instruction, "Invalid write", address, result.size);
   }
 }
 

@@ -112,9 +112,8 @@ bool Simulator::init(istream& input)
         m_globalMemory->store(address + i, (unsigned char)byte);
       }
 
-      // TODO: Pointer size
       // TODO: Address assignment
-      value.size = 4;
+      value.size = sizeof(size_t);
       value.data = new unsigned char[value.size];
       *value.data = address;
 
