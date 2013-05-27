@@ -31,6 +31,17 @@ WorkItem::WorkItem(const Kernel& kernel, GlobalMemory& globalMem,
   }
 }
 
+WorkItem::~WorkItem()
+{
+  // Free private memory
+  TypedValueMap::iterator pmitr;
+  for (pmitr = m_privateMemory.begin();
+       pmitr != m_privateMemory.end(); pmitr++)
+  {
+    delete[] pmitr->second.data;
+  }
+}
+
 void WorkItem::dumpPrivateMemory() const
 {
   cout << endl << "Work-item ("
@@ -68,8 +79,17 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Prepare private variable for instruction result
   size_t resultSize = getInstructionResultSize(instruction);
 
-  // TODO: Only allocate if not in map already?
-  TypedValue result = {resultSize, new unsigned char[resultSize]};
+  // Allocate result memory if not in map already
+  TypedValue result = {resultSize, NULL};
+  if (m_privateMemory.find(&instruction) == m_privateMemory.end())
+  {
+    result.data = new unsigned char[resultSize];
+  }
+  else
+  {
+    assert(result.size == m_privateMemory[&instruction].size);
+    result.data = m_privateMemory[&instruction].data;
+  }
 
   // Temporary: Dump instruction sequence (TODO: remove)
   if (m_debugOutput)
@@ -182,8 +202,9 @@ void WorkItem::br(const llvm::Instruction& instruction)
 void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
 {
   // TODO: double
-  float a = *m_privateMemory[instruction.getOperand(0)].data;
-  float b = *m_privateMemory[instruction.getOperand(1)].data;
+  // TODO: constants
+  float a = *((float*)m_privateMemory[instruction.getOperand(0)].data);
+  float b = *((float*)m_privateMemory[instruction.getOperand(1)].data);
   *((float*)result.data) = (a + b);
 }
 
@@ -218,6 +239,7 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
 void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
 {
   // Load operands
+  // TODO: Constant operands
   llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
   unsigned int ua = *m_privateMemory[instruction.getOperand(0)].data;
   unsigned int ub = *m_privateMemory[instruction.getOperand(1)].data;
@@ -322,7 +344,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
     break;
   }
 
-  // TODO: Endian-ness?
+  // Store value
   if (!m_globalMemory.store(address, size, data))
   {
     outputMemoryError(instruction, "Invalid write", address, size);

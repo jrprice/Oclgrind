@@ -8,6 +8,7 @@ class WorkItem
 public:
   WorkItem(const Kernel& kernel, GlobalMemory &globalMem,
            size_t gid_x, size_t gid_y=0, size_t gid_z=0);
+  virtual ~WorkItem();
 
   void dumpPrivateMemory() const;
   void enableDebugOutput(bool enable);
