@@ -20,6 +20,7 @@ public:
                          size_t address, size_t size) const;
 
   void br(const llvm::Instruction& instruction);
+  void call(const llvm::Instruction& instruction, TypedValue& result);
   void fadd(const llvm::Instruction& instruction, TypedValue& result);
   void icmp(const llvm::Instruction& instruction, TypedValue& result);
   void gep(const llvm::Instruction& instruction, TypedValue& result);

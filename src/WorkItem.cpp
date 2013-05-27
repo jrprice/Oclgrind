@@ -104,8 +104,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     br(instruction);
     break;
   case llvm::Instruction::Call:
-    // TODO: Currently assume call is get_global_id(0)
-    *result.data = m_globalID[0];
+    call(instruction, result);
     break;
   case llvm::Instruction::FAdd:
     fadd(instruction, result);
@@ -197,6 +196,20 @@ void WorkItem::br(const llvm::Instruction& instruction)
     llvm::Value *iffalse = instruction.getOperand(1);
     m_nextBlock = pred ? iftrue : iffalse;
   }
+}
+
+void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
+{
+  const llvm::CallInst *callInst = (const llvm::CallInst*)&instruction;
+
+  // TODO: Currently assume call is get_global_id()
+  if (result.size == 0)
+  {
+    return;
+  }
+  llvm::ConstantInt *operand = (llvm::ConstantInt*)callInst->getArgOperand(0);
+  int dim = operand->getLimitedValue();
+  *result.data = m_globalID[0];
 }
 
 void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
