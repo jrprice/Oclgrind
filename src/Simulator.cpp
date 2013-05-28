@@ -97,7 +97,7 @@ bool Simulator::init(istream& input)
     int byte;
     TypedValue value;
 
-    input >> type >> size;
+    input >> type >> dec >> size;
 
     switch (type)
     {
@@ -108,7 +108,7 @@ bool Simulator::init(istream& input)
       // Initialise buffer
       for (i = 0; i < size; i++)
       {
-        input >> byte;
+        input >> hex >> byte;
         m_globalMemory->store(address + i, (unsigned char)byte);
       }
 
