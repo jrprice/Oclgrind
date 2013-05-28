@@ -23,13 +23,13 @@ void dumpInstruction(const llvm::Instruction& instruction, bool align)
   size_t resultSize = getInstructionResultSize(instruction);
   if (resultSize > 0)
   {
-    cout << "%" << setw(10) <<  left
+    cout << "%" << setw(12) <<  left
          << instruction.getName().str()
          << "(" << resultSize << ") = ";
   }
   else if (align)
   {
-    cout << setw(17) << " ";
+    cout << setw(19) << " ";
   }
 
   cout << left << setw(align?14:0) << instruction.getOpcodeName();

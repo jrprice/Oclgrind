@@ -403,7 +403,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
   size_t address = *m_privateMemory[instruction.getOperand(0)].data;
   if (!m_globalMemory.load(address, result.size, result.data))
   {
-    outputMemoryError(instruction, "Invalid write", address, result.size);
+    outputMemoryError(instruction, "Invalid read", address, result.size);
   }
 }
 
