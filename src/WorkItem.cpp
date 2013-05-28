@@ -100,6 +100,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Execute instruction
   switch (instruction.getOpcode())
   {
+  case llvm::Instruction::Add:
+    add(instruction, result);
+    break;
   case llvm::Instruction::And:
     land(instruction, result);
     break;
@@ -183,6 +186,35 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
 ////////////////////////////////
 //// Instruction execution  ////
 ////////////////////////////////
+
+void WorkItem::add(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: 64-bit, unsigned
+  // TODO: constants
+  int a, b;
+  const llvm::Value *opA = instruction.getOperand(0);
+  const llvm::Value *opB = instruction.getOperand(1);
+
+  if (isConstantOperand(opA))
+  {
+    a = ((llvm::ConstantInt*)opA)->getSExtValue();
+  }
+  else
+  {
+    a = *((int*)m_privateMemory[opA].data);
+  }
+
+  if (isConstantOperand(opB))
+  {
+    b = ((llvm::ConstantInt*)opB)->getSExtValue();
+  }
+  else
+  {
+    b = *((int*)m_privateMemory[opB].data);
+  }
+
+  *((int*)result.data) = (a + b);
+}
 
 void WorkItem::br(const llvm::Instruction& instruction)
 {

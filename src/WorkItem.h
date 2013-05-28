@@ -19,6 +19,7 @@ public:
                          const std::string& msg,
                          size_t address, size_t size) const;
 
+  void add(const llvm::Instruction& instruction, TypedValue& result);
   void br(const llvm::Instruction& instruction);
   void call(const llvm::Instruction& instruction, TypedValue& result);
   void fadd(const llvm::Instruction& instruction, TypedValue& result);
