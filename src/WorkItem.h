@@ -24,10 +24,12 @@ public:
   void br(const llvm::Instruction& instruction);
   void call(const llvm::Instruction& instruction, TypedValue& result);
   void fadd(const llvm::Instruction& instruction, TypedValue& result);
+  void fmul(const llvm::Instruction& instruction, TypedValue& result);
   void icmp(const llvm::Instruction& instruction, TypedValue& result);
   void gep(const llvm::Instruction& instruction, TypedValue& result);
   void land(const llvm::Instruction& instruction, TypedValue& result);
   void load(const llvm::Instruction& instruction, TypedValue& result);
+  void mul(const llvm::Instruction& instruction, TypedValue& result);
   void phi(const llvm::Instruction& instruction, TypedValue& result);
   void store(const llvm::Instruction& instruction);
 

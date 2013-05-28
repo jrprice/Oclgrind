@@ -119,6 +119,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::FAdd:
     fadd(instruction, result);
     break;
+  case llvm::Instruction::FMul:
+    fmul(instruction, result);
+    break;
   case llvm::Instruction::GetElementPtr:
     gep(instruction, result);
     break;
@@ -127,6 +130,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     break;
   case llvm::Instruction::Load:
     load(instruction, result);
+    break;
+  case llvm::Instruction::Mul:
+    mul(instruction, result);
     break;
   case llvm::Instruction::PHI:
     phi(instruction, result);
@@ -258,7 +264,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
   llvm::ConstantInt *operand = (llvm::ConstantInt*)callInst->getArgOperand(0);
   int dim = operand->getLimitedValue();
-  *result.data = m_globalID[0];
+  *result.data = m_globalID[dim];
 }
 
 void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
@@ -268,6 +274,15 @@ void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
   float a = *((float*)m_privateMemory[instruction.getOperand(0)].data);
   float b = *((float*)m_privateMemory[instruction.getOperand(1)].data);
   *((float*)result.data) = (a + b);
+}
+
+void WorkItem::fmul(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: double
+  // TODO: constants
+  float a = *((float*)m_privateMemory[instruction.getOperand(0)].data);
+  float b = *((float*)m_privateMemory[instruction.getOperand(1)].data);
+  *((float*)result.data) = (a * b);
 }
 
 void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
@@ -390,6 +405,35 @@ void WorkItem::load(const llvm::Instruction& instruction,
   {
     outputMemoryError(instruction, "Invalid write", address, result.size);
   }
+}
+
+void WorkItem::mul(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: 64-bit, unsigned
+  // TODO: constants
+  int a, b;
+  const llvm::Value *opA = instruction.getOperand(0);
+  const llvm::Value *opB = instruction.getOperand(1);
+
+  if (isConstantOperand(opA))
+  {
+    a = ((llvm::ConstantInt*)opA)->getSExtValue();
+  }
+  else
+  {
+    a = *((int*)m_privateMemory[opA].data);
+  }
+
+  if (isConstantOperand(opB))
+  {
+    b = ((llvm::ConstantInt*)opB)->getSExtValue();
+  }
+  else
+  {
+    b = *((int*)m_privateMemory[opB].data);
+  }
+
+  *((int*)result.data) = (a * b);
 }
 
 void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
