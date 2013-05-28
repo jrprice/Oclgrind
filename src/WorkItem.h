@@ -24,6 +24,7 @@ public:
   void fadd(const llvm::Instruction& instruction, TypedValue& result);
   void icmp(const llvm::Instruction& instruction, TypedValue& result);
   void gep(const llvm::Instruction& instruction, TypedValue& result);
+  void land(const llvm::Instruction& instruction, TypedValue& result);
   void load(const llvm::Instruction& instruction, TypedValue& result);
   void store(const llvm::Instruction& instruction);
 

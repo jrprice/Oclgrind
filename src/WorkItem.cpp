@@ -100,6 +100,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Execute instruction
   switch (instruction.getOpcode())
   {
+  case llvm::Instruction::And:
+    land(instruction, result);
+    break;
   case llvm::Instruction::Br:
     br(instruction);
     break;
@@ -254,10 +257,12 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
   // Load operands
   // TODO: Constant operands
   llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
-  unsigned int ua = *m_privateMemory[instruction.getOperand(0)].data;
-  unsigned int ub = *m_privateMemory[instruction.getOperand(1)].data;
-  int sa = *m_privateMemory[instruction.getOperand(0)].data;
-  int sb = *m_privateMemory[instruction.getOperand(1)].data;
+  unsigned char *op1 = m_privateMemory[instruction.getOperand(0)].data;
+  unsigned char *op2 = m_privateMemory[instruction.getOperand(1)].data;
+  unsigned int ua = *((unsigned int*)op1);
+  unsigned int ub = *((unsigned int*)op2);
+  int sa = *((int*)op1);
+  int sb = *((int*)op2);
 
   bool b;
   switch (pred)
@@ -298,6 +303,14 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
   }
 
   *((bool*)result.data) = b;
+}
+
+void WorkItem::land(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: Constant operands?
+  bool a = *m_privateMemory[instruction.getOperand(0)].data;
+  bool b = *m_privateMemory[instruction.getOperand(1)].data;
+  *((bool*)result.data) = a && b;
 }
 
 void WorkItem::load(const llvm::Instruction& instruction,

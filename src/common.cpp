@@ -53,9 +53,11 @@ size_t getInstructionResultSize(const llvm::Instruction& instruction)
     resultSize = sizeof(size_t);
   }
 
-  // TODO: Is this necessary for ?Cmp instructions?
+  // TODO: Is this necessary for boolean instructions?
+  // TODO: If so, there may be an isPredicate() or similar
   if (instruction.getOpcode() == llvm::Instruction::ICmp ||
-      instruction.getOpcode() == llvm::Instruction::FCmp)
+      instruction.getOpcode() == llvm::Instruction::FCmp ||
+      instruction.getOpcode() == llvm::Instruction::And)
   {
     resultSize = sizeof(bool);
   }
