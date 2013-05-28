@@ -191,6 +191,8 @@ void Simulator::run()
     llvm::Function::const_iterator bitr;
     for (bitr = m_function->begin(); bitr != m_function->end();)
     {
+      workItems[i]->setCurrentBlock(bitr);
+
       // Iterate over instructions in block
       llvm::BasicBlock::const_iterator iitr;
       for (iitr = bitr->begin(); iitr != bitr->end(); iitr++)

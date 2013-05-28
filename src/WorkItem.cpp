@@ -29,6 +29,10 @@ WorkItem::WorkItem(const Kernel& kernel, GlobalMemory& globalMem,
   {
     m_privateMemory[aitr->first] = clone(aitr->second);
   }
+
+  m_prevBlock = NULL;
+  m_currBlock = NULL;
+  m_nextBlock = NULL;
 }
 
 WorkItem::~WorkItem()
@@ -55,7 +59,7 @@ void WorkItem::dumpPrivateMemory() const
        pmitr != m_privateMemory.end(); pmitr++)
   {
     // Output symbolic name
-    cout << setw(10) << setfill(' ') << left;
+    cout << setw(12) << setfill(' ') << left;
     cout << pmitr->first->getName().str() << right << ":";
 
     // TODO: Interpret type?
@@ -124,6 +128,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::Load:
     load(instruction, result);
     break;
+  case llvm::Instruction::PHI:
+    phi(instruction, result);
+    break;
   case llvm::Instruction::Ret:
     // TODO: Cleaner handling of ret
     m_nextBlock = NULL;
@@ -181,6 +188,13 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
          << " of " << loc.getFilename().str() << endl;
   }
   cout << endl;
+}
+
+void WorkItem::setCurrentBlock(const llvm::Value *block)
+{
+  m_prevBlock = m_currBlock;
+  m_currBlock = block;
+  m_nextBlock = NULL;
 }
 
 ////////////////////////////////
@@ -375,6 +389,21 @@ void WorkItem::load(const llvm::Instruction& instruction,
   if (!m_globalMemory.load(address, result.size, result.data))
   {
     outputMemoryError(instruction, "Invalid write", address, result.size);
+  }
+}
+
+void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
+{
+  const llvm::PHINode *phiNode = (llvm::PHINode*)&instruction;
+  const llvm::Value *value = phiNode->getIncomingValueForBlock((const llvm::BasicBlock*)m_prevBlock);
+  if (isConstantOperand(value))
+  {
+    // TODO
+    *((int*)result.data) = 0;
+  }
+  else
+  {
+    memcpy(result.data, m_privateMemory[value].data, result.size);
   }
 }
 

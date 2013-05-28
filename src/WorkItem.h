@@ -18,6 +18,7 @@ public:
   void outputMemoryError(const llvm::Instruction& instruction,
                          const std::string& msg,
                          size_t address, size_t size) const;
+  void setCurrentBlock(const llvm::Value *block);
 
   void add(const llvm::Instruction& instruction, TypedValue& result);
   void br(const llvm::Instruction& instruction);
@@ -27,6 +28,7 @@ public:
   void gep(const llvm::Instruction& instruction, TypedValue& result);
   void land(const llvm::Instruction& instruction, TypedValue& result);
   void load(const llvm::Instruction& instruction, TypedValue& result);
+  void phi(const llvm::Instruction& instruction, TypedValue& result);
   void store(const llvm::Instruction& instruction);
 
 private:
@@ -34,6 +36,8 @@ private:
   TypedValueMap m_privateMemory;
   GlobalMemory& m_globalMemory;
 
+  const llvm::Value *m_prevBlock;
+  const llvm::Value *m_currBlock;
   const llvm::Value *m_nextBlock;
 
   bool m_debugOutput;
