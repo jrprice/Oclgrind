@@ -238,6 +238,7 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   if (isConstantOperand(offsetOperand))
   {
     // TODO: Is this a valid method of extracting offset?
+    // TODO: Probably not - negative offsets?
     offset = ((llvm::ConstantInt*)offsetOperand)->getLimitedValue();
   }
   else
@@ -255,14 +256,35 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
 void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
 {
   // Load operands
-  // TODO: Constant operands
+  // TODO: 64-bit
   llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
-  unsigned char *op1 = m_privateMemory[instruction.getOperand(0)].data;
-  unsigned char *op2 = m_privateMemory[instruction.getOperand(1)].data;
-  unsigned int ua = *((unsigned int*)op1);
-  unsigned int ub = *((unsigned int*)op2);
-  int sa = *((int*)op1);
-  int sb = *((int*)op2);
+
+  llvm::Value *opA = instruction.getOperand(0);
+  llvm::Value *opB = instruction.getOperand(1);
+  unsigned int ua, ub;
+  int sa, sb;
+
+  if (isConstantOperand(opA))
+  {
+    ua = ((llvm::ConstantInt*)opA)->getZExtValue();
+    sa = ((llvm::ConstantInt*)opA)->getSExtValue();
+  }
+  else
+  {
+    ua = *((unsigned int*)m_privateMemory[opA].data);
+    sa = *((int*)m_privateMemory[opA].data);
+  }
+
+  if (isConstantOperand(opB))
+  {
+    ub = ((llvm::ConstantInt*)opB)->getZExtValue();
+    sb = ((llvm::ConstantInt*)opB)->getSExtValue();
+  }
+  else
+  {
+    ub = *((unsigned int*)m_privateMemory[opB].data);
+    sb = *((int*)m_privateMemory[opB].data);
+  }
 
   bool b;
   switch (pred)
