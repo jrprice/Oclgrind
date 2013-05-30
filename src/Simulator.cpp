@@ -115,7 +115,7 @@ bool Simulator::init(istream& input)
       // TODO: Address assignment
       value.size = sizeof(size_t);
       value.data = new unsigned char[value.size];
-      *value.data = address;
+      *((size_t*)value.data) = address;
 
       break;
     case 's':

@@ -29,9 +29,10 @@ __kernel void matmul_elem(
 }
 
 __kernel void matmul_row(
-  const int Mdim,
-  const int Ndim,
-  const int Pdim,
+  const int dim,
+//  const int Mdim,
+//  const int Ndim,
+//  const int Pdim,
   __global float* A,
   __global float* B,
   __global float* C)
@@ -39,39 +40,52 @@ __kernel void matmul_row(
   int k,j;
   int i = get_global_id(0);
   float tmp;
-  if( (i < Ndim) )
+//  if( (i < Ndim) )
+  if( (i < dim) )
   {
-    for(j=0;j<Mdim;j++){
+//    for(j=0;j<Mdim;j++){
+    for(j=0;j<dim;j++){
       tmp = 0.0f;
-      for(k=0;k<Pdim;k++)
-        tmp         += A[i*Ndim+k] *  B[k*Pdim+j];
-      C[i*Ndim+j] = tmp;
+//      for(k=0;k<Pdim;k++)
+      for(k=0;k<dim;k++)
+//        tmp         += A[i*Ndim+k] *  B[k*Pdim+j];
+        tmp         += A[i*dim+k] *  B[k*dim+j];
+//      C[i*Ndim+j] = tmp;
+      C[i*dim+j] = tmp;
     }
   }
 }
 
 __kernel void matmul_row_priv(
-  const int Mdim,
-  const int Ndim,
-  const int Pdim,
+  const int dim,
+//  const int Mdim,
+//  const int Ndim,
+//  const int Pdim,
   __global float* A,
   __global float* B,
   __global float* C)
 {
   int k,j;
   int i = get_global_id(0);
-  float Awrk[1024];
+  float Awrk[16];
   float tmp;
-  if( (i < Ndim) )
+//  if( (i < Ndim) )
+  if( (i < dim) )
   {
-    for(k=0;k<Pdim;k++)
-      Awrk[k] = A[i*Ndim+k];
+//    for(k=0;k<Pdim;k++)
+    for(k=0;k<dim;k++)
+//      Awrk[k] = A[i*Ndim+k];
+      Awrk[k] = A[i*dim+k];
 
-    for(j=0;j<Mdim;j++){
+//    for(j=0;j<Mdim;j++){
+    for(j=0;j<dim;j++){
       tmp = 0.0f;
-      for(k=0;k<Pdim;k++)
-        tmp         += Awrk[k] *  B[k*Pdim+j];
-      C[i*Ndim+j] = tmp;
+//      for(k=0;k<Pdim;k++)
+      for(k=0;k<dim;k++)
+//        tmp         += Awrk[k] *  B[k*Pdim+j];
+        tmp         += Awrk[k] *  B[k*dim+j];
+//      C[i*Ndim+j] = tmp;
+      C[i*dim+j] = tmp;
     }
   }
 }

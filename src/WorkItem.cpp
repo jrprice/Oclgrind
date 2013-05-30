@@ -71,6 +71,20 @@ void WorkItem::dumpPrivateMemory() const
     }
     cout << setw(0) << endl;
   }
+
+  cout << endl << "Stack:";
+  for (int i = 0; i < m_stack.size(); i++)
+  {
+    if (i%4 == 0)
+    {
+      cout << endl << hex << uppercase
+           << setw(16) << setfill(' ') << right
+           << i << ":";
+    }
+    cout << " " << hex << uppercase << setw(2) << setfill('0')
+         << (int)m_stack[i];
+  }
+  cout << endl;
 }
 
 void WorkItem::enableDebugOutput(bool enable)
@@ -106,6 +120,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   {
   case llvm::Instruction::Add:
     add(instruction, result);
+    break;
+  case llvm::Instruction::Alloca:
+    alloca(instruction);
     break;
   case llvm::Instruction::And:
     land(instruction, result);
@@ -236,6 +253,31 @@ void WorkItem::add(const llvm::Instruction& instruction, TypedValue& result)
   *((int*)result.data) = (a + b);
 }
 
+void WorkItem::alloca(const llvm::Instruction& instruction)
+{
+  const llvm::AllocaInst *allocInst = ((const llvm::AllocaInst*)&instruction);
+  const llvm::Type *type = allocInst->getAllocatedType();
+
+  // TODO: Handle allocations for non-arrays
+  unsigned elementSize = type->getArrayElementType()->getScalarSizeInBits()>>3;
+  unsigned numElements = type->getArrayNumElements();
+
+  // Perform allocation
+  size_t address = m_stack.size();
+  for (int i = 0; i < elementSize*numElements; i++)
+  {
+    // TODO: Solution to catch use of uninitialised data
+    m_stack.push_back(0);
+  }
+
+  // Create pointer to alloc'd memory
+  TypedValue result;
+  result.size = sizeof(size_t);
+  result.data = new unsigned char[result.size];
+  *((size_t*)result.data) = address;
+  m_privateMemory[&instruction] = result;
+}
+
 void WorkItem::br(const llvm::Instruction& instruction)
 {
   if (instruction.getNumOperands() == 1)
@@ -290,28 +332,48 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   const llvm::GetElementPtrInst *gepInst =
     (const llvm::GetElementPtrInst*)&instruction;
 
+  // Get base address
   const llvm::Value *baseOperand = gepInst->getPointerOperand();
-  size_t base = *m_privateMemory[baseOperand].data;
+  size_t address = *((size_t*)m_privateMemory[baseOperand].data);
+  llvm::Type *ptrType = gepInst->getPointerOperandType();
+  assert(ptrType->isPointerTy());
 
-  // TODO: Multiple indices (use GEP instruction)
-  size_t offset;
-  const llvm::Value *offsetOperand = instruction.getOperand(1);
-  if (isConstantOperand(offsetOperand))
+  // Iterate over indices
+  llvm::User::const_op_iterator opitr;
+  for (opitr = gepInst->idx_begin(); opitr != gepInst->idx_end(); opitr++)
   {
-    // TODO: Is this a valid method of extracting offset?
-    // TODO: Probably not - negative offsets?
-    offset = ((llvm::ConstantInt*)offsetOperand)->getLimitedValue();
-  }
-  else
-  {
-    offset = *m_privateMemory[offsetOperand].data;
+    size_t offset;
+    if (isConstantOperand(*opitr))
+    {
+      // TODO: Is this a valid method of extracting offset?
+      // TODO: Probably not - negative offsets
+      offset = ((llvm::ConstantInt*)opitr->get())->getLimitedValue();
+    }
+    else
+    {
+      // TODO: Use type of offset
+      offset = *((int*)m_privateMemory[opitr->get()].data);
+    }
+
+    // Get pointer element size
+    size_t size;
+    llvm::Type *elemType = ptrType->getPointerElementType();
+    if (elemType->isArrayTy())
+    {
+      size_t num = elemType->getArrayNumElements();
+      size_t sz = elemType->getArrayElementType()->getScalarSizeInBits() >> 3;
+      size = num*sz;
+    }
+    else
+    {
+      size = elemType->getScalarSizeInBits() >> 3;
+    }
+
+    ptrType = elemType;
+    address += offset*size;
   }
 
-  // Get element size
-  const llvm::Type *ptrType = gepInst->getPointerOperandType();
-  size_t size = ptrType->getPointerElementType()->getPrimitiveSizeInBits()>>3;
-
-  *((size_t*)result.data) = base + offset*size;
+  *((size_t*)result.data) = address;
 }
 
 void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
@@ -399,11 +461,32 @@ void WorkItem::land(const llvm::Instruction& instruction, TypedValue& result)
 void WorkItem::load(const llvm::Instruction& instruction,
                     TypedValue& result)
 {
-  // TODO: Endian-ness?
-  size_t address = *m_privateMemory[instruction.getOperand(0)].data;
-  if (!m_globalMemory.load(address, result.size, result.data))
+  const llvm::LoadInst *loadInst = (const llvm::LoadInst*)&instruction;
+  const llvm::Value *ptrOp = loadInst->getPointerOperand();
+  unsigned addressSpace = loadInst->getPointerAddressSpace();
+
+  // Get address
+  size_t address = *((size_t*)m_privateMemory[ptrOp].data);
+
+  // TODO: Find or create enum for address spaces
+  switch (addressSpace)
   {
-    outputMemoryError(instruction, "Invalid read", address, result.size);
+  case 0: // Private memory
+    // TODO: Bounds check
+    for (int i = 0; i < result.size; i++)
+    {
+      result.data[i] = m_stack[address + i];
+    }
+    break;
+  case 1: // Global memory
+    if (!m_globalMemory.load(address, result.size, result.data))
+    {
+      outputMemoryError(instruction, "Invalid read", address, result.size);
+    }
+    break;
+  default:
+    cout << "Unhandled address space '" << addressSpace << "'" << endl;
+    break;
   }
 }
 
@@ -453,26 +536,30 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::store(const llvm::Instruction& instruction)
 {
-  // TODO: Address space
-  size_t address = *m_privateMemory[instruction.getOperand(1)].data;
+  const llvm::StoreInst *storeInst = (const llvm::StoreInst*)&instruction;
+  const llvm::Value *ptrOp = storeInst->getPointerOperand();
+  const llvm::Value *valOp = storeInst->getValueOperand();
+  unsigned addressSpace = storeInst->getPointerAddressSpace();
+
+  // Get address
+  size_t address = *((size_t*)m_privateMemory[ptrOp].data);
 
   // TODO: Genericise operand handling
-  const llvm::Value *value = instruction.getOperand(0);
-  size_t size = value->getType()->getPrimitiveSizeInBits() >> 3;
+  size_t size = valOp->getType()->getPrimitiveSizeInBits() >> 3;
   unsigned char *data = new unsigned char[size];
 
-  switch (value->getValueID())
+  switch (valOp->getValueID())
   {
   case llvm::Value::ConstantFPVal:
     if (size == 4)
     {
       (*(float*)data) =
-        ((llvm::ConstantFP*)value)->getValueAPF().convertToFloat();
+        ((llvm::ConstantFP*)valOp)->getValueAPF().convertToFloat();
     }
     else if (size == 8)
     {
       (*(double*)data) =
-        ((llvm::ConstantFP*)value)->getValueAPF().convertToDouble();
+        ((llvm::ConstantFP*)valOp)->getValueAPF().convertToDouble();
     }
     else
     {
@@ -481,14 +568,14 @@ void WorkItem::store(const llvm::Instruction& instruction)
     break;
   case llvm::Value::ConstantIntVal:
     memcpy((uint64_t*)data,
-           ((llvm::ConstantInt*)value)->getValue().getRawData(),
+           ((llvm::ConstantInt*)valOp)->getValue().getRawData(),
            size);
     break;
   default:
-    if (m_privateMemory.find(value) != m_privateMemory.end())
+    if (m_privateMemory.find(valOp) != m_privateMemory.end())
     {
       // TODO: Cleaner solution for this
-      memcpy(data, m_privateMemory[value].data, size);
+      memcpy(data, m_privateMemory[valOp].data, size);
     }
     else
     {
@@ -498,9 +585,25 @@ void WorkItem::store(const llvm::Instruction& instruction)
   }
 
   // Store value
-  if (!m_globalMemory.store(address, size, data))
+  // TODO: Find or create address space enum
+  switch (addressSpace)
   {
-    outputMemoryError(instruction, "Invalid write", address, size);
+  case 0: // Private memory
+    // TODO: Bounds check
+    for (int i = 0; i < size; i++)
+    {
+      m_stack[address + i] = data[i];
+    }
+    break;
+  case 1: // Global memory
+    if (!m_globalMemory.store(address, size, data))
+    {
+      outputMemoryError(instruction, "Invalid write", address, size);
+    }
+    break;
+  default:
+    cout << "Unhandled address space '" << addressSpace << "'" << endl;
+    break;
   }
 
   delete[] data;

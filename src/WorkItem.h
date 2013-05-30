@@ -21,6 +21,7 @@ public:
   void setCurrentBlock(const llvm::Value *block);
 
   void add(const llvm::Instruction& instruction, TypedValue& result);
+  void alloca(const llvm::Instruction& instruction);
   void br(const llvm::Instruction& instruction);
   void call(const llvm::Instruction& instruction, TypedValue& result);
   void fadd(const llvm::Instruction& instruction, TypedValue& result);
@@ -36,6 +37,7 @@ public:
 private:
   size_t m_globalID[3];
   TypedValueMap m_privateMemory;
+  std::vector<unsigned char> m_stack;
   GlobalMemory& m_globalMemory;
 
   const llvm::Value *m_prevBlock;
