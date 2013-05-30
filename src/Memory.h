@@ -1,15 +1,15 @@
 #include "common.h"
 
-class GlobalMemory
+class Memory
 {
 public:
-  GlobalMemory();
+  Memory();
 
   size_t allocateBuffer(size_t size);
-  void clear() {m_memory.clear(); m_allocated = 0;};
+  void clear();
   void dump() const;
-  bool load(size_t address, unsigned char *dest);
-  bool load(size_t address, size_t size, unsigned char *dest);
+  bool load(size_t address, unsigned char *dest) const;
+  bool load(size_t address, size_t size, unsigned char *dest) const;
   bool store(size_t address, unsigned char source);
   bool store(size_t address, size_t size, unsigned char *source);
 

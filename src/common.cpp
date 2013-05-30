@@ -33,6 +33,7 @@ void dumpInstruction(const llvm::Instruction& instruction, bool align)
   }
 
   cout << left << setw(align?14:0) << instruction.getOpcodeName();
+
   llvm::User::const_op_iterator opItr;
   for (opItr = instruction.op_begin(); opItr != instruction.op_end(); opItr++)
   {

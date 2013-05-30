@@ -11,8 +11,8 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Transforms/Scalar.h"
 
-#include "GlobalMemory.h"
 #include "Kernel.h"
+#include "Memory.h"
 #include "Simulator.h"
 #include "WorkItem.h"
 
@@ -24,7 +24,7 @@ Simulator::Simulator()
 {
   m_context = new llvm::LLVMContext;
 
-  m_globalMemory = new GlobalMemory();
+  m_globalMemory = new Memory();
   m_kernel = new Kernel();
 }
 
@@ -98,6 +98,11 @@ bool Simulator::init(istream& input)
     TypedValue value;
 
     input >> type >> dec >> size;
+    if (input.fail())
+    {
+      cout << "Error reading kernel arguments." << endl;
+      return false;
+    }
 
     switch (type)
     {
@@ -113,6 +118,14 @@ bool Simulator::init(istream& input)
       }
 
       // TODO: Address assignment
+      value.size = sizeof(size_t);
+      value.data = new unsigned char[value.size];
+      *((size_t*)value.data) = address;
+
+      break;
+    case 'l':
+      // Allocate local memory argument
+      address = m_kernel->allocateLocalMemory(size);
       value.size = sizeof(size_t);
       value.data = new unsigned char[value.size];
       *((size_t*)value.data) = address;
@@ -233,6 +246,7 @@ void Simulator::run()
   // Output global memory dump if required
   if (m_outputMask & OUTPUT_GLOBAL_MEM)
   {
+    cout << endl << "Global Memory:";
     m_globalMemory->dump();
   }
 }

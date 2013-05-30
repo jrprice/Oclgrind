@@ -1,15 +1,15 @@
 #include "common.h"
 
-#include "GlobalMemory.h"
+#include "Memory.h"
 
 using namespace std;
 
-GlobalMemory::GlobalMemory()
+Memory::Memory()
 {
   m_allocated = 0;
 }
 
-size_t GlobalMemory::allocateBuffer(size_t size)
+size_t Memory::allocateBuffer(size_t size)
 {
   size_t address = m_allocated;
   for (int i = 0; i < size; i++)
@@ -21,10 +21,14 @@ size_t GlobalMemory::allocateBuffer(size_t size)
   return address;
 }
 
-void GlobalMemory::dump() const
+void Memory::clear()
 {
-  cout << endl << "Global Memory:";
+  m_memory.clear();
+  m_allocated = 0;
+}
 
+void Memory::dump() const
+{
   for (int i = 0; i < m_allocated; i++)
   {
     if (i%4 == 0)
@@ -40,7 +44,7 @@ void GlobalMemory::dump() const
 }
 
 
-bool GlobalMemory::load(size_t address, unsigned char *dest)
+bool Memory::load(size_t address, unsigned char *dest) const
 {
   // Bounds check
   if (address > m_allocated)
@@ -55,7 +59,7 @@ bool GlobalMemory::load(size_t address, unsigned char *dest)
 }
 
 
-bool GlobalMemory::load(size_t address, size_t size, unsigned char *dest)
+bool Memory::load(size_t address, size_t size, unsigned char *dest) const
 {
   // Bounds check
   if (address+size > m_allocated)
@@ -72,7 +76,7 @@ bool GlobalMemory::load(size_t address, size_t size, unsigned char *dest)
   return true;
 }
 
-bool GlobalMemory::store(size_t address, unsigned char source)
+bool Memory::store(size_t address, unsigned char source)
 {
   // Bounds check
   if (address > m_allocated)
@@ -86,7 +90,7 @@ bool GlobalMemory::store(size_t address, unsigned char source)
   return true;
 }
 
-bool GlobalMemory::store(size_t address, size_t size, unsigned char *source)
+bool Memory::store(size_t address, size_t size, unsigned char *source)
 {
   // Bounds check
   if (address+size > m_allocated)

@@ -4,18 +4,18 @@
 #define __STDC_CONSTANT_MACROS
 #include "llvm/DebugInfo.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Type.h"
-#include "llvm/IR/InstrTypes.h"
 
-#include "GlobalMemory.h"
 #include "Kernel.h"
+#include "Memory.h"
 #include "WorkItem.h"
 
 using namespace std;
 
-WorkItem::WorkItem(const Kernel& kernel, GlobalMemory& globalMem,
+WorkItem::WorkItem(const Kernel& kernel, Memory& globalMem,
                    size_t gid_x, size_t gid_y, size_t gid_z)
   : m_globalMemory(globalMem), m_debugOutput(false)
 {
@@ -29,6 +29,8 @@ WorkItem::WorkItem(const Kernel& kernel, GlobalMemory& globalMem,
   {
     m_privateMemory[argItr->first] = clone(argItr->second);
   }
+
+  m_stack = new Memory();
 
   m_prevBlock = NULL;
   m_currBlock = NULL;
@@ -76,18 +78,7 @@ void WorkItem::dumpPrivateMemory() const
 
   // Dump stack contents
   cout << endl << "Stack:";
-  for (int i = 0; i < m_stack.size(); i++)
-  {
-    if (i%4 == 0)
-    {
-      cout << endl << hex << uppercase
-           << setw(16) << setfill(' ') << right
-           << i << ":";
-    }
-    cout << " " << hex << uppercase << setw(2) << setfill('0')
-         << (int)m_stack[i];
-  }
-  cout << endl;
+  m_stack->dump();
 }
 
 void WorkItem::enableDebugOutput(bool enable)
@@ -188,11 +179,27 @@ const llvm::Value* WorkItem::getNextBlock() const
 
 void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
                                  const std::string& msg,
+                                 unsigned addressSpace,
                                  size_t address, size_t size) const
 {
+  std::string memType;
+  switch (addressSpace)
+  {
+  case 0:
+    memType = "private";
+    break;
+  case 1:
+    memType = "global";
+    break;
+  default:
+    assert(false && "Memory error in unsupported address space.");
+    break;
+  }
+
   cout << endl << msg
        << " of size " << size
-       << " at address " << hex << address
+       << " at " << memType
+       << " memory address " << hex << address
        << " by work-item ("
        << m_globalID[0] << ","
        << m_globalID[1] << ","
@@ -266,12 +273,7 @@ void WorkItem::alloca(const llvm::Instruction& instruction)
   unsigned numElements = type->getArrayNumElements();
 
   // Perform allocation
-  size_t address = m_stack.size();
-  for (int i = 0; i < elementSize*numElements; i++)
-  {
-    // TODO: Solution to catch use of uninitialised data
-    m_stack.push_back(0);
-  }
+  size_t address = m_stack->allocateBuffer(elementSize*numElements);
 
   // Create pointer to alloc'd memory
   TypedValue result;
@@ -472,34 +474,25 @@ void WorkItem::load(const llvm::Instruction& instruction,
   size_t address = *((size_t*)m_privateMemory[ptrOp].data);
 
   // TODO: Find or create enum for address spaces
+  Memory *memory;
   switch (addressSpace)
   {
   case 0: // Private memory
-    // Bounds check
-    if (address + result.size > m_stack.size())
-    {
-      outputMemoryError(instruction, "Invalid private memory read",
-                        address, result.size);
-      break;
-    }
-
-    // Load data
-    for (int i = 0; i < result.size; i++)
-    {
-      result.data[i] = m_stack[address + i];
-    }
-
+    memory = m_stack;
     break;
   case 1: // Global memory
-    if (!m_globalMemory.load(address, result.size, result.data))
-    {
-      outputMemoryError(instruction, "Invalid global memory read",
-                        address, result.size);
-    }
+    memory = &m_globalMemory;
     break;
   default:
     cout << "Unhandled address space '" << addressSpace << "'" << endl;
     break;
+  }
+
+  // Load data
+  if (!memory->load(address, result.size, result.data))
+  {
+    outputMemoryError(instruction, "Invalid read",
+                      addressSpace, address, result.size);
   }
 }
 
@@ -597,36 +590,27 @@ void WorkItem::store(const llvm::Instruction& instruction)
     break;
   }
 
-  // Store value
+  Memory *memory;
+
   // TODO: Find or create address space enum
   switch (addressSpace)
   {
   case 0: // Private memory
-    // Bounds check
-    if (address + size > m_stack.size())
-    {
-      outputMemoryError(instruction, "Invalid private memory write",
-                        address, size);
-      break;
-    }
-
-    // Store data
-    for (int i = 0; i < size; i++)
-    {
-      m_stack[address + i] = data[i];
-    }
-
+    memory = m_stack;
     break;
   case 1: // Global memory
-    if (!m_globalMemory.store(address, size, data))
-    {
-      outputMemoryError(instruction, "Invalid global memory write",
-                        address, size);
-    }
+    memory = &m_globalMemory;
     break;
   default:
     cout << "Unhandled address space '" << addressSpace << "'" << endl;
     break;
+  }
+
+  // Store data
+  if (!memory->store(address, size, data))
+  {
+    outputMemoryError(instruction, "Invalid write",
+                      addressSpace, address, size);
   }
 
   delete[] data;

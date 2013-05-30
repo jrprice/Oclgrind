@@ -91,9 +91,10 @@ __kernel void matmul_row_priv(
 }
 
 __kernel void matmul_row_local(
-  const int Mdim,
-  const int Ndim,
-  const int Pdim,
+  const int dim,
+//  const int Mdim,
+//  const int Ndim,
+//  const int Pdim,
   __global float* A,
   __global float* B,
   __global float* C,
@@ -102,22 +103,30 @@ __kernel void matmul_row_local(
   int k,j;
   int i    = get_global_id(0);
   int iloc = get_local_id(0);
-  int nloc = get_local_size(0);
+  int nloc = 2;//get_local_size(0);
   float Awrk[1024];
   float tmp;
-  if( (i < Ndim) )
+  if( (i < dim) )
+//  if( (i < Ndim) )
   {
-    for(k=0;k<Pdim;k++)
-      Awrk[k] = A[i*Ndim+k];
+    for(k=0;k<dim;k++)
+//    for(k=0;k<Pdim;k++)
+      Awrk[k] = A[i*dim+k];
+//      Awrk[k] = A[i*Ndim+k];
 
-    for(j=0;j<Mdim;j++){
-      for(k=iloc;k<Pdim;k=k+nloc)
-        Bwrk[k] = B[k*Pdim+j];
+    for(j=0;j<dim;j++){
+//    for(j=0;j<Mdim;j++){
+      for(k=iloc;k<dim;k=k+nloc)
+//      for(k=iloc;k<Pdim;k=k+nloc)
+        Bwrk[k] = B[k*dim+j];
+//        Bwrk[k] = B[k*Pdim+j];
       barrier(CLK_LOCAL_MEM_FENCE);
       tmp = 0.0f;
-      for(k=0;k<Pdim;k++)
+      for(k=0;k<dim;k++)
+//      for(k=0;k<Pdim;k++)
         tmp         += Awrk[k] *  Bwrk[k];
-      C[i*Ndim+j] = tmp;
+      C[i*dim+j] = tmp;
+//      C[i*Ndim+j] = tmp;
     }
   }
 }

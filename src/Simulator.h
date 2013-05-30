@@ -7,7 +7,7 @@ namespace llvm
   class Module;
 }
 
-class GlobalMemory;
+class Memory;
 class Kernel;
 
 class Simulator
@@ -30,7 +30,7 @@ private:
   const llvm::Module *m_module;
   const llvm::Function *m_function;
 
-  GlobalMemory *m_globalMemory;
+  Memory *m_globalMemory;
   Kernel *m_kernel;
   size_t m_ndrange[3];
   size_t m_wgsize[3];

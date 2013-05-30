@@ -1,12 +1,12 @@
 #include "common.h"
 
-class GlobalMemory;
+class Memory;
 class Kernel;
 
 class WorkItem
 {
 public:
-  WorkItem(const Kernel& kernel, GlobalMemory &globalMem,
+  WorkItem(const Kernel& kernel, Memory &globalMem,
            size_t gid_x, size_t gid_y=0, size_t gid_z=0);
   virtual ~WorkItem();
 
@@ -17,6 +17,7 @@ public:
   const llvm::Value* getNextBlock() const;
   void outputMemoryError(const llvm::Instruction& instruction,
                          const std::string& msg,
+                         unsigned addressSpace,
                          size_t address, size_t size) const;
   void setCurrentBlock(const llvm::Value *block);
 
@@ -37,8 +38,8 @@ public:
 private:
   size_t m_globalID[3];
   TypedValueMap m_privateMemory;
-  std::vector<unsigned char> m_stack;
-  GlobalMemory& m_globalMemory;
+  Memory *m_stack;
+  Memory& m_globalMemory;
 
   const llvm::Value *m_prevBlock;
   const llvm::Value *m_currBlock;
