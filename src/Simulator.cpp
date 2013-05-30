@@ -57,14 +57,14 @@ bool Simulator::init(istream& input)
   // Iterate over functions in module to find kernel
   m_function = NULL;
   llvm::Function *function = NULL;
-  llvm::Module::iterator fitr;
-  for(fitr = module->begin(); fitr != module->end(); fitr++)
+  llvm::Module::iterator funcItr;
+  for(funcItr = module->begin(); funcItr != module->end(); funcItr++)
   {
     // Check kernel name
-    if (fitr->getName().str() != kernelName)
+    if (funcItr->getName().str() != kernelName)
       continue;
 
-    function = fitr;
+    function = funcItr;
 
     break;
   }
@@ -87,8 +87,8 @@ bool Simulator::init(istream& input)
 
   // Set kernel arguments
   const llvm::Function::ArgumentListType& args = m_function->getArgumentList();
-  llvm::Function::const_arg_iterator aitr;
-  for (aitr = args.begin(); aitr != args.end(); aitr++)
+  llvm::Function::const_arg_iterator argItr;
+  for (argItr = args.begin(); argItr != args.end(); argItr++)
   {
     char type;
     size_t size;
@@ -134,7 +134,7 @@ bool Simulator::init(istream& input)
       return false;
     }
 
-    m_kernel->setArgument(aitr, value);
+    m_kernel->setArgument(argItr, value);
   }
 
   // Make sure there is no more input
@@ -188,16 +188,16 @@ void Simulator::run()
     }
 
     // Iterate over basic blocks in function
-    llvm::Function::const_iterator bitr;
-    for (bitr = m_function->begin(); bitr != m_function->end();)
+    llvm::Function::const_iterator blockItr;
+    for (blockItr = m_function->begin(); blockItr != m_function->end();)
     {
-      workItems[i]->setCurrentBlock(bitr);
+      workItems[i]->setCurrentBlock(blockItr);
 
       // Iterate over instructions in block
-      llvm::BasicBlock::const_iterator iitr;
-      for (iitr = bitr->begin(); iitr != bitr->end(); iitr++)
+      llvm::BasicBlock::const_iterator instItr;
+      for (instItr = blockItr->begin(); instItr != blockItr->end(); instItr++)
       {
-        workItems[i]->execute(*iitr);
+        workItems[i]->execute(*instItr);
       }
 
       // Get next block
@@ -208,7 +208,7 @@ void Simulator::run()
       }
       else
       {
-        bitr = (const llvm::BasicBlock*)(workItems[i]->getNextBlock());
+        blockItr = (const llvm::BasicBlock*)(workItems[i]->getNextBlock());
       }
     }
 

@@ -24,10 +24,10 @@ WorkItem::WorkItem(const Kernel& kernel, GlobalMemory& globalMem,
   m_globalID[2] = gid_z;
 
   // Store kernel arguments in private memory
-  TypedValueMap::const_iterator aitr;
-  for (aitr = kernel.args_begin(); aitr != kernel.args_end(); aitr++)
+  TypedValueMap::const_iterator argItr;
+  for (argItr = kernel.args_begin(); argItr != kernel.args_end(); argItr++)
   {
-    m_privateMemory[aitr->first] = clone(aitr->second);
+    m_privateMemory[argItr->first] = clone(argItr->second);
   }
 
   m_prevBlock = NULL;
@@ -38,11 +38,11 @@ WorkItem::WorkItem(const Kernel& kernel, GlobalMemory& globalMem,
 WorkItem::~WorkItem()
 {
   // Free private memory
-  TypedValueMap::iterator pmitr;
-  for (pmitr = m_privateMemory.begin();
-       pmitr != m_privateMemory.end(); pmitr++)
+  TypedValueMap::iterator pmItr;
+  for (pmItr = m_privateMemory.begin();
+       pmItr != m_privateMemory.end(); pmItr++)
   {
-    delete[] pmitr->second.data;
+    delete[] pmItr->second.data;
   }
 }
 
@@ -54,24 +54,27 @@ void WorkItem::dumpPrivateMemory() const
        << m_globalID[2]
        << ") Private Memory:" << endl;
 
-  TypedValueMap::const_iterator pmitr;
-  for (pmitr = m_privateMemory.begin();
-       pmitr != m_privateMemory.end(); pmitr++)
+  TypedValueMap::const_iterator pmItr;
+  for (pmItr = m_privateMemory.begin();
+       pmItr != m_privateMemory.end(); pmItr++)
   {
     // Output symbolic name
     cout << setw(12) << setfill(' ') << left;
-    cout << pmitr->first->getName().str() << right << ":";
+    cout << pmItr->first->getName().str() << right << ":";
 
-    // TODO: Interpret type?
-    // TODO: Deal with larger private variables (e.g. arrays)
-    for (int i = 0; i < pmitr->second.size; i++)
+    // Output bytes
+    for (int i = 0; i < pmItr->second.size; i++)
     {
       cout << " " << hex << uppercase << setw(2) << setfill('0')
-           << (int)pmitr->second.data[i];
+           << (int)pmItr->second.data[i];
     }
+
+    // TODO: Interpret values?
+
     cout << setw(0) << endl;
   }
 
+  // Dump stack contents
   cout << endl << "Stack:";
   for (int i = 0; i < m_stack.size(); i++)
   {
@@ -109,7 +112,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     result.data = m_privateMemory[&instruction].data;
   }
 
-  // Temporary: Dump instruction sequence (TODO: remove)
+  // Dump instruction sequence
   if (m_debugOutput)
   {
     dumpInstruction(instruction, true);
@@ -288,7 +291,7 @@ void WorkItem::br(const llvm::Instruction& instruction)
   else
   {
     // Conditional branch
-    bool pred = *m_privateMemory[instruction.getOperand(0)].data;
+    bool pred = *((bool*)m_privateMemory[instruction.getOperand(0)].data);
     llvm::Value *iftrue = instruction.getOperand(2);
     llvm::Value *iffalse = instruction.getOperand(1);
     m_nextBlock = pred ? iftrue : iffalse;
@@ -339,20 +342,20 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   assert(ptrType->isPointerTy());
 
   // Iterate over indices
-  llvm::User::const_op_iterator opitr;
-  for (opitr = gepInst->idx_begin(); opitr != gepInst->idx_end(); opitr++)
+  llvm::User::const_op_iterator opItr;
+  for (opItr = gepInst->idx_begin(); opItr != gepInst->idx_end(); opItr++)
   {
     size_t offset;
-    if (isConstantOperand(*opitr))
+    if (isConstantOperand(*opItr))
     {
       // TODO: Is this a valid method of extracting offset?
       // TODO: Probably not - negative offsets
-      offset = ((llvm::ConstantInt*)opitr->get())->getLimitedValue();
+      offset = ((llvm::ConstantInt*)opItr->get())->getLimitedValue();
     }
     else
     {
       // TODO: Use type of offset
-      offset = *((int*)m_privateMemory[opitr->get()].data);
+      offset = *((int*)m_privateMemory[opItr->get()].data);
     }
 
     // Get pointer element size
@@ -453,8 +456,8 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
 void WorkItem::land(const llvm::Instruction& instruction, TypedValue& result)
 {
   // TODO: Constant operands?
-  bool a = *m_privateMemory[instruction.getOperand(0)].data;
-  bool b = *m_privateMemory[instruction.getOperand(1)].data;
+  bool a = *((bool*)m_privateMemory[instruction.getOperand(0)].data);
+  bool b = *((bool*)m_privateMemory[instruction.getOperand(1)].data);
   *((bool*)result.data) = a && b;
 }
 
