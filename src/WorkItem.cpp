@@ -472,16 +472,26 @@ void WorkItem::load(const llvm::Instruction& instruction,
   switch (addressSpace)
   {
   case 0: // Private memory
-    // TODO: Bounds check
+    // Bounds check
+    if (address + result.size > m_stack.size())
+    {
+      outputMemoryError(instruction, "Invalid private memory read",
+                        address, result.size);
+      break;
+    }
+
+    // Load data
     for (int i = 0; i < result.size; i++)
     {
       result.data[i] = m_stack[address + i];
     }
+
     break;
   case 1: // Global memory
     if (!m_globalMemory.load(address, result.size, result.data))
     {
-      outputMemoryError(instruction, "Invalid read", address, result.size);
+      outputMemoryError(instruction, "Invalid global memory read",
+                        address, result.size);
     }
     break;
   default:
@@ -589,16 +599,26 @@ void WorkItem::store(const llvm::Instruction& instruction)
   switch (addressSpace)
   {
   case 0: // Private memory
-    // TODO: Bounds check
+    // Bounds check
+    if (address + size > m_stack.size())
+    {
+      outputMemoryError(instruction, "Invalid private memory write",
+                        address, size);
+      break;
+    }
+
+    // Store data
     for (int i = 0; i < size; i++)
     {
       m_stack[address + i] = data[i];
     }
+
     break;
   case 1: // Global memory
     if (!m_globalMemory.store(address, size, data))
     {
-      outputMemoryError(instruction, "Invalid write", address, size);
+      outputMemoryError(instruction, "Invalid global memory write",
+                        address, size);
     }
     break;
   default:

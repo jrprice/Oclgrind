@@ -124,7 +124,7 @@ bool Simulator::init(istream& input)
       value.data = new unsigned char[value.size];
       for (i = 0; i < size; i++)
       {
-        input >> byte;
+        input >> hex >> byte;
         value.data[i] = (unsigned char)byte;
       }
 
