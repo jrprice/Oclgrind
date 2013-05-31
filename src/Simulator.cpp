@@ -14,11 +14,9 @@
 #include "Kernel.h"
 #include "Memory.h"
 #include "Simulator.h"
-#include "WorkItem.h"
+#include "WorkGroup.h"
 
 using namespace std;
-
-#define SEPARATOR "--------------------------------"
 
 Simulator::Simulator()
 {
@@ -44,6 +42,15 @@ bool Simulator::init(istream& input)
         >> kernelName
         >> m_ndrange[0] >> m_ndrange[1] >> m_ndrange[2]
         >> m_wgsize[0] >> m_wgsize[1] >> m_wgsize[2];
+
+  // Ensure work-group size exactly divides NDRange
+  if (m_ndrange[0] % m_wgsize[0] ||
+      m_ndrange[1] % m_wgsize[1] ||
+      m_ndrange[2] % m_wgsize[2])
+  {
+    cout << "Work group size must divide NDRange exactly." << endl;
+    return false;
+  }
 
   // Load IR module from file
   llvm::SMDiagnostic err;
@@ -164,90 +171,55 @@ bool Simulator::init(istream& input)
 
 void Simulator::run()
 {
-  // TODO: Work-groups
-
-  // Initialise work-items
-  size_t totalWorkItems = m_ndrange[0] * m_ndrange[1] * m_ndrange[2];
-  WorkItem **workItems = new WorkItem*[totalWorkItems];
-  for (int k = 0; k < m_ndrange[2]; k++)
+  // Create work-groups
+  size_t numGroups[3] = {m_ndrange[0]/m_wgsize[0],
+                         m_ndrange[1]/m_wgsize[1],
+                         m_ndrange[2]/m_wgsize[2]};
+  size_t totalNumGroups = numGroups[0]*numGroups[1]*numGroups[2];
+  for (int k = 0; k < numGroups[2]; k++)
   {
-    for (int j = 0; j < m_ndrange[1]; j++)
+    for (int j = 0; j < numGroups[1]; j++)
     {
-      for (int i = 0; i < m_ndrange[0]; i++)
+      for (int i = 0; i < numGroups[0]; i++)
       {
-        WorkItem *workItem = new WorkItem(*m_kernel, *m_globalMemory, i, j, k);
-        workItem->enableDebugOutput(m_outputMask & OUTPUT_INSTRUCTIONS);
-        workItems[i + (j + k*m_ndrange[1])*m_ndrange[0]] = workItem;
+        if (m_outputMask &
+            (OUTPUT_INSTRUCTIONS | OUTPUT_PRIVATE_MEM | OUTPUT_LOCAL_MEM))
+        {
+          cout << endl << BIG_SEPARATOR << endl;
+          cout << "Work-group ("
+               << i << ","
+               << j << ","
+               << k
+               << ")" << endl;
+          cout << BIG_SEPARATOR << endl;
+        }
+
+        WorkGroup *workGroup = new WorkGroup(*m_kernel, *m_globalMemory,
+                                             i, j, k, m_wgsize);
+
+        workGroup->run(m_function, m_outputMask & OUTPUT_INSTRUCTIONS);
+
+        // Dump contents of memories
+        if (m_outputMask & OUTPUT_PRIVATE_MEM)
+        {
+          workGroup->dumpPrivateMemory();
+        }
+        if (m_outputMask & OUTPUT_LOCAL_MEM)
+        {
+          workGroup->dumpLocalMemory();
+        }
+
+        delete workGroup;
       }
     }
   }
-
-  // Iterate over work-items
-  // TODO: Non-sequential work-item execution
-  for (int i = 0; i < totalWorkItems; i++)
-  {
-    if (m_outputMask & (OUTPUT_PRIVATE_MEM | OUTPUT_INSTRUCTIONS))
-    {
-      cout << SEPARATOR << endl;
-    }
-    if (m_outputMask & OUTPUT_INSTRUCTIONS)
-    {
-      const size_t *gid = workItems[i]->getGlobalID();
-      cout << "Work-item ("
-           << gid[0] << ","
-           << gid[1] << ","
-           << gid[2]
-           << ") Instructions:" << endl;
-    }
-
-    // Iterate over basic blocks in function
-    llvm::Function::const_iterator blockItr;
-    for (blockItr = m_function->begin(); blockItr != m_function->end();)
-    {
-      workItems[i]->setCurrentBlock(blockItr);
-
-      // Iterate over instructions in block
-      llvm::BasicBlock::const_iterator instItr;
-      for (instItr = blockItr->begin(); instItr != blockItr->end(); instItr++)
-      {
-        workItems[i]->execute(*instItr);
-      }
-
-      // Get next block
-      if (workItems[i]->getNextBlock() == NULL)
-      {
-        // TODO: Cleaner way of handling ret terminator
-        break;
-      }
-      else
-      {
-        blockItr = (const llvm::BasicBlock*)(workItems[i]->getNextBlock());
-      }
-    }
-
-    if (m_outputMask & OUTPUT_PRIVATE_MEM)
-    {
-      workItems[i]->dumpPrivateMemory();
-    }
-
-    if (m_outputMask & (OUTPUT_PRIVATE_MEM | OUTPUT_INSTRUCTIONS))
-    {
-      cout << SEPARATOR << endl;
-    }
-  }
-
-  // Delete work-items and output private memory dump if required
-  for (int i = 0; i < totalWorkItems; i++)
-  {
-    delete workItems[i];
-  }
-  delete[] workItems;
 
   // Output global memory dump if required
   if (m_outputMask & OUTPUT_GLOBAL_MEM)
   {
-    cout << endl << "Global Memory:";
+    cout << endl << BIG_SEPARATOR << endl << "Global Memory:";
     m_globalMemory->dump();
+    cout << BIG_SEPARATOR << endl;
   }
 }
 

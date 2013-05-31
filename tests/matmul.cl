@@ -104,7 +104,7 @@ __kernel void matmul_row_local(
   int i    = get_global_id(0);
   int iloc = get_local_id(0);
   int nloc = 2;//get_local_size(0);
-  float Awrk[1024];
+  float Awrk[16];
   float tmp;
   if( (i < dim) )
 //  if( (i < Ndim) )

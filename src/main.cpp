@@ -56,11 +56,14 @@ static bool parseArguments(int argc, char *argv[])
         case 'g':
           outputMask |= Simulator::OUTPUT_GLOBAL_MEM;
           break;
-        case 'i':
-          outputMask |= Simulator::OUTPUT_INSTRUCTIONS;
+        case 'l':
+          outputMask |= Simulator::OUTPUT_LOCAL_MEM;
           break;
         case 'p':
           outputMask |= Simulator::OUTPUT_PRIVATE_MEM;
+          break;
+        case 'i':
+          outputMask |= Simulator::OUTPUT_INSTRUCTIONS;
           break;
         default:
           cout << "Unrecognised option '" << argv[i] << "'" << endl;

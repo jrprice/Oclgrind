@@ -8,6 +8,7 @@ public:
   size_t allocateBuffer(size_t size);
   void clear();
   void dump() const;
+  size_t getSize() const;
   bool load(size_t address, unsigned char *dest) const;
   bool load(size_t address, size_t size, unsigned char *dest) const;
   bool store(size_t address, unsigned char source);

@@ -7,6 +7,9 @@
 #include <map>
 #include <vector>
 
+#define BIG_SEPARATOR   "================================"
+#define SMALL_SEPARATOR "--------------------------------"
+
 namespace llvm
 {
   class Instruction;

@@ -43,6 +43,10 @@ void Memory::dump() const
   cout << endl;
 }
 
+size_t Memory::getSize() const
+{
+  return m_allocated;
+}
 
 bool Memory::load(size_t address, unsigned char *dest) const
 {
@@ -57,7 +61,6 @@ bool Memory::load(size_t address, unsigned char *dest) const
 
   return true;
 }
-
 
 bool Memory::load(size_t address, size_t size, unsigned char *dest) const
 {

@@ -77,8 +77,11 @@ void WorkItem::dumpPrivateMemory() const
   }
 
   // Dump stack contents
-  cout << endl << "Stack:";
-  m_stack->dump();
+  if (m_stack->getSize() > 0)
+  {
+    cout << endl << "Stack:";
+    m_stack->dump();
+  }
 }
 
 void WorkItem::enableDebugOutput(bool enable)
@@ -474,7 +477,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
   size_t address = *((size_t*)m_privateMemory[ptrOp].data);
 
   // TODO: Find or create enum for address spaces
-  Memory *memory;
+  Memory *memory = NULL;
   switch (addressSpace)
   {
   case 0: // Private memory
@@ -489,10 +492,13 @@ void WorkItem::load(const llvm::Instruction& instruction,
   }
 
   // Load data
-  if (!memory->load(address, result.size, result.data))
+  if (memory)
   {
-    outputMemoryError(instruction, "Invalid read",
-                      addressSpace, address, result.size);
+    if (!memory->load(address, result.size, result.data))
+    {
+      outputMemoryError(instruction, "Invalid read",
+                        addressSpace, address, result.size);
+    }
   }
 }
 
@@ -590,7 +596,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
     break;
   }
 
-  Memory *memory;
+  Memory *memory = NULL;
 
   // TODO: Find or create address space enum
   switch (addressSpace)
@@ -607,10 +613,13 @@ void WorkItem::store(const llvm::Instruction& instruction)
   }
 
   // Store data
-  if (!memory->store(address, size, data))
+  if (memory)
   {
-    outputMemoryError(instruction, "Invalid write",
-                      addressSpace, address, size);
+    if (!memory->store(address, size, data))
+    {
+      outputMemoryError(instruction, "Invalid write",
+                        addressSpace, address, size);
+    }
   }
 
   delete[] data;
