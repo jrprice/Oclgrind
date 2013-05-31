@@ -11,13 +11,15 @@
 
 #include "Kernel.h"
 #include "Memory.h"
+#include "WorkGroup.h"
 #include "WorkItem.h"
 
 using namespace std;
 
-WorkItem::WorkItem(const Kernel& kernel, Memory& globalMem,
+WorkItem::WorkItem(WorkGroup& workGroup,
+                   const Kernel& kernel, Memory& globalMem,
                    size_t gid_x, size_t gid_y, size_t gid_z)
-  : m_globalMemory(globalMem), m_debugOutput(false)
+  : m_workGroup(workGroup), m_globalMemory(globalMem), m_debugOutput(false)
 {
   m_globalID[0] = gid_x;
   m_globalID[1] = gid_y;
@@ -486,6 +488,9 @@ void WorkItem::load(const llvm::Instruction& instruction,
   case 1: // Global memory
     memory = &m_globalMemory;
     break;
+  case 3: // Local memory
+    memory = m_workGroup.getLocalMemory();
+    break;
   default:
     cout << "Unhandled address space '" << addressSpace << "'" << endl;
     break;
@@ -606,6 +611,9 @@ void WorkItem::store(const llvm::Instruction& instruction)
     break;
   case 1: // Global memory
     memory = &m_globalMemory;
+    break;
+  case 3: // Local memory
+    memory = m_workGroup.getLocalMemory();
     break;
   default:
     cout << "Unhandled address space '" << addressSpace << "'" << endl;

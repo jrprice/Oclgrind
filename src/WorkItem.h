@@ -1,12 +1,14 @@
 #include "common.h"
 
-class Memory;
 class Kernel;
+class Memory;
+class WorkGroup;
 
 class WorkItem
 {
 public:
-  WorkItem(const Kernel& kernel, Memory &globalMem,
+  WorkItem(WorkGroup& workGroup,
+           const Kernel& kernel, Memory &globalMem,
            size_t gid_x, size_t gid_y=0, size_t gid_z=0);
   virtual ~WorkItem();
 
@@ -40,6 +42,7 @@ private:
   TypedValueMap m_privateMemory;
   Memory *m_stack;
   Memory& m_globalMemory;
+  WorkGroup& m_workGroup;
 
   const llvm::Value *m_prevBlock;
   const llvm::Value *m_currBlock;
