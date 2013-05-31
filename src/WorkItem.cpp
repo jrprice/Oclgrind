@@ -4,6 +4,7 @@
 #define __STDC_CONSTANT_MACROS
 #include "llvm/DebugInfo.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
@@ -18,12 +19,20 @@ using namespace std;
 
 WorkItem::WorkItem(WorkGroup& workGroup,
                    const Kernel& kernel, Memory& globalMem,
-                   size_t gid_x, size_t gid_y, size_t gid_z)
-  : m_workGroup(workGroup), m_globalMemory(globalMem), m_debugOutput(false)
+                   size_t lid_x, size_t lid_y, size_t lid_z)
+  : m_workGroup(workGroup), m_kernel(kernel),
+    m_globalMemory(globalMem), m_debugOutput(false)
 {
-  m_globalID[0] = gid_x;
-  m_globalID[1] = gid_y;
-  m_globalID[2] = gid_z;
+  m_localID[0] = lid_x;
+  m_localID[1] = lid_y;
+  m_localID[2] = lid_z;
+
+  // Compute global ID
+  const size_t *groupID = workGroup.getGroupID();
+  const size_t *groupSize = workGroup.getGroupSize();
+  m_globalID[0] = lid_x + groupID[0]*groupSize[0];
+  m_globalID[1] = lid_y + groupID[0]*groupSize[1];
+  m_globalID[2] = lid_z + groupID[0]*groupSize[2];
 
   // Store kernel arguments in private memory
   TypedValueMap::const_iterator argItr;
@@ -96,6 +105,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Prepare private variable for instruction result
   size_t resultSize = getInstructionResultSize(instruction);
 
+  // TODO: Bitcasting should happen somewhere...
   // Allocate result memory if not in map already
   TypedValue result = {resultSize, NULL};
   if (m_privateMemory.find(&instruction) == m_privateMemory.end())
@@ -309,14 +319,49 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::CallInst *callInst = (const llvm::CallInst*)&instruction;
 
-  // TODO: Currently assume call is get_global_id()
-  if (result.size == 0)
+  // TODO: Handle direct function calls
+  if (callInst->getCalledFunction())
   {
+    string name = callInst->getCalledFunction()->getName().str();
+    if (name.substr(0,9) != "llvm.dbg.")
+    {
+      cout << "Unhandled direct function call: "
+           << name << endl;
+    }
     return;
   }
-  llvm::ConstantInt *operand = (llvm::ConstantInt*)callInst->getArgOperand(0);
-  int dim = operand->getLimitedValue();
-  *result.data = m_globalID[dim];
+
+  // Resolve indirect function pointer
+  const llvm::Value *func = callInst->getCalledValue();
+  const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
+  const llvm::Function *function = (const llvm::Function*)funcPtr;
+  const string name = function->getName().str();
+
+  // TODO: Implement more builtin functions
+  // TODO: Cleaner implementation of this?
+  if (name == "get_global_id")
+  {
+    llvm::ConstantInt *op = (llvm::ConstantInt*)callInst->getArgOperand(0);
+    int dim = op->getLimitedValue();
+    *((size_t*)result.data) = m_globalID[dim];
+  }
+  else if (name == "get_local_id")
+  {
+    llvm::ConstantInt *op = (llvm::ConstantInt*)callInst->getArgOperand(0);
+    int dim = op->getLimitedValue();
+    *((size_t*)result.data) = m_localID[dim];
+  }
+  else if (name == "get_local_size")
+  {
+    llvm::ConstantInt *op = (llvm::ConstantInt*)callInst->getArgOperand(0);
+    int dim = op->getLimitedValue();
+    *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
+  }
+  else
+  {
+    cout << "Unhandled indirect function call: " << name << endl;
+    return;
+  }
 }
 
 void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)

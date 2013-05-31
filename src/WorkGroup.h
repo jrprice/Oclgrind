@@ -21,6 +21,7 @@ public:
   void dumpPrivateMemory() const;
   void execute(const llvm::Instruction& instruction);
   const size_t* getGroupID() const;
+  const size_t* getGroupSize() const;
   Memory* getLocalMemory() const;
   void run(const llvm::Function *function, bool outputInstructions=false);
 

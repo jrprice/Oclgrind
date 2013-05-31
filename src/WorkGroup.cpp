@@ -42,10 +42,7 @@ WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
     {
       for (size_t i = 0; i < groupSize[0]; i++)
       {
-        WorkItem *workItem = new WorkItem(*this, kernel, globalMem,
-                                          wgid_x*groupSize[0] + i,
-                                          wgid_y*groupSize[1] + j,
-                                          wgid_z*groupSize[2] + k);
+        WorkItem *workItem = new WorkItem(*this, kernel, globalMem, i, j, k);
         m_workItems[i + (j + k*groupSize[1])*groupSize[0]] = workItem;
       }
     }
@@ -85,6 +82,11 @@ void WorkGroup::dumpPrivateMemory() const
 const size_t* WorkGroup::getGroupID() const
 {
   return m_groupID;
+}
+
+const size_t* WorkGroup::getGroupSize() const
+{
+  return m_groupSize;
 }
 
 Memory* WorkGroup::getLocalMemory() const

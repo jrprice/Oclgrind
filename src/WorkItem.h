@@ -9,7 +9,7 @@ class WorkItem
 public:
   WorkItem(WorkGroup& workGroup,
            const Kernel& kernel, Memory &globalMem,
-           size_t gid_x, size_t gid_y=0, size_t gid_z=0);
+           size_t lid_x, size_t lid_y, size_t lid_z);
   virtual ~WorkItem();
 
   void dumpPrivateMemory() const;
@@ -39,7 +39,9 @@ public:
 
 private:
   size_t m_globalID[3];
+  size_t m_localID[3];
   TypedValueMap m_privateMemory;
+  const Kernel& m_kernel;
   Memory *m_stack;
   Memory& m_globalMemory;
   WorkGroup& m_workGroup;
