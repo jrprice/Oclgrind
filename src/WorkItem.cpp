@@ -167,6 +167,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::Load:
     load(instruction, result);
     break;
+  case llvm::Instruction::LShr:
+    lshr(instruction, result);
+    break;
   case llvm::Instruction::Mul:
     mul(instruction, result);
     break;
@@ -606,6 +609,15 @@ void WorkItem::load(const llvm::Instruction& instruction,
                         addressSpace, address, result.size);
     }
   }
+}
+
+void WorkItem::lshr(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: Signed
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a >> b;
+  memcpy(result.data, &r, result.size);
 }
 
 void WorkItem::mul(const llvm::Instruction& instruction, TypedValue& result)

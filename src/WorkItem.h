@@ -39,6 +39,7 @@ public:
   void gep(const llvm::Instruction& instruction, TypedValue& result);
   void icmp(const llvm::Instruction& instruction, TypedValue& result);
   void load(const llvm::Instruction& instruction, TypedValue& result);
+  void lshr(const llvm::Instruction& instruction, TypedValue& result);
   void mul(const llvm::Instruction& instruction, TypedValue& result);
   void phi(const llvm::Instruction& instruction, TypedValue& result);
   void shl(const llvm::Instruction& instruction, TypedValue& result);
