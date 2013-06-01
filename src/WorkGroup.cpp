@@ -96,49 +96,81 @@ Memory* WorkGroup::getLocalMemory() const
 
 void WorkGroup::run(const llvm::Function *function, bool outputInstructions)
 {
-  // Iterate over work-items
-  // TODO: Non-sequential work-item execution
-  for (int i = 0; i < m_totalWorkItems; i++)
+  // Run until all work-items have finished
+  int numFinished = 0;
+  while (numFinished < m_totalWorkItems)
   {
-    // Debug output
-    if (outputInstructions)
+    // Run work-items in order
+    int numBarriers = 0;
+    for (int i = 0; i < m_totalWorkItems; i++)
     {
-      cout << SMALL_SEPARATOR << endl;
-      const size_t *gid = m_workItems[i]->getGlobalID();
-      cout << "Work-item ("
-           << gid[0] << ","
-           << gid[1] << ","
-           << gid[2]
-           << ") Instructions:" << endl;
-    }
-
-    // Iterate over basic blocks in function
-    llvm::Function::const_iterator blockItr;
-    for (blockItr = function->begin(); blockItr != function->end();)
-    {
-      m_workItems[i]->setCurrentBlock(blockItr);
-
-      // Iterate over instructions in block
-      llvm::BasicBlock::const_iterator instItr;
-      for (instItr = blockItr->begin(); instItr != blockItr->end(); instItr++)
+      // Check if work-item is ready to execute
+      WorkItem *workItem = m_workItems[i];
+      if (workItem->getState() != WorkItem::READY)
       {
+        continue;
+      }
+
+      // Debug output
+      if (outputInstructions)
+      {
+        cout << SMALL_SEPARATOR << endl;
+        const size_t *gid = m_workItems[i]->getGlobalID();
+        cout << "Work-item ("
+             << gid[0] << "," << gid[1] << "," << gid[2]
+             << "):" << endl;
+      }
+
+      // Run work-item until barrier or complete
+      WorkItem::State state = workItem->getState();
+      while (state == WorkItem::READY)
+      {
+        state = workItem->step(outputInstructions);
+      }
+
+      // Update counters
+      if (state == WorkItem::BARRIER)
+      {
+        numBarriers++;
         if (outputInstructions)
         {
-          dumpInstruction(*instItr, true);
+          cout << SMALL_SEPARATOR << endl;
+          cout << "Barrier reached." << endl;
         }
-        m_workItems[i]->execute(*instItr);
       }
-
-      // Get next block
-      if (m_workItems[i]->getNextBlock() == NULL)
+      else if (state == WorkItem::FINISHED)
       {
-        // TODO: Cleaner way of handling ret terminator
-        break;
-      }
-      else
-      {
-        blockItr = (const llvm::BasicBlock*)(m_workItems[i]->getNextBlock());
+        numFinished++;
+        if (outputInstructions)
+        {
+          cout << SMALL_SEPARATOR << endl;
+          cout << "Kernel completed." << endl;
+        }
       }
     }
+
+    // TODO: Handle work-items hitting different barriers
+    // Check if all work-items have reached a barrier
+    if (numBarriers == m_totalWorkItems)
+    {
+      for (int i = 0; i < m_totalWorkItems; i++)
+      {
+        m_workItems[i]->clearBarrier();
+      }
+      if (outputInstructions)
+      {
+        cout << "All work-items reached barrier." << endl;
+      }
+    }
+    else if (numBarriers > 0)
+    {
+      cout << "Barrier divergence detected." << endl;
+      return;
+    }
+  }
+
+  if (outputInstructions)
+  {
+    cout << "All work-items completed kernel." << endl;
   }
 }

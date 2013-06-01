@@ -23,13 +23,16 @@ Simulator::Simulator()
   m_context = new llvm::LLVMContext;
 
   m_globalMemory = new Memory();
-  m_kernel = new Kernel();
+  m_kernel = NULL;
 }
 
 Simulator::~Simulator()
 {
   delete m_globalMemory;
-  delete m_kernel;
+  if (m_kernel)
+  {
+    delete m_kernel;
+  }
 }
 
 bool Simulator::init(istream& input)
@@ -88,6 +91,7 @@ bool Simulator::init(istream& input)
 
   m_module = module;
   m_function = function;
+  m_kernel = new Kernel(function);
 
   // Clear global memory
   m_globalMemory->clear();

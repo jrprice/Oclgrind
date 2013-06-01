@@ -7,21 +7,25 @@ class WorkGroup;
 class WorkItem
 {
 public:
+  enum State {READY, BARRIER, FINISHED};
+
+public:
   WorkItem(WorkGroup& workGroup,
            const Kernel& kernel, Memory &globalMem,
            size_t lid_x, size_t lid_y, size_t lid_z);
   virtual ~WorkItem();
 
+  void clearBarrier();
   void dumpPrivateMemory() const;
   void enableDebugOutput(bool enable);
   void execute(const llvm::Instruction& instruction);
   const size_t* getGlobalID() const;
-  const llvm::Value* getNextBlock() const;
+  State getState() const;
   void outputMemoryError(const llvm::Instruction& instruction,
                          const std::string& msg,
                          unsigned addressSpace,
                          size_t address, size_t size) const;
-  void setCurrentBlock(const llvm::Value *block);
+  State step(bool debugOutput = false);
 
   void add(const llvm::Instruction& instruction, TypedValue& result);
   void alloca(const llvm::Instruction& instruction);
@@ -46,9 +50,11 @@ private:
   Memory& m_globalMemory;
   WorkGroup& m_workGroup;
 
-  const llvm::Value *m_prevBlock;
-  const llvm::Value *m_currBlock;
-  const llvm::Value *m_nextBlock;
+  State m_state;
+  llvm::Function::const_iterator m_prevBlock;
+  llvm::Function::const_iterator m_currBlock;
+  llvm::Function::const_iterator m_nextBlock;
+  llvm::BasicBlock::const_iterator m_currInst;
 
   bool m_debugOutput;
 };

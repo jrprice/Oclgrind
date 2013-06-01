@@ -4,8 +4,9 @@
 
 using namespace std;
 
-Kernel::Kernel()
+Kernel::Kernel(const llvm::Function *function)
 {
+  m_function = function;
   m_localMemory = 0;
 }
 
@@ -17,6 +18,11 @@ size_t Kernel::allocateLocalMemory(size_t size)
   size_t address = m_localMemory;
   m_localMemory += size;
   return address;
+}
+
+const llvm::Function* Kernel::getFunction() const
+{
+  return m_function;
 }
 
 size_t Kernel::getLocalMemorySize() const

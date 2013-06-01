@@ -31,8 +31,8 @@ WorkItem::WorkItem(WorkGroup& workGroup,
   const size_t *groupID = workGroup.getGroupID();
   const size_t *groupSize = workGroup.getGroupSize();
   m_globalID[0] = lid_x + groupID[0]*groupSize[0];
-  m_globalID[1] = lid_y + groupID[0]*groupSize[1];
-  m_globalID[2] = lid_z + groupID[0]*groupSize[2];
+  m_globalID[1] = lid_y + groupID[1]*groupSize[1];
+  m_globalID[2] = lid_z + groupID[2]*groupSize[2];
 
   // Store kernel arguments in private memory
   TypedValueMap::const_iterator argItr;
@@ -44,8 +44,11 @@ WorkItem::WorkItem(WorkGroup& workGroup,
   m_stack = new Memory();
 
   m_prevBlock = NULL;
-  m_currBlock = NULL;
   m_nextBlock = NULL;
+  m_currBlock = kernel.getFunction()->begin();
+  m_currInst = m_currBlock->begin();
+
+  m_state = READY;
 }
 
 WorkItem::~WorkItem()
@@ -56,6 +59,14 @@ WorkItem::~WorkItem()
        pmItr != m_privateMemory.end(); pmItr++)
   {
     delete[] pmItr->second.data;
+  }
+}
+
+void WorkItem::clearBarrier()
+{
+  if (m_state == BARRIER)
+  {
+    m_state = READY;
   }
 }
 
@@ -83,7 +94,6 @@ void WorkItem::dumpPrivateMemory() const
     }
 
     // TODO: Interpret values?
-
     cout << setw(0) << endl;
   }
 
@@ -164,7 +174,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     phi(instruction, result);
     break;
   case llvm::Instruction::Ret:
-    // TODO: Cleaner handling of ret
+    // TODO: ret from functions that aren't the kernel
     m_nextBlock = NULL;
     break;
   case llvm::Instruction::Store:
@@ -187,9 +197,9 @@ const size_t* WorkItem::getGlobalID() const
   return m_globalID;
 }
 
-const llvm::Value* WorkItem::getNextBlock() const
+WorkItem::State WorkItem::getState() const
 {
-  return m_nextBlock;
+  return m_state;
 }
 
 void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
@@ -238,12 +248,39 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   cout << endl;
 }
 
-void WorkItem::setCurrentBlock(const llvm::Value *block)
+WorkItem::State WorkItem::step(bool debugOutput)
 {
-  m_prevBlock = m_currBlock;
-  m_currBlock = block;
-  m_nextBlock = NULL;
+  assert(m_state == READY);
+
+  if (debugOutput)
+  {
+    dumpInstruction(*m_currInst, true);
+  }
+
+  // Execute the next instruction
+  execute(*m_currInst);
+
+  // Check if we've reached the end of the block
+  if (++m_currInst == m_currBlock->end())
+  {
+    if (m_nextBlock)
+    {
+      // Move to next basic block
+      m_prevBlock = m_currBlock;
+      m_currBlock = m_nextBlock;
+      m_nextBlock = NULL;
+      m_currInst = m_currBlock->begin();
+    }
+    else
+    {
+      // We've reached the end of the function
+      m_state = FINISHED;
+    }
+  }
+
+  return m_state;
 }
+
 
 ////////////////////////////////
 //// Instruction execution  ////
@@ -303,15 +340,15 @@ void WorkItem::br(const llvm::Instruction& instruction)
   if (instruction.getNumOperands() == 1)
   {
     // Unconditional branch
-    m_nextBlock = instruction.getOperand(0);
+    m_nextBlock = (const llvm::BasicBlock*)instruction.getOperand(0);
   }
   else
   {
     // Conditional branch
     bool pred = *((bool*)m_privateMemory[instruction.getOperand(0)].data);
-    llvm::Value *iftrue = instruction.getOperand(2);
-    llvm::Value *iffalse = instruction.getOperand(1);
-    m_nextBlock = pred ? iftrue : iffalse;
+    const llvm::Value *iftrue = instruction.getOperand(2);
+    const llvm::Value *iffalse = instruction.getOperand(1);
+    m_nextBlock = (const llvm::BasicBlock*)(pred ? iftrue : iffalse);
   }
 }
 
@@ -356,6 +393,11 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     llvm::ConstantInt *op = (llvm::ConstantInt*)callInst->getArgOperand(0);
     int dim = op->getLimitedValue();
     *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
+  }
+  else if (name == "barrier")
+  {
+    // TODO: Different types of barrier?
+    m_state = BARRIER;
   }
   else
   {
