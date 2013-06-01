@@ -37,7 +37,11 @@ public:
   void bwor(const llvm::Instruction& instruction, TypedValue& result);
   void call(const llvm::Instruction& instruction, TypedValue& result);
   void fadd(const llvm::Instruction& instruction, TypedValue& result);
+  void fcmp(const llvm::Instruction& instruction, TypedValue& result);
+  void fdiv(const llvm::Instruction& instruction, TypedValue& result);
   void fmul(const llvm::Instruction& instruction, TypedValue& result);
+  void frem(const llvm::Instruction& instruction, TypedValue& result);
+  void fsub(const llvm::Instruction& instruction, TypedValue& result);
   void gep(const llvm::Instruction& instruction, TypedValue& result);
   void icmp(const llvm::Instruction& instruction, TypedValue& result);
   void load(const llvm::Instruction& instruction, TypedValue& result);

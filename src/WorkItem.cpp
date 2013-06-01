@@ -155,8 +155,20 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::FAdd:
     fadd(instruction, result);
     break;
+  case llvm::Instruction::FCmp:
+    fcmp(instruction, result);
+    break;
+  case llvm::Instruction::FDiv:
+    fdiv(instruction, result);
+    break;
   case llvm::Instruction::FMul:
     fmul(instruction, result);
+    break;
+  case llvm::Instruction::FRem:
+    frem(instruction, result);
+    break;
+  case llvm::Instruction::FSub:
+    fsub(instruction, result);
     break;
   case llvm::Instruction::GetElementPtr:
     gep(instruction, result);
@@ -491,11 +503,69 @@ void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
   setFloatResult(result, a + b);
 }
 
+void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
+{
+  llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
+  double a = getFloatValue(instruction.getOperand(0));
+  double b = getFloatValue(instruction.getOperand(1));
+
+  // TODO: Consider nans in ordered comparisons?
+  // TODO: Implemented unordered comparisons
+  uint64_t r;
+  switch (pred)
+  {
+  case llvm::CmpInst::FCMP_OEQ:
+    r = a == b;
+    break;
+  case llvm::CmpInst::FCMP_ONE:
+    r = a != b;
+    break;
+  case llvm::CmpInst::FCMP_OGT:
+    r = a > b;
+    break;
+  case llvm::CmpInst::FCMP_OGE:
+    r = a >= b;
+    break;
+  case llvm::CmpInst::FCMP_OLT:
+    r = a < b;
+    break;
+  case llvm::CmpInst::FCMP_OLE:
+    r = a <= b;
+    break;
+  default:
+    cout << "Unhandled FCmp predicate." << endl;
+    break;
+  }
+
+  memcpy(result.data, &r, result.size);
+}
+
+void WorkItem::fdiv(const llvm::Instruction& instruction, TypedValue& result)
+{
+  double a = getFloatValue(instruction.getOperand(0));
+  double b = getFloatValue(instruction.getOperand(1));
+  setFloatResult(result, a / b);
+}
+
 void WorkItem::fmul(const llvm::Instruction& instruction, TypedValue& result)
 {
   double a = getFloatValue(instruction.getOperand(0));
   double b = getFloatValue(instruction.getOperand(1));
   setFloatResult(result, a * b);
+}
+
+void WorkItem::frem(const llvm::Instruction& instruction, TypedValue& result)
+{
+  double a = getFloatValue(instruction.getOperand(0));
+  double b = getFloatValue(instruction.getOperand(1));
+  setFloatResult(result, fmod(a, b));
+}
+
+void WorkItem::fsub(const llvm::Instruction& instruction, TypedValue& result)
+{
+  double a = getFloatValue(instruction.getOperand(0));
+  double b = getFloatValue(instruction.getOperand(1));
+  setFloatResult(result, a - b);
 }
 
 void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
@@ -604,7 +674,7 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
     r = sa <= sb;
     break;
   default:
-    cout << "Unhandled ICmp predicated." << endl;
+    cout << "Unhandled ICmp predicate." << endl;
     break;
   }
 

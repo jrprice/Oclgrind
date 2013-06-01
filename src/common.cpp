@@ -48,17 +48,15 @@ size_t getInstructionResultSize(const llvm::Instruction& instruction)
 {
   size_t resultSize = instruction.getType()->getPrimitiveSizeInBits() >> 3;
 
-  // TODO: Is this necessary for GEP?
+  // Special case for GEP
   if (instruction.getOpcode() == llvm::Instruction::GetElementPtr)
   {
     resultSize = sizeof(size_t);
   }
 
-  // TODO: Is this necessary for boolean instructions?
-  // TODO: If so, there may be an isPredicate() or similar
+  // Special case for comparisons
   if (instruction.getOpcode() == llvm::Instruction::ICmp ||
-      instruction.getOpcode() == llvm::Instruction::FCmp ||
-      instruction.getOpcode() == llvm::Instruction::And)
+      instruction.getOpcode() == llvm::Instruction::FCmp)
   {
     resultSize = sizeof(bool);
   }
