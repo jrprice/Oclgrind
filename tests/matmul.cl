@@ -118,7 +118,7 @@ __kernel void matmul_row_local(
 /* Matrix multiplication: C = A * B.
  * Device code.
  */
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 2
 #define AS(i, j) As[j + i * BLOCK_SIZE]
 #define BS(i, j) Bs[j + i * BLOCK_SIZE]
 
@@ -128,7 +128,7 @@ __kernel void matmul_row_local(
 ////////////////////////////////////////////////////////////////////////////////
 __kernel void
 matmul_block(int uiWA, int uiWB, int uiWC,
-             __global float* C, __global float* A, __global float* B,
+             __global float* A, __global float* B, __global float* C,
              __local float* As, __local float* Bs)
 {
   // Block index

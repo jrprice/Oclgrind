@@ -41,6 +41,7 @@ public:
   void load(const llvm::Instruction& instruction, TypedValue& result);
   void mul(const llvm::Instruction& instruction, TypedValue& result);
   void phi(const llvm::Instruction& instruction, TypedValue& result);
+  void shl(const llvm::Instruction& instruction, TypedValue& result);
   void store(const llvm::Instruction& instruction);
 
 private:

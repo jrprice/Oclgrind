@@ -92,6 +92,7 @@ bool Simulator::init(istream& input)
   m_module = module;
   m_function = function;
   m_kernel = new Kernel(function);
+  m_kernel->setGlobalSize(m_ndrange);
 
   // Clear global memory
   m_globalMemory->clear();

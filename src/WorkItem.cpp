@@ -180,6 +180,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     // TODO: ret from functions that aren't the kernel
     m_nextBlock = NULL;
     break;
+  case llvm::Instruction::Shl:
+    shl(instruction, result);
+    break;
   case llvm::Instruction::Store:
     store(instruction);
     break;
@@ -403,8 +406,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   {
     uint64_t dim = getIntValue(callInst->getArgOperand(0));
     assert(dim < 3);
-    // TODO: Fix this!
-    *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
+    *((size_t*)result.data) = m_kernel.getGlobalSize()[dim];
   }
   else if (name == "get_group_id")
   {
@@ -628,6 +630,15 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
   {
     memcpy(result.data, m_privateMemory[value].data, result.size);
   }
+}
+
+void WorkItem::shl(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: Signed
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a << b;
+  memcpy(result.data, &r, result.size);
 }
 
 void WorkItem::store(const llvm::Instruction& instruction)
