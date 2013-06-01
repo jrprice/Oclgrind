@@ -144,7 +144,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     alloca(instruction);
     break;
   case llvm::Instruction::And:
-    land(instruction, result);
+    bwand(instruction, result);
     break;
   case llvm::Instruction::Br:
     br(instruction);
@@ -169,6 +169,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     break;
   case llvm::Instruction::Mul:
     mul(instruction, result);
+    break;
+  case llvm::Instruction::Or:
+    bwor(instruction, result);
     break;
   case llvm::Instruction::PHI:
     phi(instruction, result);
@@ -197,6 +200,21 @@ const size_t* WorkItem::getGlobalID() const
   return m_globalID;
 }
 
+uint64_t WorkItem::getIntValue(const llvm::Value *operand)
+{
+  uint64_t val = 0;
+  if (isConstantOperand(operand))
+  {
+    val = ((const llvm::ConstantInt*)operand)->getZExtValue();
+  }
+  else
+  {
+    TypedValue op = m_privateMemory[operand];
+    memcpy(&val, op.data, op.size);
+  }
+  return val;
+}
+
 WorkItem::State WorkItem::getState() const
 {
   return m_state;
@@ -215,6 +233,9 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
     break;
   case 1:
     memType = "global";
+    break;
+  case 3:
+    memType = "local";
     break;
   default:
     assert(false && "Memory error in unsupported address space.");
@@ -288,31 +309,11 @@ WorkItem::State WorkItem::step(bool debugOutput)
 
 void WorkItem::add(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // TODO: 64-bit, unsigned
-  // TODO: constants
-  int a, b;
-  const llvm::Value *opA = instruction.getOperand(0);
-  const llvm::Value *opB = instruction.getOperand(1);
-
-  if (isConstantOperand(opA))
-  {
-    a = ((llvm::ConstantInt*)opA)->getSExtValue();
-  }
-  else
-  {
-    a = *((int*)m_privateMemory[opA].data);
-  }
-
-  if (isConstantOperand(opB))
-  {
-    b = ((llvm::ConstantInt*)opB)->getSExtValue();
-  }
-  else
-  {
-    b = *((int*)m_privateMemory[opB].data);
-  }
-
-  *((int*)result.data) = (a + b);
+  // TODO: Signed
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a + b;
+  memcpy(result.data, &r, result.size);
 }
 
 void WorkItem::alloca(const llvm::Instruction& instruction)
@@ -352,6 +353,22 @@ void WorkItem::br(const llvm::Instruction& instruction)
   }
 }
 
+void WorkItem::bwand(const llvm::Instruction& instruction, TypedValue& result)
+{
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a & b;
+  memcpy(result.data, &r, result.size);
+}
+
+void WorkItem::bwor(const llvm::Instruction& instruction, TypedValue& result)
+{
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a | b;
+  memcpy(result.data, &r, result.size);
+}
+
 void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::CallInst *callInst = (const llvm::CallInst*)&instruction;
@@ -378,20 +395,33 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   // TODO: Cleaner implementation of this?
   if (name == "get_global_id")
   {
-    llvm::ConstantInt *op = (llvm::ConstantInt*)callInst->getArgOperand(0);
-    int dim = op->getLimitedValue();
+    uint64_t dim = getIntValue(callInst->getArgOperand(0));
+    assert(dim < 3);
     *((size_t*)result.data) = m_globalID[dim];
+  }
+  else if (name == "get_global_size")
+  {
+    uint64_t dim = getIntValue(callInst->getArgOperand(0));
+    assert(dim < 3);
+    // TODO: Fix this!
+    *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
+  }
+  else if (name == "get_group_id")
+  {
+    uint64_t dim = getIntValue(callInst->getArgOperand(0));
+    assert(dim < 3);
+    *((size_t*)result.data) = m_workGroup.getGroupID()[dim];
   }
   else if (name == "get_local_id")
   {
-    llvm::ConstantInt *op = (llvm::ConstantInt*)callInst->getArgOperand(0);
-    int dim = op->getLimitedValue();
+    uint64_t dim = getIntValue(callInst->getArgOperand(0));
+    assert(dim < 3);
     *((size_t*)result.data) = m_localID[dim];
   }
   else if (name == "get_local_size")
   {
-    llvm::ConstantInt *op = (llvm::ConstantInt*)callInst->getArgOperand(0);
-    int dim = op->getLimitedValue();
+    uint64_t dim = getIntValue(callInst->getArgOperand(0));
+    assert(dim < 3);
     *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
   }
   else if (name == "barrier")
@@ -439,18 +469,8 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   llvm::User::const_op_iterator opItr;
   for (opItr = gepInst->idx_begin(); opItr != gepInst->idx_end(); opItr++)
   {
-    size_t offset;
-    if (isConstantOperand(*opItr))
-    {
-      // TODO: Is this a valid method of extracting offset?
-      // TODO: Probably not - negative offsets
-      offset = ((llvm::ConstantInt*)opItr->get())->getLimitedValue();
-    }
-    else
-    {
-      // TODO: Use type of offset
-      offset = *((int*)m_privateMemory[opItr->get()].data);
-    }
+    // TODO: Signed
+    uint64_t offset = getIntValue(opItr->get());
 
     // Get pointer element size
     size_t size;
@@ -475,14 +495,14 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // Load operands
-  // TODO: 64-bit
   llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
 
+  // Load operands
+  // TODO: Use getIntValue()?
   llvm::Value *opA = instruction.getOperand(0);
   llvm::Value *opB = instruction.getOperand(1);
-  unsigned int ua, ub;
-  int sa, sb;
+  uint64_t ua, ub;
+  uint64_t sa, sb;
 
   if (isConstantOperand(opA))
   {
@@ -506,53 +526,45 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
     sb = *((int*)m_privateMemory[opB].data);
   }
 
-  bool b;
+  uint64_t r;
   switch (pred)
   {
   case llvm::CmpInst::ICMP_EQ:
-    b = ua == ub;
+    r = ua == ub;
     break;
   case llvm::CmpInst::ICMP_NE:
-    b = ua != ub;
+    r = ua != ub;
     break;
   case llvm::CmpInst::ICMP_UGT:
-    b = ua > ub;
+    r = ua > ub;
     break;
   case llvm::CmpInst::ICMP_UGE:
-    b = ua >= ub;
+    r = ua >= ub;
     break;
   case llvm::CmpInst::ICMP_ULT:
-    b = ua < ub;
+    r = ua < ub;
     break;
   case llvm::CmpInst::ICMP_ULE:
-    b = ua <= ub;
+    r = ua <= ub;
     break;
   case llvm::CmpInst::ICMP_SGT:
-    b = sa > sb;
+    r = sa > sb;
     break;
   case llvm::CmpInst::ICMP_SGE:
-    b = sa >= sb;
+    r = sa >= sb;
     break;
   case llvm::CmpInst::ICMP_SLT:
-    b = sa < sb;
+    r = sa < sb;
     break;
   case llvm::CmpInst::ICMP_SLE:
-    b = sa <= sb;
+    r = sa <= sb;
     break;
   default:
     cout << "Unhandled ICmp predicated." << endl;
     break;
   }
 
-  *((bool*)result.data) = b;
-}
-
-void WorkItem::land(const llvm::Instruction& instruction, TypedValue& result)
-{
-  // TODO: Constant operands?
-  bool a = *((bool*)m_privateMemory[instruction.getOperand(0)].data);
-  bool b = *((bool*)m_privateMemory[instruction.getOperand(1)].data);
-  *((bool*)result.data) = a && b;
+  memcpy(result.data, &r, result.size);
 }
 
 void WorkItem::load(const llvm::Instruction& instruction,
@@ -596,31 +608,11 @@ void WorkItem::load(const llvm::Instruction& instruction,
 
 void WorkItem::mul(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // TODO: 64-bit, unsigned
-  // TODO: constants
-  int a, b;
-  const llvm::Value *opA = instruction.getOperand(0);
-  const llvm::Value *opB = instruction.getOperand(1);
-
-  if (isConstantOperand(opA))
-  {
-    a = ((llvm::ConstantInt*)opA)->getSExtValue();
-  }
-  else
-  {
-    a = *((int*)m_privateMemory[opA].data);
-  }
-
-  if (isConstantOperand(opB))
-  {
-    b = ((llvm::ConstantInt*)opB)->getSExtValue();
-  }
-  else
-  {
-    b = *((int*)m_privateMemory[opB].data);
-  }
-
-  *((int*)result.data) = (a * b);
+  // TODO: Signed
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a * b;
+  memcpy(result.data, &r, result.size);
 }
 
 void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
