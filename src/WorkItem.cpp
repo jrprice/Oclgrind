@@ -206,6 +206,33 @@ const size_t* WorkItem::getGlobalID() const
   return m_globalID;
 }
 
+double WorkItem::getFloatValue(const llvm::Value *operand)
+{
+  double val = 0;
+  if (isConstantOperand(operand))
+  {
+    val = ((const llvm::ConstantFP*)operand)->getValueAPF().convertToDouble();
+  }
+  else
+  {
+    TypedValue op = m_privateMemory[operand];
+    if (op.size == sizeof(float))
+    {
+      val = *((float*)op.data);
+    }
+    else if (op.size == sizeof(double))
+    {
+      val = *((double*)op.data);
+    }
+    else
+    {
+      cout << "Unhandled float size: " << op.size << endl;
+      return 0;
+    }
+  }
+  return val;
+}
+
 uint64_t WorkItem::getIntValue(const llvm::Value *operand)
 {
   uint64_t val = 0;
@@ -273,6 +300,22 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
          << " of " << loc.getFilename().str() << endl;
   }
   cout << endl;
+}
+
+void WorkItem::setFloatResult(TypedValue& result, double val) const
+{
+  if (result.size == sizeof(float))
+  {
+    *((float*)result.data) = val;
+  }
+  else if (result.size == sizeof(double))
+  {
+    *((double*)result.data) = val;
+  }
+  else
+  {
+    cout << "Unhandled float size: " << result.size << endl;
+  }
 }
 
 WorkItem::State WorkItem::step(bool debugOutput)
@@ -443,20 +486,16 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // TODO: double
-  // TODO: constants
-  float a = *((float*)m_privateMemory[instruction.getOperand(0)].data);
-  float b = *((float*)m_privateMemory[instruction.getOperand(1)].data);
-  *((float*)result.data) = (a + b);
+  double a = getFloatValue(instruction.getOperand(0));
+  double b = getFloatValue(instruction.getOperand(1));
+  setFloatResult(result, a + b);
 }
 
 void WorkItem::fmul(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // TODO: double
-  // TODO: constants
-  float a = *((float*)m_privateMemory[instruction.getOperand(0)].data);
-  float b = *((float*)m_privateMemory[instruction.getOperand(1)].data);
-  *((float*)result.data) = (a * b);
+  double a = getFloatValue(instruction.getOperand(0));
+  double b = getFloatValue(instruction.getOperand(1));
+  setFloatResult(result, a * b);
 }
 
 void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)

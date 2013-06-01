@@ -20,12 +20,14 @@ public:
   void enableDebugOutput(bool enable);
   void execute(const llvm::Instruction& instruction);
   const size_t* getGlobalID() const;
+  double getFloatValue(const llvm::Value *operand);
   uint64_t getIntValue(const llvm::Value *operand);
   State getState() const;
   void outputMemoryError(const llvm::Instruction& instruction,
                          const std::string& msg,
                          unsigned addressSpace,
                          size_t address, size_t size) const;
+  void setFloatResult(TypedValue& result, double val) const;
   State step(bool debugOutput = false);
 
   void add(const llvm::Instruction& instruction, TypedValue& result);
