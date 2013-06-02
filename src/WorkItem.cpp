@@ -223,7 +223,20 @@ double WorkItem::getFloatValue(const llvm::Value *operand)
   double val = 0;
   if (isConstantOperand(operand))
   {
-    val = ((const llvm::ConstantFP*)operand)->getValueAPF().convertToDouble();
+    llvm::APFloat apf = ((const llvm::ConstantFP*)operand)->getValueAPF();
+    if (&(apf.getSemantics()) == &(llvm::APFloat::IEEEsingle))
+    {
+      val = apf.convertToFloat();
+    }
+    else if (&(apf.getSemantics()) == &(llvm::APFloat::IEEEdouble))
+    {
+      val = apf.convertToDouble();
+    }
+    else
+    {
+      cout << "Unhandled float semantics." << endl;
+      return 0;
+    }
   }
   else
   {
