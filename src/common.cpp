@@ -46,7 +46,8 @@ void dumpInstruction(const llvm::Instruction& instruction, bool align)
 
 size_t getInstructionResultSize(const llvm::Instruction& instruction)
 {
-  size_t resultSize = instruction.getType()->getPrimitiveSizeInBits() >> 3;
+  size_t bits = instruction.getType()->getPrimitiveSizeInBits();
+  size_t resultSize = bits >> 3;
 
   // Special case for GEP
   if (instruction.getOpcode() == llvm::Instruction::GetElementPtr)
@@ -54,9 +55,8 @@ size_t getInstructionResultSize(const llvm::Instruction& instruction)
     resultSize = sizeof(size_t);
   }
 
-  // Special case for comparisons
-  if (instruction.getOpcode() == llvm::Instruction::ICmp ||
-      instruction.getOpcode() == llvm::Instruction::FCmp)
+  // Special case for boolean results
+  if (bits == 1)
   {
     resultSize = sizeof(bool);
   }
