@@ -143,11 +143,11 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::Alloca:
     alloca(instruction);
     break;
-  case llvm::Instruction::AShr:
-    ashr(instruction, result);
-    break;
   case llvm::Instruction::And:
     bwand(instruction, result);
+    break;
+  case llvm::Instruction::AShr:
+    ashr(instruction, result);
     break;
   case llvm::Instruction::Br:
     br(instruction);
@@ -198,17 +198,32 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     // TODO: ret from functions that aren't the kernel
     m_nextBlock = NULL;
     break;
+  case llvm::Instruction::SDiv:
+    sdiv(instruction, result);
+    break;
   case llvm::Instruction::SExt:
     sext(instruction, result);
     break;
   case llvm::Instruction::Shl:
     shl(instruction, result);
     break;
+  case llvm::Instruction::SRem:
+    srem(instruction, result);
+    break;
   case llvm::Instruction::Store:
     store(instruction);
     break;
   case llvm::Instruction::Trunc:
     trunc(instruction, result);
+    break;
+  case llvm::Instruction::UDiv:
+    udiv(instruction, result);
+    break;
+  case llvm::Instruction::URem:
+    urem(instruction, result);
+    break;
+  case llvm::Instruction::Xor:
+    bwxor(instruction, result);
     break;
   default:
     cout << "Unhandled instruction: " << instruction.getOpcodeName() << endl;
@@ -460,6 +475,14 @@ void WorkItem::bwor(const llvm::Instruction& instruction, TypedValue& result)
   uint64_t a = getIntValue(instruction.getOperand(0));
   uint64_t b = getIntValue(instruction.getOperand(1));
   uint64_t r = a | b;
+  memcpy(result.data, &r, result.size);
+}
+
+void WorkItem::bwxor(const llvm::Instruction& instruction, TypedValue& result)
+{
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a ^ b;
   memcpy(result.data, &r, result.size);
 }
 
@@ -786,6 +809,15 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
+void WorkItem::sdiv(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: Need to reinterpret for signed
+  int64_t a = getIntValue(instruction.getOperand(0));
+  int64_t b = getIntValue(instruction.getOperand(1));
+  int64_t r = a / b;
+  memcpy(result.data, &r, result.size);
+}
+
 void WorkItem::sext(const llvm::Instruction& instruction, TypedValue& result)
 {
   // TODO: Need to reinterpret
@@ -813,6 +845,15 @@ void WorkItem::shl(const llvm::Instruction& instruction, TypedValue& result)
   uint64_t a = getIntValue(instruction.getOperand(0));
   uint64_t b = getIntValue(instruction.getOperand(1));
   uint64_t r = a << b;
+  memcpy(result.data, &r, result.size);
+}
+
+void WorkItem::srem(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: Need to reinterpret for signed
+  int64_t a = getIntValue(instruction.getOperand(0));
+  int64_t b = getIntValue(instruction.getOperand(1));
+  int64_t r = a % b;
   memcpy(result.data, &r, result.size);
 }
 
@@ -916,4 +957,20 @@ void WorkItem::trunc(const llvm::Instruction& instruction, TypedValue& result)
     *((unsigned long*)result.data) = val;
     break;
   }
+}
+
+void WorkItem::udiv(const llvm::Instruction& instruction, TypedValue& result)
+{
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a / b;
+  memcpy(result.data, &r, result.size);
+}
+
+void WorkItem::urem(const llvm::Instruction& instruction, TypedValue& result)
+{
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a / b;
+  memcpy(result.data, &r, result.size);
 }

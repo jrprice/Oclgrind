@@ -36,6 +36,7 @@ public:
   void br(const llvm::Instruction& instruction);
   void bwand(const llvm::Instruction& instruction, TypedValue& result);
   void bwor(const llvm::Instruction& instruction, TypedValue& result);
+  void bwxor(const llvm::Instruction& instruction, TypedValue& result);
   void call(const llvm::Instruction& instruction, TypedValue& result);
   void fadd(const llvm::Instruction& instruction, TypedValue& result);
   void fcmp(const llvm::Instruction& instruction, TypedValue& result);
@@ -49,10 +50,14 @@ public:
   void lshr(const llvm::Instruction& instruction, TypedValue& result);
   void mul(const llvm::Instruction& instruction, TypedValue& result);
   void phi(const llvm::Instruction& instruction, TypedValue& result);
+  void sdiv(const llvm::Instruction& instruction, TypedValue& result);
   void sext(const llvm::Instruction& instruction, TypedValue& result);
   void shl(const llvm::Instruction& instruction, TypedValue& result);
+  void srem(const llvm::Instruction& instruction, TypedValue& result);
   void store(const llvm::Instruction& instruction);
   void trunc(const llvm::Instruction& instruction, TypedValue& result);
+  void udiv(const llvm::Instruction& instruction, TypedValue& result);
+  void urem(const llvm::Instruction& instruction, TypedValue& result);
 
 private:
   size_t m_globalID[3];
