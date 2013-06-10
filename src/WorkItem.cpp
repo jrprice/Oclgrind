@@ -1045,6 +1045,6 @@ void WorkItem::urem(const llvm::Instruction& instruction, TypedValue& result)
 {
   uint64_t a = getIntValue(instruction.getOperand(0));
   uint64_t b = getIntValue(instruction.getOperand(1));
-  uint64_t r = a / b;
+  uint64_t r = a % b;
   memcpy(result.data, &r, result.size);
 }
