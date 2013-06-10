@@ -4,6 +4,11 @@ class Kernel;
 class Memory;
 class WorkGroup;
 
+namespace llvm
+{
+  class DbgValueInst;
+}
+
 class WorkItem
 {
 public:
@@ -20,8 +25,8 @@ public:
   void enableDebugOutput(bool enable);
   void execute(const llvm::Instruction& instruction);
   const size_t* getGlobalID() const;
-  double getFloatValue(const llvm::Value *operand);
-  uint64_t getIntValue(const llvm::Value *operand);
+  double getFloatValue(const llvm::Value *operand) const;
+  uint64_t getIntValue(const llvm::Value *operand) const;
   State getState() const;
   void outputMemoryError(const llvm::Instruction& instruction,
                          const std::string& msg,
@@ -29,6 +34,7 @@ public:
                          size_t address, size_t size) const;
   void setFloatResult(TypedValue& result, double val) const;
   State step(bool debugOutput = false);
+  void updateVariable(const llvm::DbgValueInst *instruction);
 
   void add(const llvm::Instruction& instruction, TypedValue& result);
   void alloca(const llvm::Instruction& instruction);
@@ -64,6 +70,7 @@ private:
   size_t m_globalID[3];
   size_t m_localID[3];
   TypedValueMap m_privateMemory;
+  std::map<std::string,const llvm::Value*> m_variables;
   const Kernel& m_kernel;
   Memory *m_stack;
   Memory& m_globalMemory;

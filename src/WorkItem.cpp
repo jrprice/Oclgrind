@@ -5,9 +5,11 @@
 #include "llvm/DebugInfo.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Type.h"
 
 #include "Kernel.h"
@@ -78,22 +80,44 @@ void WorkItem::dumpPrivateMemory() const
        << m_globalID[2]
        << ") Private Memory:" << endl;
 
-  TypedValueMap::const_iterator pmItr;
-  for (pmItr = m_privateMemory.begin();
-       pmItr != m_privateMemory.end(); pmItr++)
+  map<string,const llvm::Value*>::const_iterator varItr;
+  for (varItr = m_variables.begin(); varItr != m_variables.end(); varItr++)
   {
-    // Output symbolic name
-    cout << setw(12) << setfill(' ') << left;
-    cout << pmItr->first->getName().str() << right << ":";
-
-    // Output bytes
-    for (int i = 0; i < pmItr->second.size; i++)
+    // Check variable has an assigned value
+    const llvm::Value *value = varItr->second;
+    TypedValueMap::const_iterator itr = m_privateMemory.find(value);
+    if (itr == m_privateMemory.end())
     {
-      cout << " " << hex << uppercase << setw(2) << setfill('0')
-           << (int)pmItr->second.data[i];
+      continue;
     }
 
-    // TODO: Interpret values?
+    // Output synbolic name
+    cout << setw(16) << setfill(' ') << left;
+    cout << varItr->first << right << ":";
+
+    // Output bytes
+    const TypedValue result = itr->second;
+    for (int i = 0; i < result.size; i++)
+    {
+      cout << " " << hex << uppercase << setw(2) << setfill('0')
+           << (int)result.data[i];
+    }
+
+    // Interpret value
+    const llvm::Type::TypeID type = value->getType()->getTypeID();
+    switch (type)
+    {
+    case llvm::Type::IntegerTyID:
+      cout << " (" << getIntValue(value) << ")";
+      break;
+    case llvm::Type::FloatTyID:
+    case llvm::Type::DoubleTyID:
+      cout << " (" << getFloatValue(value) << ")";
+      break;
+    default:
+      break;
+    }
+
     cout << setw(0) << endl;
   }
 
@@ -245,7 +269,7 @@ const size_t* WorkItem::getGlobalID() const
   return m_globalID;
 }
 
-double WorkItem::getFloatValue(const llvm::Value *operand)
+double WorkItem::getFloatValue(const llvm::Value *operand) const
 {
   double val = 0;
   if (isConstantOperand(operand))
@@ -267,7 +291,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand)
   }
   else
   {
-    TypedValue op = m_privateMemory[operand];
+    TypedValue op = m_privateMemory.at(operand);
     if (op.size == sizeof(float))
     {
       val = *((float*)op.data);
@@ -285,7 +309,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand)
   return val;
 }
 
-uint64_t WorkItem::getIntValue(const llvm::Value *operand)
+uint64_t WorkItem::getIntValue(const llvm::Value *operand) const
 {
   uint64_t val = 0;
   if (isConstantOperand(operand))
@@ -295,7 +319,7 @@ uint64_t WorkItem::getIntValue(const llvm::Value *operand)
   }
   else
   {
-    TypedValue op = m_privateMemory[operand];
+    TypedValue op = m_privateMemory.at(operand);
     memcpy(&val, op.data, op.size);
   }
   return val;
@@ -405,6 +429,16 @@ WorkItem::State WorkItem::step(bool debugOutput)
   return m_state;
 }
 
+void WorkItem::updateVariable(const llvm::DbgValueInst *instruction)
+{
+  const llvm::Value *value = instruction->getValue();
+  const llvm::MDNode *variable = instruction->getVariable();
+  uint64_t offset = instruction->getOffset();
+
+  const llvm::MDString *var = ((const llvm::MDString*)variable->getOperand(2));
+  std::string name = var->getString().str();
+  m_variables[name] = value;
+}
 
 ////////////////////////////////
 //// Instruction execution  ////
@@ -510,7 +544,12 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
   // TODO: Implement more builtin functions
   // TODO: Cleaner implementation of this?
-  if (name == "get_global_id")
+  if (name == "barrier")
+  {
+    // TODO: Different types of barrier?
+    m_state = BARRIER;
+  }
+  else if (name == "get_global_id")
   {
     uint64_t dim = getIntValue(callInst->getArgOperand(0));
     assert(dim < 3);
@@ -540,11 +579,6 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     assert(dim < 3);
     *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
   }
-  else if (name == "barrier")
-  {
-    // TODO: Different types of barrier?
-    m_state = BARRIER;
-  }
   else if (name == "min")
   {
     // TODO: Non-integer overloads
@@ -553,13 +587,13 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t r = min(a,b);
     memcpy(result.data, &r, result.size);
   }
+  else if (name == "llvm.dbg.value")
+  {
+    updateVariable((const llvm::DbgValueInst*)callInst);
+  }
   else
   {
-    if (name.substr(0,9) != "llvm.dbg.")
-    {
-      cout << "Unhandled direct function call: " << name << endl;
-    }
-    return;
+    cout << "Unhandled direct function call: " << name << endl;
   }
 }
 
