@@ -545,6 +545,14 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     // TODO: Different types of barrier?
     m_state = BARRIER;
   }
+  else if (name == "min")
+  {
+    // TODO: Non-integer overloads
+    uint64_t a = getIntValue(callInst->getArgOperand(0));
+    uint64_t b = getIntValue(callInst->getArgOperand(1));
+    uint64_t r = min(a,b);
+    memcpy(result.data, &r, result.size);
+  }
   else
   {
     if (name.substr(0,9) != "llvm.dbg.")
@@ -842,7 +850,7 @@ void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
   case llvm::Type::FloatTyID:
   case llvm::Type::DoubleTyID:
     f = getFloatValue(op);
-    memcpy(result.data, &f, result.size);
+    setFloatResult(result, f);
     break;
   default:
     cout << "Unhandled type in select instruction: " << type << endl;

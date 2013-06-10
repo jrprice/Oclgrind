@@ -19,5 +19,6 @@ size_t get_local_size(uint dim);
 void barrier(uint);
 float cos(float x);
 float fabs(float x);
+int min(int a, int b);
 float native_sqrt(float x);
 float sin(float x);
