@@ -51,6 +51,7 @@ public:
   void mul(const llvm::Instruction& instruction, TypedValue& result);
   void phi(const llvm::Instruction& instruction, TypedValue& result);
   void sdiv(const llvm::Instruction& instruction, TypedValue& result);
+  void select(const llvm::Instruction& instruction, TypedValue& result);
   void sext(const llvm::Instruction& instruction, TypedValue& result);
   void shl(const llvm::Instruction& instruction, TypedValue& result);
   void srem(const llvm::Instruction& instruction, TypedValue& result);

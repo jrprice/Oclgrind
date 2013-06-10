@@ -201,6 +201,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::SDiv:
     sdiv(instruction, result);
     break;
+  case llvm::Instruction::Select:
+    select(instruction, result);
+    break;
   case llvm::Instruction::SExt:
     sext(instruction, result);
     break;
@@ -816,6 +819,35 @@ void WorkItem::sdiv(const llvm::Instruction& instruction, TypedValue& result)
   int64_t b = getIntValue(instruction.getOperand(1));
   int64_t r = a / b;
   memcpy(result.data, &r, result.size);
+}
+
+void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
+{
+  const llvm::SelectInst *selectInst = (llvm::SelectInst*)&instruction;
+  const bool cond = getIntValue(selectInst->getCondition());
+  const llvm::Value *op = cond ?
+    selectInst->getTrueValue() :
+    selectInst->getFalseValue();
+
+  uint64_t i;
+  double f;
+
+  llvm::Type::TypeID type = op->getType()->getTypeID();
+  switch (type)
+  {
+  case llvm::Type::IntegerTyID:
+    i = getIntValue(op);
+    memcpy(result.data, &i, result.size);
+    break;
+  case llvm::Type::FloatTyID:
+  case llvm::Type::DoubleTyID:
+    f = getFloatValue(op);
+    memcpy(result.data, &f, result.size);
+    break;
+  default:
+    cout << "Unhandled type in select instruction: " << type << endl;
+    break;
+  }
 }
 
 void WorkItem::sext(const llvm::Instruction& instruction, TypedValue& result)
