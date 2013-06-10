@@ -1,4 +1,4 @@
-#define CLK_LOCAL_MEM_FENCE 0
+#include "clc.h"
 
 __kernel void matmul_elem(
   const int Mdim,

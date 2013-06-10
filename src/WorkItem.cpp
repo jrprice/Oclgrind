@@ -143,6 +143,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::Alloca:
     alloca(instruction);
     break;
+  case llvm::Instruction::AShr:
+    ashr(instruction, result);
+    break;
   case llvm::Instruction::And:
     bwand(instruction, result);
     break;
@@ -195,11 +198,17 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     // TODO: ret from functions that aren't the kernel
     m_nextBlock = NULL;
     break;
+  case llvm::Instruction::SExt:
+    sext(instruction, result);
+    break;
   case llvm::Instruction::Shl:
     shl(instruction, result);
     break;
   case llvm::Instruction::Store:
     store(instruction);
+    break;
+  case llvm::Instruction::Trunc:
+    trunc(instruction, result);
     break;
   default:
     cout << "Unhandled instruction: " << instruction.getOpcodeName() << endl;
@@ -263,6 +272,7 @@ uint64_t WorkItem::getIntValue(const llvm::Value *operand)
   uint64_t val = 0;
   if (isConstantOperand(operand))
   {
+    // TODO: Signed constants
     val = ((const llvm::ConstantInt*)operand)->getZExtValue();
   }
   else
@@ -320,6 +330,7 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   }
   else
   {
+    // TODO: Filename not working for new SPIR output?
     llvm::DILocation loc(md);
     cout << "At line " << dec << loc.getLineNumber()
          << " of " << loc.getFilename().str() << endl;
@@ -383,7 +394,7 @@ WorkItem::State WorkItem::step(bool debugOutput)
 
 void WorkItem::add(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // TODO: Signed
+  // TODO: Signed?
   uint64_t a = getIntValue(instruction.getOperand(0));
   uint64_t b = getIntValue(instruction.getOperand(1));
   uint64_t r = a + b;
@@ -408,6 +419,15 @@ void WorkItem::alloca(const llvm::Instruction& instruction)
   result.data = new unsigned char[result.size];
   *((size_t*)result.data) = address;
   m_privateMemory[&instruction] = result;
+}
+
+void WorkItem::ashr(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: Sign extension
+  uint64_t a = getIntValue(instruction.getOperand(0));
+  uint64_t b = getIntValue(instruction.getOperand(1));
+  uint64_t r = a >> b;
+  memcpy(result.data, &r, result.size);
 }
 
 void WorkItem::br(const llvm::Instruction& instruction)
@@ -447,22 +467,19 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::CallInst *callInst = (const llvm::CallInst*)&instruction;
 
-  // TODO: Handle direct function calls
-  if (callInst->getCalledFunction())
+  // TODO: Handle indirect function calls
+  if (!callInst->getCalledFunction())
   {
-    string name = callInst->getCalledFunction()->getName().str();
-    if (name.substr(0,9) != "llvm.dbg.")
-    {
-      cout << "Unhandled direct function call: "
-           << name << endl;
-    }
+    // Resolve indirect function pointer
+    const llvm::Value *func = callInst->getCalledValue();
+    const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
+    const llvm::Function *function = (const llvm::Function*)funcPtr;
+    cout << "Unhandled indirect function call: "
+         << function->getName().str() << endl;
     return;
   }
 
-  // Resolve indirect function pointer
-  const llvm::Value *func = callInst->getCalledValue();
-  const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
-  const llvm::Function *function = (const llvm::Function*)funcPtr;
+  const llvm::Function *function = callInst->getCalledFunction();
   const string name = function->getName().str();
 
   // TODO: Implement more builtin functions
@@ -504,7 +521,10 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
   else
   {
-    cout << "Unhandled indirect function call: " << name << endl;
+    if (name.substr(0,9) != "llvm.dbg.")
+    {
+      cout << "Unhandled direct function call: " << name << endl;
+    }
     return;
   }
 }
@@ -596,7 +616,7 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   llvm::User::const_op_iterator opItr;
   for (opItr = gepInst->idx_begin(); opItr != gepInst->idx_end(); opItr++)
   {
-    // TODO: Signed
+    // TODO: Signed?
     uint64_t offset = getIntValue(opItr->get());
 
     // Get pointer element size
@@ -735,7 +755,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
 
 void WorkItem::lshr(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // TODO: Signed
+  // TODO: Signed?
   uint64_t a = getIntValue(instruction.getOperand(0));
   uint64_t b = getIntValue(instruction.getOperand(1));
   uint64_t r = a >> b;
@@ -744,7 +764,7 @@ void WorkItem::lshr(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::mul(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // TODO: Signed
+  // TODO: Signed?
   uint64_t a = getIntValue(instruction.getOperand(0));
   uint64_t b = getIntValue(instruction.getOperand(1));
   uint64_t r = a * b;
@@ -766,9 +786,30 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
+void WorkItem::sext(const llvm::Instruction& instruction, TypedValue& result)
+{
+  // TODO: Need to reinterpret
+  int64_t val = getIntValue(instruction.getOperand(0));
+  switch (result.size)
+  {
+  case 1:
+    *((char*)result.data) = val;
+    break;
+  case 2:
+    *((short*)result.data) = val;
+    break;
+  case 4:
+    *((int*)result.data) = val;
+    break;
+  case 8:
+    *((long*)result.data) = val;
+    break;
+  }
+}
+
 void WorkItem::shl(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // TODO: Signed
+  // TODO: Signed?
   uint64_t a = getIntValue(instruction.getOperand(0));
   uint64_t b = getIntValue(instruction.getOperand(1));
   uint64_t r = a << b;
@@ -855,4 +896,24 @@ void WorkItem::store(const llvm::Instruction& instruction)
   }
 
   delete[] data;
+}
+
+void WorkItem::trunc(const llvm::Instruction& instruction, TypedValue& result)
+{
+  uint64_t val = getIntValue(instruction.getOperand(0));
+  switch (result.size)
+  {
+  case 1:
+    *((unsigned char*)result.data) = val;
+    break;
+  case 2:
+    *((unsigned short*)result.data) = val;
+    break;
+  case 4:
+    *((unsigned int*)result.data) = val;
+    break;
+  case 8:
+    *((unsigned long*)result.data) = val;
+    break;
+  }
 }
