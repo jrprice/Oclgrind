@@ -26,8 +26,9 @@ public:
   void execute(const llvm::Instruction& instruction);
   const size_t* getGlobalID() const;
   double getFloatValue(const llvm::Value *operand) const;
-  uint64_t getIntValue(const llvm::Value *operand) const;
+  int64_t getSignedInt(const llvm::Value *operand) const;
   State getState() const;
+  uint64_t getUnsignedInt(const llvm::Value *operand) const;
   void outputMemoryError(const llvm::Instruction& instruction,
                          const std::string& msg,
                          unsigned addressSpace,
