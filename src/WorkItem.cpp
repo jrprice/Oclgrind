@@ -831,14 +831,25 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::PHINode *phiNode = (llvm::PHINode*)&instruction;
   const llvm::Value *value = phiNode->getIncomingValueForBlock((const llvm::BasicBlock*)m_prevBlock);
-  if (isConstantOperand(value))
+
+  uint64_t i;
+  double f;
+
+  llvm::Type::TypeID type = value->getType()->getTypeID();
+  switch (type)
   {
-    // TODO
-    *((int*)result.data) = 0;
-  }
-  else
-  {
-    memcpy(result.data, m_privateMemory[value].data, result.size);
+  case llvm::Type::IntegerTyID:
+    i = getUnsignedInt(value);
+    memcpy(result.data, &i, result.size);
+    break;
+  case llvm::Type::FloatTyID:
+  case llvm::Type::DoubleTyID:
+    f = getFloatValue(value);
+    setFloatResult(result, f);
+    break;
+  default:
+    cout << "Unhandled type in phi instruction: " << type << endl;
+    break;
   }
 }
 
