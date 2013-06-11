@@ -240,6 +240,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::Store:
     store(instruction);
     break;
+  case llvm::Instruction::Sub:
+    sub(instruction, result);
+    break;
   case llvm::Instruction::Trunc:
     trunc(instruction, result);
     break;
@@ -1006,6 +1009,14 @@ void WorkItem::store(const llvm::Instruction& instruction)
   }
 
   delete[] data;
+}
+
+void WorkItem::sub(const llvm::Instruction& instruction, TypedValue& result)
+{
+  uint64_t a = getUnsignedInt(instruction.getOperand(0));
+  uint64_t b = getUnsignedInt(instruction.getOperand(1));
+  uint64_t r = a - b;
+  memcpy(result.data, &r, result.size);
 }
 
 void WorkItem::trunc(const llvm::Instruction& instruction, TypedValue& result)
