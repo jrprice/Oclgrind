@@ -1,15 +1,18 @@
 # Autotools generated files
 aclocal.m4
 autom4te.cache
+config.guess
 config.h
 config.h.in
 config.log
 config.status
+config.sub
 configure
 depcomp
 .deps
 *.dirstamp
 install-sh
+ltmain.sh
 Makefile
 Makefile.in
 missing
@@ -17,4 +20,9 @@ stamp-h1
 
 # Compiler output
 *.o
-oclgrind
+*.lo
+.libs
+liboclgrind.la
+libspirsim.la
+libtool
+oclgrind-kernel

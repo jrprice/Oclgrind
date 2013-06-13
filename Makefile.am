@@ -1,13 +1,25 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
-AM_CPPFLAGS = -I./llvm/build/include/
-AM_LDFLAGS = -L./llvm/build/lib/ -lLLVMSupport -lLLVMCore		\
--lLLVMBitReader -lLLVMAsmParser -lLLVMAnalysis -lLLVMTransformUtils	\
--lLLVMScalarOpts -lLLVMTarget -lLLVMIRReader
+lib_LTLIBRARIES = libspirsim.la liboclgrind.la
+include_HEADERS = src/spirsim/Simulator.h
 
-bin_PROGRAMS = oclgrind
-oclgrind_SOURCES = src/main.cpp src/common.h src/common.cpp		\
-src/Simulator.h src/Simulator.cpp src/WorkItem.h src/WorkItem.cpp	\
-src/WorkGroup.h src/WorkGroup.cpp src/Kernel.h src/Kernel.cpp		\
-src/Memory.h src/Memory.cpp
+libspirsim_la_SOURCES = src/sprisim/common.h src/spirsim/common.cpp	\
+ src/spirsim/Simulator.cpp src/spirsim/WorkItem.h			\
+ src/spirsim/WorkItem.cpp src/spirsim/WorkGroup.h			\
+ src/spirsim/WorkGroup.cpp src/spirsim/Kernel.h src/spirsim/Kernel.cpp	\
+ src/spirsim/Memory.h src/spirsim/Memory.cpp
+libspirsim_la_LDFLAGS = -lLLVMSupport -lLLVMCore -lLLVMBitReader	\
+-lLLVMAsmParser -lLLVMAnalysis -lLLVMTransformUtils -lLLVMScalarOpts	\
+-lLLVMTarget -lLLVMIRReader -shared
+
+
+liboclgrind_la_SOURCES = src/oclgrind/main.cpp
+liboclgrind_la_CPPFLAGS = -I$(top_srcdir)/src/spirsim
+liboclgrind_la_LIBADD = libspirsim.la
+liboclgrind_la_LDFLAGS = -shared
+
+bin_PROGRAMS = oclgrind-kernel
+oclgrind_kernel_SOURCES = src/oclgrind-kernel/main.cpp
+oclgrind_kernel_CPPFLAGS = -I$(top_srcdir)/src/spirsim
+oclgrind_kernel_LDADD = libspirsim.la
