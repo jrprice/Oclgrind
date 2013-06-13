@@ -26,3 +26,7 @@ liboclgrind.la
 libspirsim.la
 libtool
 oclgrind-kernel
+
+# Misc
+util/floatval
+util/hexval

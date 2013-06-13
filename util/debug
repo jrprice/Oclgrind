@@ -1,0 +1,9 @@
+#!/bin/bash
+
+SRC=$1
+NAME=`echo $SRC | awk -F '/' '{print $NF}' | awk -F '.' '{print $1}'`
+
+clang -cc1 -g -emit-llvm \
+    -cl-kernel-arg-info -triple spir64-unknown-unknown \
+    -o $NAME.s \
+    $SRC
