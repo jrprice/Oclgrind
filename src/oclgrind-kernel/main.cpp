@@ -9,9 +9,9 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Transforms/Scalar.h"
 
+#include "spirsim/Device.h"
 #include "spirsim/Kernel.h"
 #include "spirsim/Memory.h"
-#include "spirsim/Simulator.h"
 
 using namespace std;
 
@@ -21,8 +21,8 @@ static const char *simfile = NULL;
 static llvm::LLVMContext context;
 static size_t ndrange[3];
 static size_t wgsize[3];
+static Device *device = NULL;
 static Kernel *kernel = NULL;
-static Simulator *simulator = NULL;
 
 static bool init(istream& input);
 static bool parseArguments(int argc, char *argv[]);
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
   }
 
   // Initialise simulator
-  simulator = new Simulator();
+  device = new Device();
   bool ret = init(input);
   input.close();
   if (!ret)
@@ -54,10 +54,10 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  // Run simulator
-  simulator->setOutputMask(outputMask);
-  simulator->run(*kernel, ndrange, wgsize);
-  delete simulator;
+  // Run device
+  device->setOutputMask(outputMask);
+  device->run(*kernel, ndrange, wgsize);
+  delete device;
 }
 
 bool init(istream& input)
@@ -117,7 +117,7 @@ bool init(istream& input)
   kernel->setGlobalSize(ndrange);
 
   // Clear global memory
-  Memory *globalMemory = simulator->getGlobalMemory();
+  Memory *globalMemory = device->getGlobalMemory();
   globalMemory->clear();
 
   // Set kernel arguments
@@ -209,16 +209,16 @@ static bool parseArguments(int argc, char *argv[])
         switch (*opt)
         {
         case 'g':
-          outputMask |= Simulator::OUTPUT_GLOBAL_MEM;
+          outputMask |= Device::OUTPUT_GLOBAL_MEM;
           break;
         case 'l':
-          outputMask |= Simulator::OUTPUT_LOCAL_MEM;
+          outputMask |= Device::OUTPUT_LOCAL_MEM;
           break;
         case 'p':
-          outputMask |= Simulator::OUTPUT_PRIVATE_MEM;
+          outputMask |= Device::OUTPUT_PRIVATE_MEM;
           break;
         case 'i':
-          outputMask |= Simulator::OUTPUT_INSTRUCTIONS;
+          outputMask |= Device::OUTPUT_INSTRUCTIONS;
           break;
         default:
           cout << "Unrecognised option '" << argv[i] << "'" << endl;

@@ -1,8 +1,9 @@
 #include "common.h"
 
+class Kernel;
 class Memory;
 
-class Simulator
+class Device
 {
 public:
   static const unsigned char OUTPUT_GLOBAL_MEM = 0x01;
@@ -11,8 +12,8 @@ public:
   static const unsigned char OUTPUT_INSTRUCTIONS = 0x08;
 
 public:
-  Simulator();
-  virtual ~Simulator();
+  Device();
+  virtual ~Device();
 
   Memory *getGlobalMemory() const;
   void run(const Kernel& kernel,

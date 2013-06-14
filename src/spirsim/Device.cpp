@@ -7,27 +7,27 @@
 
 #include "Kernel.h"
 #include "Memory.h"
-#include "Simulator.h"
+#include "Device.h"
 #include "WorkGroup.h"
 
 using namespace std;
 
-Simulator::Simulator()
+Device::Device()
 {
   m_globalMemory = new Memory();
 }
 
-Simulator::~Simulator()
+Device::~Device()
 {
   delete m_globalMemory;
 }
 
-Memory* Simulator::getGlobalMemory() const
+Memory* Device::getGlobalMemory() const
 {
   return m_globalMemory;
 }
 
-void Simulator::run(const Kernel& kernel,
+void Device::run(const Kernel& kernel,
                     const size_t ndrange[3], const size_t wgsize[3])
 {
   // Create work-groups
@@ -82,7 +82,7 @@ void Simulator::run(const Kernel& kernel,
   }
 }
 
-void Simulator::setOutputMask(unsigned char mask)
+void Device::setOutputMask(unsigned char mask)
 {
   m_outputMask = mask;
 }
