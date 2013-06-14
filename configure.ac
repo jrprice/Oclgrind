@@ -1,5 +1,5 @@
 AC_INIT([oclgrind], [0.1], [j.price@bristol.ac.uk], [oclgrind], [http://www.cs.bris.ac.uk/~jp8463/oclgrind/])
-AC_PREREQ([2.69])
+AC_PREREQ([2.68])
 AC_CONFIG_SRCDIR([src/])
 AM_INIT_AUTOMAKE([foreign])
 AC_PROG_CXX
