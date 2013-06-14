@@ -15,6 +15,7 @@
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
+using namespace spirsim;
 using namespace std;
 
 WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,

@@ -2,6 +2,7 @@
 
 #include "Kernel.h"
 
+using namespace spirsim;
 using namespace std;
 
 Kernel::Kernel(const llvm::Function *function)

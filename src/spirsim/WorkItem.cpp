@@ -17,6 +17,7 @@
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
+using namespace spirsim;
 using namespace std;
 
 WorkItem::WorkItem(WorkGroup& workGroup,

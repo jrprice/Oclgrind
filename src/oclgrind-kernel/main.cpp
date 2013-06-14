@@ -13,6 +13,7 @@
 #include "spirsim/Kernel.h"
 #include "spirsim/Memory.h"
 
+using namespace spirsim;
 using namespace std;
 
 static unsigned char outputMask = 0;

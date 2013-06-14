@@ -2,6 +2,7 @@
 
 #include "Memory.h"
 
+using namespace spirsim;
 using namespace std;
 
 Memory::Memory()

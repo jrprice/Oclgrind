@@ -10,6 +10,7 @@
 #include "Device.h"
 #include "WorkGroup.h"
 
+using namespace spirsim;
 using namespace std;
 
 Device::Device()
