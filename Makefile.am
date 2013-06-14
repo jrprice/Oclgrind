@@ -2,8 +2,6 @@ AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 lib_LTLIBRARIES = libspirsim.la liboclgrind.la
-include_HEADERS = src/spirsim/Device.h src/spirsim/Kernel.h	\
-src/spirsim/Memory.h
 
 libspirsim_la_SOURCES = src/sprisim/common.h src/spirsim/common.cpp	\
  src/spirsim/Device.cpp src/spirsim/WorkItem.h			\
@@ -13,6 +11,9 @@ libspirsim_la_SOURCES = src/sprisim/common.h src/spirsim/common.cpp	\
 libspirsim_la_LDFLAGS = -lLLVMSupport -lLLVMCore -lLLVMBitReader	\
 -lLLVMAsmParser -lLLVMAnalysis -lLLVMTransformUtils -lLLVMScalarOpts	\
 -lLLVMTarget -lLLVMIRReader -shared
+spirsimincludedir = $(includedir)/spirsim
+spirsiminclude_HEADERS = src/spirsim/Device.h src/spirsim/Kernel.h	\
+src/spirsim/Memory.h
 
 liboclgrind_la_SOURCES = src/oclgrind/main.cpp
 liboclgrind_la_CPPFLAGS = -I$(top_srcdir)/src/
