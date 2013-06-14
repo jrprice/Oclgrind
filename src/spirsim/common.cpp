@@ -2,8 +2,8 @@
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
-#include "llvm/IR/Instruction.h"
-#include "llvm/IR/Type.h"
+#include "llvm/Instruction.h"
+#include "llvm/Type.h"
 
 using namespace spirsim;
 using namespace std;

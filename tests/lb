@@ -63,7 +63,7 @@ for i in `seq 1 $ITR`
 do
     rm -f $SIM
 
-    echo "lb.s" >>$SIM
+    echo "lb.bc" >>$SIM
     echo "timestep" >>$SIM
     echo "$CELLS 1 1" >>$SIM
     echo "$CELLS 1 1" >>$SIM

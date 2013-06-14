@@ -28,5 +28,7 @@ libtool
 oclgrind-kernel
 
 # Misc
+*.bc
+*.s
 util/floatval
 util/hexval

@@ -10,7 +10,7 @@ libspirsim_la_SOURCES = src/sprisim/common.h src/spirsim/common.cpp	\
  src/spirsim/Memory.h src/spirsim/Memory.cpp
 libspirsim_la_LDFLAGS = -lLLVMSupport -lLLVMCore -lLLVMBitReader	\
 -lLLVMAsmParser -lLLVMAnalysis -lLLVMTransformUtils -lLLVMScalarOpts	\
--lLLVMTarget -lLLVMIRReader -shared
+-lLLVMTarget -lLLVMBitReader -shared
 spirsimincludedir = $(includedir)/spirsim
 spirsiminclude_HEADERS = src/spirsim/Device.h src/spirsim/Kernel.h	\
 src/spirsim/Memory.h

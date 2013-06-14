@@ -2,11 +2,13 @@
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IRReader/IRReader.h"
+#include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/LLVMContext.h"
+#include "llvm/Module.h"
 #include "llvm/Pass.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/system_error.h"
 #include "llvm/Transforms/Scalar.h"
 
 #include "spirsim/Device.h"
@@ -81,12 +83,19 @@ bool init(istream& input)
     return false;
   }
 
-  // Load IR module from file
-  llvm::SMDiagnostic err;
-  llvm::Module* module = ParseIRFile(spir, err, context);
+  // Load bitcode from file
+  llvm::OwningPtr<llvm::MemoryBuffer> buffer;
+  if (llvm::MemoryBuffer::getFile(spir, buffer))
+  {
+    cout << "Failed to open bitcode file '" << spir << "'" << endl;
+    return false;
+  }
+
+  // Parse bitcode into IR module
+  llvm::Module *module = ParseBitcodeFile(buffer.get(), context);
   if (!module)
   {
-    cout << "Failed to load SPIR." << endl;
+    cout << "Failed to load SPIR bitcode." << endl;
     return false;
   }
 

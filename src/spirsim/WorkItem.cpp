@@ -2,15 +2,15 @@
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
+#include "llvm/Constants.h"
 #include "llvm/DebugInfo.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Metadata.h"
-#include "llvm/IR/InstrTypes.h"
-#include "llvm/IR/Instruction.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/IntrinsicInst.h"
-#include "llvm/IR/Type.h"
+#include "llvm/Function.h"
+#include "llvm/Metadata.h"
+#include "llvm/InstrTypes.h"
+#include "llvm/Instruction.h"
+#include "llvm/Instructions.h"
+#include "llvm/IntrinsicInst.h"
+#include "llvm/Type.h"
 
 #include "Kernel.h"
 #include "Memory.h"

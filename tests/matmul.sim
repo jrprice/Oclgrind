@@ -1,4 +1,4 @@
-matmul.s
+matmul.bc
 matmul_block
 2 2 1
 2 2 1
