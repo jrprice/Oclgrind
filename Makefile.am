@@ -13,7 +13,6 @@ libspirsim_la_LDFLAGS = -lLLVMSupport -lLLVMCore -lLLVMBitReader	\
 -lLLVMAsmParser -lLLVMAnalysis -lLLVMTransformUtils -lLLVMScalarOpts	\
 -lLLVMTarget -lLLVMIRReader -shared
 
-
 liboclgrind_la_SOURCES = src/oclgrind/main.cpp
 liboclgrind_la_CPPFLAGS = -I$(top_srcdir)/src/spirsim
 liboclgrind_la_LIBADD = libspirsim.la
@@ -21,5 +20,5 @@ liboclgrind_la_LDFLAGS = -shared
 
 bin_PROGRAMS = oclgrind-kernel
 oclgrind_kernel_SOURCES = src/oclgrind-kernel/main.cpp
-oclgrind_kernel_CPPFLAGS = -I$(top_srcdir)/src/spirsim
+oclgrind_kernel_CPPFLAGS = -I$(top_srcdir)/src/
 oclgrind_kernel_LDADD = libspirsim.la

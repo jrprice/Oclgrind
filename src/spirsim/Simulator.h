@@ -1,14 +1,6 @@
 #include "common.h"
 
-namespace llvm
-{
-  class Function;
-  class LLVMContext;
-  class Module;
-}
-
 class Memory;
-class Kernel;
 
 class Simulator
 {
@@ -22,19 +14,12 @@ public:
   Simulator();
   virtual ~Simulator();
 
-  bool init(std::istream& input);
-  void run();
+  Memory *getGlobalMemory() const;
+  void run(const Kernel& kernel,
+           const size_t ndrange[3], const size_t wgsize[3]);
   void setOutputMask(unsigned char mask);
 
 private:
-  llvm::LLVMContext *m_context;
-  const llvm::Module *m_module;
-  const llvm::Function *m_function;
-
   Memory *m_globalMemory;
-  Kernel *m_kernel;
-  size_t m_ndrange[3];
-  size_t m_wgsize[3];
-
   unsigned char m_outputMask;
 };

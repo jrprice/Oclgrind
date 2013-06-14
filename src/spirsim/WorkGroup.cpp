@@ -19,7 +19,7 @@ using namespace std;
 
 WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
                      size_t wgid_x, size_t wgid_y, size_t wgid_z,
-                     size_t groupSize[3])
+                     const size_t groupSize[3])
   : m_globalMemory(globalMem)
 {
   m_groupID[0] = wgid_x;
@@ -94,8 +94,10 @@ Memory* WorkGroup::getLocalMemory() const
   return m_localMemory;
 }
 
-void WorkGroup::run(const llvm::Function *function, bool outputInstructions)
+void WorkGroup::run(const Kernel& kernel, bool outputInstructions)
 {
+  const llvm::Function *function = kernel.getFunction();
+
   // Run until all work-items have finished
   int numFinished = 0;
   while (numFinished < m_totalWorkItems)

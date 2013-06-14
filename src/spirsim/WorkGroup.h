@@ -1,10 +1,5 @@
 #include "common.h"
 
-namespace llvm
-{
-  class Function;
-}
-
 class Memory;
 class Kernel;
 class WorkItem;
@@ -14,16 +9,15 @@ class WorkGroup
 public:
   WorkGroup(const Kernel& kernel, Memory &globalMem,
             size_t wgid_x, size_t wgid_y, size_t wgid_z,
-            size_t wgsize[3]);
+            const size_t wgsize[3]);
   virtual ~WorkGroup();
 
   void dumpLocalMemory() const;
   void dumpPrivateMemory() const;
-  void execute(const llvm::Instruction& instruction);
   const size_t* getGroupID() const;
   const size_t* getGroupSize() const;
   Memory* getLocalMemory() const;
-  void run(const llvm::Function *function, bool outputInstructions=false);
+  void run(const Kernel& kernel, bool outputInstructions=false);
 
 private:
   size_t m_groupID[3];

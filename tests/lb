@@ -63,7 +63,7 @@ for i in `seq 1 $ITR`
 do
     rm -f $SIM
 
-    echo "tests/lb.s" >>$SIM
+    echo "lb.s" >>$SIM
     echo "timestep" >>$SIM
     echo "$CELLS 1 1" >>$SIM
     echo "$CELLS 1 1" >>$SIM
@@ -132,7 +132,7 @@ do
     echo "l $BUFSIZE" >>$SIM
     echo "" >>$SIM
 
-    ./oclgrind $SIM -g >MEM
+    ./oclgrind-kernel $SIM -g >MEM
     if [ $? -ne 0 ]
     then
         echo "Error running oclgrind"
@@ -148,6 +148,6 @@ done
 
 # Compute reynolds number
 hex=`tail -n 2 MEM | head -n 1 | awk '{print $5$4$3$2}'`
-avg=`util/floatval $hex`
+avg=`../util/floatval $hex`
 avg=`echo "scale=16; $avg / $CELLS" | bc`
 echo "scale=8; ($avg * $REYNOLDS_DIM) / $VISCOSITY" | bc
