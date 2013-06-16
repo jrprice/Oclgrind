@@ -1,6 +1,8 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
+AM_CFLAGS = -wno-deprecated-delcarations
+
 lib_LTLIBRARIES = libspirsim.la liboclgrind.la
 
 libspirsim_la_SOURCES = src/sprisim/common.h src/spirsim/common.cpp	\
@@ -15,7 +17,8 @@ spirsimincludedir = $(includedir)/spirsim
 spirsiminclude_HEADERS = src/spirsim/Device.h src/spirsim/Kernel.h	\
 src/spirsim/Memory.h
 
-liboclgrind_la_SOURCES = src/oclgrind/main.cpp
+liboclgrind_la_SOURCES = src/oclgrind/init.cpp	\
+src/oclgrind/runtime.cpp
 liboclgrind_la_CPPFLAGS = -I$(top_srcdir)/src/
 liboclgrind_la_LIBADD = libspirsim.la
 liboclgrind_la_LDFLAGS = -ldl -lpthread -shared
