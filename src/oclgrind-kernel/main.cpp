@@ -21,7 +21,7 @@ using namespace std;
 static unsigned char outputMask = 0;
 static const char *simfile = NULL;
 
-static llvm::LLVMContext context;
+static llvm::LLVMContext& context = llvm::getGlobalContext();
 static size_t ndrange[3];
 static size_t wgsize[3];
 static Device *device = NULL;
@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
   device->setOutputMask(outputMask);
   device->run(*kernel, ndrange, wgsize);
   delete device;
+  delete kernel;
 }
 
 bool init(istream& input)
