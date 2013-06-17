@@ -19,7 +19,8 @@ namespace spirsim
     const llvm::Function* getFunction() const;
     size_t getLocalMemorySize() const;
     const size_t* getGlobalSize() const;
-    void setArgument(const llvm::Value *arg, TypedValue value);
+    unsigned int getNumArguments() const;
+    void setArgument(unsigned int index, TypedValue value);
     void setGlobalSize(const size_t globalSize[3]);
 
   private:

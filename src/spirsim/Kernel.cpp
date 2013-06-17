@@ -1,5 +1,9 @@
 #include "common.h"
 
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+#include "llvm/Function.h"
+
 #include "Kernel.h"
 
 using namespace spirsim;
@@ -44,9 +48,27 @@ const size_t* Kernel::getGlobalSize() const
   return m_globalSize;
 }
 
-void Kernel::setArgument(const llvm::Value *arg, TypedValue value)
+unsigned int Kernel::getNumArguments() const
 {
-  m_arguments[arg] = value;
+  return m_function->arg_size();
+}
+
+void Kernel::setArgument(unsigned int index, TypedValue value)
+{
+  if (index >= m_function->arg_size())
+  {
+    cerr << "Argument index out of range." << endl;
+    return;
+  }
+
+  llvm::Function::const_arg_iterator argItr = m_function->arg_begin();
+  for (int i = 0; i < index; i++)
+  {
+    argItr++;
+  }
+
+  // TODO: Check arg type
+  m_arguments[argItr] = clone(value);
 }
 
 void Kernel::setGlobalSize(const size_t globalSize[3])

@@ -25,7 +25,6 @@ stamp-h1
 liboclgrind.la
 libspirsim.la
 libtool
-./oclgrind-kernel
 
 # Misc
 *.bc

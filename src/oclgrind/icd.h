@@ -19,8 +19,8 @@
 
 typedef struct CLIicdDispatchTable_st
 {
-    void *entries[256];
-    int entryCount;
+  void *entries[256];
+  int entryCount;
 } CLIicdDispatchTable;
 
 struct _cl_platform_id
@@ -36,42 +36,42 @@ struct _cl_platform_id
 
 struct _cl_device_id
 {
-    CLIicdDispatchTable* dispatch;
+  CLIicdDispatchTable* dispatch;
 };
 
 struct _cl_context
 {
-    CLIicdDispatchTable* dispatch;
+  CLIicdDispatchTable* dispatch;
 };
 
 struct _cl_command_queue
 {
-    CLIicdDispatchTable* dispatch;
+  CLIicdDispatchTable* dispatch;
 };
 
 struct _cl_mem
 {
-    CLIicdDispatchTable* dispatch;
+  CLIicdDispatchTable* dispatch;
 };
 
 struct _cl_program
 {
-    CLIicdDispatchTable* dispatch;
+  CLIicdDispatchTable* dispatch;
 };
 
 struct _cl_kernel
 {
-    CLIicdDispatchTable* dispatch;
+  CLIicdDispatchTable* dispatch;
 };
 
 struct _cl_event
 {
-    CLIicdDispatchTable* dispatch;
+  CLIicdDispatchTable* dispatch;
 };
 
 struct _cl_sampler
 {
-    CLIicdDispatchTable* dispatch;
+  CLIicdDispatchTable* dispatch;
 };
 
 cl_int cliIcdDispatchTableCreate(CLIicdDispatchTable **outDispatchTable);

@@ -1,19 +1,9 @@
 #include <fstream>
 
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
-#include "llvm/Bitcode/ReaderWriter.h"
-#include "llvm/LLVMContext.h"
-#include "llvm/Module.h"
-#include "llvm/Pass.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/system_error.h"
-#include "llvm/Transforms/Scalar.h"
-
 #include "spirsim/Device.h"
 #include "spirsim/Kernel.h"
 #include "spirsim/Memory.h"
+#include "spirsim/Program.h"
 
 using namespace spirsim;
 using namespace std;
@@ -21,10 +11,10 @@ using namespace std;
 static unsigned char outputMask = 0;
 static const char *simfile = NULL;
 
-static llvm::LLVMContext& context = llvm::getGlobalContext();
 static size_t ndrange[3];
 static size_t wgsize[3];
 static Device *device = NULL;
+static Program *program = NULL;
 static Kernel *kernel = NULL;
 
 static bool init(istream& input);
@@ -62,6 +52,7 @@ int main(int argc, char *argv[])
   device->run(*kernel, ndrange, wgsize);
   delete device;
   delete kernel;
+  delete program;
 }
 
 bool init(istream& input)
@@ -84,47 +75,8 @@ bool init(istream& input)
     return false;
   }
 
-  // Load bitcode from file
-  llvm::OwningPtr<llvm::MemoryBuffer> buffer;
-  if (llvm::MemoryBuffer::getFile(spir, buffer))
-  {
-    cout << "Failed to open bitcode file '" << spir << "'" << endl;
-    return false;
-  }
-
-  // Parse bitcode into IR module
-  llvm::Module *module = ParseBitcodeFile(buffer.get(), context);
-  if (!module)
-  {
-    cout << "Failed to load SPIR bitcode." << endl;
-    return false;
-  }
-
-  // Iterate over functions in module to find kernel
-  llvm::Function *function = NULL;
-  llvm::Module::iterator funcItr;
-  for(funcItr = module->begin(); funcItr != module->end(); funcItr++)
-  {
-    // Check kernel name
-    if (funcItr->getName().str() != kernelName)
-      continue;
-
-    function = funcItr;
-
-    break;
-  }
-  if (function == NULL)
-  {
-    cout << "Failed to locate kernel." << endl;
-    return false;
-  }
-
-  // Assign identifiers to unnamed temporaries
-  llvm::FunctionPass *instNamer = llvm::createInstructionNamerPass();
-  instNamer->runOnFunction(*((llvm::Function*)function));
-  delete instNamer;
-
-  kernel = new Kernel(function);
+  program = Program::createFromBitcodeFile(spir);
+  kernel = program->createKernel(kernelName);
   kernel->setGlobalSize(ndrange);
 
   // Clear global memory
@@ -132,9 +84,7 @@ bool init(istream& input)
   globalMemory->clear();
 
   // Set kernel arguments
-  const llvm::Function::ArgumentListType& args = function->getArgumentList();
-  llvm::Function::const_arg_iterator argItr;
-  for (argItr = args.begin(); argItr != args.end(); argItr++)
+  for (int idx = 0; idx < kernel->getNumArguments(); idx++)
   {
     char type;
     size_t size;
@@ -163,7 +113,7 @@ bool init(istream& input)
         globalMemory->store(address + i, (unsigned char)byte);
       }
 
-      // TODO: Address assignment
+      // Set argument value
       value.size = sizeof(size_t);
       value.data = new unsigned char[value.size];
       *((size_t*)value.data) = address;
@@ -193,7 +143,8 @@ bool init(istream& input)
       return false;
     }
 
-    kernel->setArgument(argItr, value);
+    kernel->setArgument(idx, value);
+    delete[] value.data;
   }
 
   // Make sure there is no more input
