@@ -6,6 +6,7 @@ namespace spirsim
   {
   public:
     Memory();
+    virtual ~Memory();
 
     size_t allocateBuffer(size_t size);
     void clear();

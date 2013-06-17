@@ -15,6 +15,10 @@ Kernel::Kernel(const llvm::Function *function)
   m_globalSize[2] = 0;
 }
 
+Kernel::~Kernel()
+{
+}
+
 size_t Kernel::allocateLocalMemory(size_t size)
 {
   // TODO: This doens't allow individual local memory arguments to be

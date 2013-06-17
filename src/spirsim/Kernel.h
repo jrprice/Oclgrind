@@ -11,6 +11,7 @@ namespace spirsim
   {
   public:
     Kernel(const llvm::Function *function);
+    virtual ~Kernel();
 
     TypedValueMap::const_iterator args_begin() const;
     TypedValueMap::const_iterator args_end() const;

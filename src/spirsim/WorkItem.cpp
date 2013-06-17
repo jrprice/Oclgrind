@@ -63,6 +63,7 @@ WorkItem::~WorkItem()
   {
     delete[] pmItr->second.data;
   }
+  delete m_stack;
 }
 
 void WorkItem::clearBarrier()

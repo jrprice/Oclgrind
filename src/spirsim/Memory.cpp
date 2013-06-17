@@ -10,6 +10,10 @@ Memory::Memory()
   m_allocated = 0;
 }
 
+Memory::~Memory()
+{
+}
+
 size_t Memory::allocateBuffer(size_t size)
 {
   size_t address = m_allocated;
