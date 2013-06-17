@@ -13,6 +13,7 @@ CLIicdDispatchTable *m_dispatchTable = NULL;
 struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
 static struct _cl_context *m_context = NULL;
+static struct _cl_command_queue *m_queue = NULL;
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformIDs(cl_uint           num_entries ,
@@ -429,29 +430,30 @@ clCreateContext(const cl_context_properties * properties,
     *errcode_ret = CL_INVALID_PLATFORM;
     return NULL;
   }
-
   if (num_devices != 1 || !devices)
   {
     *errcode_ret = CL_INVALID_VALUE;
     return NULL;
   }
-
   if (devices[0] != m_device)
   {
     *errcode_ret = CL_INVALID_DEVICE;
     return NULL;
   }
-
   if (pfn_notify)
   {
     cerr << endl << "OCLGRIND: Non-NULL pfn_notify not supported." << endl;
-    *errcode_ret = CL_INVALID_PLATFORM;
+    *errcode_ret = CL_INVALID_VALUE;
     return NULL;
   }
 
   // Create context object
-  m_context = (cl_context)malloc(sizeof(struct _cl_context));
-  m_context->dispatch = m_dispatchTable;
+  if (!m_context)
+  {
+    m_context = (cl_context)malloc(sizeof(struct _cl_context));
+    m_context->dispatch = m_dispatchTable;
+  }
+
   *errcode_ret = CL_SUCCESS;
   return m_context;
 }
@@ -488,6 +490,7 @@ clReleaseContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
 
   // TODO: Reference count and retain
   free(m_context);
+  m_context = NULL;
 
   return CL_SUCCESS;
 }
@@ -511,11 +514,33 @@ clCreateCommandQueue(cl_context                     context,
                      cl_command_queue_properties    properties,
                      cl_int *                       errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  //cl_command_queue obj = (cl_command_queue) malloc(sizeof(struct _cl_command_queue));
-  //obj->dispatch = dispatchTable;
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
-  return NULL;
+  // Check parameters
+  if (context != m_context)
+  {
+    *errcode_ret = CL_INVALID_CONTEXT;
+    return NULL;
+  }
+  if (device != m_device)
+  {
+    *errcode_ret = CL_INVALID_DEVICE;
+    return NULL;
+  }
+  if (properties)
+  {
+    cerr << endl << "OCLGRIND: Non-NULL properties not supported." << endl;
+    *errcode_ret = CL_INVALID_VALUE;
+    return NULL;
+  }
+
+  // Create command-queue object
+  if (!m_queue)
+  {
+    m_queue = (cl_command_queue)malloc(sizeof(struct _cl_command_queue));
+    m_queue->dispatch = m_dispatchTable;
+  }
+
+  *errcode_ret = CL_SUCCESS;
+  return m_queue;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -538,7 +563,15 @@ clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
+  if (command_queue != m_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  // TODO: Reference count and retain
+  free(m_queue);
+  m_queue = NULL;
+
   return CL_INVALID_PLATFORM;
 }
 
