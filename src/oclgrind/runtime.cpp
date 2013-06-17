@@ -423,7 +423,7 @@ clCreateContext(const cl_context_properties * properties,
 {
   //cl_context obj = (cl_context) malloc(sizeof(struct _cl_context));
   //obj->dispatch = dispatchTable;
-  pfn_notify(NULL, NULL, 0, NULL);
+  //pfn_notify(NULL, NULL, 0, NULL);
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
@@ -438,7 +438,7 @@ clCreateContextFromType(const cl_context_properties * properties,
 {
   //cl_context obj = (cl_context) malloc(sizeof(struct _cl_context));
   //obj->dispatch = dispatchTable;
-  pfn_notify(NULL, NULL, 0, NULL);
+  //pfn_notify(NULL, NULL, 0, NULL);
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
@@ -654,7 +654,7 @@ clSetMemObjectDestructorCallback(cl_mem  memobj ,
                                  void (CL_CALLBACK * pfn_notify)(cl_mem  memobj , void* user_data),
                                  void * user_data)             CL_API_SUFFIX__VERSION_1_1
 {
-  pfn_notify(memobj, NULL);
+  //pfn_notify(memobj, NULL);
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
@@ -766,7 +766,7 @@ clBuildProgram(cl_program            program ,
                void (CL_CALLBACK *   pfn_notify)(cl_program  program , void *  user_data),
                void *                user_data) CL_API_SUFFIX__VERSION_1_0
 {
-  pfn_notify(program, NULL);
+  //pfn_notify(program, NULL);
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
@@ -789,7 +789,7 @@ clCompileProgram(cl_program            program ,
                  void (CL_CALLBACK *   pfn_notify)(cl_program  program , void *  user_data),
                  void *                user_data) CL_API_SUFFIX__VERSION_1_2
 {
-  pfn_notify(program, NULL);
+  //pfn_notify(program, NULL);
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
@@ -807,7 +807,7 @@ clLinkProgram(cl_context            context ,
 {
   //cl_program obj = (cl_program) malloc(sizeof(cl_program));
   //obj->dispatch = dispatchTable;
-  //pfn_notify(obj, NULL);
+  ////pfn_notify(obj, NULL);
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
@@ -985,7 +985,7 @@ clSetEventCallback(cl_event     event ,
                    void (CL_CALLBACK *  pfn_notify)(cl_event, cl_int, void *),
                    void *       user_data) CL_API_SUFFIX__VERSION_1_1
 {
-  pfn_notify(event, command_exec_callback_type, NULL);
+  //pfn_notify(event, command_exec_callback_type, NULL);
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
