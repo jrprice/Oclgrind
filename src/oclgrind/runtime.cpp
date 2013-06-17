@@ -28,7 +28,6 @@ clGetPlatformInfo(cl_platform_id    platform,
                   void *            param_value,
                   size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cl_int result = CL_SUCCESS;
   cl_int return_value = CL_SUCCESS;
   const char *returnString = NULL;
   size_t returnStringLength = 0;
@@ -125,7 +124,7 @@ clGetDeviceInfo(cl_device_id    device,
                 void *          param_value,
                 size_t *        param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -136,21 +135,21 @@ clCreateSubDevices(cl_device_id in_device,
                    cl_device_id *out_devices,
                    cl_uint *num_devices) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainDevice(cl_device_id device) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseDevice(cl_device_id device) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -167,7 +166,7 @@ clCreateContext(const cl_context_properties * properties,
   //cl_context obj = (cl_context) malloc(sizeof(struct _cl_context));
   //obj->dispatch = dispatchTable;
   pfn_notify(NULL, NULL, 0, NULL);
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -182,7 +181,7 @@ clCreateContextFromType(const cl_context_properties * properties,
   //cl_context obj = (cl_context) malloc(sizeof(struct _cl_context));
   //obj->dispatch = dispatchTable;
   pfn_notify(NULL, NULL, 0, NULL);
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -190,14 +189,14 @@ clCreateContextFromType(const cl_context_properties * properties,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -208,7 +207,7 @@ clGetContextInfo(cl_context         context,
                  void *             param_value,
                  size_t *           param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -222,7 +221,7 @@ clCreateCommandQueue(cl_context                     context,
 {
   //cl_command_queue obj = (cl_command_queue) malloc(sizeof(struct _cl_command_queue));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -233,21 +232,21 @@ clSetCommandQueueProperty(cl_command_queue               command_queue ,
                           cl_bool                        enable ,
                           cl_command_queue_properties *  old_properties) //CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -258,7 +257,7 @@ clGetCommandQueueInfo(cl_command_queue       command_queue ,
                       void *                 param_value ,
                       size_t *               param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -273,7 +272,7 @@ clCreateBuffer(cl_context    context ,
 {
   //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -287,7 +286,7 @@ clCreateSubBuffer(cl_mem                    buffer ,
 {
   //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -302,7 +301,7 @@ clCreateImage(cl_context              context,
 {
   //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -320,7 +319,7 @@ clCreateImage2D(cl_context              context ,
 {
   //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -339,7 +338,7 @@ clCreateImage3D(cl_context              context,
 {
   //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -347,14 +346,14 @@ clCreateImage3D(cl_context              context,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -366,7 +365,7 @@ clGetSupportedImageFormats(cl_context           context,
                            cl_image_format *    image_formats ,
                            cl_uint *            num_image_formats) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -377,7 +376,7 @@ clGetMemObjectInfo(cl_mem            memobj ,
                    void *            param_value ,
                    size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -388,7 +387,7 @@ clGetImageInfo(cl_mem            image ,
                void *            param_value ,
                size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -398,7 +397,7 @@ clSetMemObjectDestructorCallback(cl_mem  memobj ,
                                  void * user_data)             CL_API_SUFFIX__VERSION_1_1
 {
   pfn_notify(memobj, NULL);
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -412,7 +411,7 @@ clCreateSampler(cl_context           context ,
 {
   //cl_sampler obj = (cl_sampler) malloc(sizeof(struct _cl_sampler));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -420,14 +419,14 @@ clCreateSampler(cl_context           context ,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainSampler(cl_sampler  sampler) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseSampler(cl_sampler  sampler) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -438,7 +437,7 @@ clGetSamplerInfo(cl_sampler          sampler ,
                  void *              param_value ,
                  size_t *            param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -452,7 +451,7 @@ clCreateProgramWithSource(cl_context         context ,
 {
   //cl_program obj = (cl_program) malloc(sizeof(struct _cl_program));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -468,7 +467,7 @@ clCreateProgramWithBinary(cl_context                      context ,
 {
   //cl_program obj = (cl_program) malloc(sizeof(struct _cl_program));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -482,7 +481,7 @@ clCreateProgramWithBuiltInKernels(cl_context             context ,
 {
   //cl_program obj = (cl_program) malloc(sizeof(struct _cl_program));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -490,14 +489,14 @@ clCreateProgramWithBuiltInKernels(cl_context             context ,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -510,14 +509,14 @@ clBuildProgram(cl_program            program ,
                void *                user_data) CL_API_SUFFIX__VERSION_1_0
 {
   pfn_notify(program, NULL);
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clUnloadCompiler(void) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -533,7 +532,7 @@ clCompileProgram(cl_program            program ,
                  void *                user_data) CL_API_SUFFIX__VERSION_1_2
 {
   pfn_notify(program, NULL);
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -551,7 +550,7 @@ clLinkProgram(cl_context            context ,
   //cl_program obj = (cl_program) malloc(sizeof(cl_program));
   //obj->dispatch = dispatchTable;
   //pfn_notify(obj, NULL);
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -559,7 +558,7 @@ clLinkProgram(cl_context            context ,
 CL_API_ENTRY cl_int CL_API_CALL
 clUnloadPlatformCompiler(cl_platform_id  platform) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -570,7 +569,7 @@ clGetProgramInfo(cl_program          program ,
                  void *              param_value ,
                  size_t *            param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -582,7 +581,7 @@ clGetProgramBuildInfo(cl_program             program ,
                       void *                 param_value ,
                       size_t *               param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -595,7 +594,7 @@ clCreateKernel(cl_program       program ,
 {
   //cl_kernel obj = (cl_kernel) malloc(sizeof(struct _cl_kernel));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -606,21 +605,21 @@ clCreateKernelsInProgram(cl_program      program ,
                          cl_kernel *     kernels ,
                          cl_uint *       num_kernels_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainKernel(cl_kernel     kernel) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseKernel(cl_kernel    kernel) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -630,7 +629,7 @@ clSetKernelArg(cl_kernel     kernel ,
                size_t        arg_size ,
                const void *  arg_value) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -641,7 +640,7 @@ clGetKernelInfo(cl_kernel        kernel ,
                 void *           param_value ,
                 size_t *         param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -653,7 +652,7 @@ clGetKernelArgInfo(cl_kernel        kernel ,
                    void *           param_value ,
                    size_t *         param_value_size_ret) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -665,7 +664,7 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
                          void *                      param_value ,
                          size_t *                    param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -674,7 +673,7 @@ CL_API_ENTRY cl_int CL_API_CALL
 clWaitForEvents(cl_uint              num_events ,
                 const cl_event *     event_list) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -685,7 +684,7 @@ clGetEventInfo(cl_event          event ,
                void *            param_value ,
                size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -695,7 +694,7 @@ clCreateUserEvent(cl_context     context ,
 {
   //cl_event obj = (cl_event) malloc(sizeof(struct _cl_event));
   //obj->dispatch = dispatchTable;
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -703,14 +702,14 @@ clCreateUserEvent(cl_context     context ,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainEvent(cl_event  event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseEvent(cl_event  event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -718,7 +717,7 @@ CL_API_ENTRY cl_int CL_API_CALL
 clSetUserEventStatus(cl_event    event ,
                      cl_int      execution_status) CL_API_SUFFIX__VERSION_1_1
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -729,7 +728,7 @@ clSetEventCallback(cl_event     event ,
                    void *       user_data) CL_API_SUFFIX__VERSION_1_1
 {
   pfn_notify(event, command_exec_callback_type, NULL);
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -741,7 +740,7 @@ clGetEventProfilingInfo(cl_event             event ,
                         void *               param_value ,
                         size_t *             param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -750,14 +749,14 @@ clGetEventProfilingInfo(cl_event             event ,
 CL_API_ENTRY cl_int CL_API_CALL
 clFlush(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clFinish(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -774,7 +773,7 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
                     const cl_event *     event_wait_list ,
                     cl_event *           event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -794,7 +793,7 @@ clEnqueueReadBufferRect(cl_command_queue     command_queue ,
                         const cl_event *     event_wait_list ,
                         cl_event *           event) CL_API_SUFFIX__VERSION_1_1
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -809,7 +808,7 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
                      const cl_event *    event_wait_list ,
                      cl_event *          event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -829,7 +828,7 @@ clEnqueueWriteBufferRect(cl_command_queue     command_queue ,
                          const cl_event *     event_wait_list ,
                          cl_event *           event) CL_API_SUFFIX__VERSION_1_1
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -844,7 +843,7 @@ clEnqueueCopyBuffer(cl_command_queue     command_queue ,
                     const cl_event *     event_wait_list ,
                     cl_event *           event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -863,7 +862,7 @@ clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
                         const cl_event *     event_wait_list ,
                         cl_event *           event) CL_API_SUFFIX__VERSION_1_1
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -878,7 +877,7 @@ clEnqueueFillBuffer(cl_command_queue    command_queue ,
                     const cl_event *    event_wait_list ,
                     cl_event *          event) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -892,7 +891,7 @@ clEnqueueFillImage(cl_command_queue    command_queue ,
                    const cl_event *    event_wait_list ,
                    cl_event *          event) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -909,7 +908,7 @@ clEnqueueReadImage(cl_command_queue      command_queue ,
                    const cl_event *      event_wait_list ,
                    cl_event *            event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -926,7 +925,7 @@ clEnqueueWriteImage(cl_command_queue     command_queue ,
                     const cl_event *     event_wait_list ,
                     cl_event *           event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -941,7 +940,7 @@ clEnqueueCopyImage(cl_command_queue      command_queue ,
                    const cl_event *      event_wait_list ,
                    cl_event *            event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -956,7 +955,7 @@ clEnqueueCopyImageToBuffer(cl_command_queue  command_queue ,
                            const cl_event *  event_wait_list ,
                            cl_event *        event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -971,7 +970,7 @@ clEnqueueCopyBufferToImage(cl_command_queue  command_queue ,
                            const cl_event *  event_wait_list ,
                            cl_event *        event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -987,7 +986,7 @@ clEnqueueMapBuffer(cl_command_queue  command_queue ,
                    cl_event *        event ,
                    cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -1006,7 +1005,7 @@ clEnqueueMapImage(cl_command_queue   command_queue ,
                   cl_event *         event ,
                   cl_int *           errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -1019,7 +1018,7 @@ clEnqueueUnmapMemObject(cl_command_queue  command_queue ,
                         const cl_event *   event_wait_list ,
                         cl_event *         event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1032,7 +1031,7 @@ clEnqueueMigrateMemObjects(cl_command_queue        command_queue ,
                            const cl_event *        event_wait_list ,
                            cl_event *              event) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1047,7 +1046,7 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
                        const cl_event *  event_wait_list ,
                        cl_event *        event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1058,7 +1057,7 @@ clEnqueueTask(cl_command_queue   command_queue ,
               const cl_event *   event_wait_list ,
               cl_event *         event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1074,7 +1073,7 @@ clEnqueueNativeKernel(cl_command_queue   command_queue ,
                       const cl_event *   event_wait_list ,
                       cl_event *         event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1082,7 +1081,7 @@ CL_API_ENTRY void * CL_API_CALL
 clGetExtensionFunctionAddressForPlatform(cl_platform_id  platform ,
                                          const char *    func_name) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return NULL;
 }
 
@@ -1093,7 +1092,7 @@ clEnqueueMarkerWithWaitList(cl_command_queue  command_queue ,
                             cl_event *         event) CL_API_SUFFIX__VERSION_1_2
 
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1103,7 +1102,7 @@ clEnqueueBarrierWithWaitList(cl_command_queue  command_queue ,
                              const cl_event *   event_wait_list ,
                              cl_event *         event) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1115,7 +1114,7 @@ clSetPrintfCallback(cl_context           context ,
                                                      void *  user_data),
                     void *               user_data) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1123,7 +1122,7 @@ CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueMarker(cl_command_queue     command_queue ,
                 cl_event *           event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1132,14 +1131,14 @@ clEnqueueWaitForEvents(cl_command_queue  command_queue ,
                        cl_uint           num_events ,
                        const cl_event *  event_list) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueBarrier(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1152,7 +1151,7 @@ clCreateFromGLBuffer(cl_context      context ,
                      cl_GLuint       bufret_mem ,
                      int *           errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -1165,7 +1164,7 @@ clCreateFromGLTexture(cl_context       context ,
                       cl_GLuint        texture ,
                       cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -1178,7 +1177,7 @@ clCreateFromGLTexture2D(cl_context       context,
                         cl_GLuint        texture,
                         cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -1192,7 +1191,7 @@ clCreateFromGLTexture3D(cl_context       context,
                         cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -1203,7 +1202,7 @@ clCreateFromGLRenderbuffer(cl_context    context,
                            cl_GLuint     renderbuffer,
                            cl_int *      errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
@@ -1213,7 +1212,7 @@ clGetGLObjectInfo(cl_mem                 memobj,
                   cl_gl_object_type *    gl_object_type,
                   cl_GLuint *            gl_object_name ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1224,7 +1223,7 @@ clGetGLTextureInfo(cl_mem                memobj,
                    void *                param_value,
                    size_t *              param_value_size_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1236,7 +1235,7 @@ clEnqueueAcquireGLObjects(cl_command_queue       command_queue,
                           const cl_event *       event_wait_list,
                           cl_event *             event ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1249,7 +1248,7 @@ clEnqueueReleaseGLObjects(cl_command_queue       command_queue,
                           cl_event *             event ) CL_API_SUFFIX__VERSION_1_0
 
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1260,7 +1259,7 @@ clGetGLContextInfoKHR(const cl_context_properties *  properties,
                       void *                         param_value,
                       size_t *                       param_value_size_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   return CL_INVALID_PLATFORM;
 }
 
@@ -1270,7 +1269,7 @@ clCreateEventFromGLsyncKHR(cl_context            context ,
                            cl_int *              errcode_ret ) CL_EXT_SUFFIX__VERSION_1_1
 
 {
-  cerr << "Unimplemented OpenCL API call." << endl;
+  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
   *errcode_ret = CL_INVALID_PLATFORM;
   return NULL;
 }
