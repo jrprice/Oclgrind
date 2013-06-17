@@ -9,9 +9,9 @@
 
 using namespace std;
 
-CLIicdDispatchTable *dispatchTable = NULL;
-struct _cl_platform_id *platform = NULL;
-static struct _cl_device_id *device = NULL;
+CLIicdDispatchTable *m_dispatchTable = NULL;
+struct _cl_platform_id *m_platform = NULL;
+static struct _cl_device_id *m_device = NULL;
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformIDs(cl_uint           num_entries ,
@@ -20,6 +20,8 @@ clGetPlatformIDs(cl_uint           num_entries ,
 {
   return clIcdGetPlatformIDsKHR(num_entries, platforms, num_platforms);
 }
+
+#define DEVICE_NAME "SPIR Simulator"
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformInfo(cl_platform_id    platform,
@@ -101,12 +103,12 @@ clGetDeviceIDs(cl_platform_id   platform,
   else if (devices)
   {
     // Create device if haven't already
-    if (!device)
+    if (!m_device)
     {
-      device = (cl_device_id)malloc(sizeof(cl_device_id));
-      device->dispatch = dispatchTable;
+      m_device = (cl_device_id)malloc(sizeof(cl_device_id));
+      m_device->dispatch = m_dispatchTable;
     }
-    *devices = device;
+    *devices = m_device;
   }
 
   if (num_devices)
@@ -124,8 +126,264 @@ clGetDeviceInfo(cl_device_id    device,
                 void *          param_value,
                 size_t *        param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check device is valid
+  if (device != m_device)
+  {
+    return CL_INVALID_DEVICE;
+  }
+
+  switch (param_name)
+  {
+  case CL_DEVICE_TYPE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_VENDOR_ID:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_COMPUTE_UNITS:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_WORK_GROUP_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_WORK_ITEM_SIZES:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_CLOCK_FREQUENCY:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_ADDRESS_BITS:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_READ_IMAGE_ARGS:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_WRITE_IMAGE_ARGS:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_IMAGE2D_MAX_WIDTH:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_IMAGE2D_MAX_HEIGHT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_IMAGE3D_MAX_WIDTH:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_IMAGE3D_MAX_HEIGHT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_IMAGE3D_MAX_DEPTH:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_IMAGE_SUPPORT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_PARAMETER_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_SAMPLERS:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_SINGLE_FP_CONFIG:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_GLOBAL_MEM_CACHE_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_GLOBAL_MEM_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_MAX_CONSTANT_ARGS:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_LOCAL_MEM_TYPE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_LOCAL_MEM_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PROFILING_TIMER_RESOLUTION:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_ENDIAN_LITTLE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_AVAILABLE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_COMPILER_AVAILABLE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_EXECUTION_CAPABILITIES:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_QUEUE_PROPERTIES:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_NAME:
+    result_size = (strlen(DEVICE_NAME)+1)*sizeof(char);
+    result_data = malloc(result_size);
+    memcpy(result_data, DEVICE_NAME, result_size);
+    break;
+  case CL_DEVICE_VENDOR:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DRIVER_VERSION:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PROFILE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_VERSION:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_EXTENSIONS:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PLATFORM:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_DOUBLE_FP_CONFIG:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_HOST_UNIFIED_MEMORY:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_INT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_OPENCL_C_VERSION:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_LINKER_AVAILABLE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_BUILT_IN_KERNELS:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PARENT_DEVICE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PARTITION_MAX_SUB_DEVICES:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PARTITION_PROPERTIES:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PARTITION_AFFINITY_DOMAIN:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PARTITION_TYPE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_REFERENCE_COUNT:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  case CL_DEVICE_PRINTF_BUFFER_SIZE:
+    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
+    return CL_INVALID_VALUE;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

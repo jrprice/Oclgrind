@@ -10,8 +10,8 @@
 
 using namespace std;
 
-extern CLIicdDispatchTable *dispatchTable;
-extern _cl_platform_id *platform;
+extern CLIicdDispatchTable *m_dispatchTable;
+extern _cl_platform_id *m_platform;
 
 CL_API_ENTRY void* CL_API_CALL
 clGetExtensionFunctionAddress(const char *funcname) CL_API_SUFFIX__VERSION_1_2
@@ -31,24 +31,24 @@ clIcdGetPlatformIDsKHR(cl_uint num_entries,
                        cl_platform_id *platforms,
                        cl_uint *num_platforms)
 {
-  if (!platform)
+  if (!m_platform)
   {
-    platform = (struct _cl_platform_id*)malloc(sizeof(struct _cl_platform_id));
+    m_platform = (cl_platform_id)malloc(sizeof(struct _cl_platform_id));
 
-    cliIcdDispatchTableCreate(&dispatchTable);
+    cliIcdDispatchTableCreate(&m_dispatchTable);
 
-    platform->version = "OpenCL 1.2";
-    platform->vendor = "James Price, University of Bristol";
-    platform->profile = "FULL_PROFILE";
-    platform->name = "oclgrind";
-    platform->extensions = "cl_khr_icd";
-    platform->suffix = "oclg";
-    platform->dispatch = dispatchTable;
+    m_platform->version = "OpenCL 1.2";
+    m_platform->vendor = "James Price, University of Bristol";
+    m_platform->profile = "FULL_PROFILE";
+    m_platform->name = "oclgrind";
+    m_platform->extensions = "cl_khr_icd";
+    m_platform->suffix = "oclg";
+    m_platform->dispatch = m_dispatchTable;
   }
 
   if (num_entries > 0)
   {
-    platforms[0] = platform;
+    platforms[0] = m_platform;
   }
 
   if (num_platforms)
