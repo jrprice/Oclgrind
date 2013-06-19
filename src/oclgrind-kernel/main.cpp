@@ -76,6 +76,11 @@ bool init(istream& input)
   }
 
   program = Program::createFromBitcodeFile(spir);
+  if (!program)
+  {
+    return false;
+  }
+
   kernel = program->createKernel(kernelName);
   kernel->setGlobalSize(ndrange);
 
@@ -121,10 +126,8 @@ bool init(istream& input)
       break;
     case 'l':
       // Allocate local memory argument
-      address = kernel->allocateLocalMemory(size);
-      value.size = sizeof(size_t);
-      value.data = new unsigned char[value.size];
-      *((size_t*)value.data) = address;
+      value.size = size;
+      value.data = NULL;
 
       break;
     case 's':
@@ -144,7 +147,10 @@ bool init(istream& input)
     }
 
     kernel->setArgument(idx, value);
-    delete[] value.data;
+    if (value.data)
+    {
+      delete[] value.data;
+    }
   }
 
   // Make sure there is no more input

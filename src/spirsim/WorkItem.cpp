@@ -357,13 +357,16 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   std::string memType;
   switch (addressSpace)
   {
-  case 0:
+  case AddrSpacePrivate:
     memType = "private";
     break;
-  case 1:
+  case AddrSpaceGlobal:
     memType = "global";
     break;
-  case 3:
+  case AddrSpaceConstant:
+    memType = "constant";
+    break;
+  case AddrSpaceLocal:
     memType = "local";
     break;
   default:
@@ -787,17 +790,18 @@ void WorkItem::load(const llvm::Instruction& instruction,
   // Get address
   size_t address = *((size_t*)m_privateMemory[ptrOp].data);
 
-  // TODO: Find or create enum for address spaces
+  // Check address space
   Memory *memory = NULL;
   switch (addressSpace)
   {
-  case 0: // Private memory
+  case AddrSpacePrivate:
     memory = m_stack;
     break;
-  case 1: // Global memory
+  case AddrSpaceGlobal:
+  case AddrSpaceConstant:
     memory = &m_globalMemory;
     break;
-  case 3: // Local memory
+  case AddrSpaceLocal:
     memory = m_workGroup.getLocalMemory();
     break;
   default:
@@ -983,18 +987,20 @@ void WorkItem::store(const llvm::Instruction& instruction)
 
   Memory *memory = NULL;
 
-  // TODO: Find or create address space enum
   switch (addressSpace)
   {
-  case 0: // Private memory
+  case AddrSpacePrivate:
     memory = m_stack;
     break;
-  case 1: // Global memory
+  case AddrSpaceGlobal:
     memory = &m_globalMemory;
     break;
-  case 3: // Local memory
+  case AddrSpaceLocal:
     memory = m_workGroup.getLocalMemory();
     break;
+  case AddrSpaceConstant:
+    assert(false && "Store to constant address space");
+    return;
   default:
     cout << "Unhandled address space '" << addressSpace << "'" << endl;
     break;

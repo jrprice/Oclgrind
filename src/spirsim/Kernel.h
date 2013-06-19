@@ -2,6 +2,7 @@
 
 namespace llvm
 {
+  class Argument;
   class Function;
 }
 
@@ -15,10 +16,11 @@ namespace spirsim
 
     TypedValueMap::const_iterator args_begin() const;
     TypedValueMap::const_iterator args_end() const;
-    size_t allocateLocalMemory(size_t size);
+    size_t getArgumentSize(unsigned int index) const;
+    unsigned int getArgumentType(unsigned int index) const;
     const llvm::Function* getFunction() const;
-    size_t getLocalMemorySize() const;
     const size_t* getGlobalSize() const;
+    size_t getLocalMemorySize() const;
     unsigned int getNumArguments() const;
     void setArgument(unsigned int index, TypedValue value);
     void setGlobalSize(const size_t globalSize[3]);
@@ -28,5 +30,7 @@ namespace spirsim
     TypedValueMap m_arguments;
     size_t m_localMemory;
     size_t m_globalSize[3];
+
+    const llvm::Argument* getArgument(unsigned int index) const;
   };
 }

@@ -1039,8 +1039,38 @@ clSetKernelArg(cl_kernel     kernel ,
                size_t        arg_size ,
                const void *  arg_value) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (arg_index >= kernel->kernel->getNumArguments())
+  {
+    return CL_INVALID_ARG_INDEX;
+  }
+  if (kernel->kernel->getArgumentSize(arg_index) != arg_size)
+  {
+    return CL_INVALID_ARG_SIZE;
+  }
+
+  // Prepare argument value
+  spirsim::TypedValue value;
+  value.size = arg_size;
+  switch (kernel->kernel->getArgumentType(arg_index))
+  {
+  case CL_KERNEL_ARG_ADDRESS_PRIVATE:
+    value.data = (unsigned char*)arg_value;
+    break;
+  case CL_KERNEL_ARG_ADDRESS_LOCAL:
+    value.data = NULL;
+  case CL_KERNEL_ARG_ADDRESS_GLOBAL:
+  case CL_KERNEL_ARG_ADDRESS_CONSTANT:
+    value.data = (unsigned char*)&((cl_mem)arg_value)->address;
+    break;
+  default:
+    return CL_INVALID_ARG_VALUE;
+  }
+
+  // Set argument
+  kernel->kernel->setArgument(arg_index, value);
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

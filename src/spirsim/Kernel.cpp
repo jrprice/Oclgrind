@@ -3,7 +3,9 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 #include "llvm/Function.h"
+#include "llvm/Type.h"
 
+#include "CL/cl.h"
 #include "Kernel.h"
 
 using namespace spirsim;
@@ -23,14 +25,55 @@ Kernel::~Kernel()
 {
 }
 
-size_t Kernel::allocateLocalMemory(size_t size)
+const llvm::Argument* Kernel::getArgument(unsigned int index) const
 {
-  // TODO: This doens't allow individual local memory arguments to be
-  // modified later, and also makes local memory allocations
-  // contiguous (more difficult to catch out of bounds accesses)
-  size_t address = m_localMemory;
-  m_localMemory += size;
-  return address;
+  assert(index < getNumArguments());
+
+  llvm::Function::const_arg_iterator argItr = m_function->arg_begin();
+  for (int i = 0; i < index; i++)
+  {
+    argItr++;
+  }
+  return argItr;
+}
+
+size_t Kernel::getArgumentSize(unsigned int index) const
+{
+  const llvm::Type *type = getArgument(index)->getType();
+
+  // Check if pointer argument
+  if (type->isPointerTy())
+  {
+    return sizeof(size_t);
+  }
+
+  return type->getPrimitiveSizeInBits()>>3;
+}
+
+unsigned int Kernel::getArgumentType(unsigned int index) const
+{
+  const llvm::Type *type = getArgument(index)->getType();
+
+  // Check if scalar argument
+  if (!type->isPointerTy())
+  {
+    return CL_KERNEL_ARG_ADDRESS_PRIVATE;
+  }
+
+  // Check address space
+  unsigned addressSpace = type->getPointerAddressSpace();
+  switch (addressSpace)
+  {
+  case AddrSpaceGlobal:
+    return CL_KERNEL_ARG_ADDRESS_GLOBAL;
+  case AddrSpaceConstant:
+    return CL_KERNEL_ARG_ADDRESS_CONSTANT;
+  case AddrSpaceLocal:
+    return CL_KERNEL_ARG_ADDRESS_LOCAL;
+  default:
+    cerr << "Unrecognized address space " << addressSpace << endl;
+    return 0;
+  }
 }
 
 const llvm::Function* Kernel::getFunction() const
@@ -38,14 +81,14 @@ const llvm::Function* Kernel::getFunction() const
   return m_function;
 }
 
-size_t Kernel::getLocalMemorySize() const
-{
-  return m_localMemory;
-}
-
 const size_t* Kernel::getGlobalSize() const
 {
   return m_globalSize;
+}
+
+size_t Kernel::getLocalMemorySize() const
+{
+  return m_localMemory;
 }
 
 unsigned int Kernel::getNumArguments() const
@@ -61,14 +104,24 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     return;
   }
 
-  llvm::Function::const_arg_iterator argItr = m_function->arg_begin();
-  for (int i = 0; i < index; i++)
+  unsigned int type = getArgumentType(index);
+  if (type == CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
-    argItr++;
-  }
+    TypedValue v = {
+      value.size,
+      new unsigned char[value.size]
+    };
+    *((size_t*)v.data) = m_localMemory;
+    m_localMemory += value.size;
 
-  // TODO: Check arg type
-  m_arguments[argItr] = clone(value);
+    m_arguments[getArgument(index)] = v;
+
+    cout << "Local memory " << value.size << endl;
+  }
+  else
+  {
+    m_arguments[getArgument(index)] = clone(value);
+  }
 }
 
 void Kernel::setGlobalSize(const size_t globalSize[3])

@@ -18,6 +18,14 @@ namespace llvm
 
 namespace spirsim
 {
+  // Enumeration for address spaces
+  enum AddressSpace {
+    AddrSpacePrivate = 0,
+    AddrSpaceGlobal = 1,
+    AddrSpaceConstant = 2,
+    AddrSpaceLocal = 3,
+  };
+
   // Structure for a value with a size/type
   typedef struct
   {
