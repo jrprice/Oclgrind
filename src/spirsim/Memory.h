@@ -15,7 +15,7 @@ namespace spirsim
     bool load(size_t address, unsigned char *dest) const;
     bool load(size_t address, size_t size, unsigned char *dest) const;
     bool store(size_t address, unsigned char source);
-    bool store(size_t address, size_t size, unsigned char *source);
+    bool store(size_t address, size_t size, const unsigned char *source);
 
   private:
     size_t m_allocated;

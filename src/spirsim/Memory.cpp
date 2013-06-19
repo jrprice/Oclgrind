@@ -98,7 +98,7 @@ bool Memory::store(size_t address, unsigned char source)
   return true;
 }
 
-bool Memory::store(size_t address, size_t size, unsigned char *source)
+bool Memory::store(size_t address, size_t size, const unsigned char *source)
 {
   // Bounds check
   if (address+size > m_allocated)
