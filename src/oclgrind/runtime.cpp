@@ -7,6 +7,7 @@
 #include <CL/cl_gl.h>
 #include <CL/cl_gl_ext.h>
 
+#include <spirsim/Kernel.h>
 #include <spirsim/Program.h>
 
 using namespace std;
@@ -852,7 +853,7 @@ clRetainProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
 {
-    // TODO: Reference count and retain
+  // TODO: Reference count and retain
   delete program->program;
   free(program);
 
@@ -951,11 +952,30 @@ clCreateKernel(cl_program       program ,
                const char *     kernel_name ,
                cl_int *         errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  //cl_kernel obj = (cl_kernel) malloc(sizeof(struct _cl_kernel));
-  //obj->dispatch = dispatchTable;
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
-  return NULL;
+  // Check parameters
+  if (program->dispatch != m_dispatchTable)
+  {
+    *errcode_ret = CL_INVALID_PROGRAM;
+    return NULL;
+  }
+  if (!kernel_name)
+  {
+    *errcode_ret = CL_INVALID_VALUE;
+    return NULL;
+  }
+
+  // Create kernel object
+  cl_kernel kernel = (cl_kernel)malloc(sizeof(struct _cl_kernel));
+  kernel->dispatch = m_dispatchTable;
+  kernel->kernel = program->program->createKernel(kernel_name);
+  if (!kernel->kernel)
+  {
+    *errcode_ret = CL_INVALID_KERNEL_NAME;
+    return NULL;
+  }
+
+  *errcode_ret = CL_SUCCESS;
+  return kernel;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -978,8 +998,11 @@ clRetainKernel(cl_kernel     kernel) CL_API_SUFFIX__VERSION_1_0
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseKernel(cl_kernel    kernel) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // TODO: Reference count and retain
+  delete kernel->kernel;
+  free(kernel);
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

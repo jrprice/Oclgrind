@@ -19,6 +19,7 @@
 
 namespace spirsim
 {
+  class Kernel;
   class Program;
 }
 
@@ -68,6 +69,7 @@ struct _cl_program
 struct _cl_kernel
 {
   CLIicdDispatchTable* dispatch;
+  spirsim::Kernel *kernel;
 };
 
 struct _cl_event
