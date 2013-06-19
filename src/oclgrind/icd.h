@@ -19,6 +19,7 @@
 
 namespace spirsim
 {
+  class Device;
   class Kernel;
   class Program;
 }
@@ -48,6 +49,7 @@ struct _cl_device_id
 struct _cl_context
 {
   CLIicdDispatchTable* dispatch;
+  spirsim::Device *device;
 };
 
 struct _cl_command_queue

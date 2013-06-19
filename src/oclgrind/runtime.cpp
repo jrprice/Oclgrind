@@ -7,6 +7,7 @@
 #include <CL/cl_gl.h>
 #include <CL/cl_gl_ext.h>
 
+#include <spirsim/Device.h>
 #include <spirsim/Kernel.h>
 #include <spirsim/Program.h>
 
@@ -456,6 +457,7 @@ clCreateContext(const cl_context_properties * properties,
   {
     m_context = (cl_context)malloc(sizeof(struct _cl_context));
     m_context->dispatch = m_dispatchTable;
+    m_context->device = new spirsim::Device();
   }
 
   *errcode_ret = CL_SUCCESS;
@@ -493,6 +495,7 @@ clReleaseContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
   }
 
   // TODO: Reference count and retain
+  delete m_context->device;
   free(m_context);
   m_context = NULL;
 
