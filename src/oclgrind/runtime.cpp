@@ -1213,8 +1213,21 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
                     const cl_event *     event_wait_list ,
                     cl_event *           event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (command_queue != m_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  // Perform read
+  spirsim::Memory *memory = m_context->device->getGlobalMemory();
+  bool ret = memory->load(buffer->address, cb, (unsigned char*)ptr);
+  if (!ret)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
