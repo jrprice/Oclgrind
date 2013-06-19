@@ -7,6 +7,8 @@
 #include <CL/cl_gl.h>
 #include <CL/cl_gl_ext.h>
 
+#include <spirsim/Program.h>
+
 using namespace std;
 
 CLIicdDispatchTable *m_dispatchTable = NULL;
@@ -448,6 +450,7 @@ clCreateContext(const cl_context_properties * properties,
   }
 
   // Create context object
+  // TODO: Multiple context objects allowed?
   if (!m_context)
   {
     m_context = (cl_context)malloc(sizeof(struct _cl_context));
@@ -790,11 +793,39 @@ clCreateProgramWithBinary(cl_context                      context ,
                           cl_int *                        binary_status ,
                           cl_int *                        errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  //cl_program obj = (cl_program) malloc(sizeof(struct _cl_program));
-  //obj->dispatch = dispatchTable;
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
-  return NULL;
+  // Check parameters
+  if (context != m_context)
+  {
+    *errcode_ret = CL_INVALID_CONTEXT;
+    return NULL;
+  }
+  if (num_devices != 1 || !device_list || !lengths || !binaries)
+  {
+    *errcode_ret = CL_INVALID_VALUE;
+    return NULL;
+  }
+  if (device_list[0] != m_device)
+  {
+    *errcode_ret = CL_INVALID_DEVICE;
+    return NULL;
+  }
+
+  // Create program object
+  cl_program prog = (cl_program)malloc(sizeof(struct _cl_program));
+  prog->dispatch = m_dispatchTable;
+  prog->program = spirsim::Program::createFromBitcode(binaries[0], lengths[0]);
+  if (!prog->program)
+  {
+    *errcode_ret = CL_INVALID_BINARY;
+    if (binary_status)
+    {
+      binary_status[0] = CL_INVALID_BINARY;
+    }
+    free(prog);
+    return NULL;
+  }
+
+  return prog;
 }
 
 CL_API_ENTRY cl_program CL_API_CALL

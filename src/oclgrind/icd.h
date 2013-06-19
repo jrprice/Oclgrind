@@ -17,6 +17,11 @@
 
 #define CL_PLATFORM_ICD_SUFFIX_KHR 0x0920
 
+namespace spirsim
+{
+  class Program;
+}
+
 typedef struct CLIicdDispatchTable_st
 {
   void *entries[256];
@@ -57,6 +62,7 @@ struct _cl_mem
 struct _cl_program
 {
   CLIicdDispatchTable* dispatch;
+  spirsim::Program *program;
 };
 
 struct _cl_kernel

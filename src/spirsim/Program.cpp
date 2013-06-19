@@ -27,7 +27,8 @@ Program::~Program()
   delete m_module;
 }
 
-Program* Program::createFromBitcode(const unsigned char *bitcode)
+Program* Program::createFromBitcode(const unsigned char *bitcode,
+                                    size_t length)
 {
   return NULL;
 }
