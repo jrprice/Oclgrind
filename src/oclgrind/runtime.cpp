@@ -1061,7 +1061,7 @@ clSetKernelArg(cl_kernel     kernel ,
     value.data = NULL;
   case CL_KERNEL_ARG_ADDRESS_GLOBAL:
   case CL_KERNEL_ARG_ADDRESS_CONSTANT:
-    value.data = (unsigned char*)&((cl_mem)arg_value)->address;
+    value.data = (unsigned char*)&(*(cl_mem*)arg_value)->address;
     break;
   default:
     return CL_INVALID_ARG_VALUE;
@@ -1512,8 +1512,40 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
                        const cl_event *  event_wait_list ,
                        cl_event *        event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (command_queue != m_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (work_dim < 1 || work_dim > 3)
+  {
+    return CL_INVALID_WORK_DIMENSION;
+  }
+  if (!global_work_size)
+  {
+    return CL_INVALID_GLOBAL_WORK_SIZE;
+  }
+
+  // Prepare 3D range
+  size_t global[3] = {1,1,1};
+  size_t local[3] = {1,1,1};
+  for (int i = 0; i < work_dim; i++)
+  {
+    global[i] = global_work_size[i];
+    if (local_work_size)
+    {
+      local[i] = local_work_size[i];
+      if (global[i] % local[i])
+      {
+        return CL_INVALID_WORK_GROUP_SIZE;
+      }
+    }
+  }
+
+  // Run kernel
+  m_context->device->run(*kernel->kernel, global, local);
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

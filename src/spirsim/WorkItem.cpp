@@ -378,7 +378,7 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
        << " of size " << size
        << " at " << memType
        << " memory address " << hex << address
-       << " by work-item ("
+       << " by work-item (" << dec
        << m_globalID[0] << ","
        << m_globalID[1] << ","
        << m_globalID[2] << ")"
@@ -394,7 +394,6 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   }
   else
   {
-    // TODO: Filename not working for new SPIR output?
     llvm::DILocation loc(md);
     cout << "At line " << dec << loc.getLineNumber()
          << " of " << loc.getFilename().str() << endl;
