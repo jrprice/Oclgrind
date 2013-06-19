@@ -60,6 +60,7 @@ struct _cl_command_queue
 struct _cl_mem
 {
   CLIicdDispatchTable* dispatch;
+  size_t address;
 };
 
 struct _cl_program

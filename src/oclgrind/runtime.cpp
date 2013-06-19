@@ -9,6 +9,7 @@
 
 #include <spirsim/Device.h>
 #include <spirsim/Kernel.h>
+#include <spirsim/Memory.h>
 #include <spirsim/Program.h>
 
 using namespace std;
@@ -602,11 +603,31 @@ clCreateBuffer(cl_context    context ,
                void *        host_ptr ,
                cl_int *      errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
-  //obj->dispatch = dispatchTable;
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
-  return NULL;
+  // Check parameters
+  if (context != m_context)
+  {
+    *errcode_ret = CL_INVALID_CONTEXT;
+    return NULL;
+  }
+  if (size == 0)
+  {
+    *errcode_ret = CL_INVALID_BUFFER_SIZE;
+    return NULL;
+  }
+
+  cl_mem mem = (cl_mem)malloc(sizeof(struct _cl_mem));
+  mem->dispatch = m_dispatchTable;
+  mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
+  // TODO: Possible allocation failure
+  //if (!mem->address)
+  //{
+  //  *errcode_ret = CL_MEM_OBJECT_ALLOCATION_FAILURE;
+  //  free(mem);
+  //  return NULL;
+  //}
+
+  *errcode_ret = CL_SUCCESS;
+  return mem;
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL
@@ -685,8 +706,10 @@ clRetainMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // TODO: Reference count and retain
+  // TODO: Deallocate
+  free(memobj);
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -974,6 +997,7 @@ clCreateKernel(cl_program       program ,
   if (!kernel->kernel)
   {
     *errcode_ret = CL_INVALID_KERNEL_NAME;
+    free(kernel);
     return NULL;
   }
 
