@@ -30,7 +30,26 @@ Program::~Program()
 Program* Program::createFromBitcode(const unsigned char *bitcode,
                                     size_t length)
 {
-  return NULL;
+  // Load bitcode from file
+  llvm::MemoryBuffer *buffer;
+  llvm::StringRef data((const char*)bitcode, length);
+  buffer = llvm::MemoryBuffer::getMemBuffer(data, "", false);
+  if (!buffer)
+  {
+    cerr << "Invalid bitcode buffer" << endl;
+    return NULL;
+  }
+
+  // Parse bitcode into IR module
+  llvm::LLVMContext& context = llvm::getGlobalContext();
+  llvm::Module *module = ParseBitcodeFile(buffer, context);
+  if (!module)
+  {
+    cerr << "Failed to load SPIR bitcode." << endl;
+    return NULL;
+  }
+
+  return new Program(module);
 }
 
 Program* Program::createFromBitcodeFile(const std::string filename)
