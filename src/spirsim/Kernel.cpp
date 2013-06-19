@@ -115,8 +115,6 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     m_localMemory += value.size;
 
     m_arguments[getArgument(index)] = v;
-
-    cout << "Local memory " << value.size << endl;
   }
   else
   {

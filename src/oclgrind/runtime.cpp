@@ -1044,7 +1044,11 @@ clSetKernelArg(cl_kernel     kernel ,
   {
     return CL_INVALID_ARG_INDEX;
   }
-  if (kernel->kernel->getArgumentSize(arg_index) != arg_size)
+
+  unsigned int type = kernel->kernel->getArgumentType(arg_index);
+
+  if (kernel->kernel->getArgumentSize(arg_index) != arg_size
+      && type != CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
     return CL_INVALID_ARG_SIZE;
   }
@@ -1052,13 +1056,14 @@ clSetKernelArg(cl_kernel     kernel ,
   // Prepare argument value
   spirsim::TypedValue value;
   value.size = arg_size;
-  switch (kernel->kernel->getArgumentType(arg_index))
+  switch (type)
   {
   case CL_KERNEL_ARG_ADDRESS_PRIVATE:
     value.data = (unsigned char*)arg_value;
     break;
   case CL_KERNEL_ARG_ADDRESS_LOCAL:
     value.data = NULL;
+    break;
   case CL_KERNEL_ARG_ADDRESS_GLOBAL:
   case CL_KERNEL_ARG_ADDRESS_CONSTANT:
     value.data = (unsigned char*)&(*(cl_mem*)arg_value)->address;
@@ -1196,8 +1201,13 @@ clFlush(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
 CL_API_ENTRY cl_int CL_API_CALL
 clFinish(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (command_queue != m_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  return CL_SUCCESS;
 }
 
 
