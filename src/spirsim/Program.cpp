@@ -1,7 +1,10 @@
 #include "common.h"
+#include <fstream>
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
+#include <llvm/ADT/IntrusiveRefCntPtr.h>
+#include "llvm/ADT/OwningPtr.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
@@ -10,6 +13,10 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/system_error.h"
 #include "llvm/Transforms/Scalar.h"
+#include <clang/Basic/DiagnosticOptions.h>
+#include <clang/CodeGen/CodeGenAction.h>
+#include <clang/Frontend/CompilerInstance.h>
+#include <clang/Frontend/CompilerInvocation.h>
 
 #include "Kernel.h"
 #include "Program.h"
@@ -21,6 +28,7 @@ Program::Program(llvm::Module *module)
   : m_module(module)
 {
   m_source = NULL;
+  m_action = NULL;
 }
 
 Program::Program(const char *source)
@@ -31,15 +39,24 @@ Program::Program(const char *source)
   m_source[length] = '\0';
 
   m_module = NULL;
+  m_action = NULL;
 }
 
 Program::~Program()
 {
-  delete m_module;
+  if (m_module)
+  {
+    delete m_module;
+  }
 
   if (m_source)
   {
     delete[] m_source;
+  }
+
+  if (m_action)
+  {
+    delete m_action;
   }
 }
 
@@ -51,8 +68,59 @@ bool Program::build(const char *options)
     return true;
   }
 
-  // TODO: Implement
-  return false;
+  // Dump source to temporary file
+  // TODO: Build from memory
+  ofstream temp;
+  temp.open("/tmp/oclgrind_temp.cl");
+  temp << "#include \"clc.h\"" << endl; // TODO: Do this properly
+  temp << m_source;
+  temp.close();
+
+  // Set compiler arguments
+  // TODO: Need to auto-include clc.h
+  vector<const char*> args;
+  args.push_back("-cc1");
+  args.push_back("-g");
+  args.push_back("-emit-llvm-bc");
+  args.push_back("-cl-kernel-arg-info");
+  args.push_back("-triple");
+  args.push_back("-spir64-unknown-unknown");
+  args.push_back("/tmp/oclgrind_temp.cl");
+
+  // Create diagnostics engine
+  // TODO: Build log needs to be saved as a string, not output
+  clang::DiagnosticOptions *diagOpts = new clang::DiagnosticOptions();
+  llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(new clang::DiagnosticIDs());
+  clang::DiagnosticsEngine diags(diagID, diagOpts);
+
+  // Create compiler invocation
+  llvm::OwningPtr<clang::CompilerInvocation> invocation(new clang::CompilerInvocation);
+  clang::CompilerInvocation::CreateFromArgs(*invocation, &args[0], &args[0] + args.size(), diags);
+
+  // Create compiler instance
+  clang::CompilerInstance compiler;
+  compiler.setInvocation(invocation.take());
+
+  // Prepare diagnostics
+  compiler.createDiagnostics(args.size(), &args[0]);
+  if (!compiler.hasDiagnostics())
+    return false;
+
+  // Compile
+  clang::CodeGenAction *action = new clang::EmitLLVMOnlyAction();
+  if (!compiler.ExecuteAction(*action))
+    return false;
+
+  // Grab the module built by the EmitLLVMOnlyAction
+  m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
+  m_module = action->takeModule();
+
+  // Dump compiled bitcode for debug purposes
+  string err;
+  llvm::raw_fd_ostream output("/tmp/oclgrind_temp.bc", err);
+  llvm::WriteBitcodeToFile(m_module, output);
+
+  return true;
 }
 
 Program* Program::createFromBitcode(const unsigned char *bitcode,

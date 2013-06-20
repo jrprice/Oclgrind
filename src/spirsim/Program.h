@@ -1,8 +1,14 @@
 #include "common.h"
 
+namespace clang
+{
+  class CodeGenAction;
+}
+
 namespace llvm
 {
   class Module;
+  template<typename T> class OwningPtr;
 }
 
 namespace spirsim
@@ -25,6 +31,7 @@ namespace spirsim
   private:
     Program(llvm::Module *module);
 
+    llvm::OwningPtr<clang::CodeGenAction> *m_action;
     llvm::Module *m_module;
     char *m_source;
   };
