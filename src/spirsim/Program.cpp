@@ -69,7 +69,7 @@ bool Program::build(const char *options)
   }
 
   // Dump source to temporary file
-  // TODO: Build from memory
+  // TODO: Build from memory?
   ofstream temp;
   temp.open("/tmp/oclgrind_temp.cl");
   temp << m_source;
@@ -77,23 +77,26 @@ bool Program::build(const char *options)
 
   // Set compiler arguments
   vector<const char*> args;
-  args.push_back("-cc1");
   args.push_back("-g");
-  args.push_back("-emit-llvm-bc");
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-triple");
   args.push_back("-spir64-unknown-unknown");
+  args.push_back(options);
   args.push_back("/tmp/oclgrind_temp.cl");
 
   // Create diagnostics engine
   // TODO: Build log needs to be saved as a string, not output
   clang::DiagnosticOptions *diagOpts = new clang::DiagnosticOptions();
-  llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(new clang::DiagnosticIDs());
+  llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(
+    new clang::DiagnosticIDs());
   clang::DiagnosticsEngine diags(diagID, diagOpts);
 
   // Create compiler invocation
-  llvm::OwningPtr<clang::CompilerInvocation> invocation(new clang::CompilerInvocation);
-  clang::CompilerInvocation::CreateFromArgs(*invocation, &args[0], &args[0] + args.size(), diags);
+  llvm::OwningPtr<clang::CompilerInvocation> invocation(
+    new clang::CompilerInvocation);
+  clang::CompilerInvocation::CreateFromArgs(*invocation,
+                                            &args[0], &args[0] + args.size(),
+                                            diags);
 
   // Create compiler instance
   clang::CompilerInstance compiler;
@@ -112,11 +115,11 @@ bool Program::build(const char *options)
   if (!compiler.ExecuteAction(*action))
     return false;
 
-  // Grab the module built by the EmitLLVMOnlyAction
+  // Retrieve module
   m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
   m_module = action->takeModule();
 
-  // Dump compiled bitcode for debug purposes
+  // Dump bitcode for debugging
   string err;
   llvm::raw_fd_ostream output("/tmp/oclgrind_temp.bc", err);
   llvm::WriteBitcodeToFile(m_module, output);
