@@ -17,6 +17,7 @@
 #include <clang/CodeGen/CodeGenAction.h>
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/CompilerInvocation.h>
+#include <clang/Frontend/TextDiagnosticPrinter.h>
 
 #include "Kernel.h"
 #include "Program.h"
@@ -27,17 +28,12 @@ using namespace std;
 Program::Program(llvm::Module *module)
   : m_module(module)
 {
-  m_source = NULL;
   m_action = NULL;
 }
 
 Program::Program(const char *source)
 {
-  size_t length = strlen(source);
-  m_source = new char[length + 1];
-  strncpy(m_source, source, length);
-  m_source[length] = '\0';
-
+  m_source = source;
   m_module = NULL;
   m_action = NULL;
 }
@@ -49,11 +45,6 @@ Program::~Program()
     delete m_module;
   }
 
-  if (m_source)
-  {
-    delete[] m_source;
-  }
-
   if (m_action)
   {
     delete m_action;
@@ -63,7 +54,7 @@ Program::~Program()
 bool Program::build(const char *options)
 {
   // Do nothing if program was created with binary
-  if (!m_source)
+  if (m_source.empty() && m_module)
   {
     return true;
   }
@@ -85,11 +76,13 @@ bool Program::build(const char *options)
   args.push_back("/tmp/oclgrind_temp.cl");
 
   // Create diagnostics engine
-  // TODO: Build log needs to be saved as a string, not output
+  string err;
   clang::DiagnosticOptions *diagOpts = new clang::DiagnosticOptions();
   llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(
     new clang::DiagnosticIDs());
-  clang::DiagnosticsEngine diags(diagID, diagOpts);
+  llvm::raw_string_ostream buildLog(m_buildLog);
+  clang::TextDiagnosticPrinter diagConsumer(buildLog, diagOpts);
+  clang::DiagnosticsEngine diags(diagID, diagOpts, &diagConsumer, false);
 
   // Create compiler invocation
   llvm::OwningPtr<clang::CompilerInvocation> invocation(
@@ -106,7 +99,7 @@ bool Program::build(const char *options)
   compiler.getPreprocessorOpts().Includes.push_back("clc.h");
 
   // Prepare diagnostics
-  compiler.createDiagnostics(args.size(), &args[0]);
+  compiler.createDiagnostics(args.size(), &args[0], &diagConsumer, false);
   if (!compiler.hasDiagnostics())
     return false;
 
@@ -120,9 +113,9 @@ bool Program::build(const char *options)
   m_module = action->takeModule();
 
   // Dump bitcode for debugging
-  string err;
   llvm::raw_fd_ostream output("/tmp/oclgrind_temp.bc", err);
   llvm::WriteBitcodeToFile(m_module, output);
+  output.close();
 
   return true;
 }

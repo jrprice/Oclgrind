@@ -33,6 +33,7 @@ namespace spirsim
 
     llvm::OwningPtr<clang::CodeGenAction> *m_action;
     llvm::Module *m_module;
-    char *m_source;
+    std::string m_source;
+    std::string m_buildLog;
   };
 }
