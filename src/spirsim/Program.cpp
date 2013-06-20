@@ -76,11 +76,11 @@ bool Program::build(const char *options)
   args.push_back("/tmp/oclgrind_temp.cl");
 
   // Create diagnostics engine
-  string err;
+  m_buildLog = "";
+  llvm::raw_string_ostream buildLog(m_buildLog);
   clang::DiagnosticOptions *diagOpts = new clang::DiagnosticOptions();
   llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(
     new clang::DiagnosticIDs());
-  llvm::raw_string_ostream buildLog(m_buildLog);
   clang::TextDiagnosticPrinter diagConsumer(buildLog, diagOpts);
   clang::DiagnosticsEngine diags(diagID, diagOpts, &diagConsumer, false);
 
@@ -113,6 +113,7 @@ bool Program::build(const char *options)
   m_module = action->takeModule();
 
   // Dump bitcode for debugging
+  std::string err;
   llvm::raw_fd_ostream output("/tmp/oclgrind_temp.bc", err);
   llvm::WriteBitcodeToFile(m_module, output);
   output.close();
@@ -193,4 +194,9 @@ Kernel* Program::createKernel(const std::string name)
   delete instNamer;
 
   return new Kernel(function);
+}
+
+std::string Program::getBuildLog() const
+{
+  return m_buildLog;
 }

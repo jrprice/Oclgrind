@@ -1025,8 +1025,36 @@ clGetProgramBuildInfo(cl_program             program ,
                       void *                 param_value ,
                       size_t *               param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!program)
+  {
+    return CL_INVALID_PROGRAM;
+  }
+
+  if (param_name == CL_PROGRAM_BUILD_LOG)
+  {
+    std::string log = program->program->getBuildLog();
+    size_t size = log.size() + 1;
+    if (param_value_size < size && param_value)
+    {
+      return CL_INVALID_VALUE;
+    }
+    if (param_value)
+    {
+      strncpy((char*)param_value, log.c_str(), size-1);
+      ((char*)param_value)[size-1] = '\0';
+    }
+    if (param_value_size_ret)
+    {
+      *param_value_size_ret = size;
+    }
+  }
+  else
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  return CL_SUCCESS;
 }
 
 
