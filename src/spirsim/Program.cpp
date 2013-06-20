@@ -72,12 +72,10 @@ bool Program::build(const char *options)
   // TODO: Build from memory
   ofstream temp;
   temp.open("/tmp/oclgrind_temp.cl");
-  temp << "#include \"clc.h\"" << endl; // TODO: Do this properly
   temp << m_source;
   temp.close();
 
   // Set compiler arguments
-  // TODO: Need to auto-include clc.h
   vector<const char*> args;
   args.push_back("-cc1");
   args.push_back("-g");
@@ -100,6 +98,9 @@ bool Program::build(const char *options)
   // Create compiler instance
   clang::CompilerInstance compiler;
   compiler.setInvocation(invocation.take());
+
+  // Auto-include OpenCL header
+  compiler.getPreprocessorOpts().Includes.push_back("clc.h");
 
   // Prepare diagnostics
   compiler.createDiagnostics(args.size(), &args[0]);
