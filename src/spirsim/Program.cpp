@@ -29,6 +29,8 @@ Program::Program(const char *source)
   m_source = new char[length + 1];
   strncpy(m_source, source, length);
   m_source[length] = '\0';
+
+  m_module = NULL;
 }
 
 Program::~Program()
@@ -43,6 +45,12 @@ Program::~Program()
 
 bool Program::build(const char *options)
 {
+  // Do nothing if program was created with binary
+  if (!m_source)
+  {
+    return true;
+  }
+
   // TODO: Implement
   return false;
 }

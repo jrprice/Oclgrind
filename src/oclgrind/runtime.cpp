@@ -930,9 +930,31 @@ clBuildProgram(cl_program            program ,
                void (CL_CALLBACK *   pfn_notify)(cl_program  program , void *  user_data),
                void *                user_data) CL_API_SUFFIX__VERSION_1_0
 {
-  //pfn_notify(program, NULL);
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!program || !program->program)
+  {
+    return CL_INVALID_PROGRAM;
+  }
+  if (num_devices != 1 || ! device_list)
+  {
+    return CL_INVALID_VALUE;
+  }
+  if (pfn_notify || user_data)
+  {
+    return CL_INVALID_VALUE;
+  }
+  if (!device_list[0])
+  {
+    return CL_INVALID_DEVICE;
+  }
+
+  // Build program
+  if (!program->program->build(options))
+  {
+    return CL_BUILD_PROGRAM_FAILURE;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
