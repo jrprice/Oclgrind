@@ -805,11 +805,45 @@ clCreateProgramWithSource(cl_context         context ,
                           const size_t *     lengths ,
                           cl_int *           errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  //cl_program obj = (cl_program) malloc(sizeof(struct _cl_program));
-  //obj->dispatch = dispatchTable;
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
-  return NULL;
+  // Check parameters
+  if (context != m_context)
+  {
+    *errcode_ret = CL_INVALID_CONTEXT;
+    return NULL;
+  }
+  if (count == 0 || !strings || !strings[0])
+  {
+    *errcode_ret = CL_INVALID_VALUE;
+    return NULL;
+  }
+
+  // TODO: Handle multiple strings, and lengths
+  if (count > 1)
+  {
+    cerr << "OCLGRIND: Source must be a single string." << endl;
+    *errcode_ret = CL_INVALID_VALUE;
+    return NULL;
+  }
+  if (lengths && lengths[0] > 0)
+  {
+    cerr << "OCLGRIND: Source must be null-terminated." << endl;
+    *errcode_ret = CL_INVALID_VALUE;
+    return NULL;
+  }
+
+  // Create program object
+  cl_program prog = (cl_program)malloc(sizeof(struct _cl_program));
+  prog->dispatch = m_dispatchTable;
+  prog->program = new spirsim::Program(strings[0]);
+  if (!prog->program)
+  {
+    *errcode_ret = CL_OUT_OF_HOST_MEMORY;
+    free(prog);
+    return NULL;
+  }
+
+  *errcode_ret = CL_SUCCESS;
+  return prog;
 }
 
 CL_API_ENTRY cl_program CL_API_CALL
@@ -853,6 +887,7 @@ clCreateProgramWithBinary(cl_context                      context ,
     return NULL;
   }
 
+  *errcode_ret = CL_SUCCESS;
   return prog;
 }
 

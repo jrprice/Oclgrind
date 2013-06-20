@@ -20,11 +20,31 @@ using namespace std;
 Program::Program(llvm::Module *module)
   : m_module(module)
 {
+  m_source = NULL;
+}
+
+Program::Program(const char *source)
+{
+  size_t length = strlen(source);
+  m_source = new char[length + 1];
+  strncpy(m_source, source, length);
+  m_source[length] = '\0';
 }
 
 Program::~Program()
 {
   delete m_module;
+
+  if (m_source)
+  {
+    delete[] m_source;
+  }
+}
+
+bool Program::build(const char *options)
+{
+  // TODO: Implement
+  return false;
 }
 
 Program* Program::createFromBitcode(const unsigned char *bitcode,
