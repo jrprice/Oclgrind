@@ -622,10 +622,9 @@ clCreateCommandQueue(cl_context                     context,
     ERRCODE(CL_INVALID_DEVICE);
     return NULL;
   }
-  if (properties)
+  if (properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE)
   {
-    cerr << endl << "OCLGRIND: Non-NULL properties not supported." << endl;
-    ERRCODE(CL_INVALID_VALUE);
+    ERRCODE(CL_INVALID_QUEUE_PROPERTIES);
     return NULL;
   }
 
