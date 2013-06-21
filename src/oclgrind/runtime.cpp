@@ -452,9 +452,8 @@ clCreateContext(const cl_context_properties * properties,
     *errcode_ret = CL_INVALID_DEVICE;
     return NULL;
   }
-  if (pfn_notify)
+  if (!pfn_notify && user_data)
   {
-    cerr << endl << "OCLGRIND: Non-NULL pfn_notify not supported." << endl;
     *errcode_ret = CL_INVALID_VALUE;
     return NULL;
   }
@@ -466,6 +465,8 @@ clCreateContext(const cl_context_properties * properties,
     m_context = (cl_context)malloc(sizeof(struct _cl_context));
     m_context->dispatch = m_dispatchTable;
     m_context->device = new spirsim::Device();
+    m_context->notify = pfn_notify;
+    m_context->data = user_data;
   }
 
   *errcode_ret = CL_SUCCESS;

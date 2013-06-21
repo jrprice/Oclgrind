@@ -50,6 +50,8 @@ struct _cl_context
 {
   CLIicdDispatchTable* dispatch;
   spirsim::Device *device;
+  void (CL_CALLBACK *notify)(const char *, const void *, size_t, void *);
+  void *data;
 };
 
 struct _cl_command_queue
