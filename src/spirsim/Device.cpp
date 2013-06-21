@@ -16,6 +16,7 @@ using namespace std;
 Device::Device()
 {
   m_globalMemory = new Memory();
+  m_outputMask = 0;
 }
 
 Device::~Device()
