@@ -96,6 +96,14 @@ bool Program::build(const char *options)
   compiler.setInvocation(invocation.take());
 
   // Auto-include OpenCL header
+  char *includes = getenv("C_INCLUDE_PATH");
+  char *path = strtok(includes, ":");
+  while (path)
+  {
+    compiler.getHeaderSearchOpts().AddPath(path, clang::frontend::Quoted,
+                                           false, false, false);
+    path = strtok(NULL, ":");
+  }
   compiler.getPreprocessorOpts().Includes.push_back("clc.h");
 
   // Prepare diagnostics
