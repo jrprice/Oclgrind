@@ -634,6 +634,8 @@ clCreateCommandQueue(cl_context                     context,
   {
     m_queue = (cl_command_queue)malloc(sizeof(struct _cl_command_queue));
     m_queue->dispatch = m_dispatchTable;
+    m_queue->properties = properties;
+    m_queue->refCount = 0;
   }
 
   ERRCODE(CL_SUCCESS);
@@ -653,8 +655,15 @@ clSetCommandQueueProperty(cl_command_queue               command_queue ,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (command_queue != m_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  command_queue->refCount++;
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -665,9 +674,11 @@ clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
     return CL_INVALID_COMMAND_QUEUE;
   }
 
-  // TODO: Reference count and retain
-  free(m_queue);
-  m_queue = NULL;
+  if (--command_queue->refCount == 0)
+  {
+    free(m_queue);
+    m_queue = NULL;
+  }
 
   return CL_INVALID_PLATFORM;
 }
@@ -679,8 +690,59 @@ clGetCommandQueueInfo(cl_command_queue       command_queue ,
                       void *                 param_value ,
                       size_t *               param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check queue is valid
+  if (command_queue != m_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  switch (param_name)
+  {
+  case CL_QUEUE_CONTEXT:
+    result_size = sizeof(cl_context);
+    result_data = new cl_context(m_context);
+    break;
+  case CL_QUEUE_DEVICE:
+    result_size = sizeof(cl_device_id);
+    result_data = new cl_device_id(m_device);
+    break;
+  case CL_QUEUE_REFERENCE_COUNT:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(command_queue->refCount);
+    break;
+  case CL_QUEUE_PROPERTIES:
+    result_size = sizeof(cl_command_queue_properties);
+    result_data = new cl_command_queue_properties(command_queue->properties);
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 

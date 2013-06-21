@@ -57,6 +57,8 @@ struct _cl_context
 struct _cl_command_queue
 {
   CLIicdDispatchTable* dispatch;
+  cl_command_queue_properties properties;
+  unsigned int refCount;
 };
 
 struct _cl_mem
