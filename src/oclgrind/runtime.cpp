@@ -19,7 +19,6 @@ CLIicdDispatchTable *m_dispatchTable = NULL;
 struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
 static struct _cl_context *m_context = NULL;
-static struct _cl_command_queue *m_queue = NULL;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
 
@@ -549,7 +548,7 @@ clCreateContext(const cl_context_properties * properties,
     m_context->device = new spirsim::Device();
     m_context->notify = pfn_notify;
     m_context->data = user_data;
-    m_context->refCount = 0;
+    m_context->refCount = 1;
   }
 
   ERRCODE(CL_SUCCESS);
@@ -690,16 +689,14 @@ clCreateCommandQueue(cl_context                     context,
   }
 
   // Create command-queue object
-  if (!m_queue)
-  {
-    m_queue = (cl_command_queue)malloc(sizeof(struct _cl_command_queue));
-    m_queue->dispatch = m_dispatchTable;
-    m_queue->properties = properties;
-    m_queue->refCount = 0;
-  }
+  cl_command_queue queue;
+  queue = (cl_command_queue)malloc(sizeof(struct _cl_command_queue));
+  queue->dispatch = m_dispatchTable;
+  queue->properties = properties;
+  queue->refCount = 1;
 
   ERRCODE(CL_SUCCESS);
-  return m_queue;
+  return queue;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -716,7 +713,7 @@ CL_API_ENTRY cl_int CL_API_CALL
 clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (command_queue != m_queue)
+  if (!command_queue)
   {
     return CL_INVALID_COMMAND_QUEUE;
   }
@@ -729,15 +726,14 @@ clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  if (command_queue != m_queue)
+  if (!command_queue)
   {
     return CL_INVALID_COMMAND_QUEUE;
   }
 
   if (--command_queue->refCount == 0)
   {
-    free(m_queue);
-    m_queue = NULL;
+    free(command_queue);
   }
 
   return CL_INVALID_PLATFORM;
@@ -754,7 +750,7 @@ clGetCommandQueueInfo(cl_command_queue       command_queue ,
   void *result_data = NULL;
 
   // Check queue is valid
-  if (command_queue != m_queue)
+  if (!command_queue)
   {
     return CL_INVALID_COMMAND_QUEUE;
   }
@@ -1503,7 +1499,7 @@ CL_API_ENTRY cl_int CL_API_CALL
 clFinish(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (command_queue != m_queue)
+  if (!command_queue)
   {
     return CL_INVALID_COMMAND_QUEUE;
   }
@@ -1525,7 +1521,7 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
                     cl_event *           event) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (command_queue != m_queue)
+  if (!command_queue)
   {
     return CL_INVALID_COMMAND_QUEUE;
   }
@@ -1573,7 +1569,7 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
                      cl_event *          event) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (command_queue != m_queue)
+  if (!command_queue)
   {
     return CL_INVALID_COMMAND_QUEUE;
   }
@@ -1824,7 +1820,7 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
                        cl_event *        event) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (command_queue != m_queue)
+  if (!command_queue)
   {
     return CL_INVALID_COMMAND_QUEUE;
   }
