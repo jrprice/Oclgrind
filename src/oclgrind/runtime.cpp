@@ -29,6 +29,8 @@ clGetPlatformIDs(cl_uint           num_entries ,
 }
 
 #define DEVICE_NAME "SPIR Simulator"
+#define DEVICE_VENDOR "James Price, University of Bristol"
+#define DEVICE_VERSION "OpenCL 1.2"
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformInfo(cl_platform_id    platform,
@@ -184,8 +186,9 @@ clGetDeviceInfo(cl_device_id    device,
     cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
     return CL_INVALID_VALUE;
   case CL_DEVICE_ADDRESS_BITS:
-    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
-    return CL_INVALID_VALUE;
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(64);
+    break;
   case CL_DEVICE_MAX_READ_IMAGE_ARGS:
     cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
     return CL_INVALID_VALUE;
@@ -226,8 +229,10 @@ clGetDeviceInfo(cl_device_id    device,
     cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
     return CL_INVALID_VALUE;
   case CL_DEVICE_SINGLE_FP_CONFIG:
-    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
-    return CL_INVALID_VALUE;
+    result_size = sizeof(cl_device_fp_config);
+    result_data = new cl_device_fp_config(
+      CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN);
+    break;
   case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:
     cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
     return CL_INVALID_VALUE;
@@ -274,22 +279,23 @@ clGetDeviceInfo(cl_device_id    device,
     cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
     return CL_INVALID_VALUE;
   case CL_DEVICE_NAME:
-    result_size = (strlen(DEVICE_NAME)+1)*sizeof(char);
-    result_data = malloc(result_size);
-    memcpy(result_data, DEVICE_NAME, result_size);
+    result_data = strdup(DEVICE_NAME);
+    result_size = (strlen((char*)result_data)+1)*sizeof(char);
     break;
   case CL_DEVICE_VENDOR:
-    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
-    return CL_INVALID_VALUE;
+    result_data = strdup(DEVICE_VENDOR);
+    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    break;
   case CL_DRIVER_VERSION:
     cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
     return CL_INVALID_VALUE;
   case CL_DEVICE_PROFILE:
-    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
-    return CL_INVALID_VALUE;
+    result_data = strdup("FULL_PROFILE");
+    result_size = (strlen((char*)result_data)+1)*sizeof(char);
   case CL_DEVICE_VERSION:
-    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
-    return CL_INVALID_VALUE;
+    result_data = strdup(DEVICE_VERSION);
+    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    break;
   case CL_DEVICE_EXTENSIONS:
     cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
     return CL_INVALID_VALUE;
@@ -327,8 +333,9 @@ clGetDeviceInfo(cl_device_id    device,
     cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
     return CL_INVALID_VALUE;
   case CL_DEVICE_OPENCL_C_VERSION:
-    cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
-    return CL_INVALID_VALUE;
+    result_data = strdup(DEVICE_VERSION);
+    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    break;
   case CL_DEVICE_LINKER_AVAILABLE:
     cerr << endl << "OCLGRIND: Unimplemented cl_device_info parameter." << endl;
     return CL_INVALID_VALUE;
@@ -1859,7 +1866,7 @@ clGetGLContextInfoKHR(const cl_context_properties *  properties,
 CL_API_ENTRY cl_event CL_API_CALL
 clCreateEventFromGLsyncKHR(cl_context            context ,
                            cl_GLsync             cl_GLsync ,
-                           cl_int *              errcode_ret ) CL_EXT_SUFFIX__VERSION_1_1
+                           cl_int *              errcode_ret ) //CL_EXT_SUFFIX__VERSION_1_1
 
 {
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
