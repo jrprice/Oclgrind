@@ -112,7 +112,9 @@ clGetDeviceIDs(cl_platform_id   platform,
   }
 
   cl_int return_value = CL_SUCCESS;
-  if (device_type != CL_DEVICE_TYPE_CPU)
+  if (device_type != CL_DEVICE_TYPE_CPU &&
+      device_type != CL_DEVICE_TYPE_DEFAULT &&
+      device_type != CL_DEVICE_TYPE_ALL)
   {
     return_value = CL_DEVICE_NOT_FOUND;
   }
@@ -129,7 +131,7 @@ clGetDeviceIDs(cl_platform_id   platform,
 
   if (num_devices)
   {
-    *num_devices = device_type==CL_DEVICE_TYPE_CPU ? 1 : 0;
+    *num_devices = return_value==CL_SUCCESS ? 1 : 0;
   }
 
   return return_value;
