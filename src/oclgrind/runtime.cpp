@@ -349,6 +349,7 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_PROFILE:
     result_data = strdup("FULL_PROFILE");
     result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    break;
   case CL_DEVICE_VERSION:
     result_data = strdup(DEVICE_VERSION);
     result_size = (strlen((char*)result_data)+1)*sizeof(char);
