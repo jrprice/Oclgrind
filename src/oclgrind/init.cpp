@@ -37,7 +37,7 @@ clIcdGetPlatformIDsKHR(cl_uint num_entries,
 
     cliIcdDispatchTableCreate(&m_dispatchTable);
 
-    m_platform->version = "OpenCL 1.2";
+    m_platform->version = "OpenCL 1.2 oclgrind";
     m_platform->vendor = "James Price, University of Bristol";
     m_platform->profile = "FULL_PROFILE";
     m_platform->name = "oclgrind";
