@@ -549,6 +549,7 @@ clCreateContext(const cl_context_properties * properties,
     m_context->device = new spirsim::Device();
     m_context->notify = pfn_notify;
     m_context->data = user_data;
+    m_context->refCount = 0;
   }
 
   ERRCODE(CL_SUCCESS);
@@ -573,8 +574,14 @@ clCreateContextFromType(const cl_context_properties * properties,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  if (context != m_context)
+  {
+    return CL_INVALID_CONTEXT;
+  }
+
+  context->refCount++;
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -585,10 +592,12 @@ clReleaseContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
     return CL_INVALID_CONTEXT;
   }
 
-  // TODO: Reference count and retain
-  delete m_context->device;
-  free(m_context);
-  m_context = NULL;
+  if (--context->refCount == 0)
+  {
+    delete m_context->device;
+    free(m_context);
+    m_context = NULL;
+  }
 
   return CL_SUCCESS;
 }
@@ -600,8 +609,59 @@ clGetContextInfo(cl_context         context,
                  void *             param_value,
                  size_t *           param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check context is valid
+  if (context != m_context)
+  {
+    return CL_INVALID_CONTEXT;
+  }
+
+  switch (param_name)
+  {
+  case CL_CONTEXT_REFERENCE_COUNT:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(context->refCount);
+    break;
+  case CL_CONTEXT_NUM_DEVICES:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(1);
+    break;
+  case CL_CONTEXT_DEVICES:
+    result_size = sizeof(cl_device_id);
+    result_data = new cl_device_id(m_device);
+    break;
+  case CL_CONTEXT_PROPERTIES:
+    result_size = sizeof(cl_context_properties);
+    result_data = new cl_context_properties(0);
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 

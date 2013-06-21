@@ -52,6 +52,7 @@ struct _cl_context
   spirsim::Device *device;
   void (CL_CALLBACK *notify)(const char *, const void *, size_t, void *);
   void *data;
+  unsigned int refCount;
 };
 
 struct _cl_command_queue
