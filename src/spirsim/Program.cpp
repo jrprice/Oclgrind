@@ -72,7 +72,16 @@ bool Program::build(const char *options)
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-triple");
   args.push_back("-spir64-unknown-unknown");
-  args.push_back(options);
+
+  // Add OpenCL build options
+  char *_options = strdup(options);
+  char *opt = strtok(_options, " ");
+  while (opt)
+  {
+    args.push_back(opt);
+    opt = strtok(NULL, " ");
+  }
+
   args.push_back("/tmp/oclgrind_temp.cl");
 
   // Create diagnostics engine
