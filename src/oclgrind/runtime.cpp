@@ -1022,15 +1022,16 @@ clBuildProgram(cl_program            program ,
   {
     return CL_INVALID_PROGRAM;
   }
-  if (num_devices != 1 || ! device_list)
+  if ((num_devices > 0 && !device_list) ||
+      (num_devices == 0 && device_list))
   {
     return CL_INVALID_VALUE;
   }
-  if (pfn_notify || user_data)
+  if (!pfn_notify && user_data)
   {
     return CL_INVALID_VALUE;
   }
-  if (!device_list[0])
+  if (device_list && !device_list[0])
   {
     return CL_INVALID_DEVICE;
   }
@@ -1039,6 +1040,10 @@ clBuildProgram(cl_program            program ,
   if (!program->program->build(options))
   {
     return CL_BUILD_PROGRAM_FAILURE;
+  }
+  if (pfn_notify)
+  {
+    pfn_notify(program, user_data);
   }
 
   return CL_SUCCESS;

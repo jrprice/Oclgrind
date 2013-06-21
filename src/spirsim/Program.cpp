@@ -74,12 +74,15 @@ bool Program::build(const char *options)
   args.push_back("-spir64-unknown-unknown");
 
   // Add OpenCL build options
-  char *_options = strdup(options);
-  char *opt = strtok(_options, " ");
-  while (opt)
+  if (options)
   {
-    args.push_back(opt);
-    opt = strtok(NULL, " ");
+    char *_options = strdup(options);
+    char *opt = strtok(_options, " ");
+    while (opt)
+    {
+      args.push_back(opt);
+      opt = strtok(NULL, " ");
+    }
   }
 
   args.push_back("/tmp/oclgrind_temp.cl");
