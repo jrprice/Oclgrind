@@ -21,6 +21,14 @@ static struct _cl_device_id *m_device = NULL;
 static struct _cl_context *m_context = NULL;
 static struct _cl_command_queue *m_queue = NULL;
 
+#define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
+
+#define DEVICE_NAME "SPIR Simulator"
+#define DEVICE_VENDOR "James Price, University of Bristol"
+#define DEVICE_VENDOR_ID 0x0042
+#define DEVICE_VERSION "OpenCL 1.2"
+#define DRIVER_VERSION "0.1"
+
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformIDs(cl_uint           num_entries ,
                  cl_platform_id *  platforms ,
@@ -28,12 +36,6 @@ clGetPlatformIDs(cl_uint           num_entries ,
 {
   return clIcdGetPlatformIDsKHR(num_entries, platforms, num_platforms);
 }
-
-#define DEVICE_NAME "SPIR Simulator"
-#define DEVICE_VENDOR "James Price, University of Bristol"
-#define DEVICE_VENDOR_ID 0x0042
-#define DEVICE_VERSION "OpenCL 1.2"
-#define DRIVER_VERSION "0.1"
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformInfo(cl_platform_id    platform,
@@ -518,22 +520,22 @@ clCreateContext(const cl_context_properties * properties,
   if (properties)
   {
     cerr << endl << "OCLGRIND: Non-NULL properties not supported." << endl;
-    *errcode_ret = CL_INVALID_PLATFORM;
+    ERRCODE(CL_INVALID_PLATFORM);
     return NULL;
   }
   if (num_devices != 1 || !devices)
   {
-    *errcode_ret = CL_INVALID_VALUE;
+    ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
   if (devices[0] != m_device)
   {
-    *errcode_ret = CL_INVALID_DEVICE;
+    ERRCODE(CL_INVALID_DEVICE);
     return NULL;
   }
   if (!pfn_notify && user_data)
   {
-    *errcode_ret = CL_INVALID_VALUE;
+    ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -548,7 +550,7 @@ clCreateContext(const cl_context_properties * properties,
     m_context->data = user_data;
   }
 
-  *errcode_ret = CL_SUCCESS;
+  ERRCODE(CL_SUCCESS);
   return m_context;
 }
 
@@ -563,7 +565,7 @@ clCreateContextFromType(const cl_context_properties * properties,
   //obj->dispatch = dispatchTable;
   //pfn_notify(NULL, NULL, 0, NULL);
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -612,18 +614,18 @@ clCreateCommandQueue(cl_context                     context,
   // Check parameters
   if (context != m_context)
   {
-    *errcode_ret = CL_INVALID_CONTEXT;
+    ERRCODE(CL_INVALID_CONTEXT);
     return NULL;
   }
   if (device != m_device)
   {
-    *errcode_ret = CL_INVALID_DEVICE;
+    ERRCODE(CL_INVALID_DEVICE);
     return NULL;
   }
   if (properties)
   {
     cerr << endl << "OCLGRIND: Non-NULL properties not supported." << endl;
-    *errcode_ret = CL_INVALID_VALUE;
+    ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -634,7 +636,7 @@ clCreateCommandQueue(cl_context                     context,
     m_queue->dispatch = m_dispatchTable;
   }
 
-  *errcode_ret = CL_SUCCESS;
+  ERRCODE(CL_SUCCESS);
   return m_queue;
 }
 
@@ -693,12 +695,12 @@ clCreateBuffer(cl_context    context ,
   // Check parameters
   if (context != m_context)
   {
-    *errcode_ret = CL_INVALID_CONTEXT;
+    ERRCODE(CL_INVALID_CONTEXT);
     return NULL;
   }
   if (size == 0)
   {
-    *errcode_ret = CL_INVALID_BUFFER_SIZE;
+    ERRCODE(CL_INVALID_BUFFER_SIZE);
     return NULL;
   }
 
@@ -709,12 +711,12 @@ clCreateBuffer(cl_context    context ,
   // TODO: Possible allocation failure
   //if (!mem->address)
   //{
-  //  *errcode_ret = CL_MEM_OBJECT_ALLOCATION_FAILURE;
+  //  ERRCODE(CL_MEM_OBJECT_ALLOCATION_FAILURE);
   //  free(mem);
   //  return NULL;
   //}
 
-  *errcode_ret = CL_SUCCESS;
+  ERRCODE(CL_SUCCESS);
   return mem;
 }
 
@@ -728,7 +730,7 @@ clCreateSubBuffer(cl_mem                    buffer ,
   //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
   //obj->dispatch = dispatchTable;
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -743,7 +745,7 @@ clCreateImage(cl_context              context,
   //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
   //obj->dispatch = dispatchTable;
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -761,7 +763,7 @@ clCreateImage2D(cl_context              context ,
   //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
   //obj->dispatch = dispatchTable;
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -780,7 +782,7 @@ clCreateImage3D(cl_context              context,
   //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
   //obj->dispatch = dispatchTable;
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -855,7 +857,7 @@ clCreateSampler(cl_context           context ,
   //cl_sampler obj = (cl_sampler) malloc(sizeof(struct _cl_sampler));
   //obj->dispatch = dispatchTable;
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -895,12 +897,12 @@ clCreateProgramWithSource(cl_context         context ,
   // Check parameters
   if (context != m_context)
   {
-    *errcode_ret = CL_INVALID_CONTEXT;
+    ERRCODE(CL_INVALID_CONTEXT);
     return NULL;
   }
   if (count == 0 || !strings || !strings[0])
   {
-    *errcode_ret = CL_INVALID_VALUE;
+    ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -908,13 +910,13 @@ clCreateProgramWithSource(cl_context         context ,
   if (count > 1)
   {
     cerr << "OCLGRIND: Source must be a single string." << endl;
-    *errcode_ret = CL_INVALID_VALUE;
+    ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
   if (lengths && lengths[0] > 0)
   {
     cerr << "OCLGRIND: Source must be null-terminated." << endl;
-    *errcode_ret = CL_INVALID_VALUE;
+    ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -924,12 +926,12 @@ clCreateProgramWithSource(cl_context         context ,
   prog->program = new spirsim::Program(strings[0]);
   if (!prog->program)
   {
-    *errcode_ret = CL_OUT_OF_HOST_MEMORY;
+    ERRCODE(CL_OUT_OF_HOST_MEMORY);
     free(prog);
     return NULL;
   }
 
-  *errcode_ret = CL_SUCCESS;
+  ERRCODE(CL_SUCCESS);
   return prog;
 }
 
@@ -945,17 +947,17 @@ clCreateProgramWithBinary(cl_context                      context ,
   // Check parameters
   if (context != m_context)
   {
-    *errcode_ret = CL_INVALID_CONTEXT;
+    ERRCODE(CL_INVALID_CONTEXT);
     return NULL;
   }
   if (num_devices != 1 || !device_list || !lengths || !binaries)
   {
-    *errcode_ret = CL_INVALID_VALUE;
+    ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
   if (device_list[0] != m_device)
   {
-    *errcode_ret = CL_INVALID_DEVICE;
+    ERRCODE(CL_INVALID_DEVICE);
     return NULL;
   }
 
@@ -965,7 +967,7 @@ clCreateProgramWithBinary(cl_context                      context ,
   prog->program = spirsim::Program::createFromBitcode(binaries[0], lengths[0]);
   if (!prog->program)
   {
-    *errcode_ret = CL_INVALID_BINARY;
+    ERRCODE(CL_INVALID_BINARY);
     if (binary_status)
     {
       binary_status[0] = CL_INVALID_BINARY;
@@ -974,7 +976,7 @@ clCreateProgramWithBinary(cl_context                      context ,
     return NULL;
   }
 
-  *errcode_ret = CL_SUCCESS;
+  ERRCODE(CL_SUCCESS);
   return prog;
 }
 
@@ -988,7 +990,7 @@ clCreateProgramWithBuiltInKernels(cl_context             context ,
   //cl_program obj = (cl_program) malloc(sizeof(struct _cl_program));
   //obj->dispatch = dispatchTable;
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1087,7 +1089,7 @@ clLinkProgram(cl_context            context ,
   //obj->dispatch = dispatchTable;
   ////pfn_notify(obj, NULL);
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1159,12 +1161,12 @@ clCreateKernel(cl_program       program ,
   // Check parameters
   if (program->dispatch != m_dispatchTable)
   {
-    *errcode_ret = CL_INVALID_PROGRAM;
+    ERRCODE(CL_INVALID_PROGRAM);
     return NULL;
   }
   if (!kernel_name)
   {
-    *errcode_ret = CL_INVALID_VALUE;
+    ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -1174,12 +1176,12 @@ clCreateKernel(cl_program       program ,
   kernel->kernel = program->program->createKernel(kernel_name);
   if (!kernel->kernel)
   {
-    *errcode_ret = CL_INVALID_KERNEL_NAME;
+    ERRCODE(CL_INVALID_KERNEL_NAME);
     free(kernel);
     return NULL;
   }
 
-  *errcode_ret = CL_SUCCESS;
+  ERRCODE(CL_SUCCESS);
   return kernel;
 }
 
@@ -1317,7 +1319,7 @@ clCreateUserEvent(cl_context     context ,
   //cl_event obj = (cl_event) malloc(sizeof(struct _cl_event));
   //obj->dispatch = dispatchTable;
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1640,7 +1642,7 @@ clEnqueueMapBuffer(cl_command_queue  command_queue ,
                    cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1659,7 +1661,7 @@ clEnqueueMapImage(cl_command_queue   command_queue ,
                   cl_int *           errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1837,7 +1839,7 @@ clCreateFromGLBuffer(cl_context      context ,
                      int *           errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 {
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1850,7 +1852,7 @@ clCreateFromGLTexture(cl_context       context ,
                       cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_2
 {
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1863,7 +1865,7 @@ clCreateFromGLTexture2D(cl_context       context,
                         cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 {
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1877,7 +1879,7 @@ clCreateFromGLTexture3D(cl_context       context,
 
 {
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1888,7 +1890,7 @@ clCreateFromGLRenderbuffer(cl_context    context,
                            cl_int *      errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 {
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
 
@@ -1955,6 +1957,6 @@ clCreateEventFromGLsyncKHR(cl_context            context ,
 
 {
   cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  *errcode_ret = CL_INVALID_PLATFORM;
+  ERRCODE(CL_INVALID_PLATFORM);
   return NULL;
 }
