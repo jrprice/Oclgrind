@@ -28,6 +28,7 @@ namespace spirsim
     bool build(const char *options);
     Kernel* createKernel(const std::string name);
     std::string getBuildLog() const;
+    unsigned int getNumKernels() const;
 
   private:
     Program(llvm::Module *module);

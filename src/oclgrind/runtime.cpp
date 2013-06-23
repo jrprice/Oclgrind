@@ -1042,6 +1042,7 @@ clCreateProgramWithSource(cl_context         context ,
   cl_program prog = (cl_program)malloc(sizeof(struct _cl_program));
   prog->dispatch = m_dispatchTable;
   prog->program = new spirsim::Program(strings[0]);
+  prog->refCount = 1;
   if (!prog->program)
   {
     ERRCODE(CL_OUT_OF_HOST_MEMORY);
@@ -1083,6 +1084,7 @@ clCreateProgramWithBinary(cl_context                      context ,
   cl_program prog = (cl_program)malloc(sizeof(struct _cl_program));
   prog->dispatch = m_dispatchTable;
   prog->program = spirsim::Program::createFromBitcode(binaries[0], lengths[0]);
+  prog->refCount = 1;
   if (!prog->program)
   {
     ERRCODE(CL_INVALID_BINARY);
@@ -1115,16 +1117,28 @@ clCreateProgramWithBuiltInKernels(cl_context             context ,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  if (!program)
+  {
+    return CL_INVALID_PROGRAM;
+  }
+
+  program->refCount++;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
 {
-  // TODO: Reference count and retain
-  delete program->program;
-  free(program);
+  if (!program)
+  {
+    return CL_INVALID_PROGRAM;
+  }
+
+  if (--program->refCount == 0)
+  {
+    delete program->program;
+    free(program);
+  }
 
   return CL_SUCCESS;
 }
@@ -1225,8 +1239,67 @@ clGetProgramInfo(cl_program          program ,
                  void *              param_value ,
                  size_t *            param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check program is valid
+  if (!program)
+  {
+    return CL_INVALID_PROGRAM;
+  }
+
+  switch (param_name)
+  {
+  case CL_PROGRAM_REFERENCE_COUNT:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(program->refCount);
+    break;
+  case CL_PROGRAM_CONTEXT:
+    result_size = sizeof(cl_context);
+    result_data = new cl_context(m_context);
+    break;
+  case CL_PROGRAM_NUM_DEVICES:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(1);
+    break;
+  case CL_PROGRAM_DEVICES:
+    result_size = sizeof(cl_device_id);
+    result_data = new cl_device_id(m_device);
+    break;
+  //case CL_PROGRAM_SOURCE:
+  //case CL_PROGRAM_BINARY_SIZES:
+  //case CL_PROGRAM_BINARIES:
+  case CL_PROGRAM_NUM_KERNELS:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(program->program->getNumKernels());
+    break;
+  //case CL_PROGRAM_KERNEL_NAMES:
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

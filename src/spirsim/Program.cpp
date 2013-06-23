@@ -220,3 +220,22 @@ std::string Program::getBuildLog() const
 {
   return m_buildLog;
 }
+
+unsigned int Program::getNumKernels() const
+{
+  assert(m_module != NULL);
+
+  // Iterate over functions in module to find kernels
+  unsigned int num = 0;
+  llvm::Function *function = NULL;
+  llvm::Module::iterator funcItr;
+  for(funcItr = m_module->begin(); funcItr != m_module->end(); funcItr++)
+  {
+    if (funcItr->getCallingConv() == llvm::CallingConv::SPIR_KERNEL)
+    {
+      num++;
+    }
+  }
+
+  return num;
+}
