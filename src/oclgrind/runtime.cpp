@@ -1310,36 +1310,60 @@ clGetProgramBuildInfo(cl_program             program ,
                       void *                 param_value ,
                       size_t *               param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  // Check parameters
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check program is valid
   if (!program)
   {
     return CL_INVALID_PROGRAM;
   }
 
-  if (param_name == CL_PROGRAM_BUILD_LOG)
+  switch (param_name)
   {
-    std::string log = program->program->getBuildLog();
-    size_t size = log.size() + 1;
-    if (param_value_size < size && param_value)
-    {
-      return CL_INVALID_VALUE;
-    }
-    if (param_value)
-    {
-      strncpy((char*)param_value, log.c_str(), size-1);
-      ((char*)param_value)[size-1] = '\0';
-    }
-    if (param_value_size_ret)
-    {
-      *param_value_size_ret = size;
-    }
-  }
-  else
-  {
+  case CL_PROGRAM_BUILD_STATUS:
+    result_size = sizeof(cl_build_status);
+    result_data = new cl_build_status(program->program->getBuildStatus());
+    break;
+  case CL_PROGRAM_BUILD_OPTIONS:
+    result_data = strdup(program->program->getBuildOptions().c_str());
+    result_size = (strlen((char*)result_data)+1) * sizeof(char);
+    break;
+  case CL_PROGRAM_BUILD_LOG:
+    result_data = strdup(program->program->getBuildLog().c_str());
+    result_size = (strlen((char*)result_data)+1) * sizeof(char);
+    break;
+  case CL_PROGRAM_BINARY_TYPE:
+    result_size = sizeof(cl_program_binary_type);
+    result_data = new cl_program_binary_type(
+      CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT);
+    break;
+  default:
     return CL_INVALID_VALUE;
   }
 
-  return CL_SUCCESS;
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 

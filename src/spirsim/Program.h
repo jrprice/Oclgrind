@@ -28,6 +28,8 @@ namespace spirsim
     bool build(const char *options);
     Kernel* createKernel(const std::string name);
     std::string getBuildLog() const;
+    std::string getBuildOptions() const;
+    unsigned int getBuildStatus() const;
     unsigned int getNumKernels() const;
 
   private:
@@ -37,5 +39,7 @@ namespace spirsim
     llvm::Module *m_module;
     std::string m_source;
     std::string m_buildLog;
+    std::string m_buildOptions;
+    unsigned int m_buildStatus;
   };
 }

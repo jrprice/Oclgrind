@@ -19,6 +19,7 @@
 #include <clang/Frontend/CompilerInvocation.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 
+#include <CL/cl.h>
 #include "Kernel.h"
 #include "Program.h"
 
@@ -29,6 +30,9 @@ Program::Program(llvm::Module *module)
   : m_module(module)
 {
   m_action = NULL;
+  m_buildLog = "";
+  m_buildOptions = "";
+  m_buildStatus = CL_BUILD_NONE;
 }
 
 Program::Program(const char *source)
@@ -36,6 +40,9 @@ Program::Program(const char *source)
   m_source = source;
   m_module = NULL;
   m_action = NULL;
+  m_buildLog = "";
+  m_buildOptions = "";
+  m_buildStatus = CL_BUILD_NONE;
 }
 
 Program::~Program()
@@ -53,9 +60,13 @@ Program::~Program()
 
 bool Program::build(const char *options)
 {
+  m_buildStatus = CL_BUILD_IN_PROGRESS;
+  m_buildOptions = options ? options : "";
+
   // Do nothing if program was created with binary
   if (m_source.empty() && m_module)
   {
+    m_buildStatus = CL_BUILD_SUCCESS;
     return true;
   }
 
@@ -121,12 +132,18 @@ bool Program::build(const char *options)
   // Prepare diagnostics
   compiler.createDiagnostics(args.size(), &args[0], &diagConsumer, false);
   if (!compiler.hasDiagnostics())
+  {
+    m_buildStatus = CL_BUILD_ERROR;
     return false;
+  }
 
   // Compile
   clang::CodeGenAction *action = new clang::EmitLLVMOnlyAction();
   if (!compiler.ExecuteAction(*action))
+  {
+    m_buildStatus = CL_BUILD_ERROR;
     return false;
+  }
 
   // Retrieve module
   m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
@@ -138,6 +155,7 @@ bool Program::build(const char *options)
   llvm::WriteBitcodeToFile(m_module, output);
   output.close();
 
+  m_buildStatus = CL_BUILD_SUCCESS;
   return true;
 }
 
@@ -219,6 +237,16 @@ Kernel* Program::createKernel(const std::string name)
 std::string Program::getBuildLog() const
 {
   return m_buildLog;
+}
+
+std::string Program::getBuildOptions() const
+{
+  return m_buildOptions;
+}
+
+unsigned int Program::getBuildStatus() const
+{
+  return m_buildStatus;
 }
 
 unsigned int Program::getNumKernels() const
