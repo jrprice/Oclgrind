@@ -1959,8 +1959,12 @@ clEnqueueTask(cl_command_queue   command_queue ,
               const cl_event *   event_wait_list ,
               cl_event *         event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t work = 1;
+  return clEnqueueNDRangeKernel(command_queue, kernel, 1,
+                                NULL, &work, &work,
+                                num_events_in_wait_list,
+                                event_wait_list,
+                                event);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
