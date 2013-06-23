@@ -1541,15 +1541,30 @@ clCreateUserEvent(cl_context     context ,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainEvent(cl_event  event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  if (!event)
+  {
+    return CL_INVALID_EVENT;
+  }
+
+  event->refCount++;
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseEvent(cl_event  event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  if (!event)
+  {
+    return CL_INVALID_EVENT;
+  }
+
+  if (--event->refCount == 0)
+  {
+    free(event);
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -1631,6 +1646,13 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
     return CL_INVALID_VALUE;
   }
 
+  // Create event
+  if (event)
+  {
+    *event = (cl_event)malloc(sizeof(struct _cl_event));
+    (*event)->refCount = 1;
+  }
+
   return CL_SUCCESS;
 }
 
@@ -1677,6 +1699,13 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
   if (!ret)
   {
     return CL_INVALID_VALUE;
+  }
+
+  // Create event
+  if (event)
+  {
+    *event = (cl_event)malloc(sizeof(struct _cl_event));
+    (*event)->refCount = 1;
   }
 
   return CL_SUCCESS;
@@ -1948,6 +1977,13 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
 
   // Run kernel
   m_context->device->run(*kernel->kernel, global, local);
+
+  // Create event
+  if (event)
+  {
+    *event = (cl_event)malloc(sizeof(struct _cl_event));
+    (*event)->refCount = 1;
+  }
 
   return CL_SUCCESS;
 }

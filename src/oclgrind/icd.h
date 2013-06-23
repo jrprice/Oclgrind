@@ -84,6 +84,7 @@ struct _cl_kernel
 struct _cl_event
 {
   CLIicdDispatchTable* dispatch;
+  unsigned int refCount;
 };
 
 struct _cl_sampler
