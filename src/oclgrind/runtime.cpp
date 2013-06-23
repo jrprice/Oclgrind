@@ -1095,7 +1095,10 @@ clCreateProgramWithBinary(cl_context                      context ,
     free(prog);
     return NULL;
   }
-  binary_status[0] = CL_SUCCESS;
+  if (binary_status)
+  {
+    binary_status[0] = CL_SUCCESS;
+  }
 
   ERRCODE(CL_SUCCESS);
   return prog;
@@ -1274,7 +1277,7 @@ clGetProgramInfo(cl_program          program ,
     break;
   case CL_PROGRAM_BINARIES:
     result_size = sizeof(unsigned char*);
-    result_data = new unsigned char*(program->program->getBinary());
+    result_data = program->program->getBinary();
     break;
   case CL_PROGRAM_NUM_KERNELS:
     result_size = sizeof(cl_uint);
@@ -1288,14 +1291,22 @@ clGetProgramInfo(cl_program          program ,
   cl_int return_value = CL_SUCCESS;
   if (param_value)
   {
-    // Check destination is large enough
-    if (param_value_size < result_size)
+    if (param_name == CL_PROGRAM_BINARIES)
     {
-      return_value = CL_INVALID_VALUE;
+      memcpy(((unsigned char**)param_value)[0],
+             result_data, program->program->getBinarySize());
     }
     else
     {
-      memcpy(param_value, result_data, result_size);
+      // Check destination is large enough
+      if (param_value_size < result_size)
+      {
+        return_value = CL_INVALID_VALUE;
+      }
+      else
+      {
+        memcpy(param_value, result_data, result_size);
+      }
     }
   }
 
