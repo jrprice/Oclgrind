@@ -119,7 +119,7 @@ bool Program::build(const char *options)
   compiler.setInvocation(invocation.take());
 
   // Auto-include OpenCL header
-  char *includes = getenv("C_INCLUDE_PATH");
+  char *includes = strdup(getenv("C_INCLUDE_PATH"));
   char *path = strtok(includes, ":");
   while (path)
   {
@@ -128,6 +128,7 @@ bool Program::build(const char *options)
     path = strtok(NULL, ":");
   }
   compiler.getPreprocessorOpts().Includes.push_back("clc.h");
+  free(includes);
 
   // Prepare diagnostics
   compiler.createDiagnostics(args.size(), &args[0], &diagConsumer, false);
@@ -150,7 +151,7 @@ bool Program::build(const char *options)
   m_module = action->takeModule();
 
   // Dump bitcode for debugging
-  std::string err;
+  string err;
   llvm::raw_fd_ostream output("/tmp/oclgrind_temp.bc", err);
   llvm::WriteBitcodeToFile(m_module, output);
   output.close();
@@ -184,7 +185,7 @@ Program* Program::createFromBitcode(const unsigned char *bitcode,
   return new Program(module);
 }
 
-Program* Program::createFromBitcodeFile(const std::string filename)
+Program* Program::createFromBitcodeFile(const string filename)
 {
   // Load bitcode from file
   llvm::OwningPtr<llvm::MemoryBuffer> buffer;
@@ -206,7 +207,7 @@ Program* Program::createFromBitcodeFile(const std::string filename)
   return new Program(module);
 }
 
-Kernel* Program::createKernel(const std::string name)
+Kernel* Program::createKernel(const string name)
 {
   // Iterate over functions in module to find kernel
   llvm::Function *function = NULL;
@@ -234,12 +235,12 @@ Kernel* Program::createKernel(const std::string name)
   return new Kernel(function);
 }
 
-std::string Program::getBuildLog() const
+string Program::getBuildLog() const
 {
   return m_buildLog;
 }
 
-std::string Program::getBuildOptions() const
+string Program::getBuildOptions() const
 {
   return m_buildOptions;
 }
