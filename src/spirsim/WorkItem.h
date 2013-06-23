@@ -51,6 +51,7 @@ namespace spirsim
     void fcmp(const llvm::Instruction& instruction, TypedValue& result);
     void fdiv(const llvm::Instruction& instruction, TypedValue& result);
     void fmul(const llvm::Instruction& instruction, TypedValue& result);
+    void fptosi(const llvm::Instruction& instruction, TypedValue& result);
     void frem(const llvm::Instruction& instruction, TypedValue& result);
     void fsub(const llvm::Instruction& instruction, TypedValue& result);
     void gep(const llvm::Instruction& instruction, TypedValue& result);

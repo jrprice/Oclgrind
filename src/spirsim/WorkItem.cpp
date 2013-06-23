@@ -193,6 +193,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::FMul:
     fmul(instruction, result);
     break;
+  case llvm::Instruction::FPToSI:
+    fptosi(instruction, result);
+    break;
   case llvm::Instruction::FRem:
     frem(instruction, result);
     break;
@@ -672,6 +675,13 @@ void WorkItem::fmul(const llvm::Instruction& instruction, TypedValue& result)
   double a = getFloatValue(instruction.getOperand(0));
   double b = getFloatValue(instruction.getOperand(1));
   setFloatResult(result, a * b);
+}
+
+void WorkItem::fptosi(const llvm::Instruction& instruction, TypedValue& result)
+{
+  const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
+  int64_t r = (int64_t)getFloatValue(instruction.getOperand(0));
+  memcpy(result.data, &r, result.size);
 }
 
 void WorkItem::frem(const llvm::Instruction& instruction, TypedValue& result)
