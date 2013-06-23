@@ -23,6 +23,9 @@
 #include "Kernel.h"
 #include "Program.h"
 
+#define TEMP_CL_FILE "/tmp/oclgrind_temp.cl"
+#define TEMP_BC_FILE "/tmp/oclgrind_temp.bc"
+
 using namespace spirsim;
 using namespace std;
 
@@ -73,7 +76,7 @@ bool Program::build(const char *options)
   // Dump source to temporary file
   // TODO: Build from memory?
   ofstream temp;
-  temp.open("/tmp/oclgrind_temp.cl");
+  temp.open(TEMP_CL_FILE);
   temp << m_source;
   temp.close();
 
@@ -96,7 +99,7 @@ bool Program::build(const char *options)
     }
   }
 
-  args.push_back("/tmp/oclgrind_temp.cl");
+  args.push_back(TEMP_CL_FILE);
 
   // Create diagnostics engine
   m_buildLog = "";
@@ -152,7 +155,7 @@ bool Program::build(const char *options)
 
   // Dump bitcode for debugging
   string err;
-  llvm::raw_fd_ostream output("/tmp/oclgrind_temp.bc", err);
+  llvm::raw_fd_ostream output(TEMP_BC_FILE, err);
   llvm::WriteBitcodeToFile(m_module, output);
   output.close();
 
@@ -233,6 +236,40 @@ Kernel* Program::createKernel(const string name)
   delete instNamer;
 
   return new Kernel(function);
+}
+
+unsigned char* Program::getBinary() const
+{
+  if (!m_module)
+  {
+    return NULL;
+  }
+
+  // Get bitcode
+  ifstream input(TEMP_BC_FILE, ifstream::binary);
+  input.seekg(0, ios_base::end);
+  size_t size = input.tellg();
+  unsigned char *ret = new unsigned char[size];
+  input.seekg(0, ios_base::beg);
+  input.read((char*)ret, size);
+  input.close();
+
+  return ret;
+}
+
+size_t Program::getBinarySize() const
+{
+  if (!m_module)
+  {
+    return 0;
+  }
+
+  // Get bitcode size
+  ifstream input(TEMP_BC_FILE, ifstream::binary);
+  input.seekg(0, ios_base::end);
+  size_t size = input.tellg();
+  input.close();
+  return size;
 }
 
 string Program::getBuildLog() const

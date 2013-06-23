@@ -29,6 +29,8 @@ namespace spirsim
     Kernel* createKernel(const std::string name);
     std::string getBuildLog() const;
     std::string getBuildOptions() const;
+    unsigned char* getBinary() const;
+    size_t getBinarySize() const;
     unsigned int getBuildStatus() const;
     unsigned int getNumKernels() const;
 

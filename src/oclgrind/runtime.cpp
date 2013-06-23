@@ -1095,6 +1095,7 @@ clCreateProgramWithBinary(cl_context                      context ,
     free(prog);
     return NULL;
   }
+  binary_status[0] = CL_SUCCESS;
 
   ERRCODE(CL_SUCCESS);
   return prog;
@@ -1267,8 +1268,14 @@ clGetProgramInfo(cl_program          program ,
     result_data = new cl_device_id(m_device);
     break;
   //case CL_PROGRAM_SOURCE:
-  //case CL_PROGRAM_BINARY_SIZES:
-  //case CL_PROGRAM_BINARIES:
+  case CL_PROGRAM_BINARY_SIZES:
+    result_size = sizeof(size_t);
+    result_data = new size_t(program->program->getBinarySize());
+    break;
+  case CL_PROGRAM_BINARIES:
+    result_size = sizeof(unsigned char*);
+    result_data = new unsigned char*(program->program->getBinary());
+    break;
   case CL_PROGRAM_NUM_KERNELS:
     result_size = sizeof(cl_uint);
     result_data = new cl_uint(program->program->getNumKernels());
