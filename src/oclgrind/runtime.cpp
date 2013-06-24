@@ -1306,6 +1306,10 @@ clGetProgramInfo(cl_program          program ,
       ret += *itr;
       ret += ";";
     }
+    if (!ret.empty())
+    {
+      ret.erase(ret.length()-1);
+    }
     result_data = strdup(ret.c_str());
     result_size = (strlen((char*)result_data)+1)*sizeof(char);
     break;
