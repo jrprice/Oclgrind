@@ -19,6 +19,11 @@ Kernel::Kernel(const llvm::Function *function)
   m_globalSize[0] = 0;
   m_globalSize[1] = 0;
   m_globalSize[2] = 0;
+
+  // TODO: Get required work-group size from metadata
+  m_requiredWorkGroupSize[0] = 0;
+  m_requiredWorkGroupSize[1] = 0;
+  m_requiredWorkGroupSize[2] = 0;
 }
 
 Kernel::~Kernel()
@@ -94,6 +99,11 @@ size_t Kernel::getLocalMemorySize() const
 unsigned int Kernel::getNumArguments() const
 {
   return m_function->arg_size();
+}
+
+const size_t* Kernel::getRequiredWorkGroupSize() const
+{
+  return m_requiredWorkGroupSize;
 }
 
 void Kernel::setArgument(unsigned int index, TypedValue value)

@@ -22,6 +22,7 @@ namespace spirsim
     const size_t* getGlobalSize() const;
     size_t getLocalMemorySize() const;
     unsigned int getNumArguments() const;
+    const size_t* getRequiredWorkGroupSize() const;
     void setArgument(unsigned int index, TypedValue value);
     void setGlobalSize(const size_t globalSize[3]);
 
@@ -30,6 +31,7 @@ namespace spirsim
     TypedValueMap m_arguments;
     size_t m_localMemory;
     size_t m_globalSize[3];
+    size_t m_requiredWorkGroupSize[3];
 
     const llvm::Argument* getArgument(unsigned int index) const;
   };

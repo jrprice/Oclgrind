@@ -1568,8 +1568,8 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
     result_size = sizeof(size_t[3]);
     result_data = new size_t[3];
-    // TODO: Read attribute from kernel
-    memset(result_data, 0, sizeof(size_t[3]));
+    memcpy(result_data, kernel->kernel->getRequiredWorkGroupSize(),
+           result_size);
     break;
   case CL_KERNEL_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
