@@ -21,6 +21,7 @@ static struct _cl_device_id *m_device = NULL;
 static struct _cl_context *m_context = NULL;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
+#define MAX_SIZE_VALUE (size_t)-1 //(pow((double)256,(double)(sizeof(size_t))))
 
 #define DEVICE_NAME "SPIR Simulator"
 #define DEVICE_VENDOR "James Price, University of Bristol"
@@ -174,14 +175,14 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_MAX_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(pow((float)256,(float)sizeof(size_t)));
+    result_data = new size_t(MAX_SIZE_VALUE);
     break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES:
     result_size = 3*sizeof(size_t);
     result_data = new size_t[3];
-    ((size_t*)result_data)[0] = pow((float)256,(float)sizeof(size_t));
-    ((size_t*)result_data)[1] = pow((float)256,(float)sizeof(size_t));
-    ((size_t*)result_data)[2] = pow((float)256,(float)sizeof(size_t));
+    ((size_t*)result_data)[0] = MAX_SIZE_VALUE;
+    ((size_t*)result_data)[1] = MAX_SIZE_VALUE;
+    ((size_t*)result_data)[2] = MAX_SIZE_VALUE;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:
     result_size = sizeof(cl_uint);
@@ -225,7 +226,7 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
     result_size = sizeof(size_t);
-    result_data = new cl_ulong(pow((float)256,(float)sizeof(size_t)));
+    result_data = new cl_ulong(MAX_SIZE_VALUE);
     break;
   case CL_DEVICE_IMAGE2D_MAX_WIDTH:
     result_size = sizeof(size_t);
@@ -286,11 +287,11 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_GLOBAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(pow((float)256,(float)sizeof(size_t)));
+    result_data = new cl_ulong(MAX_SIZE_VALUE);
     break;
   case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(pow((float)256,(float)sizeof(size_t)));
+    result_data = new cl_ulong(MAX_SIZE_VALUE);
     break;
   case CL_DEVICE_MAX_CONSTANT_ARGS:
     result_size = sizeof(cl_uint);
@@ -302,7 +303,7 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(pow((float)256,(float)sizeof(size_t)));
+    result_data = new cl_ulong();
     break;
     return CL_INVALID_VALUE;
   case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
@@ -1521,8 +1522,71 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
                          void *                      param_value ,
                          size_t *                    param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check parameters is valid
+  if (!kernel)
+  {
+    return CL_INVALID_KERNEL;
+  }
+  if (!device || device != m_device)
+  {
+    return CL_INVALID_DEVICE;
+  }
+
+  switch (param_name)
+  {
+  case CL_KERNEL_GLOBAL_WORK_SIZE:
+    return CL_INVALID_VALUE;
+  case CL_KERNEL_WORK_GROUP_SIZE:
+    result_size = sizeof(size_t);
+    result_data = new size_t(MAX_SIZE_VALUE);
+    break;
+  case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
+    result_size = sizeof(size_t[3]);
+    result_data = new size_t[3];
+    // TODO: Read attribute from kernel
+    memset(result_data, 0, sizeof(size_t[3]));
+    break;
+  case CL_KERNEL_LOCAL_MEM_SIZE:
+    result_size = sizeof(cl_ulong);
+    result_data = new cl_ulong(kernel->kernel->getLocalMemorySize());
+    break;
+  case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
+    result_size = sizeof(size_t);
+    result_data = new size_t(1);
+    break;
+  case CL_KERNEL_PRIVATE_MEM_SIZE:
+    result_size = sizeof(cl_ulong);
+    result_data = new cl_ulong(0); // TODO: Real value
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 /* Event Object APIs  */
