@@ -18,7 +18,6 @@ using namespace std;
 CLIicdDispatchTable *m_dispatchTable = NULL;
 struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
-static struct _cl_context *m_context = NULL;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
 #define MAX_SIZE_VALUE (size_t)-1 //(pow((double)256,(double)(sizeof(size_t))))
@@ -541,19 +540,15 @@ clCreateContext(const cl_context_properties * properties,
   }
 
   // Create context object
-  // TODO: Multiple context objects allowed?
-  if (!m_context)
-  {
-    m_context = (cl_context)malloc(sizeof(struct _cl_context));
-    m_context->dispatch = m_dispatchTable;
-    m_context->device = new spirsim::Device();
-    m_context->notify = pfn_notify;
-    m_context->data = user_data;
-    m_context->refCount = 1;
-  }
+  cl_context context = (cl_context)malloc(sizeof(struct _cl_context));
+  context->dispatch = m_dispatchTable;
+  context->device = new spirsim::Device();
+  context->notify = pfn_notify;
+  context->data = user_data;
+  context->refCount = 1;
 
   ERRCODE(CL_SUCCESS);
-  return m_context;
+  return context;
 }
 
 CL_API_ENTRY cl_context CL_API_CALL
@@ -574,7 +569,7 @@ clCreateContextFromType(const cl_context_properties * properties,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
 {
-  if (context != m_context)
+  if (!context)
   {
     return CL_INVALID_CONTEXT;
   }
@@ -587,16 +582,15 @@ clRetainContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
 {
-  if (context != m_context)
+  if (!context)
   {
     return CL_INVALID_CONTEXT;
   }
 
   if (--context->refCount == 0)
   {
-    delete m_context->device;
-    free(m_context);
-    m_context = NULL;
+    delete context->device;
+    free(context);
   }
 
   return CL_SUCCESS;
@@ -613,7 +607,7 @@ clGetContextInfo(cl_context         context,
   void *result_data = NULL;
 
   // Check context is valid
-  if (context != m_context)
+  if (!context)
   {
     return CL_INVALID_CONTEXT;
   }
@@ -673,7 +667,7 @@ clCreateCommandQueue(cl_context                     context,
                      cl_int *                       errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (context != m_context)
+  if (!context)
   {
     ERRCODE(CL_INVALID_CONTEXT);
     return NULL;
@@ -694,6 +688,7 @@ clCreateCommandQueue(cl_context                     context,
   queue = (cl_command_queue)malloc(sizeof(struct _cl_command_queue));
   queue->dispatch = m_dispatchTable;
   queue->properties = properties;
+  queue->context = context;
   queue->refCount = 1;
 
   ERRCODE(CL_SUCCESS);
@@ -760,7 +755,7 @@ clGetCommandQueueInfo(cl_command_queue       command_queue ,
   {
   case CL_QUEUE_CONTEXT:
     result_size = sizeof(cl_context);
-    result_data = new cl_context(m_context);
+    result_data = new cl_context(command_queue->context);
     break;
   case CL_QUEUE_DEVICE:
     result_size = sizeof(cl_device_id);
@@ -812,7 +807,7 @@ clCreateBuffer(cl_context    context ,
                cl_int *      errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (context != m_context)
+  if (!context)
   {
     ERRCODE(CL_INVALID_CONTEXT);
     return NULL;
@@ -1014,7 +1009,7 @@ clCreateProgramWithSource(cl_context         context ,
                           cl_int *           errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (context != m_context)
+  if (!context)
   {
     ERRCODE(CL_INVALID_CONTEXT);
     return NULL;
@@ -1043,6 +1038,7 @@ clCreateProgramWithSource(cl_context         context ,
   cl_program prog = (cl_program)malloc(sizeof(struct _cl_program));
   prog->dispatch = m_dispatchTable;
   prog->program = new spirsim::Program(strings[0]);
+  prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
   {
@@ -1065,7 +1061,7 @@ clCreateProgramWithBinary(cl_context                      context ,
                           cl_int *                        errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (context != m_context)
+  if (!context)
   {
     ERRCODE(CL_INVALID_CONTEXT);
     return NULL;
@@ -1085,6 +1081,7 @@ clCreateProgramWithBinary(cl_context                      context ,
   cl_program prog = (cl_program)malloc(sizeof(struct _cl_program));
   prog->dispatch = m_dispatchTable;
   prog->program = spirsim::Program::createFromBitcode(binaries[0], lengths[0]);
+  prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
   {
@@ -1261,7 +1258,7 @@ clGetProgramInfo(cl_program          program ,
     break;
   case CL_PROGRAM_CONTEXT:
     result_size = sizeof(cl_context);
-    result_data = new cl_context(m_context);
+    result_data = new cl_context(program->context);
     break;
   case CL_PROGRAM_NUM_DEVICES:
     result_size = sizeof(cl_uint);
@@ -1721,7 +1718,7 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
   }
 
   // Perform read
-  spirsim::Memory *memory = m_context->device->getGlobalMemory();
+  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
   bool ret = memory->load(buffer->address, cb, (unsigned char*)ptr);
   if (!ret)
   {
@@ -1776,7 +1773,7 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
   }
 
   // Perform write
-  spirsim::Memory *memory = m_context->device->getGlobalMemory();
+  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
   bool ret = memory->store(buffer->address, cb, (const unsigned char*)ptr);
   if (!ret)
   {
@@ -2058,7 +2055,7 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
   }
 
   // Run kernel
-  m_context->device->run(*kernel->kernel, global, local);
+  command_queue->context->device->run(*kernel->kernel, global, local);
 
   // Create event
   if (event)

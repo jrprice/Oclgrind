@@ -59,6 +59,7 @@ struct _cl_command_queue
 {
   CLIicdDispatchTable* dispatch;
   cl_command_queue_properties properties;
+  cl_context context;
   unsigned int refCount;
 };
 
@@ -72,6 +73,7 @@ struct _cl_program
 {
   CLIicdDispatchTable* dispatch;
   spirsim::Program *program;
+  cl_context context;
   unsigned int refCount;
 };
 
