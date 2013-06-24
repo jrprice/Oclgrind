@@ -27,12 +27,14 @@ namespace spirsim
 
     bool build(const char *options);
     Kernel* createKernel(const std::string name);
-    std::string getBuildLog() const;
-    std::string getBuildOptions() const;
+    const std::string& getBuildLog() const;
+    const std::string& getBuildOptions() const;
     unsigned char* getBinary() const;
     size_t getBinarySize() const;
     unsigned int getBuildStatus() const;
+    std::list<std::string> getKernelNames() const;
     unsigned int getNumKernels() const;
+    const std::string& getSource() const;
 
   private:
     Program(llvm::Module *module);

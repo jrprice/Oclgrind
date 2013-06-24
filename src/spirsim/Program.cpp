@@ -272,12 +272,12 @@ size_t Program::getBinarySize() const
   return size;
 }
 
-string Program::getBuildLog() const
+const string& Program::getBuildLog() const
 {
   return m_buildLog;
 }
 
-string Program::getBuildOptions() const
+const string& Program::getBuildOptions() const
 {
   return m_buildOptions;
 }
@@ -285,6 +285,25 @@ string Program::getBuildOptions() const
 unsigned int Program::getBuildStatus() const
 {
   return m_buildStatus;
+}
+
+list<string> Program::getKernelNames() const
+{
+  list<string> names;
+
+  // Iterate over functions in module to find kernels
+  unsigned int num = 0;
+  llvm::Function *function = NULL;
+  llvm::Module::iterator funcItr;
+  for(funcItr = m_module->begin(); funcItr != m_module->end(); funcItr++)
+  {
+    if (funcItr->getCallingConv() == llvm::CallingConv::SPIR_KERNEL)
+    {
+      names.push_back(funcItr->getName().str());
+    }
+  }
+
+  return names;
 }
 
 unsigned int Program::getNumKernels() const
@@ -304,4 +323,9 @@ unsigned int Program::getNumKernels() const
   }
 
   return num;
+}
+
+const string& Program::getSource() const
+{
+  return m_source;
 }

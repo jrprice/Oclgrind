@@ -4,6 +4,7 @@
 #include "config.h"
 #include <iomanip>
 #include <iostream>
+#include <list>
 #include <map>
 #include <vector>
 

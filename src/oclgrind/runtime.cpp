@@ -1256,6 +1256,12 @@ clGetProgramInfo(cl_program          program ,
   {
     return CL_INVALID_PROGRAM;
   }
+  if ((param_name == CL_PROGRAM_NUM_KERNELS ||
+       param_name == CL_PROGRAM_KERNEL_NAMES) &&
+      program->program->getBuildStatus() != CL_BUILD_SUCCESS)
+  {
+    return CL_INVALID_PROGRAM_EXECUTABLE;
+  }
 
   switch (param_name)
   {
@@ -1275,7 +1281,10 @@ clGetProgramInfo(cl_program          program ,
     result_size = sizeof(cl_device_id);
     result_data = new cl_device_id(m_device);
     break;
-  //case CL_PROGRAM_SOURCE:
+  case CL_PROGRAM_SOURCE:
+    result_data = strdup(program->program->getSource().c_str());
+    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    break;
   case CL_PROGRAM_BINARY_SIZES:
     result_size = sizeof(size_t);
     result_data = new size_t(program->program->getBinarySize());
@@ -1288,7 +1297,19 @@ clGetProgramInfo(cl_program          program ,
     result_size = sizeof(cl_uint);
     result_data = new cl_uint(program->program->getNumKernels());
     break;
-  //case CL_PROGRAM_KERNEL_NAMES:
+  case CL_PROGRAM_KERNEL_NAMES:
+  {
+    list<string> names = program->program->getKernelNames();
+    string ret;
+    for (list<string>::iterator itr = names.begin(); itr != names.end(); itr++)
+    {
+      ret += *itr;
+      ret += ";";
+    }
+    result_data = strdup(ret.c_str());
+    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    break;
+  }
   default:
     return CL_INVALID_VALUE;
   }
