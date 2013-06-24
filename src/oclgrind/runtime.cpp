@@ -817,6 +817,19 @@ clCreateBuffer(cl_context    context ,
     ERRCODE(CL_INVALID_BUFFER_SIZE);
     return NULL;
   }
+  if ((host_ptr == NULL) ==
+      ((flags & CL_MEM_COPY_HOST_PTR) ||
+        flags & CL_MEM_USE_HOST_PTR))
+  {
+    ERRCODE(CL_INVALID_HOST_PTR);
+    return NULL;
+  }
+  if (flags & CL_MEM_USE_HOST_PTR)
+  {
+    cerr << "OCLGRIND: CL_MEM_USE_HOST_PTR not supported." << endl;
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
 
   // Create memory object
   cl_mem mem = (cl_mem)malloc(sizeof(struct _cl_mem));
@@ -830,6 +843,12 @@ clCreateBuffer(cl_context    context ,
   //  free(mem);
   //  return NULL;
   //}
+
+  if (flags & CL_MEM_COPY_HOST_PTR)
+  {
+    context->device->getGlobalMemory()->store(mem->address, size,
+                                              (const unsigned char*)host_ptr);
+  }
 
   ERRCODE(CL_SUCCESS);
   return mem;
