@@ -4,6 +4,7 @@ namespace llvm
 {
   class Argument;
   class Function;
+  class Module;
 }
 
 namespace spirsim
@@ -11,7 +12,7 @@ namespace spirsim
   class Kernel
   {
   public:
-    Kernel(const llvm::Function *function);
+    Kernel(const llvm::Function *function, const llvm::Module *module);
     virtual ~Kernel();
 
     TypedValueMap::const_iterator args_begin() const;

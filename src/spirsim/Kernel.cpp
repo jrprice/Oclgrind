@@ -2,7 +2,10 @@
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
+#include "llvm/Constants.h"
 #include "llvm/Function.h"
+#include "llvm/Metadata.h"
+#include "llvm/Module.h"
 #include "llvm/Type.h"
 
 #include "CL/cl.h"
@@ -11,7 +14,7 @@
 using namespace spirsim;
 using namespace std;
 
-Kernel::Kernel(const llvm::Function *function)
+Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
 {
   m_function = function;
   m_localMemory = 0;
@@ -23,10 +26,30 @@ Kernel::Kernel(const llvm::Function *function)
   // Get name
   m_name = function->getName().str();
 
-  // TODO: Get required work-group size from metadata
-  m_requiredWorkGroupSize[0] = 0;
-  m_requiredWorkGroupSize[1] = 0;
-  m_requiredWorkGroupSize[2] = 0;
+  // Get required work-group size from metadata
+  memset(m_requiredWorkGroupSize, 0, sizeof(size_t[3]));
+  llvm::NamedMDNode *mdKernels = module->getNamedMetadata("opencl.kernels");
+  if (mdKernels)
+  {
+    llvm::MDNode *md = mdKernels->getOperand(0);
+    for (int i = 0; i < md->getNumOperands(); i++)
+    {
+      llvm::Value *op = md->getOperand(i);
+      if (op->getValueID() == llvm::Value::MDNodeVal)
+      {
+        llvm::MDNode *val = ((llvm::MDNode*)op);
+        string name = val->getOperand(0)->getName().str();
+        if (name == "reqd_work_group_size")
+        {
+          for (int j = 0; j < 3; j++)
+          {
+            m_requiredWorkGroupSize[j] =
+              ((const llvm::ConstantInt*)val->getOperand(j+1))->getZExtValue();
+          }
+        }
+      }
+    }
+  }
 }
 
 Kernel::~Kernel()

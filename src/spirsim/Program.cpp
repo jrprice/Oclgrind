@@ -235,7 +235,7 @@ Kernel* Program::createKernel(const string name)
   instNamer->runOnFunction(*((llvm::Function*)function));
   delete instNamer;
 
-  return new Kernel(function);
+  return new Kernel(function, m_module);
 }
 
 unsigned char* Program::getBinary() const
