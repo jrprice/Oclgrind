@@ -20,7 +20,8 @@ struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
-#define MAX_SIZE_VALUE (size_t)-1 //(pow((double)256,(double)(sizeof(size_t))))
+#define MAX_MEM_SIZE (uint32_t)-1
+#define MAX_WI_SIZE (unsigned short)-1
 
 #define DEVICE_NAME "SPIR Simulator"
 #define DEVICE_VENDOR "James Price, University of Bristol"
@@ -174,14 +175,14 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_MAX_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(MAX_SIZE_VALUE);
+    result_data = new size_t(MAX_WI_SIZE);
     break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES:
     result_size = 3*sizeof(size_t);
     result_data = new size_t[3];
-    ((size_t*)result_data)[0] = MAX_SIZE_VALUE;
-    ((size_t*)result_data)[1] = MAX_SIZE_VALUE;
-    ((size_t*)result_data)[2] = MAX_SIZE_VALUE;
+    ((size_t*)result_data)[0] = MAX_WI_SIZE;
+    ((size_t*)result_data)[1] = MAX_WI_SIZE;
+    ((size_t*)result_data)[2] = MAX_WI_SIZE;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:
     result_size = sizeof(cl_uint);
@@ -225,7 +226,7 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
     result_size = sizeof(size_t);
-    result_data = new cl_ulong(MAX_SIZE_VALUE);
+    result_data = new cl_ulong(MAX_MEM_SIZE);
     break;
   case CL_DEVICE_IMAGE2D_MAX_WIDTH:
     result_size = sizeof(size_t);
@@ -286,11 +287,11 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_GLOBAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(MAX_SIZE_VALUE);
+    result_data = new cl_ulong(MAX_MEM_SIZE);
     break;
   case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(MAX_SIZE_VALUE);
+    result_data = new cl_ulong(MAX_MEM_SIZE);
     break;
   case CL_DEVICE_MAX_CONSTANT_ARGS:
     result_size = sizeof(cl_uint);
@@ -1835,7 +1836,7 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
     return CL_INVALID_VALUE;
   case CL_KERNEL_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(65536);
+    result_data = new size_t(MAX_WI_SIZE);
     break;
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
     result_size = sizeof(size_t[3]);
