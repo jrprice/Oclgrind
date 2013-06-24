@@ -2040,8 +2040,13 @@ clGetEventProfilingInfo(cl_event             event ,
 CL_API_ENTRY cl_int CL_API_CALL
 clFlush(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
