@@ -1433,6 +1433,7 @@ clCreateKernel(cl_program       program ,
   cl_kernel kernel = (cl_kernel)malloc(sizeof(struct _cl_kernel));
   kernel->dispatch = m_dispatchTable;
   kernel->kernel = program->program->createKernel(kernel_name);
+  kernel->program = program;
   kernel->refCount = 1;
   if (!kernel->kernel)
   {
@@ -1476,6 +1477,7 @@ clCreateKernelsInProgram(cl_program      program ,
       cl_kernel kernel = (cl_kernel)malloc(sizeof(struct _cl_kernel));
       kernel->dispatch = m_dispatchTable;
       kernel->kernel = program->program->createKernel(*itr);
+      kernel->program = program;
       kernel->refCount = 1;
       kernels[i++] = kernel;
     }
@@ -1570,8 +1572,68 @@ clGetKernelInfo(cl_kernel        kernel ,
                 void *           param_value ,
                 size_t *         param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check kernel is valid
+  if (!kernel)
+  {
+    return CL_INVALID_KERNEL;
+  }
+
+  switch (param_name)
+  {
+  case CL_KERNEL_FUNCTION_NAME:
+    result_data = strdup(kernel->kernel->getName().c_str());
+    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    break;
+  case CL_KERNEL_NUM_ARGS:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(kernel->kernel->getNumArguments());
+    break;
+  case CL_KERNEL_REFERENCE_COUNT:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(kernel->refCount);
+    break;
+  case CL_KERNEL_CONTEXT:
+    result_size = sizeof(cl_context);
+    result_data = new cl_context(kernel->program->context);
+    break;
+  case CL_KERNEL_PROGRAM:
+    result_size = sizeof(cl_program);
+    result_data = new cl_program(kernel->program);
+    break;
+  case CL_KERNEL_ATTRIBUTES:
+    result_data = strdup(""); // TODO: Attributes
+    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
+
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

@@ -82,6 +82,7 @@ struct _cl_kernel
 {
   CLIicdDispatchTable* dispatch;
   spirsim::Kernel *kernel;
+  cl_program program;
   unsigned int refCount;
 };
 

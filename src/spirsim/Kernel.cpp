@@ -20,6 +20,9 @@ Kernel::Kernel(const llvm::Function *function)
   m_globalSize[1] = 0;
   m_globalSize[2] = 0;
 
+  // Get name
+  m_name = function->getName().str();
+
   // TODO: Get required work-group size from metadata
   m_requiredWorkGroupSize[0] = 0;
   m_requiredWorkGroupSize[1] = 0;
@@ -94,6 +97,12 @@ const size_t* Kernel::getGlobalSize() const
 size_t Kernel::getLocalMemorySize() const
 {
   return m_localMemory;
+}
+
+
+const std::string& Kernel::getName() const
+{
+  return m_name;
 }
 
 unsigned int Kernel::getNumArguments() const
