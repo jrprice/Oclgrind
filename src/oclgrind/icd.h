@@ -68,7 +68,10 @@ struct _cl_command_queue
 struct _cl_mem
 {
   CLIicdDispatchTable* dispatch;
+  cl_context context;
   size_t address;
+  size_t size;
+  cl_mem_flags flags;
   unsigned int refCount;
 };
 

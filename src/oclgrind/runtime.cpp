@@ -877,7 +877,10 @@ clCreateBuffer(cl_context    context ,
   // Create memory object
   cl_mem mem = (cl_mem)malloc(sizeof(struct _cl_mem));
   mem->dispatch = m_dispatchTable;
+  mem->context = context;
   mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
+  mem->size = size;
+  mem->flags = flags;
   mem->refCount = 1;
   // TODO: Possible allocation failure
   //if (!mem->address)
@@ -1010,8 +1013,78 @@ clGetMemObjectInfo(cl_mem            memobj ,
                    void *            param_value ,
                    size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check mem object is valid
+  if (!memobj)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+
+  switch (param_name)
+  {
+  case CL_MEM_TYPE:
+    result_size = sizeof(cl_mem_object_type);
+    result_data = new cl_mem_object_type(CL_MEM_OBJECT_BUFFER);
+    break;
+  case CL_MEM_FLAGS:
+    result_size = sizeof(cl_mem_flags);
+    result_data = new cl_mem_flags(memobj->flags);
+    break;
+  case CL_MEM_SIZE:
+    result_size = sizeof(size_t);
+    result_data = new size_t(memobj->size);
+    break;
+  case CL_MEM_HOST_PTR:
+    result_size = sizeof(void*);
+    result_data = new void*(NULL);
+  case CL_MEM_MAP_COUNT:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(0);
+    break;
+  case CL_MEM_REFERENCE_COUNT:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(memobj->refCount);
+    break;
+  case CL_MEM_CONTEXT:
+    result_size = sizeof(cl_context);
+    result_data = new cl_context(memobj->context);
+    break;
+  case CL_MEM_ASSOCIATED_MEMOBJECT:
+    result_size = sizeof(cl_mem);
+    result_data = new cl_mem(NULL);
+    break;
+  case CL_MEM_OFFSET:
+    result_size = sizeof(size_t);
+    result_data = new size_t(0);
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
