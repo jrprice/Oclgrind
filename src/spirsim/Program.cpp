@@ -38,7 +38,7 @@ Program::Program(llvm::Module *module)
   m_buildStatus = CL_BUILD_NONE;
 }
 
-Program::Program(const char *source)
+Program::Program(const string& source)
 {
   m_source = source;
   m_module = NULL;

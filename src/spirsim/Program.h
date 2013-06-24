@@ -18,7 +18,7 @@ namespace spirsim
   class Program
   {
   public:
-    Program(const char *source);
+    Program(const std::string& source);
     virtual ~Program();
 
     static Program* createFromBitcode(const unsigned char *bitcode,

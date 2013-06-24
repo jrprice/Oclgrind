@@ -1033,24 +1033,18 @@ clCreateProgramWithSource(cl_context         context ,
     return NULL;
   }
 
-  // TODO: Handle multiple strings, and lengths
-  if (count > 1)
+  // Concatenate sources into a single string
+  std::string source;
+  for (int i = 0; i < count; i++)
   {
-    cerr << "OCLGRIND: Source must be a single string." << endl;
-    ERRCODE(CL_INVALID_VALUE);
-    return NULL;
-  }
-  if (lengths && lengths[0] > 0)
-  {
-    cerr << "OCLGRIND: Source must be null-terminated." << endl;
-    ERRCODE(CL_INVALID_VALUE);
-    return NULL;
+    size_t length = (lengths && lengths[i]) ? lengths[i] : strlen(strings[i]);
+    source.append(strings[i], length);
   }
 
   // Create program object
   cl_program prog = (cl_program)malloc(sizeof(struct _cl_program));
   prog->dispatch = m_dispatchTable;
-  prog->program = new spirsim::Program(strings[0]);
+  prog->program = new spirsim::Program(source);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
