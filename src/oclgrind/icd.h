@@ -6,6 +6,7 @@
 #include "rename_api.h"
 
 #include <CL/cl.h>
+#include <stack>
 
 #ifndef CL_USE_DEPRECATED_OPENCL_1_0_APIS
 #define CL_USE_DEPRECATED_OPENCL_1_0_APIS
@@ -72,6 +73,8 @@ struct _cl_mem
   size_t address;
   size_t size;
   cl_mem_flags flags;
+  std::stack<void (CL_CALLBACK *)(cl_mem, void *)> *callbacks;
+  std::stack<void*> *data;
   unsigned int refCount;
 };
 

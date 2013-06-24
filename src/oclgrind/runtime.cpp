@@ -881,6 +881,8 @@ clCreateBuffer(cl_context    context ,
   mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
   mem->size = size;
   mem->flags = flags;
+  mem->callbacks = new std::stack<void (CL_CALLBACK *)(cl_mem, void *)>();
+  mem->data = new std::stack<void*>();
   mem->refCount = 1;
   // TODO: Possible allocation failure
   //if (!mem->address)
@@ -988,6 +990,14 @@ clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 
   if (--memobj->refCount == 0)
   {
+    while (!memobj->callbacks->empty())
+    {
+      memobj->callbacks->top()(memobj, memobj->data->top());
+      memobj->callbacks->pop();
+      memobj->data->pop();
+    }
+    free(memobj->callbacks);
+    free(memobj->data);
     free(memobj);
   }
 
@@ -1103,9 +1113,20 @@ clSetMemObjectDestructorCallback(cl_mem  memobj ,
                                  void (CL_CALLBACK * pfn_notify)(cl_mem  memobj , void* user_data),
                                  void * user_data)             CL_API_SUFFIX__VERSION_1_1
 {
-  //pfn_notify(memobj, NULL);
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!memobj)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+  if (!pfn_notify)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  memobj->callbacks->push(pfn_notify);
+  memobj->data->push(user_data);
+
+  return CL_SUCCESS;
 }
 
 /* Sampler APIs  */
