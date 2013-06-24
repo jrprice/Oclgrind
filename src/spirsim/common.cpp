@@ -84,6 +84,12 @@ namespace spirsim
       }
       return size;
     }
+    else if (type->isVectorTy())
+    {
+      size_t num = type->getVectorNumElements();
+      size_t sz = getTypeSize(type->getVectorElementType());
+      return num*sz;
+    }
     else
     {
       return ((llvm::Type*)type)->getScalarSizeInBits()>>3;
