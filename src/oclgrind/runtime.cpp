@@ -1433,6 +1433,7 @@ clCreateKernel(cl_program       program ,
   cl_kernel kernel = (cl_kernel)malloc(sizeof(struct _cl_kernel));
   kernel->dispatch = m_dispatchTable;
   kernel->kernel = program->program->createKernel(kernel_name);
+  kernel->refCount = 1;
   if (!kernel->kernel)
   {
     ERRCODE(CL_INVALID_KERNEL_NAME);
@@ -1450,8 +1451,42 @@ clCreateKernelsInProgram(cl_program      program ,
                          cl_kernel *     kernels ,
                          cl_uint *       num_kernels_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!program)
+  {
+    return CL_INVALID_PROGRAM;
+  }
+  if (program->program->getBuildStatus() != CL_BUILD_SUCCESS)
+  {
+    return CL_INVALID_PROGRAM_EXECUTABLE;
+  }
+
+  unsigned int num = program->program->getNumKernels();
+  if (kernels && num_kernels < num)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  if (kernels)
+  {
+    int i = 0;
+    list<string> names = program->program->getKernelNames();
+    for (list<string>::iterator itr = names.begin(); itr != names.end(); itr++)
+    {
+      cl_kernel kernel = (cl_kernel)malloc(sizeof(struct _cl_kernel));
+      kernel->dispatch = m_dispatchTable;
+      kernel->kernel = program->program->createKernel(*itr);
+      kernel->refCount = 1;
+      kernels[i++] = kernel;
+    }
+  }
+
+  if (num_kernels_ret)
+  {
+    *num_kernels_ret = num;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
