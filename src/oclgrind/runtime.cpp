@@ -1541,7 +1541,7 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
     return CL_INVALID_VALUE;
   case CL_KERNEL_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(MAX_SIZE_VALUE);
+    result_data = new size_t(65536);
     break;
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
     result_size = sizeof(size_t[3]);
