@@ -1810,8 +1810,63 @@ clGetEventInfo(cl_event          event ,
                void *            param_value ,
                size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check event is valid
+  if (!event)
+  {
+    return CL_INVALID_EVENT;
+  }
+
+  switch (param_name)
+  {
+  case CL_EVENT_COMMAND_QUEUE:
+    result_size = sizeof(cl_command_queue);
+    result_data = new cl_command_queue(event->queue);
+    break;
+  case CL_EVENT_CONTEXT:
+    result_size = sizeof(cl_context);
+    result_data = new cl_context(event->queue->context);
+    break;
+  case CL_EVENT_COMMAND_TYPE:
+    result_size = sizeof(cl_command_type);
+    result_data = new cl_command_type(event->type);
+    break;
+  case CL_EVENT_COMMAND_EXECUTION_STATUS:
+    result_size = sizeof(cl_int);
+    result_data = new cl_int(CL_COMPLETE);
+    break;
+  case CL_EVENT_REFERENCE_COUNT:
+    result_size = sizeof(cl_uint);
+    result_data = new cl_uint(event->refCount);
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 CL_API_ENTRY cl_event CL_API_CALL
@@ -1938,6 +1993,8 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
   {
     cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
     evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_READ_BUFFER;
     evt->refCount = 1;
     *event = evt;
   }
@@ -1995,6 +2052,8 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
   {
     cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
     evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_WRITE_BUFFER;
     evt->refCount = 1;
     *event = evt;
   }
@@ -2274,6 +2333,8 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
   {
     cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
     evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_NDRANGE_KERNEL;
     evt->refCount = 1;
     *event = evt;
   }
