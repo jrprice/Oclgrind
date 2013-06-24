@@ -539,7 +539,22 @@ clCreateContext(const cl_context_properties * properties,
   context->device = new spirsim::Device();
   context->notify = pfn_notify;
   context->data = user_data;
+  context->properties = NULL;
+  context->szProperties = 0;
   context->refCount = 1;
+
+  if (properties)
+  {
+    int num = 1;
+    while (properties[num])
+    {
+      num++;
+    }
+    size_t sz = (num+1)*sizeof(cl_context_properties);
+    context->szProperties = sz;
+    context->properties = (cl_context_properties*)malloc(sz);
+    memcpy(context->properties, properties, sz);
+  }
 
   ERRCODE(CL_SUCCESS);
   return context;
@@ -572,7 +587,22 @@ clCreateContextFromType(const cl_context_properties * properties,
   context->device = new spirsim::Device();
   context->notify = pfn_notify;
   context->data = user_data;
+  context->properties = NULL;
+  context->szProperties = 0;
   context->refCount = 1;
+
+  if (properties)
+  {
+    int num = 0;
+    while (properties[num])
+    {
+      num++;
+    }
+    size_t sz = (num+1)*sizeof(cl_context_properties);
+    context->szProperties = sz;
+    context->properties = (cl_context_properties*)malloc(sz);
+    memcpy(context->properties, properties, sz);
+  }
 
   ERRCODE(CL_SUCCESS);
   return context;
@@ -639,8 +669,9 @@ clGetContextInfo(cl_context         context,
     result_data = new cl_device_id(m_device);
     break;
   case CL_CONTEXT_PROPERTIES:
-    result_size = sizeof(cl_context_properties);
-    result_data = new cl_context_properties(0);
+    result_size = context->szProperties;
+    result_data = malloc(result_size);
+    memcpy(result_data, context->properties, result_size);
     break;
   default:
     return CL_INVALID_VALUE;

@@ -52,6 +52,8 @@ struct _cl_context
   spirsim::Device *device;
   void (CL_CALLBACK *notify)(const char *, const void *, size_t, void *);
   void *data;
+  cl_context_properties *properties;
+  size_t szProperties;
   unsigned int refCount;
 };
 
