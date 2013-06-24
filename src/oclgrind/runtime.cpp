@@ -517,12 +517,6 @@ clCreateContext(const cl_context_properties * properties,
                 cl_int *                      errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (properties)
-  {
-    cerr << endl << "OCLGRIND: Non-NULL properties not supported." << endl;
-    ERRCODE(CL_INVALID_PLATFORM);
-    return NULL;
-  }
   if (num_devices != 1 || !devices)
   {
     ERRCODE(CL_INVALID_VALUE);
@@ -558,12 +552,30 @@ clCreateContextFromType(const cl_context_properties * properties,
                         void *                        user_data,
                         cl_int *                      errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  //cl_context obj = (cl_context) malloc(sizeof(struct _cl_context));
-  //obj->dispatch = dispatchTable;
-  //pfn_notify(NULL, NULL, 0, NULL);
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
-  return NULL;
+  // Check parameters
+  if (!pfn_notify && user_data)
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+  if (device_type != CL_DEVICE_TYPE_CPU &&
+      device_type != CL_DEVICE_TYPE_DEFAULT &&
+      device_type != CL_DEVICE_TYPE_ALL)
+  {
+    ERRCODE(CL_DEVICE_NOT_FOUND);
+    return NULL;
+  }
+
+  // Create context object
+  cl_context context = (cl_context)malloc(sizeof(struct _cl_context));
+  context->dispatch = m_dispatchTable;
+  context->device = new spirsim::Device();
+  context->notify = pfn_notify;
+  context->data = user_data;
+  context->refCount = 1;
+
+  ERRCODE(CL_SUCCESS);
+  return context;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
