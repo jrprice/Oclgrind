@@ -715,22 +715,22 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   {
     int64_t offset = getSignedInt(opItr->get());
 
-    // Get pointer element size
-    size_t size;
-    llvm::Type *elemType = ptrType->getPointerElementType();
-    if (elemType->isArrayTy())
+    if (ptrType->isPointerTy())
     {
-      size_t num = elemType->getArrayNumElements();
-      size_t sz = elemType->getArrayElementType()->getScalarSizeInBits() >> 3;
-      size = num*sz;
+      // Get pointer element size
+      llvm::Type *elemType = ptrType->getPointerElementType();
+      address += offset*getTypeSize(elemType);
+      ptrType = elemType;
     }
-    else
+    else if (ptrType->isStructTy())
     {
-      size = elemType->getScalarSizeInBits() >> 3;
+      // Get structure member offset
+      for (int i = 0; i < offset; i++)
+      {
+        address += getTypeSize(ptrType->getStructElementType(i));
+      }
+      ptrType = ptrType->getStructElementType(offset);
     }
-
-    ptrType = elemType;
-    address += offset*size;
   }
 
   *((size_t*)result.data) = address;

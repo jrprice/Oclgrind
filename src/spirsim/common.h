@@ -14,6 +14,7 @@
 namespace llvm
 {
   class Instruction;
+  class Type;
   class Value;
 }
 
@@ -46,6 +47,9 @@ namespace spirsim
 
   // Returns the size of an instruction's result
   extern size_t getInstructionResultSize(const llvm::Instruction& instruction);
+
+  // Returns the size of a type
+  extern size_t getTypeSize(const llvm::Type *type);
 
   // Returns true if the operand is a constant value
   extern bool isConstantOperand(const llvm::Value *operand);

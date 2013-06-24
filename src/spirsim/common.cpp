@@ -67,6 +67,29 @@ namespace spirsim
     return resultSize;
   }
 
+  size_t getTypeSize(const llvm::Type *type)
+  {
+    if (type->isArrayTy())
+    {
+      size_t num = type->getArrayNumElements();
+      size_t sz = getTypeSize(type->getArrayElementType());
+      return num*sz;
+    }
+    else if (type->isStructTy())
+    {
+      size_t size = 0;
+      for (int i = 0; i < type->getStructNumElements(); i++)
+      {
+        size += getTypeSize(type->getStructElementType(i));
+      }
+      return size;
+    }
+    else
+    {
+      return ((llvm::Type*)type)->getScalarSizeInBits()>>3;
+    }
+  }
+
   bool isConstantOperand(const llvm::Value *operand)
   {
     unsigned id = operand->getValueID();
