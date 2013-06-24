@@ -260,6 +260,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::Xor:
     bwxor(instruction, result);
     break;
+  case llvm::Instruction::ZExt:
+    zext(instruction, result);
+    break;
   default:
     cout << "Unhandled instruction: " << instruction.getOpcodeName() << endl;
     break;
@@ -1070,4 +1073,24 @@ void WorkItem::urem(const llvm::Instruction& instruction, TypedValue& result)
   uint64_t b = getUnsignedInt(instruction.getOperand(1));
   uint64_t r = a % b;
   memcpy(result.data, &r, result.size);
+}
+
+void WorkItem::zext(const llvm::Instruction& instruction, TypedValue& result)
+{
+  uint64_t val = getUnsignedInt(instruction.getOperand(0));
+  switch (result.size)
+  {
+  case 1:
+    *((unsigned char*)result.data) = val;
+    break;
+  case 2:
+    *((unsigned short*)result.data) = val;
+    break;
+  case 4:
+    *((unsigned int*)result.data) = val;
+    break;
+  case 8:
+    *((unsigned long*)result.data) = val;
+    break;
+  }
 }

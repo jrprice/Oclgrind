@@ -70,6 +70,7 @@ namespace spirsim
     void trunc(const llvm::Instruction& instruction, TypedValue& result);
     void udiv(const llvm::Instruction& instruction, TypedValue& result);
     void urem(const llvm::Instruction& instruction, TypedValue& result);
+    void zext(const llvm::Instruction& instruction, TypedValue& result);
 
   private:
     size_t m_globalID[3];
