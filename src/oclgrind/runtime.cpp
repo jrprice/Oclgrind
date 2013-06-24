@@ -261,7 +261,7 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(sizeof(cl_long16));
+    result_data = new cl_uint(sizeof(cl_long16)<<3);
     break;
   case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
     result_size = sizeof(cl_uint);
