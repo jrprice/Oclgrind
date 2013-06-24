@@ -1931,8 +1931,10 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
   // Create event
   if (event)
   {
-    *event = (cl_event)malloc(sizeof(struct _cl_event));
-    (*event)->refCount = 1;
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->refCount = 1;
+    *event = evt;
   }
 
   return CL_SUCCESS;
@@ -1986,8 +1988,10 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
   // Create event
   if (event)
   {
-    *event = (cl_event)malloc(sizeof(struct _cl_event));
-    (*event)->refCount = 1;
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->refCount = 1;
+    *event = evt;
   }
 
   return CL_SUCCESS;
@@ -2263,8 +2267,10 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
   // Create event
   if (event)
   {
-    *event = (cl_event)malloc(sizeof(struct _cl_event));
-    (*event)->refCount = 1;
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->refCount = 1;
+    *event = evt;
   }
 
   return CL_SUCCESS;
