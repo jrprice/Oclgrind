@@ -822,6 +822,7 @@ clCreateBuffer(cl_context    context ,
   cl_mem mem = (cl_mem)malloc(sizeof(struct _cl_mem));
   mem->dispatch = m_dispatchTable;
   mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
+  mem->refCount = 1;
   // TODO: Possible allocation failure
   //if (!mem->address)
   //{
@@ -903,16 +904,28 @@ clCreateImage3D(cl_context              context,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  if (!memobj)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+
+  memobj->refCount++;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 {
-  // TODO: Reference count and retain
-  // TODO: Deallocate
-  free(memobj);
+  if (!memobj)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+
+  if (--memobj->refCount == 0)
+  {
+    free(memobj);
+  }
+
   return CL_SUCCESS;
 }
 
@@ -1429,16 +1442,28 @@ clCreateKernelsInProgram(cl_program      program ,
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainKernel(cl_kernel     kernel) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  if (!kernel)
+  {
+    return CL_INVALID_KERNEL;
+  }
+
+  kernel->refCount++;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseKernel(cl_kernel    kernel) CL_API_SUFFIX__VERSION_1_0
 {
-  // TODO: Reference count and retain
-  delete kernel->kernel;
-  free(kernel);
+  if (!kernel)
+  {
+    return CL_INVALID_KERNEL;
+  }
+
+  if (--kernel->refCount == 0)
+  {
+    delete kernel->kernel;
+    free(kernel);
+  }
 
   return CL_SUCCESS;
 }

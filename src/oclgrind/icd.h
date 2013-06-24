@@ -67,6 +67,7 @@ struct _cl_mem
 {
   CLIicdDispatchTable* dispatch;
   size_t address;
+  unsigned int refCount;
 };
 
 struct _cl_program
@@ -81,6 +82,7 @@ struct _cl_kernel
 {
   CLIicdDispatchTable* dispatch;
   spirsim::Kernel *kernel;
+  unsigned int refCount;
 };
 
 struct _cl_event
