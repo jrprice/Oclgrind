@@ -1794,8 +1794,13 @@ CL_API_ENTRY cl_int CL_API_CALL
 clWaitForEvents(cl_uint              num_events ,
                 const cl_event *     event_list) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!num_events || !event_list)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
