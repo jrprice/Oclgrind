@@ -17,6 +17,30 @@ Device::Device()
 {
   m_globalMemory = new Memory();
   m_outputMask = 0;
+
+  // Check environment variables for output masks
+  const char *env;
+
+  env = getenv("OCLGRIND_OUTPUT_PRIVATE_MEM");
+  if (env && strcmp(env, "1") == 0)
+  {
+    m_outputMask |= OUTPUT_PRIVATE_MEM;
+  }
+  env = getenv("OCLGRIND_OUTPUT_LOCAL_MEM");
+  if (env && strcmp(env, "1") == 0)
+  {
+    m_outputMask |= OUTPUT_LOCAL_MEM;
+  }
+  env = getenv("OCLGRIND_OUTPUT_GLOBAL_MEM");
+  if (env && strcmp(env, "1") == 0)
+  {
+    m_outputMask |= OUTPUT_GLOBAL_MEM;
+  }
+  env = getenv("OCLGRIND_OUTPUT_INSTRUCTIONS");
+  if (env && strcmp(env, "1") == 0)
+  {
+    m_outputMask |= OUTPUT_INSTRUCTIONS;
+  }
 }
 
 Device::~Device()
