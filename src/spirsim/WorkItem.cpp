@@ -182,6 +182,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::Call:
     call(instruction, result);
     break;
+  case llvm::Instruction::ExtractElement:
+    extract(instruction, result);
+    break;
   case llvm::Instruction::FAdd:
     fadd(instruction, result);
     break;
@@ -675,6 +678,29 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   else
   {
     cout << "Unhandled direct function call: " << name << endl;
+  }
+}
+
+void WorkItem::extract(const llvm::Instruction& instruction,
+                       TypedValue& result)
+{
+  llvm::ExtractElementInst *extract = (llvm::ExtractElementInst*)&instruction;
+
+  llvm::Value *vector = extract->getVectorOperand();
+  unsigned int index = getUnsignedInt(extract->getIndexOperand());
+  llvm::Type *type = vector->getType()->getVectorElementType();
+  switch (type->getTypeID())
+  {
+  case llvm::Type::FloatTyID:
+  case llvm::Type::DoubleTyID:
+    setFloatResult(result, getFloatValue(vector, index));
+    break;
+  case llvm::Type::IntegerTyID:
+    setIntResult(result, getUnsignedInt(vector, index));
+    break;
+  default:
+    cerr << "Unhandled vector type " << type->getTypeID() << endl;
+    return;
   }
 }
 

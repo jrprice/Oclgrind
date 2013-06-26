@@ -55,6 +55,7 @@ namespace spirsim
     void bwor(const llvm::Instruction& instruction, TypedValue& result);
     void bwxor(const llvm::Instruction& instruction, TypedValue& result);
     void call(const llvm::Instruction& instruction, TypedValue& result);
+    void extract(const llvm::Instruction& instruction, TypedValue& result);
     void fadd(const llvm::Instruction& instruction, TypedValue& result);
     void fcmp(const llvm::Instruction& instruction, TypedValue& result);
     void fdiv(const llvm::Instruction& instruction, TypedValue& result);
