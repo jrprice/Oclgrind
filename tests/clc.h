@@ -4,6 +4,10 @@ typedef unsigned int uint;
 typedef unsigned long ulong;
 typedef unsigned long size_t;
 
+// TODO: typeof?
+typedef long ptrdiff_t;
+typedef unsigned long uintptr_t;
+typedef unsigned long intptr_t;
 
 typedef __attribute__((ext_vector_type(2))) float float2;
 typedef __attribute__((ext_vector_type(3))) float float3;

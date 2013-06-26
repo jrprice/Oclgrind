@@ -20,7 +20,7 @@ struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
-#define MAX_MEM_SIZE (((uint32_t)-1)>>4)
+#define MAX_MEM_SIZE (uint64_t)-1
 #define MAX_WI_SIZE (unsigned short)-1
 
 #define DEVICE_NAME "SPIR Simulator"
@@ -214,7 +214,7 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_ADDRESS_BITS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(sizeof(size_t)>>3);
+    result_data = new cl_uint(sizeof(size_t)<<3);
     break;
   case CL_DEVICE_MAX_READ_IMAGE_ARGS:
     result_size = sizeof(cl_uint);
