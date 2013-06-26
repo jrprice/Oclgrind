@@ -14,8 +14,9 @@ namespace spirsim
   {
     TypedValue dest;
     dest.size = source.size;
-    dest.data = new unsigned char[dest.size];
-    memcpy(dest.data, source.data, dest.size);
+    dest.num = source.num;
+    dest.data = new unsigned char[dest.size*dest.num];
+    memcpy(dest.data, source.data, dest.size*dest.num);
     return dest;
   }
 
@@ -23,16 +24,18 @@ namespace spirsim
   {
     cout << setfill(' ');
 
-    size_t resultSize = getInstructionResultSize(instruction);
-    if (resultSize > 0)
+    pair<size_t,size_t> resultSize = getInstructionResultSize(instruction);
+    if (resultSize.first > 0)
     {
       cout << "%" << setw(12) <<  left
            << instruction.getName().str()
-           << "(" << resultSize << ") = ";
+           << "(" << resultSize.second
+           << "x" << resultSize.first
+           << ") = ";
     }
     else if (align)
     {
-      cout << setw(19) << " ";
+      cout << setw(21) << " ";
     }
 
     cout << left << setw(align?14:0) << instruction.getOpcodeName();
@@ -47,24 +50,38 @@ namespace spirsim
     cout << right << endl;
   }
 
-  size_t getInstructionResultSize(const llvm::Instruction& instruction)
+  pair<size_t,size_t> getInstructionResultSize(
+    const llvm::Instruction& instruction)
   {
-    size_t bits = instruction.getType()->getPrimitiveSizeInBits();
-    size_t resultSize = bits >> 3;
+    size_t bits, numElements;
+    const llvm::Type *type = instruction.getType();
+
+    if (type->isVectorTy())
+    {
+      bits = type->getVectorElementType()->getPrimitiveSizeInBits();
+      numElements = type->getVectorNumElements();
+    }
+    else
+    {
+      bits = type->getPrimitiveSizeInBits();
+      numElements = 1;
+    }
+
+    size_t elemSize = bits >> 3;
 
     // Special case for GEP
     if (instruction.getOpcode() == llvm::Instruction::GetElementPtr)
     {
-      resultSize = sizeof(size_t);
+      elemSize = sizeof(size_t);
     }
 
     // Special case for boolean results
     if (bits == 1)
     {
-      resultSize = sizeof(bool);
+      elemSize = sizeof(bool);
     }
 
-    return resultSize;
+    return pair<size_t,size_t>(elemSize,numElements);
   }
 
   size_t getTypeSize(const llvm::Type *type)

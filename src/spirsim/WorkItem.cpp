@@ -99,7 +99,7 @@ void WorkItem::dumpPrivateMemory() const
 
     // Output bytes
     const TypedValue result = itr->second;
-    for (int i = 0; i < result.size; i++)
+    for (int i = 0; i < result.size*result.num; i++)
     {
       cout << " " << hex << uppercase << setw(2) << setfill('0')
            << (int)result.data[i];
@@ -139,18 +139,19 @@ void WorkItem::enableDebugOutput(bool enable)
 void WorkItem::execute(const llvm::Instruction& instruction)
 {
   // Prepare private variable for instruction result
-  size_t resultSize = getInstructionResultSize(instruction);
+  pair<size_t,size_t> resultSize = getInstructionResultSize(instruction);
 
   // TODO: Bitcasting should happen somewhere...
-  // Allocate result memory if not in map already
-  TypedValue result = {resultSize, NULL};
+  // Allocate result m§emory if not in map already
+  TypedValue result = {resultSize.first, resultSize.second, NULL};
   if (m_privateMemory.find(&instruction) == m_privateMemory.end())
   {
-    result.data = new unsigned char[resultSize];
+    result.data = new unsigned char[resultSize.first*resultSize.second];
   }
   else
   {
     assert(result.size == m_privateMemory[&instruction].size);
+    assert(result.num == m_privateMemory[&instruction].num);
     result.data = m_privateMemory[&instruction].data;
   }
 
@@ -269,7 +270,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   }
 
   // Store result
-  if (resultSize > 0)
+  if (resultSize.first > 0)
   {
     m_privateMemory[&instruction] = result;
   }
@@ -280,12 +281,23 @@ const size_t* WorkItem::getGlobalID() const
   return m_globalID;
 }
 
-double WorkItem::getFloatValue(const llvm::Value *operand) const
+double WorkItem::getFloatValue(const llvm::Value *operand,
+                               unsigned int index) const
 {
   double val = 0;
   if (isConstantOperand(operand))
   {
-    llvm::APFloat apf = ((const llvm::ConstantFP*)operand)->getValueAPF();
+    llvm::APFloat apf(0.f);
+    if (operand->getType()->isVectorTy())
+    {
+      llvm::Constant *elem =
+        ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
+      apf = ((const llvm::ConstantFP*)elem)->getValueAPF();
+    }
+    else
+    {
+      apf = ((const llvm::ConstantFP*)operand)->getValueAPF();
+    }
     if (&(apf.getSemantics()) == &(llvm::APFloat::IEEEsingle))
     {
       val = apf.convertToFloat();
@@ -305,11 +317,11 @@ double WorkItem::getFloatValue(const llvm::Value *operand) const
     TypedValue op = m_privateMemory.at(operand);
     if (op.size == sizeof(float))
     {
-      val = *((float*)op.data);
+      val = ((float*)op.data)[index];
     }
     else if (op.size == sizeof(double))
     {
-      val = *((double*)op.data);
+      val = ((double*)op.data)[index];
     }
     else
     {
@@ -320,17 +332,27 @@ double WorkItem::getFloatValue(const llvm::Value *operand) const
   return val;
 }
 
-int64_t WorkItem::getSignedInt(const llvm::Value *operand) const
+int64_t WorkItem::getSignedInt(const llvm::Value *operand,
+                               unsigned int index) const
 {
   int64_t val = 0;
   if (isConstantOperand(operand))
   {
-    val = ((const llvm::ConstantInt*)operand)->getSExtValue();
+    if (operand->getType()->isVectorTy())
+    {
+      llvm::Constant *elem =
+        ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
+      val = ((const llvm::ConstantInt*)elem)->getSExtValue();
+    }
+    else
+    {
+      val = ((const llvm::ConstantInt*)operand)->getSExtValue();
+    }
   }
   else
   {
     TypedValue op = m_privateMemory.at(operand);
-    memcpy(&val, op.data, op.size);
+    memcpy(&val, op.data + index*op.size, op.size);
   }
   return val;
 }
@@ -340,17 +362,27 @@ WorkItem::State WorkItem::getState() const
   return m_state;
 }
 
-uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand) const
+uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
+                                  unsigned int index) const
 {
   uint64_t val = 0;
   if (isConstantOperand(operand))
   {
-    val = ((const llvm::ConstantInt*)operand)->getZExtValue();
+    if (operand->getType()->isVectorTy())
+    {
+      llvm::Constant *elem =
+        ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
+      val = ((const llvm::ConstantInt*)elem)->getZExtValue();
+    }
+    else
+    {
+      val = ((const llvm::ConstantInt*)operand)->getZExtValue();
+    }
   }
   else
   {
     TypedValue op = m_privateMemory.at(operand);
-    memcpy(&val, op.data, op.size);
+    memcpy(&val, op.data + index*op.size, op.size);
   }
   return val;
 }
@@ -407,20 +439,33 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   cout << endl;
 }
 
-void WorkItem::setFloatResult(TypedValue& result, double val) const
+void WorkItem::setFloatResult(TypedValue& result, double val,
+                              unsigned int index) const
 {
   if (result.size == sizeof(float))
   {
-    *((float*)result.data) = val;
+    ((float*)result.data)[index] = val;
   }
   else if (result.size == sizeof(double))
   {
-    *((double*)result.data) = val;
+    ((double*)result.data)[index] = val;
   }
   else
   {
-    cout << "Unhandled float size: " << result.size << endl;
+    cout << "Unhandled float size: " << dec << result.size << endl;
   }
+}
+
+void WorkItem::setIntResult(TypedValue& result, int64_t val,
+                            unsigned int index) const
+{
+  memcpy(result.data + index*result.size, &val, result.size);
+}
+
+void WorkItem::setIntResult(TypedValue& result, uint64_t val,
+                            unsigned int index) const
+{
+  memcpy(result.data + index*result.size, &val, result.size);
 }
 
 WorkItem::State WorkItem::step(bool debugOutput)
@@ -473,10 +518,12 @@ void WorkItem::updateVariable(const llvm::DbgValueInst *instruction)
 
 void WorkItem::add(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a + b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a + b, i);
+  }
 }
 
 void WorkItem::alloca(const llvm::Instruction& instruction)
@@ -494,6 +541,7 @@ void WorkItem::alloca(const llvm::Instruction& instruction)
   // Create pointer to alloc'd memory
   TypedValue result;
   result.size = sizeof(size_t);
+  result.num = 1;
   result.data = new unsigned char[result.size];
   *((size_t*)result.data) = address;
   m_privateMemory[&instruction] = result;
@@ -501,10 +549,12 @@ void WorkItem::alloca(const llvm::Instruction& instruction)
 
 void WorkItem::ashr(const llvm::Instruction& instruction, TypedValue& result)
 {
-  int64_t a = getSignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  int64_t r = a >> b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    int64_t a = getSignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a >> b, i);
+  }
 }
 
 void WorkItem::br(const llvm::Instruction& instruction)
@@ -526,26 +576,32 @@ void WorkItem::br(const llvm::Instruction& instruction)
 
 void WorkItem::bwand(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a & b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.size; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a & b, i);
+  }
 }
 
 void WorkItem::bwor(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a | b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.size; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a | b, i);
+  }
 }
 
 void WorkItem::bwxor(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a ^ b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.size; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a ^ b, i);
+  }
 }
 
 void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
@@ -624,81 +680,102 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
 {
-  double a = getFloatValue(instruction.getOperand(0));
-  double b = getFloatValue(instruction.getOperand(1));
-  setFloatResult(result, a + b);
+  for (int i = 0; i < result.num; i++)
+  {
+    double a = getFloatValue(instruction.getOperand(0), i);
+    double b = getFloatValue(instruction.getOperand(1), i);
+    setFloatResult(result, a + b, i);
+  }
 }
 
 void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
 {
   llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
-  double a = getFloatValue(instruction.getOperand(0));
-  double b = getFloatValue(instruction.getOperand(1));
-
-  // TODO: Consider nans in ordered comparisons?
-  // TODO: Implemented unordered comparisons
-  uint64_t r;
-  switch (pred)
+  for (int i = 0; i < result.num; i++)
   {
-  case llvm::CmpInst::FCMP_OEQ:
-    r = a == b;
-    break;
-  case llvm::CmpInst::FCMP_ONE:
-    r = a != b;
-    break;
-  case llvm::CmpInst::FCMP_OGT:
-    r = a > b;
-    break;
-  case llvm::CmpInst::FCMP_OGE:
-    r = a >= b;
-    break;
-  case llvm::CmpInst::FCMP_OLT:
-    r = a < b;
-    break;
-  case llvm::CmpInst::FCMP_OLE:
-    r = a <= b;
-    break;
-  default:
-    cout << "Unhandled FCmp predicate." << endl;
-    break;
-  }
+    double a = getFloatValue(instruction.getOperand(0), i);
+    double b = getFloatValue(instruction.getOperand(1), i);
 
-  memcpy(result.data, &r, result.size);
+    // TODO: Consider nans in ordered comparisons?
+    // TODO: Implement unordered comparisons
+    uint64_t r;
+    switch (pred)
+    {
+    case llvm::CmpInst::FCMP_OEQ:
+      r = a == b;
+      break;
+    case llvm::CmpInst::FCMP_ONE:
+      r = a != b;
+      break;
+    case llvm::CmpInst::FCMP_OGT:
+      r = a > b;
+      break;
+    case llvm::CmpInst::FCMP_OGE:
+      r = a >= b;
+      break;
+    case llvm::CmpInst::FCMP_OLT:
+      r = a < b;
+      break;
+    case llvm::CmpInst::FCMP_OLE:
+      r = a <= b;
+      break;
+    default:
+      cout << "Unhandled FCmp predicate." << endl;
+      break;
+    }
+
+    setIntResult(result, r, i);
+  }
 }
 
 void WorkItem::fdiv(const llvm::Instruction& instruction, TypedValue& result)
 {
-  double a = getFloatValue(instruction.getOperand(0));
-  double b = getFloatValue(instruction.getOperand(1));
-  setFloatResult(result, a / b);
+  for (int i = 0; i < result.num; i++)
+  {
+    double a = getFloatValue(instruction.getOperand(0), i);
+    double b = getFloatValue(instruction.getOperand(1), i);
+    setFloatResult(result, a / b, i);
+  }
 }
 
 void WorkItem::fmul(const llvm::Instruction& instruction, TypedValue& result)
 {
-  double a = getFloatValue(instruction.getOperand(0));
-  double b = getFloatValue(instruction.getOperand(1));
-  setFloatResult(result, a * b);
+  for (int i = 0; i < result.num; i++)
+  {
+    double a = getFloatValue(instruction.getOperand(0), i);
+    double b = getFloatValue(instruction.getOperand(1), i);
+    setFloatResult(result, a * b, i);
+  }
 }
 
 void WorkItem::fptosi(const llvm::Instruction& instruction, TypedValue& result)
 {
-  const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
-  int64_t r = (int64_t)getFloatValue(instruction.getOperand(0));
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
+    int64_t r = (int64_t)getFloatValue(instruction.getOperand(0), i);
+    memcpy(result.data, &r, result.size);
+  }
 }
 
 void WorkItem::frem(const llvm::Instruction& instruction, TypedValue& result)
 {
-  double a = getFloatValue(instruction.getOperand(0));
-  double b = getFloatValue(instruction.getOperand(1));
-  setFloatResult(result, fmod(a, b));
+  for (int i = 0; i < result.num; i++)
+  {
+    double a = getFloatValue(instruction.getOperand(0), i);
+    double b = getFloatValue(instruction.getOperand(1), i);
+    setFloatResult(result, fmod(a, b), i);
+  }
 }
 
 void WorkItem::fsub(const llvm::Instruction& instruction, TypedValue& result)
 {
-  double a = getFloatValue(instruction.getOperand(0));
-  double b = getFloatValue(instruction.getOperand(1));
-  setFloatResult(result, a - b);
+  for (int i = 0; i < result.num; i++)
+  {
+    double a = getFloatValue(instruction.getOperand(0), i);
+    double b = getFloatValue(instruction.getOperand(1), i);
+    setFloatResult(result, a - b, i);
+  }
 }
 
 void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
@@ -743,53 +820,56 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
 {
   llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
 
-  // Load operands
-  llvm::Value *opA = instruction.getOperand(0);
-  llvm::Value *opB = instruction.getOperand(1);
-  uint64_t ua = getUnsignedInt(opA);
-  uint64_t ub = getUnsignedInt(opB);
-  int64_t sa = getSignedInt(opA);
-  int64_t sb = getSignedInt(opB);
-
-  uint64_t r;
-  switch (pred)
+  for (int i = 0; i < result.num; i++)
   {
-  case llvm::CmpInst::ICMP_EQ:
-    r = ua == ub;
-    break;
-  case llvm::CmpInst::ICMP_NE:
-    r = ua != ub;
-    break;
-  case llvm::CmpInst::ICMP_UGT:
-    r = ua > ub;
-    break;
-  case llvm::CmpInst::ICMP_UGE:
-    r = ua >= ub;
-    break;
-  case llvm::CmpInst::ICMP_ULT:
-    r = ua < ub;
-    break;
-  case llvm::CmpInst::ICMP_ULE:
-    r = ua <= ub;
-    break;
-  case llvm::CmpInst::ICMP_SGT:
-    r = sa > sb;
-    break;
-  case llvm::CmpInst::ICMP_SGE:
-    r = sa >= sb;
-    break;
-  case llvm::CmpInst::ICMP_SLT:
-    r = sa < sb;
-    break;
-  case llvm::CmpInst::ICMP_SLE:
-    r = sa <= sb;
-    break;
-  default:
-    cout << "Unhandled ICmp predicate." << endl;
-    break;
-  }
+    // Load operands
+    llvm::Value *opA = instruction.getOperand(0);
+    llvm::Value *opB = instruction.getOperand(1);
+    uint64_t ua = getUnsignedInt(opA, i);
+    uint64_t ub = getUnsignedInt(opB, i);
+    int64_t sa = getSignedInt(opA, i);
+    int64_t sb = getSignedInt(opB, i);
 
-  memcpy(result.data, &r, result.size);
+    uint64_t r;
+    switch (pred)
+    {
+    case llvm::CmpInst::ICMP_EQ:
+      r = ua == ub;
+      break;
+    case llvm::CmpInst::ICMP_NE:
+      r = ua != ub;
+      break;
+    case llvm::CmpInst::ICMP_UGT:
+      r = ua > ub;
+      break;
+    case llvm::CmpInst::ICMP_UGE:
+      r = ua >= ub;
+      break;
+    case llvm::CmpInst::ICMP_ULT:
+      r = ua < ub;
+      break;
+    case llvm::CmpInst::ICMP_ULE:
+      r = ua <= ub;
+      break;
+    case llvm::CmpInst::ICMP_SGT:
+      r = sa > sb;
+      break;
+    case llvm::CmpInst::ICMP_SGE:
+      r = sa >= sb;
+      break;
+    case llvm::CmpInst::ICMP_SLT:
+      r = sa < sb;
+      break;
+    case llvm::CmpInst::ICMP_SLE:
+      r = sa <= sb;
+      break;
+    default:
+      cout << "Unhandled ICmp predicate." << endl;
+      break;
+    }
+
+    setIntResult(result, r, i);
+  }
 }
 
 void WorkItem::load(const llvm::Instruction& instruction,
@@ -824,28 +904,32 @@ void WorkItem::load(const llvm::Instruction& instruction,
   // Load data
   if (memory)
   {
-    if (!memory->load(address, result.size, result.data))
+    if (!memory->load(address, result.size*result.num, result.data))
     {
       outputMemoryError(instruction, "Invalid read",
-                        addressSpace, address, result.size);
+                        addressSpace, address, result.size*result.num);
     }
   }
 }
 
 void WorkItem::lshr(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a >> b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a >> b, i);
+  }
 }
 
 void WorkItem::mul(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a * b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a * b, i);
+  }
 }
 
 void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
@@ -876,14 +960,17 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::sdiv(const llvm::Instruction& instruction, TypedValue& result)
 {
-  int64_t a = getSignedInt(instruction.getOperand(0));
-  int64_t b = getSignedInt(instruction.getOperand(1));
-  int64_t r = a / b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    int64_t a = getSignedInt(instruction.getOperand(0), i);
+    int64_t b = getSignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a / b, i);
+  }
 }
 
 void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
 {
+  // TODO: Vectors
   const llvm::SelectInst *selectInst = (llvm::SelectInst*)&instruction;
   const bool cond = getUnsignedInt(selectInst->getCondition());
   const llvm::Value *op = cond ?
@@ -913,38 +1000,31 @@ void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::sext(const llvm::Instruction& instruction, TypedValue& result)
 {
-  int64_t val = getSignedInt(instruction.getOperand(0));
-  switch (result.size)
+  for (int i = 0; i < result.num; i++)
   {
-  case 1:
-    *((char*)result.data) = val;
-    break;
-  case 2:
-    *((short*)result.data) = val;
-    break;
-  case 4:
-    *((int*)result.data) = val;
-    break;
-  case 8:
-    *((long*)result.data) = val;
-    break;
+    int64_t val = getSignedInt(instruction.getOperand(0), i);
+    setIntResult(result, val, i);
   }
 }
 
 void WorkItem::shl(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a << b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a << b, i);
+  }
 }
 
 void WorkItem::srem(const llvm::Instruction& instruction, TypedValue& result)
 {
-  int64_t a = getSignedInt(instruction.getOperand(0));
-  int64_t b = getSignedInt(instruction.getOperand(1));
-  int64_t r = a % b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    int64_t a = getSignedInt(instruction.getOperand(0), i);
+    int64_t b = getSignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a % b, i);
+  }
 }
 
 void WorkItem::store(const llvm::Instruction& instruction)
@@ -958,7 +1038,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
   size_t address = *((size_t*)m_privateMemory[ptrOp].data);
 
   // TODO: Genericise operand handling
-  size_t size = valOp->getType()->getPrimitiveSizeInBits() >> 3;
+  size_t size = getTypeSize(valOp->getType());
   unsigned char *data = new unsigned char[size];
 
   switch (valOp->getValueID())
@@ -1033,64 +1113,48 @@ void WorkItem::store(const llvm::Instruction& instruction)
 
 void WorkItem::sub(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a - b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a - b, i);
+  }
 }
 
 void WorkItem::trunc(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t val = getUnsignedInt(instruction.getOperand(0));
-  switch (result.size)
+  for (int i = 0; i < result.num; i++)
   {
-  case 1:
-    *((unsigned char*)result.data) = val;
-    break;
-  case 2:
-    *((unsigned short*)result.data) = val;
-    break;
-  case 4:
-    *((unsigned int*)result.data) = val;
-    break;
-  case 8:
-    *((unsigned long*)result.data) = val;
-    break;
+    uint64_t val = getUnsignedInt(instruction.getOperand(0), i);
+    setIntResult(result, val, i);
   }
 }
 
 void WorkItem::udiv(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a / b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a / b, i);
+  }
 }
 
 void WorkItem::urem(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t a = getUnsignedInt(instruction.getOperand(0));
-  uint64_t b = getUnsignedInt(instruction.getOperand(1));
-  uint64_t r = a % b;
-  memcpy(result.data, &r, result.size);
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    setIntResult(result, a % b, i);
+  }
 }
 
 void WorkItem::zext(const llvm::Instruction& instruction, TypedValue& result)
 {
-  uint64_t val = getUnsignedInt(instruction.getOperand(0));
-  switch (result.size)
+  for (int i = 0; i < result.num; i++)
   {
-  case 1:
-    *((unsigned char*)result.data) = val;
-    break;
-  case 2:
-    *((unsigned short*)result.data) = val;
-    break;
-  case 4:
-    *((unsigned int*)result.data) = val;
-    break;
-  case 8:
-    *((unsigned long*)result.data) = val;
-    break;
+    uint64_t val = getUnsignedInt(instruction.getOperand(0), i);
+    setIntResult(result, val, i);
   }
 }

@@ -32,6 +32,7 @@ namespace spirsim
   typedef struct
   {
     size_t size;
+    size_t num;
     unsigned char *data;
   } TypedValue;
 
@@ -46,7 +47,8 @@ namespace spirsim
                               bool align=false);
 
   // Returns the size of an instruction's result
-  extern size_t getInstructionResultSize(const llvm::Instruction& instruction);
+  extern std::pair<size_t,size_t> getInstructionResultSize(
+    const llvm::Instruction& instruction);
 
   // Returns the size of a type
   extern size_t getTypeSize(const llvm::Type *type);

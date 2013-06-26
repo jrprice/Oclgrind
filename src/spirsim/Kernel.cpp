@@ -78,7 +78,7 @@ size_t Kernel::getArgumentSize(unsigned int index) const
     return sizeof(size_t);
   }
 
-  return type->getPrimitiveSizeInBits()>>3;
+  return getTypeSize(type);
 }
 
 unsigned int Kernel::getArgumentType(unsigned int index) const
@@ -151,7 +151,8 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
   {
     TypedValue v = {
       value.size,
-      new unsigned char[value.size]
+      value.num,
+      new unsigned char[value.size*value.num]
     };
     *((size_t*)v.data) = m_localMemory;
     m_localMemory += value.size;
@@ -160,6 +161,12 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
   }
   else
   {
+    const llvm::Type *type = getArgument(index)->getType();
+    if (type->isVectorTy())
+    {
+      value.num = type->getVectorNumElements();
+      value.size /= value.num;
+    }
     m_arguments[getArgument(index)] = clone(value);
   }
 }

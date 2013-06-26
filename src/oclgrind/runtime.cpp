@@ -1704,6 +1704,7 @@ clSetKernelArg(cl_kernel     kernel ,
   // Prepare argument value
   spirsim::TypedValue value;
   value.size = arg_size;
+  value.num = 1;
   switch (type)
   {
   case CL_KERNEL_ARG_ADDRESS_PRIVATE:

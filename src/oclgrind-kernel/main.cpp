@@ -120,6 +120,7 @@ bool init(istream& input)
 
       // Set argument value
       value.size = sizeof(size_t);
+      value.num = 1;
       value.data = new unsigned char[value.size];
       *((size_t*)value.data) = address;
 
@@ -127,12 +128,14 @@ bool init(istream& input)
     case 'l':
       // Allocate local memory argument
       value.size = size;
+      value.num = 1;
       value.data = NULL;
 
       break;
     case 's':
       // Create scalar argument
       value.size = size;
+      value.num = 1;
       value.data = new unsigned char[value.size];
       for (i = 0; i < size; i++)
       {
