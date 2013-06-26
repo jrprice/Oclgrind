@@ -243,6 +243,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::Shl:
     shl(instruction, result);
     break;
+  case llvm::Instruction::ShuffleVector:
+    shuffle(instruction, result);
+    break;
   case llvm::Instruction::SRem:
     srem(instruction, result);
     break;
@@ -375,7 +378,14 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
     {
       llvm::Constant *elem =
         ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
-      val = ((const llvm::ConstantInt*)elem)->getZExtValue();
+      if (elem->getValueID() == llvm::Value::UndefValueVal)
+      {
+        val = -1;
+      }
+      else
+      {
+        val = ((const llvm::ConstantInt*)elem)->getZExtValue();
+      }
     }
     else
     {
@@ -1040,6 +1050,50 @@ void WorkItem::shl(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
     uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
     setIntResult(result, a << b, i);
+  }
+}
+
+void WorkItem::shuffle(const llvm::Instruction& instruction,
+                       TypedValue& result)
+{
+  llvm::ShuffleVectorInst *shuffle = (llvm::ShuffleVectorInst*)&instruction;
+
+  llvm::Value *v1 = shuffle->getOperand(0);
+  llvm::Value *v2 = shuffle->getOperand(1);
+  llvm::Value *mask = shuffle->getMask();
+
+  unsigned num = v1->getType()->getVectorNumElements();
+  llvm::Type *type = v1->getType()->getVectorElementType();
+
+  for (int i = 0; i < result.num; i++)
+  {
+    llvm::Value *src = v1;
+    unsigned int index = getUnsignedInt(mask, i);
+    if (index == -1)
+    {
+      // Don't care / undef
+      setIntResult(result, (uint64_t)0, i);
+      continue;
+    }
+    else if (index >= num)
+    {
+      index -= num;
+      src = v2;
+    }
+
+    switch (type->getTypeID())
+    {
+    case llvm::Type::FloatTyID:
+    case llvm::Type::DoubleTyID:
+      setFloatResult(result, getFloatValue(src, index), i);
+      break;
+    case llvm::Type::IntegerTyID:
+      setIntResult(result, getUnsignedInt(src, index), i);
+      break;
+    default:
+      cerr << "Unhandled vector type " << type->getTypeID() << endl;
+      return;
+    }
   }
 }
 
