@@ -69,8 +69,8 @@ namespace spirsim
 
     size_t elemSize = bits >> 3;
 
-    // Special case for GEP
-    if (instruction.getOpcode() == llvm::Instruction::GetElementPtr)
+    // Special case for pointer types
+    if (type->isPointerTy())
     {
       elemSize = sizeof(size_t);
     }

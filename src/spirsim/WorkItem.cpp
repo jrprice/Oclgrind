@@ -176,6 +176,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::AShr:
     ashr(instruction, result);
     break;
+  case llvm::Instruction::BitCast:
+    bitcast(instruction, result);
+    break;
   case llvm::Instruction::Br:
     br(instruction);
     break;
@@ -570,6 +573,20 @@ void WorkItem::ashr(const llvm::Instruction& instruction, TypedValue& result)
     int64_t a = getSignedInt(instruction.getOperand(0), i);
     uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
     setIntResult(result, a >> b, i);
+  }
+}
+
+void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
+{
+  const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
+  llvm::Value *operand = cast->getOperand(0);
+  if (isConstantOperand(operand))
+  {
+    cerr << "Unhandled constant bitcast." << endl;
+  }
+  else
+  {
+    memcpy(result.data, m_privateMemory[operand].data, result.size*result.num);
   }
 }
 

@@ -50,6 +50,7 @@ namespace spirsim
     void add(const llvm::Instruction& instruction, TypedValue& result);
     void alloca(const llvm::Instruction& instruction);
     void ashr(const llvm::Instruction& instruction, TypedValue& result);
+    void bitcast(const llvm::Instruction& instruction, TypedValue& result);
     void br(const llvm::Instruction& instruction);
     void bwand(const llvm::Instruction& instruction, TypedValue& result);
     void bwor(const llvm::Instruction& instruction, TypedValue& result);
