@@ -3,6 +3,7 @@
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
 #include "llvm/Constants.h"
+#include "llvm/DerivedTypes.h"
 #include "llvm/Function.h"
 #include "llvm/Metadata.h"
 #include "llvm/Module.h"
@@ -48,6 +49,25 @@ Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
           }
         }
       }
+    }
+  }
+
+  // Set-up global variables
+  llvm::Module::const_global_iterator itr;
+  for (itr = module->global_begin(); itr != module->global_end(); itr++)
+  {
+    llvm::PointerType *type = itr->getType();
+    if (type->getPointerAddressSpace() == AddrSpaceLocal)
+    {
+      size_t size = getTypeSize(itr->getInitializer()->getType());
+      TypedValue v = {
+        sizeof(size_t),
+        1,
+        new unsigned char[sizeof(size_t)]
+      };
+      *((size_t*)v.data) = m_localMemory;
+      m_localMemory += size;
+      m_arguments[itr] = v;
     }
   }
 }
