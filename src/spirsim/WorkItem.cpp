@@ -458,6 +458,37 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   cout << endl;
 }
 
+size_t WorkItem::resolveConstGEPExpr(llvm::ConstantExpr *expr)
+{
+  int numIndices = expr->getNumOperands() - 1;
+  llvm::Value *base = expr->getOperand(0);
+  llvm::Value **vindices = new llvm::Value*[numIndices];
+  for (int i = 0; i < numIndices; i++)
+  {
+    vindices[i] = expr->getOperand(i+1);
+  }
+  llvm::ArrayRef<llvm::Value*> indices(vindices, numIndices);
+
+  llvm::GetElementPtrInst *gepInst =
+    llvm::GetElementPtrInst::Create(base, indices);
+
+  TypedValue result =
+    {
+      sizeof(size_t),
+      1,
+      new unsigned char[sizeof(size_t)]
+    };
+
+  gep(*gepInst, result);
+  size_t address = *((size_t*)result.data);
+
+  delete gepInst;
+  delete[] vindices;
+  delete[] result.data;
+
+  return address;
+}
+
 void WorkItem::setFloatResult(TypedValue& result, double val,
                               unsigned int index) const
 {
@@ -850,11 +881,17 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   for (opItr = gepInst->idx_begin(); opItr != gepInst->idx_end(); opItr++)
   {
     int64_t offset = getSignedInt(opItr->get());
-
     if (ptrType->isPointerTy())
     {
       // Get pointer element size
       llvm::Type *elemType = ptrType->getPointerElementType();
+      address += offset*getTypeSize(elemType);
+      ptrType = elemType;
+    }
+    else if (ptrType->isArrayTy())
+    {
+      // Get pointer element size
+      llvm::Type *elemType = ptrType->getArrayElementType();
       address += offset*getTypeSize(elemType);
       ptrType = elemType;
     }
@@ -866,6 +903,10 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
         address += getTypeSize(ptrType->getStructElementType(i));
       }
       ptrType = ptrType->getStructElementType(offset);
+    }
+    else
+    {
+      cerr << "Unhandled GEP base type." << endl;
     }
   }
 
@@ -936,7 +977,15 @@ void WorkItem::load(const llvm::Instruction& instruction,
   unsigned addressSpace = loadInst->getPointerAddressSpace();
 
   // Get address
-  size_t address = *((size_t*)m_privateMemory[ptrOp].data);
+  size_t address;
+  if (ptrOp->getValueID() == llvm::Value::ConstantExprVal)
+  {
+    address = resolveConstGEPExpr((llvm::ConstantExpr*)ptrOp);
+  }
+  else
+  {
+    address = *((size_t*)m_privateMemory[ptrOp].data);
+  }
 
   // Check address space
   Memory *memory = NULL;
