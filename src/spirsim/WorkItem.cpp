@@ -255,6 +255,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::Sub:
     sub(instruction, result);
     break;
+  case llvm::Instruction::Switch:
+    swtch(instruction);
+    break;
   case llvm::Instruction::Trunc:
     trunc(instruction, result);
     break;
@@ -1199,6 +1202,16 @@ void WorkItem::sub(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
     setIntResult(result, a - b, i);
   }
+}
+
+void WorkItem::swtch(const llvm::Instruction& instruction)
+{
+  llvm::SwitchInst *swtch = (llvm::SwitchInst*)&instruction;
+  llvm::Value *cond = swtch->getCondition();
+  uint64_t val = getUnsignedInt(cond);
+  llvm::ConstantInt *cval =
+    (llvm::ConstantInt*)llvm::ConstantInt::get(cond->getType(), val);
+  m_nextBlock = swtch->findCaseValue(cval).getCaseSuccessor();
 }
 
 void WorkItem::trunc(const llvm::Instruction& instruction, TypedValue& result)
