@@ -249,6 +249,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::ShuffleVector:
     shuffle(instruction, result);
     break;
+  case llvm::Instruction::SIToFP:
+    sitofp(instruction, result);
+    break;
   case llvm::Instruction::SRem:
     srem(instruction, result);
     break;
@@ -841,7 +844,7 @@ void WorkItem::fptosi(const llvm::Instruction& instruction, TypedValue& result)
   {
     const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
     int64_t r = (int64_t)getFloatValue(instruction.getOperand(0), i);
-    memcpy(result.data, &r, result.size);
+    setIntResult(result, r, i);
   }
 }
 
@@ -1163,6 +1166,16 @@ void WorkItem::shuffle(const llvm::Instruction& instruction,
       cerr << "Unhandled vector type " << type->getTypeID() << endl;
       return;
     }
+  }
+}
+
+void WorkItem::sitofp(const llvm::Instruction& instruction, TypedValue& result)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
+    double r = (double)getSignedInt(instruction.getOperand(0), i);
+    setFloatResult(result, r, i);
   }
 }
 

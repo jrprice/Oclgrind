@@ -20,7 +20,7 @@ struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
-#define MAX_MEM_SIZE (uint32_t)-1
+#define MAX_MEM_SIZE (((uint32_t)-1)>>4)
 #define MAX_WI_SIZE (unsigned short)-1
 
 #define DEVICE_NAME "SPIR Simulator"

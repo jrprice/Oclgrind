@@ -76,6 +76,7 @@ namespace spirsim
     void sext(const llvm::Instruction& instruction, TypedValue& result);
     void shl(const llvm::Instruction& instruction, TypedValue& result);
     void shuffle(const llvm::Instruction& instruction, TypedValue& result);
+    void sitofp(const llvm::Instruction& instruction, TypedValue& result);
     void srem(const llvm::Instruction& instruction, TypedValue& result);
     void store(const llvm::Instruction& instruction);
     void sub(const llvm::Instruction& instruction, TypedValue& result);
