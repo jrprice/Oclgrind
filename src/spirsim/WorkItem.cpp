@@ -901,8 +901,15 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
     }
     else if (ptrType->isArrayTy())
     {
-      // Get pointer element size
+      // Get array element size
       llvm::Type *elemType = ptrType->getArrayElementType();
+      address += offset*getTypeSize(elemType);
+      ptrType = elemType;
+    }
+    else if (ptrType->isVectorTy())
+    {
+      // Get vector element size
+      llvm::Type *elemType = ptrType->getVectorElementType();
       address += offset*getTypeSize(elemType);
       ptrType = elemType;
     }
