@@ -53,9 +53,12 @@ Memory* Device::getGlobalMemory() const
   return m_globalMemory;
 }
 
-void Device::run(const Kernel& kernel,
-                    const size_t ndrange[3], const size_t wgsize[3])
+void Device::run(Kernel& kernel,
+                 const size_t ndrange[3], const size_t wgsize[3])
 {
+  // Allocate and initialise constant memory
+  kernel.allocateConstants(m_globalMemory);
+
   // Create work-groups
   size_t numGroups[3] = {ndrange[0]/wgsize[0],
                          ndrange[1]/wgsize[1],
@@ -98,6 +101,9 @@ void Device::run(const Kernel& kernel,
       }
     }
   }
+
+  // Deallocate constant memory
+  kernel.deallocateConstants(m_globalMemory);
 
   // Output global memory dump if required
   if (m_outputMask & OUTPUT_GLOBAL_MEM)

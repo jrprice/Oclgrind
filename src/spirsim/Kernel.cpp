@@ -11,6 +11,7 @@
 
 #include "CL/cl.h"
 #include "Kernel.h"
+#include "Memory.h"
 
 using namespace spirsim;
 using namespace std;
@@ -69,11 +70,62 @@ Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
       m_localMemory += size;
       m_arguments[itr] = v;
     }
+    if (itr->isConstant())
+    {
+      m_constants.push_back(itr);
+    }
   }
 }
 
 Kernel::~Kernel()
 {
+}
+
+void Kernel::allocateConstants(Memory *memory)
+{
+  list<const llvm::GlobalVariable*>::const_iterator itr;
+  for (itr = m_constants.begin(); itr != m_constants.end(); itr++)
+  {
+    const llvm::Constant *initializer = (*itr)->getInitializer();
+    const llvm::Type *type = initializer->getType();
+
+    // Allocate buffer
+    size_t size = getTypeSize(type);
+    TypedValue v = {
+      sizeof(size_t),
+      1,
+      new unsigned char[sizeof(size_t)]
+    };
+    size_t address = memory->allocateBuffer(size);
+    *((size_t*)v.data) = address;
+    m_arguments[*itr] = v;
+
+    // Initialise buffer contents
+    if (type->isArrayTy())
+    {
+      int num = type->getArrayNumElements();
+      const llvm::Type *elemType = type->getArrayElementType();
+      size_t elemSize = getTypeSize(elemType);
+      for (int i = 0; i < num; i++)
+      {
+        storeConstant(memory, address + i*elemSize,
+                      initializer->getAggregateElement(i));
+      }
+    }
+    else if (type->isPrimitiveType())
+    {
+      storeConstant(memory, address, (const llvm::Constant*)initializer);
+    }
+    else
+    {
+      cerr << "Unhandled constant buffer type " << type->getTypeID() << endl;
+    }
+  }
+}
+
+void Kernel::deallocateConstants(Memory *memory) const
+{
+  // TODO: Add support for deallocation in Memory class
 }
 
 const llvm::Argument* Kernel::getArgument(unsigned int index) const
@@ -196,6 +248,31 @@ void Kernel::setGlobalSize(const size_t globalSize[3])
   m_globalSize[0] = globalSize[0];
   m_globalSize[1] = globalSize[1];
   m_globalSize[2] = globalSize[2];
+}
+
+void Kernel::storeConstant(Memory *memory, size_t address,
+                           const llvm::Constant *constant) const
+{
+  const llvm::Type *type = constant->getType();
+  size_t size = getTypeSize(type);
+  switch (type->getTypeID())
+  {
+  case llvm::Type::IntegerTyID:
+    memory->store(address, size,
+                  (const unsigned char*)
+                  ((llvm::ConstantInt*)constant)->getValue().getRawData());
+    break;
+  case llvm::Type::FloatTyID:
+  {
+    float f = ((llvm::ConstantFP*)constant)->getValueAPF().convertToFloat();
+    memory->store(address, size, (const unsigned char*)&f);
+    break;
+  }
+  default:
+    cerr << "Unhandled constant type "
+         << type->getTypeID() << endl;
+    break;
+  }
 }
 
 TypedValueMap::const_iterator Kernel::args_begin() const

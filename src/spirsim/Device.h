@@ -18,7 +18,7 @@ namespace spirsim
     virtual ~Device();
 
     Memory *getGlobalMemory() const;
-    void run(const Kernel& kernel,
+    void run(Kernel& kernel,
              const size_t ndrange[3], const size_t wgsize[3]);
     void setOutputMask(unsigned char mask);
 
