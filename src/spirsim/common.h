@@ -13,6 +13,7 @@
 
 namespace llvm
 {
+  class Constant;
   class Instruction;
   class Type;
   class Value;
@@ -55,6 +56,10 @@ namespace spirsim
 
   // Returns true if the operand is a constant value
   extern bool isConstantOperand(const llvm::Value *operand);
+
+  // Retrieve the raw data for a constant
+  extern void getConstantData(unsigned char *data,
+                              const llvm::Constant *constant);
 }
 
 #endif // __common_h_

@@ -33,8 +33,6 @@ namespace spirsim
     const size_t* getRequiredWorkGroupSize() const;
     void setArgument(unsigned int index, TypedValue value);
     void setGlobalSize(const size_t globalSize[3]);
-    void storeConstant(Memory *memory, size_t address,
-                       const llvm::Constant *constant) const;
 
   private:
     const llvm::Function *m_function;

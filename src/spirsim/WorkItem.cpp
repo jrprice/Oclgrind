@@ -1202,6 +1202,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
   const llvm::StoreInst *storeInst = (const llvm::StoreInst*)&instruction;
   const llvm::Value *ptrOp = storeInst->getPointerOperand();
   const llvm::Value *valOp = storeInst->getValueOperand();
+  const llvm::Type *type = valOp->getType();
   unsigned addressSpace = storeInst->getPointerAddressSpace();
 
   // Get address
@@ -1211,30 +1212,12 @@ void WorkItem::store(const llvm::Instruction& instruction)
   size_t size = getTypeSize(valOp->getType());
   unsigned char *data = new unsigned char[size];
 
-  switch (valOp->getValueID())
+  if (isConstantOperand(valOp))
   {
-  case llvm::Value::ConstantFPVal:
-    if (size == 4)
-    {
-      (*(float*)data) =
-        ((llvm::ConstantFP*)valOp)->getValueAPF().convertToFloat();
-    }
-    else if (size == 8)
-    {
-      (*(double*)data) =
-        ((llvm::ConstantFP*)valOp)->getValueAPF().convertToDouble();
-    }
-    else
-    {
-      cout << "Unhandled APFloat size." << endl;
-    }
-    break;
-  case llvm::Value::ConstantIntVal:
-    memcpy((uint64_t*)data,
-           ((llvm::ConstantInt*)valOp)->getValue().getRawData(),
-           size);
-    break;
-  default:
+    getConstantData(data, (const llvm::Constant*)valOp);
+  }
+  else
+  {
     if (m_privateMemory.find(valOp) != m_privateMemory.end())
     {
       // TODO: Cleaner solution for this
@@ -1242,9 +1225,8 @@ void WorkItem::store(const llvm::Instruction& instruction)
     }
     else
     {
-      cout << "Unhandled operand type." << endl;
+      cout << "Store operand not found." << endl;
     }
-    break;
   }
 
   Memory *memory = NULL;

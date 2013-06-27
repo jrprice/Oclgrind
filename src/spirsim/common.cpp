@@ -2,6 +2,7 @@
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
+#include "llvm/Constants.h"
 #include "llvm/Instruction.h"
 #include "llvm/Type.h"
 
@@ -118,5 +119,50 @@ namespace spirsim
     unsigned id = operand->getValueID();
     return (id >= llvm::Value::ConstantFirstVal &&
             id <= llvm::Value::ConstantLastVal);
+  }
+
+  void getConstantData(unsigned char *data, const llvm::Constant *constant)
+  {
+    const llvm::Type *type = constant->getType();
+    size_t size = getTypeSize(type);
+    switch (type->getTypeID())
+    {
+    case llvm::Type::IntegerTyID:
+      memcpy(data,
+             ((llvm::ConstantInt*)constant)->getValue().getRawData(),
+             size);
+      break;
+    case llvm::Type::FloatTyID:
+    {
+      *(float*)data =
+        ((llvm::ConstantFP*)constant)->getValueAPF().convertToFloat();
+      break;
+    }
+    case llvm::Type::VectorTyID:
+    {
+      int num = type->getVectorNumElements();
+      const llvm::Type *elemType = type->getVectorElementType();
+      size_t elemSize = getTypeSize(elemType);
+      for (int i = 0; i < num; i++)
+      {
+        getConstantData(data + i*elemSize, constant->getAggregateElement(i));
+      }
+      break;
+    }
+    case llvm::Type::ArrayTyID:
+    {
+      int num = type->getArrayNumElements();
+      const llvm::Type *elemType = type->getArrayElementType();
+      size_t elemSize = getTypeSize(elemType);
+      for (int i = 0; i < num; i++)
+      {
+        getConstantData(data + i*elemSize, constant->getAggregateElement(i));
+      }
+      break;
+    }
+    default:
+      cerr << "Unhandled constant type " << type->getTypeID() << endl;
+      break;
+    }
   }
 }
