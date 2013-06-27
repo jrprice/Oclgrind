@@ -20,7 +20,8 @@ struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
-#define MAX_MEM_SIZE (uint64_t)-1
+#define MAX_GLOBAL_MEM_SIZE 16 * 1048576 // 16 MB
+#define MAX_LOCAL_MEM_SIZE 1048576 // 1 MB
 #define MAX_WI_SIZE (unsigned short)-1
 
 #define DEVICE_NAME "SPIR Simulator"
@@ -226,7 +227,7 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
     result_size = sizeof(size_t);
-    result_data = new cl_ulong(MAX_MEM_SIZE);
+    result_data = new cl_ulong(MAX_GLOBAL_MEM_SIZE);
     break;
   case CL_DEVICE_IMAGE2D_MAX_WIDTH:
     result_size = sizeof(size_t);
@@ -287,11 +288,11 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_GLOBAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(MAX_MEM_SIZE);
+    result_data = new cl_ulong(MAX_GLOBAL_MEM_SIZE);
     break;
   case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(MAX_MEM_SIZE);
+    result_data = new cl_ulong(MAX_GLOBAL_MEM_SIZE);
     break;
   case CL_DEVICE_MAX_CONSTANT_ARGS:
     result_size = sizeof(cl_uint);
@@ -303,7 +304,7 @@ clGetDeviceInfo(cl_device_id    device,
     break;
   case CL_DEVICE_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong();
+    result_data = new cl_ulong(MAX_LOCAL_MEM_SIZE);
     break;
     return CL_INVALID_VALUE;
   case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
