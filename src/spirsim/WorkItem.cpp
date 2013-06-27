@@ -1,4 +1,5 @@
 #include "common.h"
+#include <cxxabi.h>
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
@@ -688,7 +689,22 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
 
   const llvm::Function *function = callInst->getCalledFunction();
-  const string name = function->getName().str();
+  const string fullname = function->getName().str();
+  string name, overload;
+
+  // Demangle if necessary
+  if (fullname.compare(0,2, "_Z") == 0)
+  {
+    int len = atoi(fullname.c_str()+2);
+    int start = fullname.find_first_not_of("0123456789", 2);
+    name = fullname.substr(start, len);
+    overload = fullname.substr(start + len);
+  }
+  else
+  {
+    name = fullname;
+    overload = "";
+  }
 
   // TODO: Implement more builtin functions
   // TODO: Cleaner implementation of this?
@@ -742,6 +758,48 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t b = getUnsignedInt(callInst->getArgOperand(1));
     uint64_t r = min(a,b);
     memcpy(result.data, &r, result.size);
+  }
+  else if (name == "vstore2")
+  {
+    // TODO: Non-integer overloads
+    const llvm::Value *value = callInst->getArgOperand(0);
+    size_t size = getTypeSize(value->getType());
+    unsigned char *data = new unsigned char[size];
+    if (isConstantOperand(value))
+    {
+      getConstantData(data, (const llvm::Constant*)value);
+    }
+    else
+    {
+      memcpy(data, m_privateMemory[value].data, size);
+    }
+    uint64_t offset = getUnsignedInt(callInst->getArgOperand(1));
+
+    const llvm::Value *ptrOp = callInst->getArgOperand(2);
+    size_t base = *(size_t*)(m_privateMemory[ptrOp].data);
+
+    unsigned addressSpace = atoi(overload.substr(overload.length()-2).c_str());
+
+    Memory *memory = NULL;
+    switch (addressSpace)
+    {
+    case AddrSpacePrivate:
+      memory = m_stack;
+      break;
+    case AddrSpaceGlobal:
+    case AddrSpaceConstant:
+      memory = &m_globalMemory;
+      break;
+    case AddrSpaceLocal:
+      memory = m_workGroup.getLocalMemory();
+      break;
+    default:
+      cout << "Unhandled address space '" << addressSpace << "'" << endl;
+      break;
+    }
+
+    memory->store(base + offset*size, size, data);
+    delete[] data;
   }
   else if (name == "llvm.dbg.value")
   {
