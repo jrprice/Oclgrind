@@ -727,6 +727,14 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     assert(dim < 3);
     *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
   }
+  else if (name == "hadd")
+  {
+    // TODO: Non-integer overloads
+    uint64_t a = getUnsignedInt(callInst->getArgOperand(0));
+    uint64_t b = getUnsignedInt(callInst->getArgOperand(1));
+    uint64_t r = (a + b) >> 1;
+    memcpy(result.data, &r, result.size);
+  }
   else if (name == "min")
   {
     // TODO: Non-integer overloads
