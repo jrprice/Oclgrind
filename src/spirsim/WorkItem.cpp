@@ -380,7 +380,24 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
       id >= llvm::Value::InstructionVal)
   {
     TypedValue op = m_privateMemory.at(operand);
-    memcpy(&val, op.data + index*op.size, op.size);
+    switch (op.size)
+    {
+    case 1:
+      val = ((char*)op.data)[index];
+      break;
+    case 2:
+      val = ((short*)op.data)[index];
+      break;
+    case 4:
+      val = ((int*)op.data)[index];
+      break;
+    case 8:
+      val = ((long*)op.data)[index];
+      break;
+    default:
+      cerr << "Unhandled signed int size " << op.size << endl;
+      break;
+    }
   }
   else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
   {
