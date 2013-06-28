@@ -207,9 +207,9 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
   if (type == CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
     TypedValue v = {
-      value.size,
-      value.num,
-      new unsigned char[value.size*value.num]
+      sizeof(size_t),
+      1,
+      new unsigned char[sizeof(size_t)]
     };
     *((size_t*)v.data) = m_localMemory;
     m_localMemory += value.size;
