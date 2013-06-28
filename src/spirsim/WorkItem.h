@@ -68,6 +68,7 @@ namespace spirsim
     void fsub(const llvm::Instruction& instruction, TypedValue& result);
     void gep(const llvm::Instruction& instruction, TypedValue& result);
     void icmp(const llvm::Instruction& instruction, TypedValue& result);
+    void insert(const llvm::Instruction& instruction, TypedValue& result);
     void load(const llvm::Instruction& instruction, TypedValue& result);
     void lshr(const llvm::Instruction& instruction, TypedValue& result);
     void mul(const llvm::Instruction& instruction, TypedValue& result);

@@ -131,6 +131,9 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   case llvm::Instruction::ICmp:
     icmp(instruction, result);
     break;
+  case llvm::Instruction::InsertElement:
+    insert(instruction, result);
+    break;
   case llvm::Instruction::Load:
     load(instruction, result);
     break;
@@ -310,19 +313,42 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
                                unsigned int index) const
 {
   double val = 0;
-  if (isConstantOperand(operand))
+  unsigned id = operand->getValueID();
+  if (id == llvm::Value::GlobalVariableVal ||
+      id == llvm::Value::ArgumentVal ||
+      id >= llvm::Value::InstructionVal)
   {
-    llvm::APFloat apf(0.f);
-    if (operand->getType()->isVectorTy())
+    TypedValue op = m_privateMemory.at(operand);
+    if (op.size == sizeof(float))
     {
-      llvm::Constant *elem =
-        ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
-      apf = ((const llvm::ConstantFP*)elem)->getValueAPF();
+      val = ((float*)op.data)[index];
+    }
+    else if (op.size == sizeof(double))
+    {
+      val = ((double*)op.data)[index];
     }
     else
     {
-      apf = ((const llvm::ConstantFP*)operand)->getValueAPF();
+      cerr << "Unhandled float size: " << op.size << endl;
+      return 0;
     }
+  }
+  else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
+  {
+    val = getUnsignedInt(
+      ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
+  }
+  else if (id == llvm::Value::UndefValueVal)
+  {
+    val = -1;
+  }
+  else if (id == llvm::Value::ConstantAggregateZeroVal)
+  {
+    val = 0;
+  }
+  else if (isConstantOperand(operand))
+  {
+    llvm::APFloat apf = ((const llvm::ConstantFP*)operand)->getValueAPF();
     if (&(apf.getSemantics()) == &(llvm::APFloat::IEEEsingle))
     {
       val = apf.convertToFloat();
@@ -339,20 +365,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
   }
   else
   {
-    TypedValue op = m_privateMemory.at(operand);
-    if (op.size == sizeof(float))
-    {
-      val = ((float*)op.data)[index];
-    }
-    else if (op.size == sizeof(double))
-    {
-      val = ((double*)op.data)[index];
-    }
-    else
-    {
-      cerr << "Unhandled float size: " << op.size << endl;
-      return 0;
-    }
+    cerr << "Unhandled float operand type " << id << endl;
   }
   return val;
 }
@@ -371,17 +384,24 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
   }
   else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
   {
-    llvm::Constant *elem =
-      ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
-    val = ((const llvm::ConstantInt*)elem)->getSExtValue();
+    val = getSignedInt(
+      ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
   }
   else if (isConstantOperand(operand))
   {
     val = ((const llvm::ConstantInt*)operand)->getSExtValue();
   }
+  else if (id == llvm::Value::UndefValueVal)
+  {
+    val = -1;
+  }
+  else if (id == llvm::Value::ConstantAggregateZeroVal)
+  {
+    val = 0;
+  }
   else
   {
-    cerr << "Unhandled operand type " << id << endl;
+    cerr << "Unhandled signed operand type " << id << endl;
   }
   return val;
 }
@@ -405,16 +425,16 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   }
   else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
   {
-    llvm::Constant *elem =
-      ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
-    if (elem->getValueID() == llvm::Value::UndefValueVal)
-    {
-      val = -1;
-    }
-    else
-    {
-      val = ((const llvm::ConstantInt*)elem)->getZExtValue();
-    }
+    val = getUnsignedInt(
+      ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
+  }
+  else if (id == llvm::Value::UndefValueVal)
+  {
+    val = -1;
+  }
+  else if (id == llvm::Value::ConstantAggregateZeroVal)
+  {
+    val = 0;
   }
   else if (isConstantOperand(operand))
   {
@@ -422,7 +442,7 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   }
   else
   {
-    cerr << "Unhandled operand type " << id << endl;
+    cerr << "Unhandled unsigned operand type " << id << endl;
   }
 
   return val;
@@ -1061,6 +1081,45 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
+void WorkItem::insert(const llvm::Instruction& instruction,
+                      TypedValue& result)
+{
+  llvm::InsertElementInst *insert = (llvm::InsertElementInst*)&instruction;
+  llvm::Value *vector = insert->getOperand(0);
+  unsigned int index = getUnsignedInt(insert->getOperand(2));
+  llvm::Type *type = vector->getType()->getVectorElementType();
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (type->getTypeID())
+    {
+    case llvm::Type::FloatTyID:
+    case llvm::Type::DoubleTyID:
+      if (i == index)
+      {
+        setFloatResult(result, getFloatValue(insert->getOperand(1)), index);
+      }
+      else
+      {
+        setFloatResult(result, getFloatValue(vector, i), i);
+      }
+      break;
+    case llvm::Type::IntegerTyID:
+      if (i == index)
+      {
+        setIntResult(result, getUnsignedInt(insert->getOperand(1)), index);
+      }
+      else
+      {
+        setIntResult(result, getUnsignedInt(vector, i), i);
+      }
+      break;
+    default:
+      cerr << "Unhandled vector type " << type->getTypeID() << endl;
+      return;
+    }
+  }
+}
+
 void WorkItem::load(const llvm::Instruction& instruction,
                     TypedValue& result)
 {
@@ -1236,7 +1295,6 @@ void WorkItem::shuffle(const llvm::Instruction& instruction,
 
   unsigned num = v1->getType()->getVectorNumElements();
   llvm::Type *type = v1->getType()->getVectorElementType();
-
   for (int i = 0; i < result.num; i++)
   {
     llvm::Value *src = v1;
