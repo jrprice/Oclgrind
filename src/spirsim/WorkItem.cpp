@@ -361,23 +361,27 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
                                unsigned int index) const
 {
   int64_t val = 0;
-  if (isConstantOperand(operand))
-  {
-    if (operand->getType()->isVectorTy())
-    {
-      llvm::Constant *elem =
-        ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
-      val = ((const llvm::ConstantInt*)elem)->getSExtValue();
-    }
-    else
-    {
-      val = ((const llvm::ConstantInt*)operand)->getSExtValue();
-    }
-  }
-  else
+  unsigned id = operand->getValueID();
+  if (id == llvm::Value::GlobalVariableVal ||
+      id == llvm::Value::ArgumentVal ||
+      id >= llvm::Value::InstructionVal)
   {
     TypedValue op = m_privateMemory.at(operand);
     memcpy(&val, op.data + index*op.size, op.size);
+  }
+  else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
+  {
+    llvm::Constant *elem =
+      ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
+    val = ((const llvm::ConstantInt*)elem)->getSExtValue();
+  }
+  else if (isConstantOperand(operand))
+  {
+    val = ((const llvm::ConstantInt*)operand)->getSExtValue();
+  }
+  else
+  {
+    cerr << "Unhandled operand type " << id << endl;
   }
   return val;
 }
@@ -391,31 +395,36 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
                                   unsigned int index) const
 {
   uint64_t val = 0;
-  if (isConstantOperand(operand))
-  {
-    if (operand->getType()->isVectorTy())
-    {
-      llvm::Constant *elem =
-        ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
-      if (elem->getValueID() == llvm::Value::UndefValueVal)
-      {
-        val = -1;
-      }
-      else
-      {
-        val = ((const llvm::ConstantInt*)elem)->getZExtValue();
-      }
-    }
-    else
-    {
-      val = ((const llvm::ConstantInt*)operand)->getZExtValue();
-    }
-  }
-  else
+  unsigned id = operand->getValueID();
+  if (id == llvm::Value::GlobalVariableVal ||
+      id == llvm::Value::ArgumentVal ||
+      id >= llvm::Value::InstructionVal)
   {
     TypedValue op = m_privateMemory.at(operand);
     memcpy(&val, op.data + index*op.size, op.size);
   }
+  else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
+  {
+    llvm::Constant *elem =
+      ((const llvm::ConstantVector*)operand)->getAggregateElement(index);
+    if (elem->getValueID() == llvm::Value::UndefValueVal)
+    {
+      val = -1;
+    }
+    else
+    {
+      val = ((const llvm::ConstantInt*)elem)->getZExtValue();
+    }
+  }
+  else if (isConstantOperand(operand))
+  {
+    val = ((const llvm::ConstantInt*)operand)->getZExtValue();
+  }
+  else
+  {
+    cerr << "Unhandled operand type " << id << endl;
+  }
+
   return val;
 }
 
@@ -471,7 +480,7 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   cerr << endl;
 }
 
-TypedValue WorkItem::resolveConstantExpression(const llvm::ConstantExpr *expr)
+TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
 {
   llvm::Instruction *instruction = getConstExprAsInstruction(expr);
   pair<size_t,size_t> resultSize = getInstructionResultSize(*instruction);
@@ -937,17 +946,16 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
 
   // Get base address
   size_t address;
-  const llvm::Value *baseOperand = gepInst->getPointerOperand();
-  if (baseOperand->getValueID() == llvm::Value::ConstantExprVal)
+  const llvm::Value *base = gepInst->getPointerOperand();
+  if (base->getValueID() == llvm::Value::ConstantExprVal)
   {
-    TypedValue result = resolveConstantExpression(
-      (const llvm::ConstantExpr*)baseOperand);
+    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)base);
     address = *(size_t*)result.data;
     delete[] result.data;
   }
   else
   {
-    address = *((size_t*)m_privateMemory[baseOperand].data);
+    address = *((size_t*)m_privateMemory[base].data);
   }
   llvm::Type *ptrType = gepInst->getPointerOperandType();
   assert(ptrType->isPointerTy());
@@ -1064,7 +1072,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
   size_t address;
   if (ptrOp->getValueID() == llvm::Value::ConstantExprVal)
   {
-    TypedValue result = resolveConstantExpression((llvm::ConstantExpr*)ptrOp);
+    TypedValue result = resolveConstExpr((llvm::ConstantExpr*)ptrOp);
     address = *(size_t*)result.data;
     delete[] result.data;
   }
@@ -1300,7 +1308,9 @@ void WorkItem::store(const llvm::Instruction& instruction)
   {
     if (valOp->getValueID() == llvm::Value::ConstantExprVal)
     {
-      cerr << "Unhandled constant expression in store instruction." << endl;
+      TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)valOp);
+      memcpy(data, result.data, result.size*result.num);
+      delete[] result.data;
     }
     else
     {
