@@ -462,6 +462,26 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   cout << endl;
 }
 
+unsigned char* WorkItem::resolveConstBitcastExpr(llvm::ConstantExpr *expr)
+{
+  llvm::Type *type = expr->getType();
+  llvm::Value *value = expr->getOperand(0);
+  llvm::BitCastInst *bitcastInst = new llvm::BitCastInst(value, type);
+
+  size_t size = getTypeSize(type);
+  TypedValue result =
+    {
+      size,
+      1,
+      new unsigned char[size]
+    };
+
+  bitcast(*bitcastInst, result);
+  delete bitcastInst;
+
+  return result.data;
+}
+
 size_t WorkItem::resolveConstGEPExpr(llvm::ConstantExpr *expr)
 {
   int numIndices = expr->getNumOperands() - 1;
@@ -615,13 +635,13 @@ void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
   llvm::Value *operand = cast->getOperand(0);
-  if (isConstantOperand(operand))
+  if (m_privateMemory.find(operand) != m_privateMemory.end())
   {
-    cerr << "Unhandled constant bitcast." << endl;
+    memcpy(result.data, m_privateMemory[operand].data, result.size*result.num);
   }
   else
   {
-    memcpy(result.data, m_privateMemory[operand].data, result.size*result.num);
+    cerr << "Unsupported bitcast operand." << endl;
   }
 }
 
@@ -940,8 +960,19 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
     (const llvm::GetElementPtrInst*)&instruction;
 
   // Get base address
+  size_t address;
   const llvm::Value *baseOperand = gepInst->getPointerOperand();
-  size_t address = *((size_t*)m_privateMemory[baseOperand].data);
+  if (baseOperand->getValueID() == llvm::Value::ConstantExprVal)
+  {
+    unsigned char *result =
+      resolveConstBitcastExpr((llvm::ConstantExpr*)baseOperand);
+    address = *(size_t*)result;
+    delete[] result;
+  }
+  else
+  {
+    address = *((size_t*)m_privateMemory[baseOperand].data);
+  }
   llvm::Type *ptrType = gepInst->getPointerOperandType();
   assert(ptrType->isPointerTy());
 
@@ -950,6 +981,7 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   for (opItr = gepInst->idx_begin(); opItr != gepInst->idx_end(); opItr++)
   {
     int64_t offset = getSignedInt(opItr->get());
+
     if (ptrType->isPointerTy())
     {
       // Get pointer element size
@@ -1116,22 +1148,21 @@ void WorkItem::mul(const llvm::Instruction& instruction, TypedValue& result)
 void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::PHINode *phiNode = (llvm::PHINode*)&instruction;
-  const llvm::Value *value = phiNode->getIncomingValueForBlock((const llvm::BasicBlock*)m_prevBlock);
-
-  uint64_t i;
-  double f;
+  const llvm::Value *value =
+    phiNode->getIncomingValueForBlock((const llvm::BasicBlock*)m_prevBlock);
 
   llvm::Type::TypeID type = value->getType()->getTypeID();
   switch (type)
   {
   case llvm::Type::IntegerTyID:
-    i = getUnsignedInt(value);
-    memcpy(result.data, &i, result.size);
+    setIntResult(result, getUnsignedInt(value));
     break;
   case llvm::Type::FloatTyID:
   case llvm::Type::DoubleTyID:
-    f = getFloatValue(value);
-    setFloatResult(result, f);
+    setFloatResult(result, getFloatValue(value));
+    break;
+  case llvm::Type::PointerTyID:
+    memcpy(result.data, m_privateMemory[value].data, result.size);
     break;
   default:
     cout << "Unhandled type in phi instruction: " << type << endl;

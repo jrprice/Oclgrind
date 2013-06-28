@@ -108,6 +108,10 @@ namespace spirsim
       size_t sz = getTypeSize(type->getVectorElementType());
       return num*sz;
     }
+    else if (type->isPointerTy())
+    {
+      return sizeof(size_t);
+    }
     else
     {
       return ((llvm::Type*)type)->getScalarSizeInBits()>>3;

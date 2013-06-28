@@ -38,6 +38,7 @@ namespace spirsim
                            const std::string& msg,
                            unsigned addressSpace,
                            size_t address, size_t size) const;
+    unsigned char* resolveConstBitcastExpr(llvm::ConstantExpr *expr);
     size_t resolveConstGEPExpr(llvm::ConstantExpr *expr);
     void setFloatResult(TypedValue& result, double val,
                         unsigned int index = 0) const;
