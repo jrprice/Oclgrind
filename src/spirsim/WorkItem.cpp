@@ -281,7 +281,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     zext(instruction, result);
     break;
   default:
-    cout << "Unhandled instruction: " << instruction.getOpcodeName() << endl;
+    cerr << "Unhandled instruction: " << instruction.getOpcodeName() << endl;
     break;
   }
 
@@ -324,7 +324,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     }
     else
     {
-      cout << "Unhandled float semantics." << endl;
+      cerr << "Unhandled float semantics." << endl;
       return 0;
     }
   }
@@ -341,7 +341,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     }
     else
     {
-      cout << "Unhandled float size: " << op.size << endl;
+      cerr << "Unhandled float size: " << op.size << endl;
       return 0;
     }
   }
@@ -435,7 +435,7 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
     break;
   }
 
-  cout << endl << msg
+  cerr << endl << msg
        << " of size " << size
        << " at " << memType
        << " memory address " << hex << address
@@ -447,19 +447,19 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   dumpInstruction(instruction);
 
   // Output debug information
-  cout << "\t";
+  cerr << "\t";
   llvm::MDNode *md = instruction.getMetadata("dbg");
   if (!md)
   {
-    cout << "Debugging information not available." << endl;
+    cerr << "Debugging information not available." << endl;
   }
   else
   {
     llvm::DILocation loc(md);
-    cout << "At line " << dec << loc.getLineNumber()
+    cerr << "At line " << dec << loc.getLineNumber()
          << " of " << loc.getFilename().str() << endl;
   }
-  cout << endl;
+  cerr << endl;
 }
 
 unsigned char* WorkItem::resolveConstBitcastExpr(llvm::ConstantExpr *expr)
@@ -526,7 +526,7 @@ void WorkItem::setFloatResult(TypedValue& result, double val,
   }
   else
   {
-    cout << "Unhandled float size: " << dec << result.size << endl;
+    cerr << "Unhandled float size: " << dec << result.size << endl;
   }
 }
 
@@ -703,7 +703,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     const llvm::Value *func = callInst->getCalledValue();
     const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
     const llvm::Function *function = (const llvm::Function*)funcPtr;
-    cout << "Unhandled indirect function call: "
+    cerr << "Unhandled indirect function call: "
          << function->getName().str() << endl;
     return;
   }
@@ -814,7 +814,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       memory = m_workGroup.getLocalMemory();
       break;
     default:
-      cout << "Unhandled address space '" << addressSpace << "'" << endl;
+      cerr << "Unhandled address space '" << addressSpace << "'" << endl;
       break;
     }
 
@@ -827,7 +827,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
   else
   {
-    cout << "Unhandled direct function call: " << name << endl;
+    cerr << "Unhandled direct function call: " << name << endl;
   }
 }
 
@@ -896,7 +896,7 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
       r = a <= b;
       break;
     default:
-      cout << "Unhandled FCmp predicate." << endl;
+      cerr << "Unhandled FCmp predicate." << endl;
       break;
     }
 
@@ -1069,7 +1069,7 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
       r = sa <= sb;
       break;
     default:
-      cout << "Unhandled ICmp predicate." << endl;
+      cerr << "Unhandled ICmp predicate." << endl;
       break;
     }
 
@@ -1110,7 +1110,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
     memory = m_workGroup.getLocalMemory();
     break;
   default:
-    cout << "Unhandled address space '" << addressSpace << "'" << endl;
+    cerr << "Unhandled address space '" << addressSpace << "'" << endl;
     break;
   }
 
@@ -1165,7 +1165,7 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
     memcpy(result.data, m_privateMemory[value].data, result.size);
     break;
   default:
-    cout << "Unhandled type in phi instruction: " << type << endl;
+    cerr << "Unhandled type in phi instruction: " << type << endl;
     break;
   }
 }
@@ -1205,7 +1205,7 @@ void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
     setFloatResult(result, f);
     break;
   default:
-    cout << "Unhandled type in select instruction: " << type << endl;
+    cerr << "Unhandled type in select instruction: " << type << endl;
     break;
   }
 }
@@ -1321,7 +1321,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
     }
     else
     {
-      cout << "Store operand not found." << endl;
+      cerr << "Store operand not found." << endl;
     }
   }
 
@@ -1342,7 +1342,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
     assert(false && "Store to constant address space");
     return;
   default:
-    cout << "Unhandled address space '" << addressSpace << "'" << endl;
+    cerr << "Unhandled address space '" << addressSpace << "'" << endl;
     break;
   }
 
