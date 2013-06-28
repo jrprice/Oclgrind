@@ -231,6 +231,9 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   case llvm::Instruction::PHI:
     phi(instruction, result);
     break;
+  case llvm::Instruction::PtrToInt:
+    ptrtoint(instruction, result);
+    break;
   case llvm::Instruction::Ret:
     // TODO: ret from functions that aren't the kernel
     m_nextBlock = NULL;
@@ -1170,6 +1173,16 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
+void WorkItem::ptrtoint(const llvm::Instruction& instruction, TypedValue& result)
+{
+  const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t r = getUnsignedInt(instruction.getOperand(0), i);
+    setIntResult(result, r, i);
+  }
+}
+
 void WorkItem::sdiv(const llvm::Instruction& instruction, TypedValue& result)
 {
   for (int i = 0; i < result.num; i++)
@@ -1310,7 +1323,14 @@ void WorkItem::store(const llvm::Instruction& instruction)
 
   if (isConstantOperand(valOp))
   {
-    getConstantData(data, (const llvm::Constant*)valOp);
+    if (valOp->getValueID() == llvm::Value::ConstantExprVal)
+    {
+      cerr << "Unhandled constant expression in store instruction." << endl;
+    }
+    else
+    {
+      getConstantData(data, (const llvm::Constant*)valOp);
+    }
   }
   else
   {
@@ -1318,6 +1338,11 @@ void WorkItem::store(const llvm::Instruction& instruction)
     {
       // TODO: Cleaner solution for this
       memcpy(data, m_privateMemory[valOp].data, size);
+    }
+    else if (valOp->getValueID() >= llvm::Value::InstructionVal)
+    {
+      execute(*(llvm::Instruction*)valOp);
+      memcpy(data, m_privateMemory[valOp].data, m_privateMemory[valOp].size);
     }
     else
     {

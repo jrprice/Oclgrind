@@ -72,6 +72,7 @@ namespace spirsim
     void lshr(const llvm::Instruction& instruction, TypedValue& result);
     void mul(const llvm::Instruction& instruction, TypedValue& result);
     void phi(const llvm::Instruction& instruction, TypedValue& result);
+    void ptrtoint(const llvm::Instruction& instruction, TypedValue& result);
     void sdiv(const llvm::Instruction& instruction, TypedValue& result);
     void select(const llvm::Instruction& instruction, TypedValue& result);
     void sext(const llvm::Instruction& instruction, TypedValue& result);
