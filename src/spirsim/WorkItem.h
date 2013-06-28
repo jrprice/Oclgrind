@@ -23,6 +23,7 @@ namespace spirsim
     virtual ~WorkItem();
 
     void clearBarrier();
+    void dispatch(const llvm::Instruction& instruction, TypedValue& result);
     void dumpPrivateMemory() const;
     void enableDebugOutput(bool enable);
     void execute(const llvm::Instruction& instruction);
@@ -38,8 +39,7 @@ namespace spirsim
                            const std::string& msg,
                            unsigned addressSpace,
                            size_t address, size_t size) const;
-    unsigned char* resolveConstBitcastExpr(llvm::ConstantExpr *expr);
-    size_t resolveConstGEPExpr(llvm::ConstantExpr *expr);
+    TypedValue resolveConstantExpression(const llvm::ConstantExpr *expr);
     void setFloatResult(TypedValue& result, double val,
                         unsigned int index = 0) const;
     void setIntResult(TypedValue& result, int64_t val,

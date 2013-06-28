@@ -14,6 +14,7 @@
 namespace llvm
 {
   class Constant;
+  class ConstantExpr;
   class Instruction;
   class Type;
   class Value;
@@ -46,6 +47,10 @@ namespace spirsim
   // Output an instruction in human-readable format
   extern void dumpInstruction(const llvm::Instruction& instruction,
                               bool align=false);
+
+  // Creates an instruction from a constant expression
+  extern llvm::Instruction* getConstExprAsInstruction(
+    const llvm::ConstantExpr *expr);
 
   // Returns the size of an instruction's result
   extern std::pair<size_t,size_t> getInstructionResultSize(

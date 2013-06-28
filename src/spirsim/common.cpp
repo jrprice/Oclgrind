@@ -4,6 +4,8 @@
 #define __STDC_CONSTANT_MACROS
 #include "llvm/Constants.h"
 #include "llvm/Instruction.h"
+#include "llvm/Instructions.h"
+#include "llvm/Operator.h"
 #include "llvm/Type.h"
 
 using namespace spirsim;
@@ -83,6 +85,84 @@ namespace spirsim
     }
 
     return pair<size_t,size_t>(elemSize,numElements);
+  }
+
+  llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr *expr)
+  {
+    // Get operands
+    int numOperands = expr->getNumOperands();
+    llvm::Value **valueOperands = new llvm::Value*[numOperands];
+    for (int i = 0; i < numOperands; i++)
+    {
+      valueOperands[i] = expr->getOperand(i);
+    }
+    llvm::ArrayRef<llvm::Value*> operands(valueOperands, numOperands);
+
+    // Create instruction
+    unsigned opcode = expr->getOpcode();
+    switch (opcode)
+    {
+    case llvm::Instruction::Trunc:
+    case llvm::Instruction::ZExt:
+    case llvm::Instruction::SExt:
+    case llvm::Instruction::FPTrunc:
+    case llvm::Instruction::FPExt:
+    case llvm::Instruction::UIToFP:
+    case llvm::Instruction::SIToFP:
+    case llvm::Instruction::FPToUI:
+    case llvm::Instruction::FPToSI:
+    case llvm::Instruction::PtrToInt:
+    case llvm::Instruction::IntToPtr:
+    case llvm::Instruction::BitCast:
+      return llvm::CastInst::Create((llvm::Instruction::CastOps)opcode,
+                                    operands[0], expr->getType());
+    case llvm::Instruction::Select:
+      return llvm::SelectInst::Create(operands[0], operands[1], operands[2]);
+    case llvm::Instruction::InsertElement:
+      return llvm::InsertElementInst::Create(operands[0], operands[1],
+                                             operands[2]);
+    case llvm::Instruction::ExtractElement:
+      return llvm::ExtractElementInst::Create(operands[0], operands[1]);
+    case llvm::Instruction::InsertValue:
+      return llvm::InsertValueInst::Create(operands[0], operands[1],
+                                           expr->getIndices());
+    case llvm::Instruction::ExtractValue:
+      return llvm::ExtractValueInst::Create(operands[0], expr->getIndices());
+    case llvm::Instruction::ShuffleVector:
+      return new llvm::ShuffleVectorInst(operands[0], operands[1],
+                                         operands[2]);
+    case llvm::Instruction::GetElementPtr:
+      if (((const llvm::GEPOperator*)expr)->isInBounds())
+      {
+        return llvm::GetElementPtrInst::CreateInBounds(operands[0],
+                                                       operands.slice(1));
+      }
+      else
+      {
+        cout << "Hello, world!" << endl;
+        return llvm::GetElementPtrInst::Create(operands[0], operands.slice(1));
+      }
+    case llvm::Instruction::ICmp:
+    case llvm::Instruction::FCmp:
+      return llvm::CmpInst::Create((llvm::Instruction::OtherOps)opcode,
+                                   expr->getPredicate(),
+                                   operands[0], operands[1]);
+    default:
+      assert(expr->getNumOperands() == 2 && "Must be binary operator?");
+      assert(false && "Unhandled binary operator in constant expression.");
+      //llvm::BinaryOperator *BO =
+      //  llvm::BinaryOperator::Create((llvm::Instruction::Binaryoperands)opcode,
+      //                               operands[0], operands[1]);
+      //if (isa<OverflowingBinaryOperator>(BO)) {
+      //  BO->setHasNoUnsignedWrap(SubclassOptionalData &
+      //                           OverflowingBinaryOperator::NoUnsignedWrap);
+      //  BO->setHasNoSignedWrap(SubclassOptionalData &
+      //                         OverflowingBinaryOperator::NoSignedWrap);
+      //}
+      //if (isa<PossiblyExactOperator>(BO))
+      //  BO->setIsExact(SubclassOptionalData & PossiblyExactOperator::IsExact);
+      //return BO;
+    }
   }
 
   size_t getTypeSize(const llvm::Type *type)

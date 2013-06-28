@@ -75,94 +75,9 @@ void WorkItem::clearBarrier()
   }
 }
 
-void WorkItem::dumpPrivateMemory() const
+void WorkItem::dispatch(const llvm::Instruction& instruction,
+                        TypedValue& result)
 {
-  cout << endl << "Work-item ("
-       << m_globalID[0] << ","
-       << m_globalID[1] << ","
-       << m_globalID[2]
-       << ") Private Memory:" << endl;
-
-  map<string,const llvm::Value*>::const_iterator varItr;
-  for (varItr = m_variables.begin(); varItr != m_variables.end(); varItr++)
-  {
-    // Check variable has an assigned value
-    const llvm::Value *value = varItr->second;
-    TypedValueMap::const_iterator itr = m_privateMemory.find(value);
-    if (itr == m_privateMemory.end())
-    {
-      continue;
-    }
-
-    // Output synbolic name
-    cout << setw(16) << setfill(' ') << left;
-    cout << varItr->first << right << ":";
-
-    // Output bytes
-    const TypedValue result = itr->second;
-    for (int i = 0; i < result.size*result.num; i++)
-    {
-      cout << " " << hex << uppercase << setw(2) << setfill('0')
-           << (int)result.data[i];
-    }
-
-    // Interpret value
-    const llvm::Type::TypeID type = value->getType()->getTypeID();
-    switch (type)
-    {
-    case llvm::Type::IntegerTyID:
-      cout << " (" << getUnsignedInt(value) << ")";
-      break;
-    case llvm::Type::FloatTyID:
-    case llvm::Type::DoubleTyID:
-      cout << " (" << getFloatValue(value) << ")";
-      break;
-    default:
-      break;
-    }
-
-    cout << setw(0) << endl;
-  }
-
-  // Dump stack contents
-  if (m_stack->getSize() > 0)
-  {
-    cout << endl << "Stack:";
-    m_stack->dump();
-  }
-}
-
-void WorkItem::enableDebugOutput(bool enable)
-{
-  m_debugOutput = enable;
-}
-
-void WorkItem::execute(const llvm::Instruction& instruction)
-{
-  // Prepare private variable for instruction result
-  pair<size_t,size_t> resultSize = getInstructionResultSize(instruction);
-
-  // TODO: Bitcasting should happen somewhere...
-  // Allocate result m§emory if not in map already
-  TypedValue result = {resultSize.first, resultSize.second, NULL};
-  if (m_privateMemory.find(&instruction) == m_privateMemory.end())
-  {
-    result.data = new unsigned char[resultSize.first*resultSize.second];
-  }
-  else
-  {
-    assert(result.size == m_privateMemory[&instruction].size);
-    assert(result.num == m_privateMemory[&instruction].num);
-    result.data = m_privateMemory[&instruction].data;
-  }
-
-  // Dump instruction sequence
-  if (m_debugOutput)
-  {
-    dumpInstruction(instruction, true);
-  }
-
-  // Execute instruction
   switch (instruction.getOpcode())
   {
   case llvm::Instruction::Add:
@@ -287,6 +202,97 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     cerr << "Unhandled instruction: " << instruction.getOpcodeName() << endl;
     break;
   }
+}
+
+void WorkItem::dumpPrivateMemory() const
+{
+  cout << endl << "Work-item ("
+       << m_globalID[0] << ","
+       << m_globalID[1] << ","
+       << m_globalID[2]
+       << ") Private Memory:" << endl;
+
+  map<string,const llvm::Value*>::const_iterator varItr;
+  for (varItr = m_variables.begin(); varItr != m_variables.end(); varItr++)
+  {
+    // Check variable has an assigned value
+    const llvm::Value *value = varItr->second;
+    TypedValueMap::const_iterator itr = m_privateMemory.find(value);
+    if (itr == m_privateMemory.end())
+    {
+      continue;
+    }
+
+    // Output synbolic name
+    cout << setw(16) << setfill(' ') << left;
+    cout << varItr->first << right << ":";
+
+    // Output bytes
+    const TypedValue result = itr->second;
+    for (int i = 0; i < result.size*result.num; i++)
+    {
+      cout << " " << hex << uppercase << setw(2) << setfill('0')
+           << (int)result.data[i];
+    }
+
+    // Interpret value
+    const llvm::Type::TypeID type = value->getType()->getTypeID();
+    switch (type)
+    {
+    case llvm::Type::IntegerTyID:
+      cout << " (" << getUnsignedInt(value) << ")";
+      break;
+    case llvm::Type::FloatTyID:
+    case llvm::Type::DoubleTyID:
+      cout << " (" << getFloatValue(value) << ")";
+      break;
+    default:
+      break;
+    }
+
+    cout << setw(0) << endl;
+  }
+
+  // Dump stack contents
+  if (m_stack->getSize() > 0)
+  {
+    cout << endl << "Stack:";
+    m_stack->dump();
+  }
+}
+
+void WorkItem::enableDebugOutput(bool enable)
+{
+  m_debugOutput = enable;
+}
+
+void WorkItem::execute(const llvm::Instruction& instruction)
+{
+  // Prepare private variable for instruction result
+  pair<size_t,size_t> resultSize = getInstructionResultSize(instruction);
+
+  // TODO: Bitcasting should happen somewhere...
+  // Allocate result memory if not in map already
+  TypedValue result = {resultSize.first, resultSize.second, NULL};
+  if (m_privateMemory.find(&instruction) == m_privateMemory.end())
+  {
+    result.data = new unsigned char[resultSize.first*resultSize.second];
+  }
+  else
+  {
+    assert(result.size == m_privateMemory[&instruction].size);
+    assert(result.num == m_privateMemory[&instruction].num);
+    result.data = m_privateMemory[&instruction].data;
+  }
+
+  // Dump instruction sequence
+  if (m_debugOutput)
+  {
+    dumpInstruction(instruction, true);
+  }
+
+  // Execute instruction
+  dispatch(instruction, result);
 
   // Store result
   if (resultSize.first > 0)
@@ -465,55 +471,22 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   cerr << endl;
 }
 
-unsigned char* WorkItem::resolveConstBitcastExpr(llvm::ConstantExpr *expr)
+TypedValue WorkItem::resolveConstantExpression(const llvm::ConstantExpr *expr)
 {
-  llvm::Type *type = expr->getType();
-  llvm::Value *value = expr->getOperand(0);
-  llvm::BitCastInst *bitcastInst = new llvm::BitCastInst(value, type);
-
-  size_t size = getTypeSize(type);
+  llvm::Instruction *instruction = getConstExprAsInstruction(expr);
+  pair<size_t,size_t> resultSize = getInstructionResultSize(*instruction);
   TypedValue result =
     {
-      size,
-      1,
-      new unsigned char[size]
+      resultSize.first,
+      resultSize.second,
+      new unsigned char[resultSize.first*resultSize.second]
     };
 
-  bitcast(*bitcastInst, result);
-  delete bitcastInst;
+  dispatch(*instruction, result);
 
-  return result.data;
-}
+  delete instruction;
 
-size_t WorkItem::resolveConstGEPExpr(llvm::ConstantExpr *expr)
-{
-  int numIndices = expr->getNumOperands() - 1;
-  llvm::Value *base = expr->getOperand(0);
-  llvm::Value **vindices = new llvm::Value*[numIndices];
-  for (int i = 0; i < numIndices; i++)
-  {
-    vindices[i] = expr->getOperand(i+1);
-  }
-  llvm::ArrayRef<llvm::Value*> indices(vindices, numIndices);
-
-  llvm::GetElementPtrInst *gepInst =
-    llvm::GetElementPtrInst::Create(base, indices);
-
-  TypedValue result =
-    {
-      sizeof(size_t),
-      1,
-      new unsigned char[sizeof(size_t)]
-    };
-
-  gep(*gepInst, result);
-  size_t address = *((size_t*)result.data);
-
-  delete gepInst;
-  delete[] vindices;
-  delete[] result.data;
-
-  return address;
+  return result;
 }
 
 void WorkItem::setFloatResult(TypedValue& result, double val,
@@ -967,10 +940,10 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   const llvm::Value *baseOperand = gepInst->getPointerOperand();
   if (baseOperand->getValueID() == llvm::Value::ConstantExprVal)
   {
-    unsigned char *result =
-      resolveConstBitcastExpr((llvm::ConstantExpr*)baseOperand);
-    address = *(size_t*)result;
-    delete[] result;
+    TypedValue result = resolveConstantExpression(
+      (const llvm::ConstantExpr*)baseOperand);
+    address = *(size_t*)result.data;
+    delete[] result.data;
   }
   else
   {
@@ -1091,7 +1064,9 @@ void WorkItem::load(const llvm::Instruction& instruction,
   size_t address;
   if (ptrOp->getValueID() == llvm::Value::ConstantExprVal)
   {
-    address = resolveConstGEPExpr((llvm::ConstantExpr*)ptrOp);
+    TypedValue result = resolveConstantExpression((llvm::ConstantExpr*)ptrOp);
+    address = *(size_t*)result.data;
+    delete[] result.data;
   }
   else
   {
