@@ -11,17 +11,20 @@ namespace spirsim
   public:
     WorkGroup(const Kernel& kernel, Memory &globalMem,
               size_t wgid_x, size_t wgid_y, size_t wgid_z,
-              const size_t wgsize[3]);
+              const size_t wgsize[3],
+              const size_t globalSize[3]);
     virtual ~WorkGroup();
 
     void dumpLocalMemory() const;
     void dumpPrivateMemory() const;
+    const size_t* getGlobalSize() const;
     const size_t* getGroupID() const;
     const size_t* getGroupSize() const;
     Memory* getLocalMemory() const;
     void run(const Kernel& kernel, bool outputInstructions=false);
 
   private:
+    size_t m_globalSize[3];
     size_t m_groupID[3];
     size_t m_groupSize[3];
     size_t m_totalWorkItems;

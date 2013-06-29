@@ -21,10 +21,6 @@ Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
   m_function = function;
   m_localMemory = 0;
 
-  m_globalSize[0] = 0;
-  m_globalSize[1] = 0;
-  m_globalSize[2] = 0;
-
   // Get name
   m_name = function->getName().str();
 
@@ -169,11 +165,6 @@ const llvm::Function* Kernel::getFunction() const
   return m_function;
 }
 
-const size_t* Kernel::getGlobalSize() const
-{
-  return m_globalSize;
-}
-
 size_t Kernel::getLocalMemorySize() const
 {
   return m_localMemory;
@@ -226,13 +217,6 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     }
     m_arguments[getArgument(index)] = clone(value);
   }
-}
-
-void Kernel::setGlobalSize(const size_t globalSize[3])
-{
-  m_globalSize[0] = globalSize[0];
-  m_globalSize[1] = globalSize[1];
-  m_globalSize[2] = globalSize[2];
 }
 
 TypedValueMap::const_iterator Kernel::args_begin() const

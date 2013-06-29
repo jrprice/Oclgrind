@@ -83,7 +83,7 @@ void Device::run(Kernel& kernel,
         }
 
         WorkGroup *workGroup = new WorkGroup(kernel, *m_globalMemory,
-                                             i, j, k, wgsize);
+                                             i, j, k, ndrange, wgsize);
 
         workGroup->run(kernel, m_outputMask & OUTPUT_INSTRUCTIONS);
 

@@ -82,7 +82,6 @@ bool init(istream& input)
   }
 
   kernel = program->createKernel(kernelName);
-  kernel->setGlobalSize(ndrange);
 
   // Clear global memory
   Memory *globalMemory = device->getGlobalMemory();

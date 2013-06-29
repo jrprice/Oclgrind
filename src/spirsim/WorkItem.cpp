@@ -765,7 +765,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   {
     uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
     assert(dim < 3);
-    *((size_t*)result.data) = m_kernel.getGlobalSize()[dim];
+    *((size_t*)result.data) = m_workGroup.getGlobalSize()[dim];
   }
   else if (name == "get_group_id")
   {

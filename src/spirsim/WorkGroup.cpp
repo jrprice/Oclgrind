@@ -20,12 +20,16 @@ using namespace std;
 
 WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
                      size_t wgid_x, size_t wgid_y, size_t wgid_z,
+                     const size_t globalSize[3],
                      const size_t groupSize[3])
   : m_globalMemory(globalMem)
 {
   m_groupID[0] = wgid_x;
   m_groupID[1] = wgid_y;
   m_groupID[2] = wgid_z;
+  m_globalSize[0] = globalSize[0];
+  m_globalSize[1] = globalSize[1];
+  m_globalSize[2] = globalSize[2];
   m_groupSize[0] = groupSize[0];
   m_groupSize[1] = groupSize[1];
   m_groupSize[2] = groupSize[2];
@@ -78,6 +82,11 @@ void WorkGroup::dumpPrivateMemory() const
     cout << SMALL_SEPARATOR;
     m_workItems[i]->dumpPrivateMemory();
   }
+}
+
+const size_t* WorkGroup::getGlobalSize() const
+{
+  return m_globalSize;
 }
 
 const size_t* WorkGroup::getGroupID() const
