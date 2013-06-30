@@ -275,23 +275,33 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   pair<size_t,size_t> resultSize = getInstructionResultSize(instruction);
 
   // TODO: Bitcasting should happen somewhere...
-  // Allocate result memory if not in map already
-  TypedValue result = {resultSize.first, resultSize.second, NULL};
-  if (m_privateMemory.find(&instruction) == m_privateMemory.end())
-  {
-    result.data = new unsigned char[resultSize.first*resultSize.second];
-  }
-  else
-  {
-    assert(result.size == m_privateMemory[&instruction].size);
-    assert(result.num == m_privateMemory[&instruction].num);
-    result.data = m_privateMemory[&instruction].data;
-  }
+  // Prepare result
+  TypedValue result = {
+    resultSize.first,
+    resultSize.second,
+    new unsigned char[resultSize.first*resultSize.second]
+  };
 
   // Dump instruction sequence
   if (m_debugOutput)
   {
     dumpInstruction(instruction, true);
+  }
+
+  if (instruction.getOpcode() != llvm::Instruction::PHI &&
+      m_phiTemps.size() > 0)
+  {
+    TypedValueMap::iterator itr;
+    for (itr = m_phiTemps.begin(); itr != m_phiTemps.end(); itr++)
+    {
+      if (m_privateMemory.find(itr->first) != m_privateMemory.end())
+      {
+        delete[] m_privateMemory[itr->first].data;
+      }
+
+      m_privateMemory[itr->first] = itr->second;
+    }
+    m_phiTemps.clear();
   }
 
   // Execute instruction
@@ -300,7 +310,14 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Store result
   if (resultSize.first > 0)
   {
-    m_privateMemory[&instruction] = result;
+    if (instruction.getOpcode() != llvm::Instruction::PHI)
+    {
+      m_privateMemory[&instruction] = result;
+    }
+    else
+    {
+      m_phiTemps[&instruction] = result;
+    }
   }
 }
 

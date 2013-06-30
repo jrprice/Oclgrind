@@ -93,6 +93,7 @@ namespace spirsim
     size_t m_globalID[3];
     size_t m_localID[3];
     TypedValueMap m_privateMemory;
+    TypedValueMap m_phiTemps;
     std::map<std::string,const llvm::Value*> m_variables;
     const Kernel& m_kernel;
     Memory *m_stack;
