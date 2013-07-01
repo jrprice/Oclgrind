@@ -818,6 +818,37 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t r = min(a,b);
     memcpy(result.data, &r, result.size);
   }
+  else if (name == "vload2")
+  {
+    // TODO: Non-integer overloads
+    const llvm::Value *ptrOp = callInst->getArgOperand(1);
+    size_t base = *(size_t*)(m_privateMemory[ptrOp].data);
+    uint64_t offset = getUnsignedInt(callInst->getArgOperand(0));
+
+    unsigned addressSpace = atoi(overload.substr(overload.length()-2).c_str());
+
+    Memory *memory = NULL;
+    switch (addressSpace)
+    {
+    case AddrSpacePrivate:
+      memory = m_stack;
+      break;
+    case AddrSpaceGlobal:
+    case AddrSpaceConstant:
+      memory = &m_globalMemory;
+      break;
+    case AddrSpaceLocal:
+      memory = m_workGroup.getLocalMemory();
+      break;
+    default:
+      cerr << "Unhandled address space '" << addressSpace << "'" << endl;
+      break;
+    }
+
+    memory->load(result.data,
+                 base + offset*result.size*result.num,
+                 result.size*result.num);
+  }
   else if (name == "vstore2")
   {
     // TODO: Non-integer overloads
