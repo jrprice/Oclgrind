@@ -35,6 +35,7 @@ WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
   m_groupSize[2] = groupSize[2];
 
   // Allocate local memory
+  // TODO: Local memory buffer separation?
   m_localMemory = new Memory();
   m_localMemory->allocateBuffer(kernel.getLocalMemorySize());
 
@@ -68,7 +69,7 @@ WorkGroup::~WorkGroup()
 
 void WorkGroup::dumpLocalMemory() const
 {
-  if (m_localMemory->getSize() > 0)
+  if (m_localMemory->getTotalAllocated() > 0)
   {
     cout << SMALL_SEPARATOR << endl << "Local Memory:";
     m_localMemory->dump();

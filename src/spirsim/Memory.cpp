@@ -1,116 +1,167 @@
 #include "common.h"
+#include <cassert>
+#include <cmath>
 
 #include "Memory.h"
+
+#define NUM_BUFFER_BITS 16
+#define MAX_NUM_BUFFERS ((size_t)1 << NUM_BUFFER_BITS)
+#define NUM_ADDRESS_BITS ((sizeof(size_t)<<3) - NUM_BUFFER_BITS)
+#define MAX_BUFFER_SIZE ((size_t)1 << NUM_ADDRESS_BITS)
+
+#define EXTRACT_BUFFER(address) \
+  (address >> NUM_ADDRESS_BITS)
+#define EXTRACT_OFFSET(address) \
+  (address ^ (EXTRACT_BUFFER(address) << NUM_ADDRESS_BITS))
 
 using namespace spirsim;
 using namespace std;
 
 Memory::Memory()
 {
-  m_allocated = 0;
+  m_totalAllocated = 0;
+
+  // Reserve first buffer as a makeshift 'NULL'
+  m_memory[0].data = new unsigned char[0];
 }
 
 Memory::~Memory()
 {
+  clear();
 }
 
 size_t Memory::allocateBuffer(size_t size)
 {
-  size_t address = m_allocated;
-  for (int i = 0; i < size; i++)
+  // Check requested size doesn't exceed maximum
+  if (size > MAX_BUFFER_SIZE)
   {
-    // TODO: Solution to catch use of uninitialised data
-    m_memory.push_back(0);
+    return NULL;
   }
-  m_allocated += size;
-  return address;
+
+  // Find first unallocated buffer slot
+  int b = getNextBuffer();
+  if (b < 0 || b >= MAX_NUM_BUFFERS)
+  {
+    return NULL;
+  }
+
+  // Create buffer
+  Buffer buffer = {
+    size,
+    new unsigned char[size]
+  };
+
+  // Initialize contents to 0
+  // TODO: Solution to catch use of uninitialised data
+  memset(buffer.data, 0, size);
+
+  m_memory[b] = buffer;
+  m_totalAllocated += size;
+
+  return ((size_t)b) << NUM_ADDRESS_BITS;
 }
 
 void Memory::clear()
 {
+  map<int,Buffer>::iterator itr;
+  for (itr = m_memory.begin(); itr != m_memory.end(); itr++)
+  {
+    delete[] itr->second.data;
+  }
   m_memory.clear();
-  m_allocated = 0;
+  m_freeBuffers = queue<int>();
+  m_totalAllocated = 0;
+}
+
+void Memory::deallocateBuffer(size_t address)
+{
+  int buffer = address >> NUM_ADDRESS_BITS;
+  assert(buffer < MAX_NUM_BUFFERS && m_memory.find(buffer) != m_memory.end());
+
+  delete[] m_memory[buffer].data;
+  m_totalAllocated -= m_memory[buffer].size;
+  m_memory.erase(buffer);
+  m_freeBuffers.push(buffer);
 }
 
 void Memory::dump() const
 {
-  for (int i = 0; i < m_allocated; i++)
+  map<int,Buffer>::const_iterator itr;
+  for (itr = m_memory.begin(); itr != m_memory.end(); itr++)
   {
-    if (i%4 == 0)
+    for (int i = 0; i < itr->second.size; i++)
     {
-      cout << endl << hex << uppercase
-           << setw(16) << setfill(' ') << right
-           << i << ":";
+      if (i%4 == 0)
+      {
+        cout << endl << hex << uppercase
+             << setw(16) << setfill(' ') << right
+             << ((((size_t)itr->first)<<NUM_ADDRESS_BITS) | i) << ":";
+      }
+      cout << " " << hex << uppercase << setw(2) << setfill('0')
+           << (int)itr->second.data[i];
     }
-    cout << " " << hex << uppercase << setw(2) << setfill('0')
-         << (int)m_memory[i];
   }
   cout << endl;
 }
 
-size_t Memory::getSize() const
+size_t Memory::getMaxAllocSize()
 {
-  return m_allocated;
+  return MAX_BUFFER_SIZE;
 }
 
-bool Memory::load(size_t address, unsigned char *dest) const
+int Memory::getNextBuffer()
 {
+  if (m_freeBuffers.empty())
+  {
+    return m_memory.size();
+  }
+  else
+  {
+    int b = m_freeBuffers.front();
+    m_freeBuffers.pop();
+    return b;
+  }
+}
+
+size_t Memory::getTotalAllocated() const
+{
+  return m_totalAllocated;
+}
+
+bool Memory::load(unsigned char *dest, size_t address, size_t size) const
+{
+  size_t buffer = EXTRACT_BUFFER(address);
+  size_t offset = EXTRACT_OFFSET(address);
+
   // Bounds check
-  if (address > m_allocated)
+  if (buffer >= MAX_NUM_BUFFERS ||
+      m_memory.find(buffer) == m_memory.end() ||
+      offset+size > m_memory.at(buffer).size)
   {
     return false;
   }
 
   // Load data
-  *dest = m_memory[address];
+  memcpy(dest, m_memory.at(buffer).data + offset, size);
 
   return true;
 }
 
-bool Memory::load(size_t address, size_t size, unsigned char *dest) const
+bool Memory::store(const unsigned char *source, size_t address, size_t size)
 {
+  size_t buffer = EXTRACT_BUFFER(address);
+  size_t offset = EXTRACT_OFFSET(address);
+
   // Bounds check
-  if (address+size > m_allocated)
-  {
-    return false;
-  }
-
-  // Load data
-  for (int i = 0; i < size; i++)
-  {
-    dest[i] = m_memory[address + i];
-  }
-
-  return true;
-}
-
-bool Memory::store(size_t address, unsigned char source)
-{
-  // Bounds check
-  if (address > m_allocated)
-  {
-    return false;
-  }
-
-  // Store byte
-  m_memory[address] = source;
-
-  return true;
-}
-
-bool Memory::store(size_t address, size_t size, const unsigned char *source)
-{
-  // Bounds check
-  if (address+size > m_allocated)
+  if (buffer >= MAX_NUM_BUFFERS ||
+      m_memory.find(buffer) == m_memory.end() ||
+      offset+size > m_memory[buffer].size)
   {
     return false;
   }
 
   // Store data
-  for (int i = 0; i < size; i++)
-  {
-    m_memory[address + i] = source[i];
-  }
+  memcpy(m_memory[buffer].data + offset, source, size);
 
   return true;
 }

@@ -10,15 +10,25 @@ namespace spirsim
 
     size_t allocateBuffer(size_t size);
     void clear();
+    void deallocateBuffer(size_t address);
     void dump() const;
-    size_t getSize() const;
-    bool load(size_t address, unsigned char *dest) const;
-    bool load(size_t address, size_t size, unsigned char *dest) const;
-    bool store(size_t address, unsigned char source);
-    bool store(size_t address, size_t size, const unsigned char *source);
+    size_t getTotalAllocated() const;
+    bool load(unsigned char *dest, size_t address, size_t size=1) const;
+    bool store(const unsigned char *source, size_t address, size_t size=1);
+
+    static size_t getMaxAllocSize();
 
   private:
-    size_t m_allocated;
-    std::vector<unsigned char> m_memory;
+    typedef struct
+    {
+      size_t size;
+      unsigned char *data;
+    } Buffer;
+
+    std::queue<int> m_freeBuffers;
+    std::map<int,Buffer> m_memory;
+    size_t m_totalAllocated;
+
+    int getNextBuffer();
   };
 }

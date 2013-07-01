@@ -257,7 +257,7 @@ void WorkItem::dumpPrivateMemory() const
   }
 
   // Dump stack contents
-  if (m_stack->getSize() > 0)
+  if (m_stack->getTotalAllocated() > 0)
   {
     cout << endl << "Stack:";
     m_stack->dump();
@@ -857,7 +857,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       break;
     }
 
-    memory->store(base + offset*size, size, data);
+    memory->store(data, base + offset*size, size);
     delete[] data;
   }
   else if (name == "llvm.dbg.value")
@@ -1196,7 +1196,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
   // Load data
   if (memory)
   {
-    if (!memory->load(address, result.size*result.num, result.data))
+    if (!memory->load(result.data, address, result.size*result.num))
     {
       outputMemoryError(instruction, "Invalid read",
                         addressSpace, address, result.size*result.num);
@@ -1451,7 +1451,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
   // Store data
   if (memory)
   {
-    if (!memory->store(address, size, data))
+    if (!memory->store(data, address, size))
     {
       outputMemoryError(instruction, "Invalid write",
                         addressSpace, address, size);

@@ -66,7 +66,7 @@ Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
       m_localMemory += size;
       m_arguments[itr] = v;
     }
-    if (itr->isConstant())
+    else if (itr->isConstant())
     {
       m_constants.push_back(itr);
     }
@@ -94,19 +94,25 @@ void Kernel::allocateConstants(Memory *memory)
     };
     size_t address = memory->allocateBuffer(size);
     *((size_t*)v.data) = address;
+    m_constantBuffers.push_back(address);
     m_arguments[*itr] = v;
 
     // Initialise buffer contents
     unsigned char *data = new unsigned char[getTypeSize(type)];
     getConstantData(data, (const llvm::Constant*)initializer);
-    memory->store(address, size, data);
+    memory->store(data, address, size);
     delete[] data;
   }
 }
 
-void Kernel::deallocateConstants(Memory *memory) const
+void Kernel::deallocateConstants(Memory *memory)
 {
-  // TODO: Add support for deallocation in Memory class
+  list<size_t>::const_iterator itr;
+  for (itr = m_constantBuffers.begin(); itr != m_constantBuffers.end(); itr++)
+  {
+    memory->deallocateBuffer(*itr);
+  }
+  m_constantBuffers.clear();
 }
 
 const llvm::Argument* Kernel::getArgument(unsigned int index) const

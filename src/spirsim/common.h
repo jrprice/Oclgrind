@@ -6,6 +6,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <queue>
 #include <vector>
 
 #define BIG_SEPARATOR   "================================"

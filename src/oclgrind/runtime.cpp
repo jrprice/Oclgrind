@@ -880,24 +880,23 @@ clCreateBuffer(cl_context    context ,
   cl_mem mem = (cl_mem)malloc(sizeof(struct _cl_mem));
   mem->dispatch = m_dispatchTable;
   mem->context = context;
-  mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
   mem->size = size;
   mem->flags = flags;
   mem->callbacks = new std::stack<void (CL_CALLBACK *)(cl_mem, void *)>();
   mem->data = new std::stack<void*>();
   mem->refCount = 1;
-  // TODO: Possible allocation failure
-  //if (!mem->address)
-  //{
-  //  ERRCODE(CL_MEM_OBJECT_ALLOCATION_FAILURE);
-  //  free(mem);
-  //  return NULL;
-  //}
+  mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
+  if (!mem->address)
+  {
+    ERRCODE(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    free(mem);
+    return NULL;
+  }
 
   if (flags & CL_MEM_COPY_HOST_PTR)
   {
-    context->device->getGlobalMemory()->store(mem->address, size,
-                                              (const unsigned char*)host_ptr);
+    context->device->getGlobalMemory()->store((const unsigned char*)host_ptr,
+                                              mem->address, size);
   }
 
   ERRCODE(CL_SUCCESS);
@@ -2084,7 +2083,7 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
 
   // Perform read
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
-  bool ret = memory->load(buffer->address, cb, (unsigned char*)ptr);
+  bool ret = memory->load((unsigned char*)ptr, buffer->address, cb);
   if (!ret)
   {
     return CL_INVALID_VALUE;
@@ -2143,7 +2142,7 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
 
   // Perform write
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
-  bool ret = memory->store(buffer->address, cb, (const unsigned char*)ptr);
+  bool ret = memory->store((const unsigned char*)ptr, buffer->address, cb);
   if (!ret)
   {
     return CL_INVALID_VALUE;

@@ -109,12 +109,17 @@ bool init(istream& input)
     case 'b':
       // Allocate buffer
       address = globalMemory->allocateBuffer(size);
+      if (!address)
+      {
+        cout << "Failed to allocate buffer" << endl;
+        return false;
+      }
 
       // Initialise buffer
       for (i = 0; i < size; i++)
       {
         input >> hex >> byte;
-        globalMemory->store(address + i, (unsigned char)byte);
+        globalMemory->store((unsigned char*)&byte, address + i);
       }
 
       // Set argument value
