@@ -23,6 +23,7 @@ namespace spirsim
   private:
     typedef struct
     {
+      bool hostPtr;
       size_t size;
       unsigned char *data;
     } Buffer;

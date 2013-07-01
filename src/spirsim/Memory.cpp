@@ -47,6 +47,7 @@ size_t Memory::allocateBuffer(size_t size)
 
   // Create buffer
   Buffer buffer = {
+    false,
     size,
     new unsigned char[size]
   };
@@ -66,7 +67,10 @@ void Memory::clear()
   map<int,Buffer>::iterator itr;
   for (itr = m_memory.begin(); itr != m_memory.end(); itr++)
   {
-    delete[] itr->second.data;
+    if (!itr->second.hostPtr)
+    {
+      delete[] itr->second.data;
+    }
   }
   m_memory.clear();
   m_freeBuffers = queue<int>();
@@ -83,8 +87,9 @@ Memory* Memory::clone() const
   {
     Buffer src = itr->second;
     Buffer dest = {
+      src.hostPtr,
       src.size,
-      new unsigned char[src.size]
+      src.hostPtr ? src.data : new unsigned char[src.size]
     };
     memcpy(dest.data, src.data, src.size);
     mem->m_memory[itr->first] = dest;
@@ -114,6 +119,7 @@ size_t Memory::createHostBuffer(size_t size, void *ptr)
 
   // Create buffer
   Buffer buffer = {
+    true,
     size,
     (unsigned char*)ptr
   };
@@ -129,7 +135,11 @@ void Memory::deallocateBuffer(size_t address)
   int buffer = EXTRACT_BUFFER(address);
   assert(buffer < MAX_NUM_BUFFERS && m_memory.find(buffer) != m_memory.end());
 
-  delete[] m_memory[buffer].data;
+  if (!m_memory[buffer].hostPtr)
+  {
+    delete[] m_memory[buffer].data;
+  }
+
   m_totalAllocated -= m_memory[buffer].size;
   m_memory.erase(buffer);
   m_freeBuffers.push(buffer);
