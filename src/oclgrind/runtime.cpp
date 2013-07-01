@@ -2374,8 +2374,38 @@ clEnqueueCopyBuffer(cl_command_queue     command_queue ,
                     const cl_event *     event_wait_list ,
                     cl_event *           event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!src_buffer || !dst_buffer)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+
+  // Perform copy
+  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
+  bool ret = memory->copy(dst_buffer->address + dst_offset,
+                          src_buffer->address + src_offset,
+                          cb);
+  if (!ret)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  // Create event
+  if (event)
+  {
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_COPY_BUFFER;
+    evt->refCount = 1;
+    *event = evt;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -2432,7 +2462,6 @@ clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
     dst_origin[0];
 
   // Perform copy
-  unsigned char *buffer = new unsigned char[region[0]];
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
   for (int z = 0; z < region[2]; z++)
   {
@@ -2451,17 +2480,13 @@ clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
         z * dst_slice_pitch;
 
       // Copy data
-      // TODO: Add direct copy support to Memory class
-      bool ret = memory->load(buffer, src, region[0]);
-      ret = ret && memory->store(buffer, dst, region[0]);
+      bool ret = memory->copy(dst, src, region[0]);
       if (!ret)
       {
-        delete[] buffer;
         return CL_INVALID_VALUE;
       }
     }
   }
-  delete[] buffer;
 
   // Create event
   if (event)

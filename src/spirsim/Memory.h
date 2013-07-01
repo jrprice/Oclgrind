@@ -12,6 +12,7 @@ namespace spirsim
     void clear();
     Memory *clone() const;
     size_t createHostBuffer(size_t size, void *ptr);
+    bool copy(size_t dest, size_t src, size_t size);
     void deallocateBuffer(size_t address);
     void dump() const;
     size_t getTotalAllocated() const;

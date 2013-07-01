@@ -130,6 +130,32 @@ size_t Memory::createHostBuffer(size_t size, void *ptr)
   return ((size_t)b) << NUM_ADDRESS_BITS;
 }
 
+bool Memory::copy(size_t dest, size_t src, size_t size)
+{
+  size_t src_buffer = EXTRACT_BUFFER(src);
+  size_t src_offset = EXTRACT_OFFSET(src);
+  size_t dest_buffer = EXTRACT_BUFFER(dest);
+  size_t dest_offset = EXTRACT_OFFSET(dest);
+
+  // Bounds check
+  if (src_buffer >= MAX_NUM_BUFFERS ||
+      dest_buffer >= MAX_NUM_BUFFERS ||
+      m_memory.find(src_buffer) == m_memory.end() ||
+      m_memory.find(dest_buffer) == m_memory.end() ||
+      src_offset+size > m_memory.at(src_buffer).size ||
+      dest_offset+size > m_memory.at(dest_buffer).size)
+  {
+    return false;
+  }
+
+  // Copy data
+  memcpy(m_memory.at(dest_buffer).data + dest_offset,
+         m_memory.at(src_buffer).data + src_offset,
+         size);
+
+  return true;
+}
+
 void Memory::deallocateBuffer(size_t address)
 {
   int buffer = EXTRACT_BUFFER(address);
