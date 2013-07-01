@@ -892,6 +892,7 @@ clCreateBuffer(cl_context    context ,
     free(mem);
     return NULL;
   }
+  clRetainContext(context);
 
   if (flags & CL_MEM_COPY_HOST_PTR)
   {
@@ -991,6 +992,10 @@ clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 
   if (--memobj->refCount == 0)
   {
+    memobj->context->device->getGlobalMemory()->deallocateBuffer(
+      memobj->address);
+    clReleaseContext(memobj->context);
+
     while (!memobj->callbacks->empty())
     {
       memobj->callbacks->top()(memobj, memobj->data->top());

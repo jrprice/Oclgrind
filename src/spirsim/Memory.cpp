@@ -99,7 +99,7 @@ Memory* Memory::clone() const
 
 void Memory::deallocateBuffer(size_t address)
 {
-  int buffer = address >> NUM_ADDRESS_BITS;
+  int buffer = EXTRACT_BUFFER(address);
   assert(buffer < MAX_NUM_BUFFERS && m_memory.find(buffer) != m_memory.end());
 
   delete[] m_memory[buffer].data;
