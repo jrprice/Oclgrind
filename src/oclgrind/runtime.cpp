@@ -2093,6 +2093,14 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
   {
     return CL_INVALID_COMMAND_QUEUE;
   }
+  if (!buffer)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+  if (!ptr)
+  {
+    return CL_INVALID_VALUE;
+  }
 
   // Perform read
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
@@ -2132,8 +2140,84 @@ clEnqueueReadBufferRect(cl_command_queue     command_queue ,
                         const cl_event *     event_wait_list ,
                         cl_event *           event) CL_API_SUFFIX__VERSION_1_1
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!buffer)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+  if (!ptr)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  // Compute pitches if neccessary
+  if (buffer_row_pitch == 0)
+  {
+    buffer_row_pitch = region[0];
+  }
+  if (buffer_slice_pitch == 0)
+  {
+    buffer_slice_pitch = region[1] * buffer_row_pitch;
+  }
+  if (host_row_pitch == 0)
+  {
+    host_row_pitch = region[0];
+  }
+  if (host_slice_pitch == 0)
+  {
+    host_slice_pitch = region[1] * host_row_pitch;
+  }
+
+  // Compute origin offsets
+  size_t buffer_offset =
+    buffer_origin[2] * buffer_slice_pitch +
+    buffer_origin[1] * buffer_row_pitch +
+    buffer_origin[0];
+  size_t host_offset =
+    host_origin[2] * host_slice_pitch +
+    host_origin[1] * host_row_pitch +
+    host_origin[0];
+
+  // Perform read
+  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
+  for (int z = 0; z < region[2]; z++)
+  {
+    for (int y = 0; y < region[1]; y++)
+    {
+      unsigned char *host =
+        (unsigned char*)ptr +
+        host_offset +
+        y * host_row_pitch +
+        z * host_slice_pitch;
+      size_t buff =
+        buffer->address +
+        buffer_offset +
+        y * buffer_row_pitch +
+        z * buffer_slice_pitch;
+      bool ret = memory->load(host, buff, region[0]);
+      if (!ret)
+      {
+        return CL_INVALID_VALUE;
+      }
+    }
+  }
+
+  // Create event
+  if (event)
+  {
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_READ_BUFFER;
+    evt->refCount = 1;
+    *event = evt;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -2151,6 +2235,14 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
   if (!command_queue)
   {
     return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!buffer)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+  if (!ptr)
+  {
+    return CL_INVALID_VALUE;
   }
 
   // Perform write
@@ -2191,8 +2283,84 @@ clEnqueueWriteBufferRect(cl_command_queue     command_queue ,
                          const cl_event *     event_wait_list ,
                          cl_event *           event) CL_API_SUFFIX__VERSION_1_1
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!buffer)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+  if (!ptr)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  // Compute pitches if neccessary
+  if (buffer_row_pitch == 0)
+  {
+    buffer_row_pitch = region[0];
+  }
+  if (buffer_slice_pitch == 0)
+  {
+    buffer_slice_pitch = region[1] * buffer_row_pitch;
+  }
+  if (host_row_pitch == 0)
+  {
+    host_row_pitch = region[0];
+  }
+  if (host_slice_pitch == 0)
+  {
+    host_slice_pitch = region[1] * host_row_pitch;
+  }
+
+  // Compute origin offsets
+  size_t buffer_offset =
+    buffer_origin[2] * buffer_slice_pitch +
+    buffer_origin[1] * buffer_row_pitch +
+    buffer_origin[0];
+  size_t host_offset =
+    host_origin[2] * host_slice_pitch +
+    host_origin[1] * host_row_pitch +
+    host_origin[0];
+
+  // Perform write
+  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
+  for (int z = 0; z < region[2]; z++)
+  {
+    for (int y = 0; y < region[1]; y++)
+    {
+      const unsigned char *host =
+        (const unsigned char*)ptr +
+        host_offset +
+        y * host_row_pitch +
+        z * host_slice_pitch;
+      size_t buff =
+        buffer->address +
+        buffer_offset +
+        y * buffer_row_pitch +
+        z * buffer_slice_pitch;
+      bool ret = memory->store(host, buff, region[0]);
+      if (!ret)
+      {
+        return CL_INVALID_VALUE;
+      }
+    }
+  }
+
+  // Create event
+  if (event)
+  {
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_WRITE_BUFFER;
+    evt->refCount = 1;
+    *event = evt;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -2225,8 +2393,88 @@ clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
                         const cl_event *     event_wait_list ,
                         cl_event *           event) CL_API_SUFFIX__VERSION_1_1
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!src_buffer || !dst_buffer)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+
+  // Compute pitches if neccessary
+  if (src_row_pitch == 0)
+  {
+    src_row_pitch = region[0];
+  }
+  if (src_slice_pitch == 0)
+  {
+    src_slice_pitch = region[1] * src_row_pitch;
+  }
+  if (dst_row_pitch == 0)
+  {
+    dst_row_pitch = region[0];
+  }
+  if (dst_slice_pitch == 0)
+  {
+    dst_slice_pitch = region[1] * dst_row_pitch;
+  }
+
+  // Compute origin offsets
+  size_t src_offset =
+    src_origin[2] * src_slice_pitch +
+    src_origin[1] * src_row_pitch +
+    src_origin[0];
+  size_t dst_offset =
+    dst_origin[2] * dst_slice_pitch +
+    dst_origin[1] * dst_row_pitch +
+    dst_origin[0];
+
+  // Perform copy
+  unsigned char *buffer = new unsigned char[region[0]];
+  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
+  for (int z = 0; z < region[2]; z++)
+  {
+    for (int y = 0; y < region[1]; y++)
+    {
+      // Compute addresses
+      size_t src =
+        src_buffer->address +
+        src_offset +
+        y * src_row_pitch +
+        z * src_slice_pitch;
+      size_t dst =
+        dst_buffer->address +
+        dst_offset +
+        y * dst_row_pitch +
+        z * dst_slice_pitch;
+
+      // Copy data
+      // TODO: Add direct copy support to Memory class
+      bool ret = memory->load(buffer, src, region[0]);
+      ret = ret && memory->store(buffer, dst, region[0]);
+      if (!ret)
+      {
+        delete[] buffer;
+        return CL_INVALID_VALUE;
+      }
+    }
+  }
+  delete[] buffer;
+
+  // Create event
+  if (event)
+  {
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_COPY_BUFFER;
+    evt->refCount = 1;
+    *event = evt;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
