@@ -35,9 +35,7 @@ WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
   m_groupSize[2] = groupSize[2];
 
   // Allocate local memory
-  // TODO: Local memory buffer separation?
-  m_localMemory = new Memory();
-  m_localMemory->allocateBuffer(kernel.getLocalMemorySize());
+  m_localMemory = kernel.getLocalMemory()->clone();
 
   // Initialise work-items
   m_totalWorkItems = groupSize[0] * groupSize[1] * groupSize[2];

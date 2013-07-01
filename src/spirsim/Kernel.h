@@ -26,6 +26,7 @@ namespace spirsim
     size_t getArgumentSize(unsigned int index) const;
     unsigned int getArgumentType(unsigned int index) const;
     const llvm::Function* getFunction() const;
+    const Memory* getLocalMemory() const;
     size_t getLocalMemorySize() const;
     const std::string& getName() const;
     unsigned int getNumArguments() const;
@@ -37,7 +38,7 @@ namespace spirsim
     TypedValueMap m_arguments;
     std::list<const llvm::GlobalVariable*> m_constants;
     std::list<size_t> m_constantBuffers;
-    size_t m_localMemory;
+    Memory *m_localMemory;
     std::string m_name;
     size_t m_requiredWorkGroupSize[3];
 

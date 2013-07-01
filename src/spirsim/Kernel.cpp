@@ -19,7 +19,7 @@ using namespace std;
 Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
 {
   m_function = function;
-  m_localMemory = 0;
+  m_localMemory = new Memory();
 
   // Get name
   m_name = function->getName().str();
@@ -62,8 +62,7 @@ Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
         1,
         new unsigned char[sizeof(size_t)]
       };
-      *((size_t*)v.data) = m_localMemory;
-      m_localMemory += size;
+      *((size_t*)v.data) = m_localMemory->allocateBuffer(size);
       m_arguments[itr] = v;
     }
     else if (itr->isConstant())
@@ -75,6 +74,7 @@ Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
 
 Kernel::~Kernel()
 {
+  delete m_localMemory;
 }
 
 void Kernel::allocateConstants(Memory *memory)
@@ -171,11 +171,15 @@ const llvm::Function* Kernel::getFunction() const
   return m_function;
 }
 
-size_t Kernel::getLocalMemorySize() const
+const Memory *Kernel::getLocalMemory() const
 {
   return m_localMemory;
 }
 
+size_t Kernel::getLocalMemorySize() const
+{
+  return m_localMemory->getTotalAllocated();
+}
 
 const std::string& Kernel::getName() const
 {
@@ -203,15 +207,22 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
   unsigned int type = getArgumentType(index);
   if (type == CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
+    const llvm::Value *arg = getArgument(index);
+
+    // Deallocate existing argument
+    if (m_arguments.find(arg) != m_arguments.end())
+    {
+      m_localMemory->deallocateBuffer(*(size_t*)m_arguments[arg].data);
+    }
+
+    // Allocate local memory buffer
     TypedValue v = {
       sizeof(size_t),
       1,
       new unsigned char[sizeof(size_t)]
     };
-    *((size_t*)v.data) = m_localMemory;
-    m_localMemory += value.size;
-
-    m_arguments[getArgument(index)] = v;
+    *((size_t*)v.data) = m_localMemory->allocateBuffer(value.size);
+    m_arguments[arg] = v;
   }
   else
   {

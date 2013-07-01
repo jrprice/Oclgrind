@@ -73,6 +73,30 @@ void Memory::clear()
   m_totalAllocated = 0;
 }
 
+Memory* Memory::clone() const
+{
+  Memory *mem = new Memory();
+
+  // Clone buffers
+  map<int,Buffer>::const_iterator itr;
+  for (itr = m_memory.begin(); itr != m_memory.end(); itr++)
+  {
+    Buffer src = itr->second;
+    Buffer dest = {
+      src.size,
+      new unsigned char[src.size]
+    };
+    memcpy(dest.data, src.data, src.size);
+    mem->m_memory[itr->first] = dest;
+  }
+
+  // Clone state
+  mem->m_freeBuffers = m_freeBuffers;
+  mem->m_totalAllocated = m_totalAllocated;
+
+  return mem;
+}
+
 void Memory::deallocateBuffer(size_t address)
 {
   int buffer = address >> NUM_ADDRESS_BITS;
