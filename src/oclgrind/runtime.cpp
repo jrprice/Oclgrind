@@ -869,9 +869,9 @@ clCreateBuffer(cl_context    context ,
     ERRCODE(CL_INVALID_HOST_PTR);
     return NULL;
   }
-  if (flags & CL_MEM_USE_HOST_PTR)
+  if (flags & CL_MEM_ALLOC_HOST_PTR)
   {
-    cerr << "OCLGRIND: CL_MEM_USE_HOST_PTR not supported." << endl;
+    cerr << "OCLGRIND: CL_MEM_ALLOC_HOST_PTR not supported." << endl;
     ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
@@ -885,7 +885,15 @@ clCreateBuffer(cl_context    context ,
   mem->callbacks = new std::stack<void (CL_CALLBACK *)(cl_mem, void *)>();
   mem->data = new std::stack<void*>();
   mem->refCount = 1;
-  mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
+  if (flags & CL_MEM_USE_HOST_PTR)
+  {
+    mem->address = context->device->getGlobalMemory()->createHostBuffer(
+      size, host_ptr);
+  }
+  else
+  {
+    mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
+  }
   if (!mem->address)
   {
     ERRCODE(CL_MEM_OBJECT_ALLOCATION_FAILURE);

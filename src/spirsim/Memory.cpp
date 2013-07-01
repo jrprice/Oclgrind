@@ -97,6 +97,33 @@ Memory* Memory::clone() const
   return mem;
 }
 
+size_t Memory::createHostBuffer(size_t size, void *ptr)
+{
+  // Check requested size doesn't exceed maximum
+  if (size > MAX_BUFFER_SIZE)
+  {
+    return NULL;
+  }
+
+  // Find first unallocated buffer slot
+  int b = getNextBuffer();
+  if (b < 0 || b >= MAX_NUM_BUFFERS)
+  {
+    return NULL;
+  }
+
+  // Create buffer
+  Buffer buffer = {
+    size,
+    (unsigned char*)ptr
+  };
+
+  m_memory[b] = buffer;
+  m_totalAllocated += size;
+
+  return ((size_t)b) << NUM_ADDRESS_BITS;
+}
+
 void Memory::deallocateBuffer(size_t address)
 {
   int buffer = EXTRACT_BUFFER(address);
