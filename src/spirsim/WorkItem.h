@@ -50,7 +50,7 @@ namespace spirsim
     void updateVariable(const llvm::DbgValueInst *instruction);
 
     void add(const llvm::Instruction& instruction, TypedValue& result);
-    void alloca(const llvm::Instruction& instruction);
+    void alloc(const llvm::Instruction& instruction, TypedValue& result);
     void ashr(const llvm::Instruction& instruction, TypedValue& result);
     void bitcast(const llvm::Instruction& instruction, TypedValue& result);
     void br(const llvm::Instruction& instruction);

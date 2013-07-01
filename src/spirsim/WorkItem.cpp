@@ -84,7 +84,7 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     add(instruction, result);
     break;
   case llvm::Instruction::Alloca:
-    alloca(instruction);
+    alloc(instruction, result);
     break;
   case llvm::Instruction::And:
     bwand(instruction, result);
@@ -639,23 +639,19 @@ void WorkItem::add(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::alloca(const llvm::Instruction& instruction)
+void WorkItem::alloc(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::AllocaInst *allocInst = ((const llvm::AllocaInst*)&instruction);
   const llvm::Type *type = allocInst->getAllocatedType();
 
   // TODO: Handle allocations for non-arrays
-  unsigned elementSize = type->getArrayElementType()->getScalarSizeInBits()>>3;
+  unsigned elementSize = getTypeSize(type->getArrayElementType());
   unsigned numElements = type->getArrayNumElements();
 
   // Perform allocation
   size_t address = m_stack->allocateBuffer(elementSize*numElements);
 
   // Create pointer to alloc'd memory
-  TypedValue result;
-  result.size = sizeof(size_t);
-  result.num = 1;
-  result.data = new unsigned char[result.size];
   *((size_t*)result.data) = address;
   m_privateMemory[&instruction] = result;
 }
@@ -845,9 +841,14 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       break;
     }
 
-    memory->load(result.data,
-                 base + offset*result.size*result.num,
-                 result.size*result.num);
+    if (!memory->load(result.data,
+                      base + offset*result.size*result.num,
+                      result.size*result.num))
+    {
+      outputMemoryError(instruction, "Invalid read",
+                        addressSpace, base + offset*result.size*result.num,
+                        result.size*result.num);
+    }
   }
   else if (name.compare(0, 6, "vstore") == 0)
   {
@@ -888,16 +889,79 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       break;
     }
 
-    memory->store(data, base + offset*size, size);
+    if (!memory->store(data, base + offset*size, size))
+    {
+      outputMemoryError(instruction, "Invalid write",
+                        addressSpace, base + offset*size, size);
+    }
     delete[] data;
   }
-  else if (name == "llvm.dbg.value")
+  else if (name.compare(0, 11, "llvm.memcpy") == 0)
   {
-    updateVariable((const llvm::DbgValueInst*)callInst);
+    const llvm::MemCpyInst *memcpy = (const llvm::MemCpyInst*)callInst;
+    size_t dest = *(size_t*)(m_privateMemory[memcpy->getDest()].data);
+    size_t src = *(size_t*)(m_privateMemory[memcpy->getSource()].data);
+    size_t size = getUnsignedInt(memcpy->getLength());
+    unsigned destAddrSpace = memcpy->getDestAddressSpace();
+    unsigned srcAddrSpace = memcpy->getSourceAddressSpace();
+
+    Memory *destMemory = NULL;
+    switch (destAddrSpace)
+    {
+    case AddrSpacePrivate:
+      destMemory = m_stack;
+      break;
+    case AddrSpaceGlobal:
+    case AddrSpaceConstant:
+      destMemory = &m_globalMemory;
+      break;
+    case AddrSpaceLocal:
+      destMemory = m_workGroup.getLocalMemory();
+      break;
+    default:
+      cerr << "Unhandled address space '" << destAddrSpace << "'" << endl;
+      break;
+    }
+
+    Memory *srcMemory = NULL;
+    switch (srcAddrSpace)
+    {
+    case AddrSpacePrivate:
+      srcMemory = m_stack;
+      break;
+    case AddrSpaceGlobal:
+    case AddrSpaceConstant:
+      srcMemory = &m_globalMemory;
+      break;
+    case AddrSpaceLocal:
+      srcMemory = m_workGroup.getLocalMemory();
+      break;
+    default:
+      cerr << "Unhandled address space '" << srcAddrSpace << "'" << endl;
+      break;
+    }
+
+    bool success = true;
+    unsigned char *buffer = new unsigned char[size];
+    if (!srcMemory->load(buffer, src, size))
+    {
+      outputMemoryError(instruction, "Invalid read",
+                        srcAddrSpace, src, size);
+    }
+    else if (!destMemory->store(buffer, dest, size))
+    {
+      outputMemoryError(instruction, "Invalid write",
+                        destAddrSpace, dest, size);
+    }
+    delete[] buffer;
   }
   else if (name == "llvm.dbg.declare")
   {
     // TODO: Implement?
+  }
+  else if (name == "llvm.dbg.value")
+  {
+    updateVariable((const llvm::DbgValueInst*)callInst);
   }
   else
   {
