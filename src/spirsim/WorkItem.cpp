@@ -818,7 +818,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t r = min(a,b);
     memcpy(result.data, &r, result.size);
   }
-  else if (name == "vload2")
+  else if (name.compare(0, 5, "vload") == 0)
   {
     // TODO: Non-integer overloads
     const llvm::Value *ptrOp = callInst->getArgOperand(1);
@@ -849,7 +849,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
                  base + offset*result.size*result.num,
                  result.size*result.num);
   }
-  else if (name == "vstore2")
+  else if (name.compare(0, 6, "vstore") == 0)
   {
     // TODO: Non-integer overloads
     const llvm::Value *value = callInst->getArgOperand(0);
@@ -894,6 +894,10 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   else if (name == "llvm.dbg.value")
   {
     updateVariable((const llvm::DbgValueInst*)callInst);
+  }
+  else if (name == "llvm.dbg.declare")
+  {
+    // TODO: Implement?
   }
   else
   {
