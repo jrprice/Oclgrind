@@ -2597,9 +2597,40 @@ clEnqueueMapBuffer(cl_command_queue  command_queue ,
                    cl_event *        event ,
                    cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
-  return NULL;
+  // Check parameters
+  if (!command_queue)
+  {
+    ERRCODE(CL_INVALID_COMMAND_QUEUE);
+    return NULL;
+  }
+  if (!buffer)
+  {
+    ERRCODE(CL_INVALID_MEM_OBJECT);
+    return NULL;
+  }
+
+  // Map buffer
+  void *ptr = buffer->context->device->getGlobalMemory()->mapBuffer(
+    buffer->address, offset, cb);
+  if (ptr == NULL)
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+
+  // Create event
+  if (event)
+  {
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_MAP_BUFFER;
+    evt->refCount = 1;
+    *event = evt;
+  }
+
+  ERRCODE(CL_SUCCESS);
+  return ptr;
 }
 
 CL_API_ENTRY void * CL_API_CALL
@@ -2629,8 +2660,28 @@ clEnqueueUnmapMemObject(cl_command_queue  command_queue ,
                         const cl_event *   event_wait_list ,
                         cl_event *         event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!memobj)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+
+  // Create event
+  if (event)
+  {
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_UNMAP_MEM_OBJECT;
+    evt->refCount = 1;
+    *event = evt;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

@@ -16,6 +16,7 @@ namespace spirsim
     void dump() const;
     size_t getTotalAllocated() const;
     bool load(unsigned char *dest, size_t address, size_t size=1) const;
+    unsigned char* mapBuffer(size_t address, size_t offset, size_t size);
     bool store(const unsigned char *source, size_t address, size_t size=1);
 
     static size_t getMaxAllocSize();

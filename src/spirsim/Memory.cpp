@@ -208,6 +208,21 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   return true;
 }
 
+unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
+{
+  size_t buffer = EXTRACT_BUFFER(address);
+
+  // Bounds check
+  if (buffer >= MAX_NUM_BUFFERS ||
+      m_memory.find(buffer) == m_memory.end() ||
+      offset+size > m_memory[buffer].size)
+  {
+    return false;
+  }
+
+  return m_memory[buffer].data + offset;
+}
+
 bool Memory::store(const unsigned char *source, size_t address, size_t size)
 {
   size_t buffer = EXTRACT_BUFFER(address);
