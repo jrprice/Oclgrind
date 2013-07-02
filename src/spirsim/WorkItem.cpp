@@ -416,12 +416,13 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
       break;
     }
   }
-  else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
+  else if (id == llvm::Value::ConstantVectorVal ||
+           id == llvm::Value::ConstantDataVectorVal)
   {
     val = getSignedInt(
       ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
   }
-  else if (isConstantOperand(operand))
+  else if (id == llvm::Value::ConstantIntVal)
   {
     val = ((const llvm::ConstantInt*)operand)->getSExtValue();
   }
@@ -457,7 +458,8 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
     TypedValue op = m_privateMemory.at(operand);
     memcpy(&val, op.data + index*op.size, op.size);
   }
-  else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
+  else if (id == llvm::Value::ConstantVectorVal ||
+           id == llvm::Value::ConstantDataVectorVal)
   {
     val = getUnsignedInt(
       ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
@@ -470,7 +472,7 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   {
     val = 0;
   }
-  else if (isConstantOperand(operand))
+  else if (id == llvm::Value::ConstantIntVal)
   {
     val = ((const llvm::ConstantInt*)operand)->getZExtValue();
   }
