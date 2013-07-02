@@ -2747,16 +2747,12 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
     return CL_INVALID_GLOBAL_WORK_SIZE;
   }
 
-  // Prepare 3D range
-  size_t global[3] = {1,1,1};
-  size_t local[3] = {1,1,1};
-  for (int i = 0; i < work_dim; i++)
+  // Check work group size is valid
+  if (local_work_size)
   {
-    global[i] = global_work_size[i];
-    if (local_work_size)
+    for (int i = 0; i < work_dim; i++)
     {
-      local[i] = local_work_size[i];
-      if (global[i] % local[i])
+      if (global_work_size[i] % local_work_size[i])
       {
         return CL_INVALID_WORK_GROUP_SIZE;
       }
@@ -2764,7 +2760,10 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
   }
 
   // Run kernel
-  command_queue->context->device->run(*kernel->kernel, global, local);
+  command_queue->context->device->run(*kernel->kernel,
+                                      work_dim,
+                                      global_work_size,
+                                      local_work_size);
 
   // Create event
   if (event)

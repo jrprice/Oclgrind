@@ -19,11 +19,13 @@ using namespace spirsim;
 using namespace std;
 
 WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
+                     unsigned int workDim,
                      size_t wgid_x, size_t wgid_y, size_t wgid_z,
                      const size_t globalSize[3],
                      const size_t groupSize[3])
   : m_globalMemory(globalMem)
 {
+  m_workDim = workDim;
   m_groupID[0] = wgid_x;
   m_groupID[1] = wgid_y;
   m_groupID[2] = wgid_z;
@@ -101,6 +103,11 @@ const size_t* WorkGroup::getGroupSize() const
 Memory* WorkGroup::getLocalMemory() const
 {
   return m_localMemory;
+}
+
+unsigned int WorkGroup::getWorkDim() const
+{
+  return m_workDim;
 }
 
 void WorkGroup::run(const Kernel& kernel, bool outputInstructions)

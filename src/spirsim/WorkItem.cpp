@@ -770,6 +770,10 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     // TODO: Different types of barrier?
     m_state = BARRIER;
   }
+  else if (name == "get_work_dim")
+  {
+    *((uint*)result.data) = m_workGroup.getWorkDim();
+  }
   else if (name == "get_global_id")
   {
     uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
@@ -787,6 +791,14 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
     assert(dim < 3);
     *((size_t*)result.data) = m_workGroup.getGroupID()[dim];
+  }
+  else if (name == "get_num_groups")
+  {
+    uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
+    assert(dim < 3);
+    *((size_t*)result.data) =
+      m_workGroup.getGlobalSize()[dim] /
+      m_workGroup.getGroupSize()[dim];
   }
   else if (name == "get_local_id")
   {

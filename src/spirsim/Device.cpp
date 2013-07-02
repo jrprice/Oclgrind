@@ -53,9 +53,20 @@ Memory* Device::getGlobalMemory() const
   return m_globalMemory;
 }
 
-void Device::run(Kernel& kernel,
-                 const size_t ndrange[3], const size_t wgsize[3])
+void Device::run(Kernel& kernel, unsigned int workDim,
+                 const size_t *globalSize, const size_t *localSize)
 {
+  size_t ndrange[3] = {1,1,1};
+  size_t wgsize[3] = {1,1,1};
+  for (int i = 0; i < workDim; i++)
+  {
+    ndrange[i] = globalSize[i];
+    if (localSize)
+    {
+      wgsize[i] = localSize[i];
+    }
+  }
+
   // Allocate and initialise constant memory
   kernel.allocateConstants(m_globalMemory);
 
@@ -83,7 +94,8 @@ void Device::run(Kernel& kernel,
         }
 
         WorkGroup *workGroup = new WorkGroup(kernel, *m_globalMemory,
-                                             i, j, k, ndrange, wgsize);
+                                             workDim, i, j, k,
+                                             ndrange, wgsize);
 
         workGroup->run(kernel, m_outputMask & OUTPUT_INSTRUCTIONS);
 
