@@ -869,9 +869,9 @@ clCreateBuffer(cl_context    context ,
     ERRCODE(CL_INVALID_HOST_PTR);
     return NULL;
   }
-  if (flags & CL_MEM_ALLOC_HOST_PTR)
+  if ((flags & CL_MEM_USE_HOST_PTR) &&
+      (flags & (CL_MEM_COPY_HOST_PTR | CL_MEM_ALLOC_HOST_PTR)))
   {
-    cerr << "OCLGRIND: CL_MEM_ALLOC_HOST_PTR not supported." << endl;
     ERRCODE(CL_INVALID_VALUE);
     return NULL;
   }
