@@ -207,6 +207,12 @@ namespace spirsim
 
   void getConstantData(unsigned char *data, const llvm::Constant *constant)
   {
+    if (constant->getValueID() == llvm::Value::UndefValueVal)
+    {
+      memset(data, -1, getTypeSize(constant->getType()));
+      return;
+    }
+
     const llvm::Type *type = constant->getType();
     size_t size = getTypeSize(type);
     switch (type->getTypeID())
