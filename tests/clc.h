@@ -75,9 +75,11 @@ typedef __attribute__((ext_vector_type(16))) ulong ulong16;
 
 #define __OVERLOAD__ __attribute__((__overloadable__))
 
+uint get_work_dim();
 size_t get_global_id(uint dim);
 size_t get_global_size(uint dim);
 size_t get_group_id(uint dim);
+size_t get_num_groups(uint dim);
 size_t get_local_id(uint dim);
 size_t get_local_size(uint dim);
 
@@ -451,3 +453,59 @@ void __OVERLOAD__ vstore16(float16, size_t, float*);
 void __OVERLOAD__ vstore16(float16, size_t, __local float*);
 void __OVERLOAD__ vstore16(float16, size_t, __global float*);
 void __OVERLOAD__ vstore16(float16, size_t, __private float*);
+
+#define as_char( _x )  __builtin_astype( _x, char )
+#define as_char2( _x )  __builtin_astype( _x, char2 )
+#define as_char3( _x )  __builtin_astype( _x, char3 )
+#define as_char4( _x )  __builtin_astype( _x, char4 )
+#define as_char8( _x )  __builtin_astype( _x, char8 )
+#define as_char16( _x )  __builtin_astype( _x, char16 )
+#define as_uchar( _x )  __builtin_astype( _x, uchar )
+#define as_uchar2( _x )  __builtin_astype( _x, uchar2 )
+#define as_uchar3( _x )  __builtin_astype( _x, uchar3 )
+#define as_uchar4( _x )  __builtin_astype( _x, uchar4 )
+#define as_uchar8( _x )  __builtin_astype( _x, uchar8 )
+#define as_uchar16( _x )  __builtin_astype( _x, uchar16 )
+#define as_short( _x )  __builtin_astype( _x, short )
+#define as_short2( _x )  __builtin_astype( _x, short2 )
+#define as_short3( _x )  __builtin_astype( _x, short3 )
+#define as_short4( _x )  __builtin_astype( _x, short4 )
+#define as_short8( _x )  __builtin_astype( _x, short8 )
+#define as_short16( _x )  __builtin_astype( _x, short16 )
+#define as_ushort( _x )  __builtin_astype( _x, ushort )
+#define as_ushort2( _x )  __builtin_astype( _x, ushort2 )
+#define as_ushort3( _x )  __builtin_astype( _x, ushort3 )
+#define as_ushort4( _x )  __builtin_astype( _x, ushort4 )
+#define as_ushort8( _x )  __builtin_astype( _x, ushort8 )
+#define as_ushort16( _x )  __builtin_astype( _x, ushort16 )
+#define as_int( _x )  __builtin_astype( _x, int )
+#define as_int2( _x )  __builtin_astype( _x, int2 )
+#define as_int3( _x )  __builtin_astype( _x, int3 )
+#define as_int4( _x )  __builtin_astype( _x, int4 )
+#define as_int8( _x )  __builtin_astype( _x, int8 )
+#define as_int16( _x )  __builtin_astype( _x, int16 )
+#define as_uint( _x )  __builtin_astype( _x, uint )
+#define as_uint2( _x )  __builtin_astype( _x, uint2 )
+#define as_uint3( _x )  __builtin_astype( _x, uint3 )
+#define as_uint4( _x )  __builtin_astype( _x, uint4 )
+#define as_uint8( _x )  __builtin_astype( _x, uint8 )
+#define as_uint16( _x )  __builtin_astype( _x, uint16 )
+#define as_long( _x )  __builtin_astype( _x, long )
+#define as_long2( _x )  __builtin_astype( _x, long2 )
+#define as_long3( _x )  __builtin_astype( _x, long3 )
+#define as_long4( _x )  __builtin_astype( _x, long4 )
+#define as_long8( _x )  __builtin_astype( _x, long8 )
+#define as_long16( _x )  __builtin_astype( _x, long16 )
+#define as_ulong( _x )  __builtin_astype( _x, ulong )
+#define as_ulong2( _x )  __builtin_astype( _x, ulong2 )
+#define as_ulong3( _x )  __builtin_astype( _x, ulong3 )
+#define as_ulong4( _x )  __builtin_astype( _x, ulong4 )
+#define as_ulong8( _x )  __builtin_astype( _x, ulong8 )
+#define as_ulong16( _x )  __builtin_astype( _x, ulong16 )
+#define as_float( _x )  __builtin_astype( _x, float )
+#define as_float2( _x )  __builtin_astype( _x, float2 )
+#define as_float3( _x )  __builtin_astype( _x, float3 )
+#define as_float4( _x )  __builtin_astype( _x, float4 )
+#define as_float8( _x )  __builtin_astype( _x, float8 )
+#define as_float16( _x )  __builtin_astype( _x, float16 )
+
