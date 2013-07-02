@@ -646,16 +646,12 @@ void WorkItem::alloc(const llvm::Instruction& instruction, TypedValue& result)
   const llvm::AllocaInst *allocInst = ((const llvm::AllocaInst*)&instruction);
   const llvm::Type *type = allocInst->getAllocatedType();
 
-  // TODO: Handle allocations for non-arrays
-  unsigned elementSize = getTypeSize(type->getArrayElementType());
-  unsigned numElements = type->getArrayNumElements();
-
   // Perform allocation
-  size_t address = m_stack->allocateBuffer(elementSize*numElements);
+  size_t size = getTypeSize(type);
+  size_t address = m_stack->allocateBuffer(size);
 
   // Create pointer to alloc'd memory
   *((size_t*)result.data) = address;
-  m_privateMemory[&instruction] = result;
 }
 
 void WorkItem::ashr(const llvm::Instruction& instruction, TypedValue& result)
