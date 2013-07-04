@@ -53,6 +53,8 @@ WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
       }
     }
   }
+
+  m_nextEvent = 1;
 }
 
 WorkGroup::~WorkGroup()
@@ -65,6 +67,29 @@ WorkGroup::~WorkGroup()
   delete[] m_workItems;
 
   delete m_localMemory;
+}
+
+uint64_t WorkGroup::async_copy(AsyncCopy copy, uint64_t event)
+{
+  // TODO: Ensure all work-items hit same async_copy at same time?
+  map< uint64_t, list<AsyncCopy> >::iterator eItr;
+  for (eItr = m_pendingEvents.begin(); eItr != m_pendingEvents.end(); eItr++)
+  {
+    list<AsyncCopy>::iterator cItr;
+    for (cItr = eItr->second.begin(); cItr != eItr->second.end(); cItr++)
+    {
+      if (*cItr == copy)
+      {
+        return eItr->first;
+      }
+    }
+  }
+
+  event = m_nextEvent++;
+  m_pendingEvents[event] = list<AsyncCopy>();
+  m_pendingEvents[event].push_back(copy);
+
+  return event;
 }
 
 void WorkGroup::dumpLocalMemory() const
@@ -120,6 +145,7 @@ void WorkGroup::run(const Kernel& kernel, bool outputInstructions)
   {
     // Run work-items in order
     int numBarriers = 0;
+    int numWaitEvents = 0;
     for (int i = 0; i < m_totalWorkItems; i++)
     {
       // Check if work-item is ready to execute
@@ -156,6 +182,15 @@ void WorkGroup::run(const Kernel& kernel, bool outputInstructions)
           cout << "Barrier reached." << endl;
         }
       }
+      else if (state == WorkItem::WAIT_EVENT)
+      {
+        numWaitEvents++;
+        if (outputInstructions)
+        {
+          cout << SMALL_SEPARATOR << endl;
+          cout << "Wait for events reached." << endl;
+        }
+      }
       else if (state == WorkItem::FINISHED)
       {
         numFinished++;
@@ -185,10 +220,76 @@ void WorkGroup::run(const Kernel& kernel, bool outputInstructions)
       cout << "Barrier divergence detected." << endl;
       return;
     }
+
+    if (numWaitEvents == m_totalWorkItems)
+    {
+      // Perform group copy
+      set<uint64_t>::iterator eItr;
+      for (eItr = m_waitEvents.begin(); eItr != m_waitEvents.end(); eItr++)
+      {
+        list<AsyncCopy> copies = m_pendingEvents[*eItr];
+        list<AsyncCopy>::iterator itr;
+        for (itr = copies.begin(); itr != copies.end(); itr++)
+        {
+          Memory *destMem, *srcMem;
+          if (itr->type == GLOBAL_TO_LOCAL)
+          {
+            destMem = m_localMemory;
+            srcMem = &m_globalMemory;
+          }
+          else
+          {
+            destMem = &m_globalMemory;
+            srcMem = m_localMemory;
+          }
+
+          // TODO: Strided copies
+          unsigned char *buffer = new unsigned char[itr->size];
+          // TODO: Check result of load/store and produce error message
+          // TODO: Support for direct copying in Memory class
+          srcMem->load(buffer, itr->src, itr->size);
+          destMem->store(buffer, itr->dest, itr->size);
+          delete[] buffer;
+        }
+        m_pendingEvents.erase(*eItr);
+      }
+      m_waitEvents.clear();
+
+      for (int i = 0; i < m_totalWorkItems; i++)
+      {
+        m_workItems[i]->clearBarrier();
+      }
+      if (outputInstructions)
+      {
+        cout << "All work-items reached wait for events." << endl;
+      }
+    }
+    else if (numWaitEvents > 0)
+    {
+      cout << "Wait for events divergence detected." << endl;
+      return;
+    }
   }
 
   if (outputInstructions)
   {
     cout << "All work-items completed kernel." << endl;
   }
+}
+
+void WorkGroup::wait_event(uint64_t event)
+{
+  // TODO: Ensure all work-items hit same wait at same time?
+  assert(m_pendingEvents.find(event) != m_pendingEvents.end());
+  m_waitEvents.insert(event);
+}
+
+bool WorkGroup::AsyncCopy::operator==(AsyncCopy copy) const
+{
+  return
+    (instruction == copy.instruction) &&
+    (type == copy.type) &&
+    (dest == copy.dest) &&
+    (src == copy.src) &&
+    (size == copy.size);
 }

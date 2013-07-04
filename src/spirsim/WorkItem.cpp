@@ -69,7 +69,7 @@ WorkItem::~WorkItem()
 
 void WorkItem::clearBarrier()
 {
-  if (m_state == BARRIER)
+  if (m_state == BARRIER || m_state == WAIT_EVENT)
   {
     m_state = READY;
   }
@@ -823,6 +823,58 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t b = getUnsignedInt(callInst->getArgOperand(1));
     uint64_t r = min(a,b);
     memcpy(result.data, &r, result.size);
+  }
+  else if (name == "async_work_group_copy")
+  {
+    const llvm::Value *destOp = callInst->getArgOperand(0);
+    const llvm::Value *srcOp = callInst->getArgOperand(1);
+    size_t dest = *(size_t*)(m_privateMemory[destOp].data);
+    size_t src = *(size_t*)(m_privateMemory[srcOp].data);
+    uint64_t size = getUnsignedInt(callInst->getArgOperand(2)) *
+      getTypeSize(destOp->getType()->getPointerElementType());
+    uint64_t event = getUnsignedInt(callInst->getArgOperand(3));
+
+    // TODO: Strided
+    WorkGroup::AsyncCopyType type;
+    if (destOp->getType()->getPointerAddressSpace() == AddrSpaceLocal)
+    {
+      type = WorkGroup::GLOBAL_TO_LOCAL;
+    }
+    else
+    {
+      type = WorkGroup::LOCAL_TO_GLOBAL;
+    }
+
+    WorkGroup::AsyncCopy copy = {
+      callInst,
+      type,
+      dest,
+      src,
+      size
+    };
+
+    event = m_workGroup.async_copy(copy, event);
+    setIntResult(result, event);
+  }
+  else if (name == "wait_group_events")
+  {
+    uint64_t num = getUnsignedInt(callInst->getArgOperand(0));
+    const llvm::Value *ptrOp = callInst->getArgOperand(1);
+    size_t address = *(size_t*)(m_privateMemory[ptrOp].data);
+    for (int i = 0; i < num; i++)
+    {
+      // TODO: Can we safely assume this is private/stack data?
+      uint64_t event;
+      if (!m_stack->load((unsigned char*)&event, address, sizeof(uint64_t)))
+      {
+        outputMemoryError(*callInst, "Invalid read", AddrSpacePrivate,
+                          address, sizeof(uint64_t));
+        return;
+      }
+      m_workGroup.wait_event(event);
+      address += sizeof(uint64_t);
+    }
+    m_state = WAIT_EVENT;
   }
   else if (name.compare(0, 5, "vload") == 0)
   {

@@ -14,7 +14,7 @@ namespace spirsim
   class WorkItem
   {
   public:
-    enum State {READY, BARRIER, FINISHED};
+    enum State {READY, BARRIER, WAIT_EVENT, FINISHED};
 
   public:
     WorkItem(WorkGroup& workGroup,
