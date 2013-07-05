@@ -17,6 +17,9 @@ namespace spirsim
       size_t dest;
       size_t src;
       size_t size;
+      size_t num;
+      size_t srcStride;
+      size_t destStride;
 
       bool operator== (_AsyncCopy) const;
     } AsyncCopy;

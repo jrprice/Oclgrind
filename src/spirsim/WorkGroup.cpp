@@ -243,12 +243,17 @@ void WorkGroup::run(const Kernel& kernel, bool outputInstructions)
             srcMem = m_localMemory;
           }
 
-          // TODO: Strided copies
+          size_t src = itr->src;
+          size_t dest = itr->dest;
           unsigned char *buffer = new unsigned char[itr->size];
-          // TODO: Check result of load/store and produce error message
-          // TODO: Support for direct copying in Memory class
-          srcMem->load(buffer, itr->src, itr->size);
-          destMem->store(buffer, itr->dest, itr->size);
+          for (int i = 0; i < itr->num; i++)
+          {
+            // TODO: Check result of load/store and produce error message
+            srcMem->load(buffer, src, itr->size);
+            destMem->store(buffer, dest, itr->size);
+            src += itr->srcStride * itr->size;
+            dest += itr->destStride * itr->size;
+          }
           delete[] buffer;
         }
         m_pendingEvents.erase(*eItr);

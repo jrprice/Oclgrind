@@ -824,35 +824,56 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t r = min(a,b);
     memcpy(result.data, &r, result.size);
   }
-  else if (name == "async_work_group_copy")
+  else if (name == "async_work_group_copy" ||
+           name == "async_work_group_strided_copy")
   {
-    const llvm::Value *destOp = callInst->getArgOperand(0);
-    const llvm::Value *srcOp = callInst->getArgOperand(1);
+    int arg = 0;
+
+    // Get src/dest addresses
+    const llvm::Value *destOp = callInst->getArgOperand(arg++);
+    const llvm::Value *srcOp = callInst->getArgOperand(arg++);
     size_t dest = *(size_t*)(m_privateMemory[destOp].data);
     size_t src = *(size_t*)(m_privateMemory[srcOp].data);
-    uint64_t size = getUnsignedInt(callInst->getArgOperand(2)) *
-      getTypeSize(destOp->getType()->getPointerElementType());
-    uint64_t event = getUnsignedInt(callInst->getArgOperand(3));
 
-    // TODO: Strided
+    // Get size of copy
+    size_t elemSize = getTypeSize(destOp->getType()->getPointerElementType());
+    uint64_t num = getUnsignedInt(callInst->getArgOperand(arg++));
+
+    // Get stride
+    uint64_t stride = 1;
+    size_t srcStride = 1;
+    size_t destStride = 1;
+    if (name == "async_work_group_strided_copy")
+    {
+      stride = getUnsignedInt(callInst->getArgOperand(arg++));
+    }
+
+    uint64_t event = getUnsignedInt(callInst->getArgOperand(arg++));
+
+    // Get type of copy
     WorkGroup::AsyncCopyType type;
     if (destOp->getType()->getPointerAddressSpace() == AddrSpaceLocal)
     {
       type = WorkGroup::GLOBAL_TO_LOCAL;
+      srcStride = stride;
     }
     else
     {
       type = WorkGroup::LOCAL_TO_GLOBAL;
+      destStride = stride;
     }
 
+    // Register copy
     WorkGroup::AsyncCopy copy = {
       callInst,
       type,
       dest,
       src,
-      size
+      elemSize,
+      num,
+      srcStride,
+      destStride
     };
-
     event = m_workGroup.async_copy(copy, event);
     setIntResult(result, event);
   }
