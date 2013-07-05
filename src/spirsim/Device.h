@@ -19,7 +19,9 @@ namespace spirsim
 
     Memory *getGlobalMemory() const;
     void run(Kernel& kernel, unsigned int workDim,
-             const size_t *globalSize, const size_t *localSize);
+             const size_t *globalOffset,
+             const size_t *globalSize,
+             const size_t *localSize);
     void setOutputMask(unsigned char mask);
 
   private:

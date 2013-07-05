@@ -21,6 +21,7 @@ using namespace std;
 WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
                      unsigned int workDim,
                      size_t wgid_x, size_t wgid_y, size_t wgid_z,
+                     const size_t globalOffset[3],
                      const size_t globalSize[3],
                      const size_t groupSize[3])
   : m_globalMemory(globalMem)
@@ -29,6 +30,9 @@ WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
   m_groupID[0] = wgid_x;
   m_groupID[1] = wgid_y;
   m_groupID[2] = wgid_z;
+  m_globalOffset[0] = globalOffset[0];
+  m_globalOffset[1] = globalOffset[1];
+  m_globalOffset[2] = globalOffset[2];
   m_globalSize[0] = globalSize[0];
   m_globalSize[1] = globalSize[1];
   m_globalSize[2] = globalSize[2];
@@ -108,6 +112,11 @@ void WorkGroup::dumpPrivateMemory() const
     cout << SMALL_SEPARATOR;
     m_workItems[i]->dumpPrivateMemory();
   }
+}
+
+const size_t* WorkGroup::getGlobalOffset() const
+{
+  return m_globalOffset;
 }
 
 const size_t* WorkGroup::getGlobalSize() const

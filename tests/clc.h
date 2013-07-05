@@ -79,6 +79,7 @@ typedef __attribute__((ext_vector_type(16))) ulong ulong16;
 uint get_work_dim();
 size_t get_global_id(uint dim);
 size_t get_global_size(uint dim);
+size_t get_global_offset(uint dim);
 size_t get_group_id(uint dim);
 size_t get_num_groups(uint dim);
 size_t get_local_id(uint dim);

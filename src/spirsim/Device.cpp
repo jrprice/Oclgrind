@@ -54,13 +54,20 @@ Memory* Device::getGlobalMemory() const
 }
 
 void Device::run(Kernel& kernel, unsigned int workDim,
-                 const size_t *globalSize, const size_t *localSize)
+                 const size_t *globalOffset,
+                 const size_t *globalSize,
+                 const size_t *localSize)
 {
+  size_t offset[3] = {0,0,0};
   size_t ndrange[3] = {1,1,1};
   size_t wgsize[3] = {1,1,1};
   for (int i = 0; i < workDim; i++)
   {
     ndrange[i] = globalSize[i];
+    if (offset)
+    {
+      offset[i] = globalOffset[i];
+    }
     if (localSize)
     {
       wgsize[i] = localSize[i];
@@ -95,7 +102,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
 
         WorkGroup *workGroup = new WorkGroup(kernel, *m_globalMemory,
                                              workDim, i, j, k,
-                                             ndrange, wgsize);
+                                             offset, ndrange, wgsize);
 
         workGroup->run(kernel, m_outputMask & OUTPUT_INSTRUCTIONS);
 

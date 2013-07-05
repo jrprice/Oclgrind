@@ -2762,6 +2762,7 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
   // Run kernel
   command_queue->context->device->run(*kernel->kernel,
                                       work_dim,
+                                      global_work_offset,
                                       global_work_size,
                                       local_work_size);
 

@@ -34,9 +34,10 @@ WorkItem::WorkItem(WorkGroup& workGroup,
   // Compute global ID
   const size_t *groupID = workGroup.getGroupID();
   const size_t *groupSize = workGroup.getGroupSize();
-  m_globalID[0] = lid_x + groupID[0]*groupSize[0];
-  m_globalID[1] = lid_y + groupID[1]*groupSize[1];
-  m_globalID[2] = lid_z + groupID[2]*groupSize[2];
+  const size_t *globalOffset = workGroup.getGlobalOffset();
+  m_globalID[0] = lid_x + groupID[0]*groupSize[0] + globalOffset[0];
+  m_globalID[1] = lid_y + groupID[1]*groupSize[1] + globalOffset[1];
+  m_globalID[2] = lid_z + groupID[2]*groupSize[2] + globalOffset[2];
 
   // Store kernel arguments in private memory
   TypedValueMap::const_iterator argItr;
@@ -781,6 +782,12 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
     assert(dim < 3);
     *((size_t*)result.data) = m_workGroup.getGlobalSize()[dim];
+  }
+  else if (name == "get_global_offset")
+  {
+    uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
+    assert(dim < 3);
+    *((size_t*)result.data) = m_workGroup.getGlobalOffset()[dim];
   }
   else if (name == "get_group_id")
   {

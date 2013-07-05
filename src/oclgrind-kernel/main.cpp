@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
   // Run device
   device->setOutputMask(outputMask);
-  device->run(*kernel, 3, ndrange, wgsize);
+  device->run(*kernel, 3, NULL, ndrange, wgsize);
   delete device;
   delete kernel;
   delete program;
