@@ -876,6 +876,10 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     }
     m_state = WAIT_EVENT;
   }
+  else if (name == "prefetch")
+  {
+    // Do nothing.
+  }
   else if (name.compare(0, 5, "vload") == 0)
   {
     // TODO: Non-integer overloads
