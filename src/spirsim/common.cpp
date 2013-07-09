@@ -23,41 +23,42 @@ namespace spirsim
     return dest;
   }
 
-  void dumpInstruction(const llvm::Instruction& instruction, bool align)
+  void dumpInstruction(ostream& out,
+                       const llvm::Instruction& instruction,
+                       bool align)
   {
-    cout << setfill(' ');
+    out << setfill(' ');
 
-    pair<size_t,size_t> resultSize = getInstructionResultSize(instruction);
+    pair<size_t,size_t> resultSize = getValueSize(&instruction);
     if (resultSize.first > 0)
     {
-      cout << "%" << setw(12) <<  left
-           << instruction.getName().str()
-           << "(" << resultSize.second
-           << "x" << resultSize.first
-           << ") = ";
+      out << "%" << setw(12) <<  left
+          << instruction.getName().str()
+          << "(" << resultSize.second
+          << "x" << resultSize.first
+          << ") = ";
     }
     else if (align)
     {
-      cout << setw(21) << " ";
+      out << setw(21) << " ";
     }
 
-    cout << left << setw(align?14:0) << instruction.getOpcodeName();
+    out << left << setw(align?14:0) << instruction.getOpcodeName();
 
     llvm::User::const_op_iterator opItr;
     for (opItr = instruction.op_begin(); opItr != instruction.op_end(); opItr++)
     {
       // TODO: Constant values
-      cout << " %" << opItr->get()->getName().str();
+      out << " %" << opItr->get()->getName().str();
     }
 
-    cout << right << endl;
+    out << right << endl;
   }
 
-  pair<size_t,size_t> getInstructionResultSize(
-    const llvm::Instruction& instruction)
+  pair<size_t,size_t> getValueSize(const llvm::Value *value)
   {
     size_t bits, numElements;
-    const llvm::Type *type = instruction.getType();
+    const llvm::Type *type = value->getType();
 
     if (type->isVectorTy())
     {

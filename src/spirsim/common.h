@@ -48,16 +48,16 @@ namespace spirsim
   extern TypedValue clone(const TypedValue& source);
 
   // Output an instruction in human-readable format
-  extern void dumpInstruction(const llvm::Instruction& instruction,
+  extern void dumpInstruction(std::ostream& out,
+                              const llvm::Instruction& instruction,
                               bool align=false);
 
   // Creates an instruction from a constant expression
   extern llvm::Instruction* getConstExprAsInstruction(
     const llvm::ConstantExpr *expr);
 
-  // Returns the size of an instruction's result
-  extern std::pair<size_t,size_t> getInstructionResultSize(
-    const llvm::Instruction& instruction);
+  // Returns the size of a value
+  extern std::pair<size_t,size_t> getValueSize(const llvm::Value *value);
 
   // Returns the size of a type
   extern size_t getTypeSize(const llvm::Type *type);

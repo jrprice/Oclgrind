@@ -272,7 +272,7 @@ void WorkItem::enableDebugOutput(bool enable)
 void WorkItem::execute(const llvm::Instruction& instruction)
 {
   // Prepare private variable for instruction result
-  pair<size_t,size_t> resultSize = getInstructionResultSize(instruction);
+  pair<size_t,size_t> resultSize = getValueSize(&instruction);
 
   // TODO: Bitcasting should happen somewhere...
   // Prepare result
@@ -285,7 +285,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Dump instruction sequence
   if (m_debugOutput)
   {
-    dumpInstruction(instruction, true);
+    dumpInstruction(cout, instruction, true);
   }
 
   if (instruction.getOpcode() != llvm::Instruction::PHI &&
@@ -352,7 +352,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
   }
   else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
   {
-    val = getUnsignedInt(
+    val = getFloatValue(
       ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
   }
   else if (id == llvm::Value::UndefValueVal)
@@ -518,7 +518,7 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
        << m_globalID[1] << ","
        << m_globalID[2] << ")"
        << endl << "\t";
-  dumpInstruction(instruction);
+  dumpInstruction(cerr, instruction);
 
   // Output debug information
   cerr << "\t";
@@ -539,7 +539,7 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
 TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
 {
   llvm::Instruction *instruction = getConstExprAsInstruction(expr);
-  pair<size_t,size_t> resultSize = getInstructionResultSize(*instruction);
+  pair<size_t,size_t> resultSize = getValueSize(instruction);
   TypedValue result =
     {
       resultSize.first,
@@ -589,7 +589,7 @@ WorkItem::State WorkItem::step(bool debugOutput)
 
   if (debugOutput)
   {
-    dumpInstruction(*m_currInst, true);
+    dumpInstruction(cout, *m_currInst, true);
   }
 
   // Execute the next instruction
@@ -767,8 +767,37 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     llvm::Function::const_arg_iterator argItr;
     for (argItr = function->arg_begin(); argItr != function->arg_end(); argItr++)
     {
-      TypedValue arg = m_privateMemory[callInst->getArgOperand(i++)];
-      m_privateMemory[argItr] = clone(arg);
+      const llvm::Value *arg = callInst->getArgOperand(i++);
+
+      pair<size_t,size_t> argSize = getValueSize(arg);
+      size_t size = argSize.first * argSize.second;
+      TypedValue value = {
+        argSize.first,
+        argSize.second,
+        new unsigned char[size]
+      };
+
+      unsigned id = arg->getValueID();
+      if (id == llvm::Value::GlobalVariableVal ||
+          id == llvm::Value::ArgumentVal ||
+          id >= llvm::Value::InstructionVal)
+      {
+        memcpy(value.data, m_privateMemory[arg].data, size);
+      }
+      else if (id == llvm::Value::ConstantFPVal)
+      {
+        setFloatResult(value, getFloatValue(arg));
+      }
+      else if (id == llvm::Value::ConstantIntVal)
+      {
+        setIntResult(value, getUnsignedInt(arg));
+      }
+      else
+      {
+        cerr << "Unhandled function argument type " << id << endl;
+      }
+
+      m_privateMemory[argItr] = value;
     }
 
     return;
@@ -1511,21 +1540,29 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
     phiNode->getIncomingValueForBlock((const llvm::BasicBlock*)m_prevBlock);
 
   llvm::Type::TypeID type = value->getType()->getTypeID();
-  switch (type)
+  if (type == llvm::Type::VectorTyID)
   {
-  case llvm::Type::IntegerTyID:
-    setIntResult(result, getUnsignedInt(value));
-    break;
-  case llvm::Type::FloatTyID:
-  case llvm::Type::DoubleTyID:
-    setFloatResult(result, getFloatValue(value));
-    break;
-  case llvm::Type::PointerTyID:
-    memcpy(result.data, m_privateMemory[value].data, result.size);
-    break;
-  default:
-    cerr << "Unhandled type in phi instruction: " << type << endl;
-    break;
+    type = value->getType()->getVectorElementType()->getTypeID();
+  }
+
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (type)
+    {
+    case llvm::Type::IntegerTyID:
+      setIntResult(result, getUnsignedInt(value), i);
+      break;
+    case llvm::Type::FloatTyID:
+    case llvm::Type::DoubleTyID:
+      setFloatResult(result, getFloatValue(value), i);
+      break;
+    case llvm::Type::PointerTyID:
+      memcpy(result.data, m_privateMemory[value].data, result.size);
+      break;
+    default:
+      cerr << "Unhandled type in phi instruction: " << type << endl;
+      break;
+    }
   }
 }
 

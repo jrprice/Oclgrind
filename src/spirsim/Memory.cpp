@@ -1,6 +1,7 @@
 #include "common.h"
 #include <cassert>
 #include <cmath>
+#include <cstring>
 
 #include "Memory.h"
 
