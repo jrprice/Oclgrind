@@ -64,7 +64,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   for (int i = 0; i < workDim; i++)
   {
     ndrange[i] = globalSize[i];
-    if (offset)
+    if (globalOffset)
     {
       offset[i] = globalOffset[i];
     }
@@ -103,7 +103,6 @@ void Device::run(Kernel& kernel, unsigned int workDim,
         WorkGroup *workGroup = new WorkGroup(kernel, *m_globalMemory,
                                              workDim, i, j, k,
                                              offset, ndrange, wgsize);
-
         workGroup->run(kernel, m_outputMask & OUTPUT_INSTRUCTIONS);
 
         // Dump contents of memories
