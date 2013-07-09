@@ -815,7 +815,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     assert(dim < 3);
     *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
   }
-  else if (name == "fabsf")
+  else if (name == "fabsf" || name == "fabs")
   {
     double x = getFloatValue(callInst->getArgOperand(0));
     setFloatResult(result, fabsf(x));
@@ -836,11 +836,22 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t r = min(a,b);
     memcpy(result.data, &r, result.size);
   }
+  else if (name == "native_divide")
+  {
+    double a = getFloatValue(callInst->getArgOperand(0));
+    double b = getFloatValue(callInst->getArgOperand(1));
+    setFloatResult(result, a / b);
+  }
   else if (name == "nextafter")
   {
     double a = getFloatValue(callInst->getArgOperand(0));
     double b = getFloatValue(callInst->getArgOperand(1));
     setFloatResult(result, nextafterf(a, b));
+  }
+  else if (name == "sqrt" || name == "native_sqrt")
+  {
+    double a = getFloatValue(callInst->getArgOperand(0));
+    setFloatResult(result, sqrt(a));
   }
   else if (name == "async_work_group_copy" ||
            name == "async_work_group_strided_copy")
