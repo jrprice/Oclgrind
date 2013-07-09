@@ -815,6 +815,11 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     assert(dim < 3);
     *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
   }
+  else if (name == "fabsf")
+  {
+    double x = getFloatValue(callInst->getArgOperand(0));
+    setFloatResult(result, fabs(x));
+  }
   else if (name == "hadd")
   {
     // TODO: Non-integer overloads
@@ -1104,8 +1109,7 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
     double a = getFloatValue(instruction.getOperand(0), i);
     double b = getFloatValue(instruction.getOperand(1), i);
 
-    // TODO: Consider nans in ordered comparisons?
-    // TODO: Implement unordered comparisons
+    // TODO: Consider nans in comparisons?
     uint64_t r;
     switch (pred)
     {
@@ -1127,8 +1131,26 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
     case llvm::CmpInst::FCMP_OLE:
       r = a <= b;
       break;
+    case llvm::CmpInst::FCMP_UEQ:
+      r = a == b;
+      break;
+    case llvm::CmpInst::FCMP_UNE:
+      r = a != b;
+      break;
+    case llvm::CmpInst::FCMP_UGT:
+      r = a > b;
+      break;
+    case llvm::CmpInst::FCMP_UGE:
+      r = a >= b;
+      break;
+    case llvm::CmpInst::FCMP_ULT:
+      r = a < b;
+      break;
+    case llvm::CmpInst::FCMP_ULE:
+      r = a <= b;
+      break;
     default:
-      cerr << "Unhandled FCmp predicate." << endl;
+      cerr << "Unhandled FCmp predicate " << pred << endl;
       break;
     }
 

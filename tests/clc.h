@@ -117,6 +117,11 @@ typedef __attribute__((ext_vector_type(16))) ulong ulong16;
 #define M_SQRT2_F     1.41421356237309504880168872420969808f   /* sqrt(2) */
 #define M_SQRT1_2_F   0.707106781186547524400844362104849039f  /* 1/sqrt(2) */
 
+#define MAXFLOAT ((float)3.40282346638528860e+38)
+#define HUGE_VALF __builtin_huge_valf()
+#define INFINITY __builtin_inff()
+#define NAN __builtin_nanf((const char*)"")
+
 #define __OVERLOAD__ __attribute__((__overloadable__))
 
 uint get_work_dim();
@@ -553,6 +558,11 @@ void __OVERLOAD__ vstore16(float16, size_t, __private float*);
 #define as_float4( _x )  __builtin_astype( _x, float4 )
 #define as_float8( _x )  __builtin_astype( _x, float8 )
 #define as_float16( _x )  __builtin_astype( _x, float16 )
+
+#define isinf( _x ) __builtin_isinf( _x )
+#define isnan( _x ) __builtin_isnan( _x )
+#define isnormal( _x ) __builtin_isnormal( _x )
+#define nextafter( _x, _y ) __builtin_nextafter( _x, _y )
 
 event_t __OVERLOAD__ async_work_group_copy(__local char*, const __global char*, size_t, event_t);
 event_t __OVERLOAD__ async_work_group_copy(__local char2*, const __global char2*, size_t, event_t);
