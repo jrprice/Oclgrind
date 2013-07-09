@@ -818,7 +818,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   else if (name == "fabsf")
   {
     double x = getFloatValue(callInst->getArgOperand(0));
-    setFloatResult(result, fabs(x));
+    setFloatResult(result, fabsf(x));
   }
   else if (name == "hadd")
   {
@@ -835,6 +835,12 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t b = getUnsignedInt(callInst->getArgOperand(1));
     uint64_t r = min(a,b);
     memcpy(result.data, &r, result.size);
+  }
+  else if (name == "nextafter")
+  {
+    double a = getFloatValue(callInst->getArgOperand(0));
+    double b = getFloatValue(callInst->getArgOperand(1));
+    setFloatResult(result, nextafterf(a, b));
   }
   else if (name == "async_work_group_copy" ||
            name == "async_work_group_strided_copy")
@@ -1040,7 +1046,6 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       break;
     }
 
-    bool success = true;
     unsigned char *buffer = new unsigned char[size];
     if (!srcMemory->load(buffer, src, size))
     {
@@ -1051,6 +1056,41 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     {
       outputMemoryError(instruction, "Invalid write",
                         destAddrSpace, dest, size);
+    }
+    delete[] buffer;
+  }
+  else if (name.compare(0, 11, "llvm.memset") == 0)
+  {
+    const llvm::MemSetInst *memsetinst = (const llvm::MemSetInst*)callInst;
+    size_t dest = *(size_t*)(m_privateMemory[memsetinst->getDest()].data);
+    size_t size = getUnsignedInt(memsetinst->getLength());
+    unsigned addressSpace = memsetinst->getDestAddressSpace();
+
+    Memory *mem = NULL;
+    switch (addressSpace)
+    {
+    case AddrSpacePrivate:
+      mem = m_stack;
+      break;
+    case AddrSpaceGlobal:
+    case AddrSpaceConstant:
+      mem = &m_globalMemory;
+      break;
+    case AddrSpaceLocal:
+      mem = m_workGroup.getLocalMemory();
+      break;
+    default:
+      cerr << "Unhandled address space '" << addressSpace << "'" << endl;
+      break;
+    }
+
+    unsigned char *buffer = new unsigned char[size];
+    unsigned char value = getUnsignedInt(memsetinst->getArgOperand(1));
+    memset(buffer, value, size);
+    if (!mem->store(buffer, dest, size))
+    {
+      outputMemoryError(instruction, "Invalid write",
+                        addressSpace, dest, size);
     }
     delete[] buffer;
   }
