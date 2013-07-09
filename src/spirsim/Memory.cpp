@@ -19,10 +19,7 @@ using namespace std;
 
 Memory::Memory()
 {
-  m_totalAllocated = 0;
-
-  // Reserve first buffer as a makeshift 'NULL'
-  m_memory[0].data = new unsigned char[0];
+  clear();
 }
 
 Memory::~Memory()
@@ -75,6 +72,10 @@ void Memory::clear()
   m_memory.clear();
   m_freeBuffers = queue<int>();
   m_totalAllocated = 0;
+
+  // Reserve first buffer as a makeshift 'NULL'
+  m_memory[0].data = new unsigned char[0];
+
 }
 
 Memory* Memory::clone() const
