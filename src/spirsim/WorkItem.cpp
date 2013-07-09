@@ -154,8 +154,7 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     ptrtoint(instruction, result);
     break;
   case llvm::Instruction::Ret:
-    // TODO: ret from functions that aren't the kernel
-    m_nextBlock = NULL;
+    ret(instruction, result);
     break;
   case llvm::Instruction::SDiv:
     sdiv(instruction, result);
@@ -597,7 +596,7 @@ WorkItem::State WorkItem::step(bool debugOutput)
   execute(*m_currInst);
 
   // Check if we've reached the end of the block
-  if (++m_currInst == m_currBlock->end())
+  if (++m_currInst == m_currBlock->end() || m_nextBlock)
   {
     if (m_nextBlock)
     {
@@ -606,11 +605,6 @@ WorkItem::State WorkItem::step(bool debugOutput)
       m_currBlock = m_nextBlock;
       m_nextBlock = NULL;
       m_currInst = m_currBlock->begin();
-    }
-    else
-    {
-      // We've reached the end of the function
-      m_state = FINISHED;
     }
   }
 
@@ -758,6 +752,26 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   {
     name = fullname;
     overload = "";
+  }
+
+  // Check if function has definition
+  if (!function->isDeclaration())
+  {
+    ReturnAddress ret(m_currBlock, m_currInst);
+    m_callStack.push(ret);
+
+    m_nextBlock = function->begin();
+
+    // Set function arguments
+    int i = 0;
+    llvm::Function::const_arg_iterator argItr;
+    for (argItr = function->arg_begin(); argItr != function->arg_end(); argItr++)
+    {
+      TypedValue arg = m_privateMemory[callInst->getArgOperand(i++)];
+      m_privateMemory[argItr] = clone(arg);
+    }
+
+    return;
   }
 
   // TODO: Implement more builtin functions
@@ -1522,6 +1536,31 @@ void WorkItem::ptrtoint(const llvm::Instruction& instruction, TypedValue& result
   {
     uint64_t r = getUnsignedInt(instruction.getOperand(0), i);
     setIntResult(result, r, i);
+  }
+}
+
+void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
+{
+  const llvm::ReturnInst *retInst = (const llvm::ReturnInst*)&instruction;
+
+  if (!m_callStack.empty())
+  {
+    ReturnAddress ret = m_callStack.top();
+    m_callStack.pop();
+    m_currBlock = ret.first;
+    m_currInst = ret.second;
+
+    // Set return value
+    const llvm::Value *returnVal = retInst->getReturnValue();
+    if (returnVal)
+    {
+      m_privateMemory[m_currInst] = clone(m_privateMemory[returnVal]);
+    }
+  }
+  else
+  {
+    m_nextBlock = NULL;
+    m_state = FINISHED;
   }
 }
 

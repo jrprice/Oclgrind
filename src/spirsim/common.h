@@ -8,6 +8,7 @@
 #include <map>
 #include <queue>
 #include <set>
+#include <stack>
 #include <vector>
 
 #define BIG_SEPARATOR   "================================"

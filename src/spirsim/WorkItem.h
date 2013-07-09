@@ -74,6 +74,7 @@ namespace spirsim
     void mul(const llvm::Instruction& instruction, TypedValue& result);
     void phi(const llvm::Instruction& instruction, TypedValue& result);
     void ptrtoint(const llvm::Instruction& instruction, TypedValue& result);
+    void ret(const llvm::Instruction& instruction, TypedValue& result);
     void sdiv(const llvm::Instruction& instruction, TypedValue& result);
     void select(const llvm::Instruction& instruction, TypedValue& result);
     void sext(const llvm::Instruction& instruction, TypedValue& result);
@@ -100,12 +101,15 @@ namespace spirsim
     Memory& m_globalMemory;
     WorkGroup& m_workGroup;
 
+    typedef std::pair<llvm::Function::const_iterator,
+              llvm::BasicBlock::const_iterator> ReturnAddress;
+
     State m_state;
     llvm::Function::const_iterator m_prevBlock;
     llvm::Function::const_iterator m_currBlock;
     llvm::Function::const_iterator m_nextBlock;
     llvm::BasicBlock::const_iterator m_currInst;
-
+    std::stack<ReturnAddress> m_callStack;
     bool m_debugOutput;
   };
 }
