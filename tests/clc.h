@@ -72,7 +72,50 @@ typedef __attribute__((ext_vector_type(16))) ulong ulong16;
 
 #define CLK_LOCAL_MEM_FENCE 1<<0
 #define CLK_GLOBAL_MEM_FENCE 1<<1
-#define FLT_MAX 1E+37
+
+#define CHAR_BIT    8
+#define	SCHAR_MAX	127		/* min value for a signed char */
+#define	SCHAR_MIN	(-128)		/* max value for a signed char */
+#define	UCHAR_MAX	255		/* max value for an unsigned char */
+#define	CHAR_MAX	SCHAR_MAX		/* max value for a char */
+#define	CHAR_MIN	SCHAR_MIN		/* min value for a char */
+#define	USHRT_MAX	65535		/* max value for an unsigned short */
+#define	SHRT_MAX	32767		/* max value for a short */
+#define	SHRT_MIN	(-32768)	/* min value for a short */
+#define	UINT_MAX	0xffffffff	/* max value for an unsigned int */
+#define	INT_MAX		2147483647	/* max value for an int */
+#define	INT_MIN		(-2147483647-1)	/* min value for an int */
+#define	ULONG_MAX	0xffffffffffffffffUL	/* max unsigned long */
+#define	LONG_MAX	((long)0x7fffffffffffffffL)	/* max signed long */
+#define	LONG_MIN	((long)(-0x7fffffffffffffffL-1)) /* min signed long */
+
+#define FLT_DIG         6
+#define FLT_MANT_DIG    24
+#define FLT_MAX_10_EXP  +38
+#define FLT_MAX_EXP     +128
+#define FLT_MIN_10_EXP  -37
+#define FLT_MIN_EXP     -125
+#define FLT_RADIX       2
+#define FLT_MAX         0x1.fffffep127f
+#define FLT_MIN         0x1.0p-126f
+#define FLT_EPSILON     0x1.0p-23f
+
+#define FP_ILOGB0       INT_MIN
+#define FP_ILOGBNAN     INT_MIN
+
+#define M_E_F         2.71828182845904523536028747135266250f   /* e */
+#define M_LOG2E_F     1.44269504088896340735992468100189214f   /* log 2e */
+#define M_LOG10E_F    0.434294481903251827651128918916605082f  /* log 10e */
+#define M_LN2_F       0.693147180559945309417232121458176568f  /* log e2 */
+#define M_LN10_F      2.3025850929940456840179914546843642f    /* log e10 */
+#define M_PI_F        3.14159265358979323846264338327950288f   /* pi */
+#define M_PI_2_F      1.57079632679489661923132169163975144f   /* pi/2 */
+#define M_PI_4_F      0.785398163397448309615660845819875721f  /* pi/4 */
+#define M_1_PI_F      0.318309886183790671537767526745028724f  /* 1/pi */
+#define M_2_PI_F      0.636619772367581343075535053490057448f  /* 2/pi */
+#define M_2_SQRTPI_F  1.12837916709551257389615890312154517f   /* 2/sqrt(pi) */
+#define M_SQRT2_F     1.41421356237309504880168872420969808f   /* sqrt(2) */
+#define M_SQRT1_2_F   0.707106781186547524400844362104849039f  /* 1/sqrt(2) */
 
 #define __OVERLOAD__ __attribute__((__overloadable__))
 
