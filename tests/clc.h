@@ -139,8 +139,13 @@ float dot(float a, float b);
 float fabs(float x);
 int hadd(int x, int y);
 int min(int a, int b);
+float __OVERLOAD__ native_divide(float a, float b);
+float3 __OVERLOAD__ native_divide(float3 a, float3 b);
+float native_exp(float x);
+float native_powr(float a, float b);
 float native_sqrt(float x);
 float sin(float x);
+float sqrt(float x);
 
 char2 __OVERLOAD__ vload2(size_t, char*);
 char2 __OVERLOAD__ vload2(size_t, __local char*);
