@@ -901,6 +901,17 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       setFloatResult(result, a / b, i);
     }
   }
+  else if (name == "native_exp")
+  {
+    double x = getFloatValue(callInst->getArgOperand(0));
+    setFloatResult(result, exp(x));
+  }
+  else if (name == "native_powr")
+  {
+    double a = getFloatValue(callInst->getArgOperand(0));
+    double b = getFloatValue(callInst->getArgOperand(1));
+    setFloatResult(result, pow(a, b));
+  }
   else if (name == "nextafter")
   {
     double a = getFloatValue(callInst->getArgOperand(0));
