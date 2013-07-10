@@ -73,6 +73,13 @@ typedef __attribute__((ext_vector_type(16))) ulong ulong16;
 #define CLK_LOCAL_MEM_FENCE 1<<0
 #define CLK_GLOBAL_MEM_FENCE 1<<1
 
+#define __ENDIAN_LITTLE__ 1
+#define __OPENCL_VERSION__ 120
+#define __OPENCL_C_VERSION__ 120
+#define __kernel_exec(X, typen) __kernel                        \
+  __attribute__((work_group_size_hint(X, 1, 1)))                \
+  __attribute__((vec_type_hint(typen)))
+
 #define CHAR_BIT    8
 #define	SCHAR_MAX	127		/* min value for a signed char */
 #define	SCHAR_MIN	(-128)		/* max value for a signed char */
