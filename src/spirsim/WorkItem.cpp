@@ -319,6 +319,10 @@ void WorkItem::execute(const llvm::Instruction& instruction)
       m_phiTemps[&instruction] = result;
     }
   }
+  else
+  {
+    delete[] result.data;
+  }
 }
 
 const size_t* WorkItem::getGlobalID() const
