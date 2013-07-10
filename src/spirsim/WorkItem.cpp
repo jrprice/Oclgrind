@@ -894,9 +894,12 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
   else if (name == "native_divide")
   {
-    double a = getFloatValue(callInst->getArgOperand(0));
-    double b = getFloatValue(callInst->getArgOperand(1));
-    setFloatResult(result, a / b);
+    for (int i = 0; i < result.num; i++)
+    {
+      double a = getFloatValue(callInst->getArgOperand(0), i);
+      double b = getFloatValue(callInst->getArgOperand(1), i);
+      setFloatResult(result, a / b, i);
+    }
   }
   else if (name == "nextafter")
   {
