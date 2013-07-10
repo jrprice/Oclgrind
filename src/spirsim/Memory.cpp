@@ -26,6 +26,8 @@ Memory::Memory()
 Memory::~Memory()
 {
   clear();
+
+  delete[] m_memory[0].data;
 }
 
 size_t Memory::allocateBuffer(size_t size)
@@ -76,7 +78,6 @@ void Memory::clear()
 
   // Reserve first buffer as a makeshift 'NULL'
   m_memory[0].data = new unsigned char[0];
-
 }
 
 Memory* Memory::clone() const
