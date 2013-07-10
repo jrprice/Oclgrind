@@ -611,6 +611,15 @@ WorkItem::State WorkItem::step(bool debugOutput)
   return m_state;
 }
 
+void WorkItem::trap()
+{
+  cerr << "Work-item (" << dec
+       << m_globalID[0] << ","
+       << m_globalID[1] << ","
+       << m_globalID[2] << ") terminated unexpectedly." << endl;
+  m_state = FINISHED;
+}
+
 void WorkItem::updateVariable(const llvm::DbgValueInst *instruction)
 {
   const llvm::Value *value = instruction->getValue();
@@ -1147,6 +1156,10 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
                         addressSpace, dest, size);
     }
     delete[] buffer;
+  }
+  else if (name == "llvm.trap")
+  {
+    trap();
   }
   else if (name == "llvm.dbg.declare")
   {
