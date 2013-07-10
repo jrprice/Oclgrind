@@ -1183,6 +1183,14 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   {
     // TODO: Implement?
   }
+  else if (name == "llvm.lifetime.start")
+  {
+    // TODO: Implement?
+  }
+  else if (name == "llvm.lifetime.end")
+  {
+    // TODO: Implement?
+  }
   else if (name == "llvm.dbg.value")
   {
     updateVariable((const llvm::DbgValueInst*)callInst);
