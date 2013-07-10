@@ -88,6 +88,7 @@ namespace spirsim
     void swtch(const llvm::Instruction& instruction);
     void trunc(const llvm::Instruction& instruction, TypedValue& result);
     void udiv(const llvm::Instruction& instruction, TypedValue& result);
+    void uitofp(const llvm::Instruction& instruction, TypedValue& result);
     void urem(const llvm::Instruction& instruction, TypedValue& result);
     void zext(const llvm::Instruction& instruction, TypedValue& result);
 

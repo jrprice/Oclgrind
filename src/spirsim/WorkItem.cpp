@@ -192,6 +192,9 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   case llvm::Instruction::UDiv:
     udiv(instruction, result);
     break;
+  case llvm::Instruction::UIToFP:
+    uitofp(instruction, result);
+    break;
   case llvm::Instruction::URem:
     urem(instruction, result);
     break;
@@ -1878,6 +1881,16 @@ void WorkItem::udiv(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
     uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
     setIntResult(result, a / b, i);
+  }
+}
+
+void WorkItem::uitofp(const llvm::Instruction& instruction, TypedValue& result)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
+    double r = (double)getUnsignedInt(instruction.getOperand(0), i);
+    setFloatResult(result, r, i);
   }
 }
 
