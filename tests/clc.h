@@ -142,7 +142,8 @@ size_t get_local_size(uint dim);
 
 void barrier(uint);
 float cos(float x);
-float dot(float a, float b);
+float __OVERLOAD__ dot(float a, float b);
+float __OVERLOAD__ dot(float4 a, float4 b);
 float fabs(float x);
 int hadd(int x, int y);
 int min(int a, int b);
@@ -152,6 +153,7 @@ float native_exp(float x);
 float native_powr(float a, float b);
 float native_sqrt(float x);
 float sin(float x);
+float sincos(float x, float *cosval);
 float sqrt(float x);
 
 char2 __OVERLOAD__ vload2(size_t, char*);

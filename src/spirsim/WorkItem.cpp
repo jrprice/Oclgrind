@@ -874,6 +874,17 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     assert(dim < 3);
     *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
   }
+  else if (name == "dot")
+  {
+    double r = 0.f;
+    for (int i = 0; i < result.num; i++)
+    {
+      double a = getFloatValue(callInst->getArgOperand(0), i);
+      double b = getFloatValue(callInst->getArgOperand(1), i);
+      r += a * b;
+    }
+    setFloatResult(result, r);
+  }
   else if (name == "fabsf" || name == "fabs")
   {
     double x = getFloatValue(callInst->getArgOperand(0));
@@ -920,6 +931,14 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     double a = getFloatValue(callInst->getArgOperand(0));
     double b = getFloatValue(callInst->getArgOperand(1));
     setFloatResult(result, nextafterf(a, b));
+  }
+  else if (name == "sincos")
+  {
+    double x = getFloatValue(callInst->getArgOperand(0));
+    size_t cv = getUnsignedInt(callInst->getArgOperand(1));
+    setFloatResult(result, cos(x));
+    m_stack->store(result.data, cv, result.size);
+    setFloatResult(result, sin(x));
   }
   else if (name == "sqrt" || name == "native_sqrt")
   {
