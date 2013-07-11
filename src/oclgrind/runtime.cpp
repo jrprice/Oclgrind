@@ -29,6 +29,7 @@ static struct _cl_device_id *m_device = NULL;
 #define DEVICE_VENDOR_ID 0x0042
 #define DEVICE_VERSION "OpenCL 1.2"
 #define DRIVER_VERSION "0.1"
+#define DEVICE_PROFILE "FULL_PROFILE"
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformIDs(cl_uint           num_entries ,
@@ -336,28 +337,34 @@ clGetDeviceInfo(cl_device_id    device,
     result_data = new cl_command_queue_properties(CL_QUEUE_PROFILING_ENABLE);
     break;
   case CL_DEVICE_NAME:
-    result_data = strdup(DEVICE_NAME);
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = strlen(DEVICE_NAME) + 1;
+    result_data = new char[result_size];
+    strcpy((char*)result_data, DEVICE_NAME);
     break;
   case CL_DEVICE_VENDOR:
-    result_data = strdup(DEVICE_VENDOR);
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = strlen(DEVICE_VENDOR) + 1;
+    result_data = new char[result_size];
+    strcpy((char*)result_data, DEVICE_VENDOR);
     break;
   case CL_DRIVER_VERSION:
-    result_data = strdup(DRIVER_VERSION);
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = sizeof(DRIVER_VERSION);
+    result_data = new char[result_size];
+    strcpy((char*)result_data, DRIVER_VERSION);
     break;
   case CL_DEVICE_PROFILE:
-    result_data = strdup("FULL_PROFILE");
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = sizeof(DEVICE_PROFILE);
+    result_data = new char[result_size];
+    strcpy((char*)result_data, DEVICE_PROFILE);
     break;
   case CL_DEVICE_VERSION:
-    result_data = strdup(DEVICE_VERSION);
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = sizeof(DEVICE_VERSION);
+    result_data = new char[result_size];
+    strcpy((char*)result_data, DEVICE_VERSION);
     break;
   case CL_DEVICE_EXTENSIONS:
-    result_data = strdup("");
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = sizeof("");
+    result_data = new char[result_size];
+    strcpy((char*)result_data, "");
     break;
   case CL_DEVICE_PLATFORM:
     result_size = sizeof(cl_platform_id);
@@ -404,16 +411,18 @@ clGetDeviceInfo(cl_device_id    device,
     result_data = new cl_uint(0);
     break;
   case CL_DEVICE_OPENCL_C_VERSION:
-    result_data = strdup(DEVICE_VERSION);
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = sizeof(DEVICE_VERSION);
+    result_data = new char[result_size];
+    strcpy((char*)result_data, DEVICE_VERSION);
     break;
   case CL_DEVICE_LINKER_AVAILABLE:
     result_size = sizeof(cl_bool);
     result_data = new cl_bool(CL_TRUE);
     break;
   case CL_DEVICE_BUILT_IN_KERNELS:
-    result_data = strdup("");
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = sizeof("");
+    result_data = new char[result_size];
+    strcpy((char*)result_data, "");
     break;
   case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
     result_size = sizeof(size_t);
@@ -478,7 +487,7 @@ clGetDeviceInfo(cl_device_id    device,
     *param_value_size_ret = result_size;
   }
 
-  free(result_data);
+  delete[] result_data;
 
   return return_value;
 }
@@ -837,7 +846,7 @@ clGetCommandQueueInfo(cl_command_queue       command_queue ,
     *param_value_size_ret = result_size;
   }
 
-  free(result_data);
+  delete[] result_data;
 
   return return_value;
 }
@@ -1106,7 +1115,7 @@ clGetMemObjectInfo(cl_mem            memobj ,
     *param_value_size_ret = result_size;
   }
 
-  free(result_data);
+  delete[] result_data;
 
   return return_value;
 }
@@ -1452,8 +1461,9 @@ clGetProgramInfo(cl_program          program ,
     result_data = new cl_device_id(m_device);
     break;
   case CL_PROGRAM_SOURCE:
-    result_data = strdup(program->program->getSource().c_str());
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = strlen(program->program->getSource().c_str()) + 1;
+    result_data = new char[result_size];
+    strcpy((char*)result_data, program->program->getSource().c_str());
     break;
   case CL_PROGRAM_BINARY_SIZES:
     result_size = sizeof(size_t);
@@ -1480,8 +1490,9 @@ clGetProgramInfo(cl_program          program ,
     {
       ret.erase(ret.length()-1);
     }
-    result_data = strdup(ret.c_str());
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = strlen(ret.c_str()) + 1;
+    result_data = new char[result_size];
+    strcpy((char*)result_data, ret.c_str());
     break;
   }
   default:
@@ -1515,7 +1526,7 @@ clGetProgramInfo(cl_program          program ,
     *param_value_size_ret = result_size;
   }
 
-  free(result_data);
+  delete[] result_data;
 
   return return_value;
 }
@@ -1544,12 +1555,14 @@ clGetProgramBuildInfo(cl_program             program ,
     result_data = new cl_build_status(program->program->getBuildStatus());
     break;
   case CL_PROGRAM_BUILD_OPTIONS:
-    result_data = strdup(program->program->getBuildOptions().c_str());
-    result_size = (strlen((char*)result_data)+1) * sizeof(char);
+    result_size = strlen(program->program->getBuildOptions().c_str()) + 1;
+    result_data = new char[result_size];
+    strcpy((char*)result_data, program->program->getBuildOptions().c_str());
     break;
   case CL_PROGRAM_BUILD_LOG:
-    result_data = strdup(program->program->getBuildLog().c_str());
-    result_size = (strlen((char*)result_data)+1) * sizeof(char);
+    result_size = strlen(program->program->getBuildLog().c_str()) + 1;
+    result_data = new char[result_size];
+    strcpy((char*)result_data, program->program->getBuildLog().c_str());
     break;
   case CL_PROGRAM_BINARY_TYPE:
     result_size = sizeof(cl_program_binary_type);
@@ -1579,7 +1592,7 @@ clGetProgramBuildInfo(cl_program             program ,
     *param_value_size_ret = result_size;
   }
 
-  free(result_data);
+  delete[] result_data;
 
   return return_value;
 }
@@ -1759,8 +1772,9 @@ clGetKernelInfo(cl_kernel        kernel ,
   switch (param_name)
   {
   case CL_KERNEL_FUNCTION_NAME:
-    result_data = strdup(kernel->kernel->getName().c_str());
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = strlen(kernel->kernel->getName().c_str()) + 1;
+    result_data = new char[result_size];
+    strcpy((char*)result_data, kernel->kernel->getName().c_str());
     break;
   case CL_KERNEL_NUM_ARGS:
     result_size = sizeof(cl_uint);
@@ -1779,8 +1793,9 @@ clGetKernelInfo(cl_kernel        kernel ,
     result_data = new cl_program(kernel->program);
     break;
   case CL_KERNEL_ATTRIBUTES:
-    result_data = strdup(""); // TODO: Attributes
-    result_size = (strlen((char*)result_data)+1)*sizeof(char);
+    result_size = strlen("") + 1;
+    result_data = new char[result_size];
+    strcpy((char*)result_data, "");
     break;
   default:
     return CL_INVALID_VALUE;
@@ -1805,7 +1820,7 @@ clGetKernelInfo(cl_kernel        kernel ,
     *param_value_size_ret = result_size;
   }
 
-  free(result_data);
+  delete[] result_data;
 
   return return_value;
 
@@ -1893,7 +1908,7 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
     *param_value_size_ret = result_size;
   }
 
-  free(result_data);
+  delete[] result_data;
 
   return return_value;
 }
@@ -1973,7 +1988,7 @@ clGetEventInfo(cl_event          event ,
     *param_value_size_ret = result_size;
   }
 
-  free(result_data);
+  delete[] result_data;
 
   return return_value;
 }
