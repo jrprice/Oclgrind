@@ -672,7 +672,7 @@ clGetContextInfo(cl_context         context,
     break;
   case CL_CONTEXT_PROPERTIES:
     result_size = context->szProperties;
-    result_data = malloc(result_size);
+    result_data = new unsigned char[result_size];
     memcpy(result_data, context->properties, result_size);
     break;
   default:
@@ -698,7 +698,7 @@ clGetContextInfo(cl_context         context,
     *param_value_size_ret = result_size;
   }
 
-  free(result_data);
+  delete[] result_data;
 
   return return_value;
 }
