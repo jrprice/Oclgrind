@@ -150,7 +150,6 @@ clGetDeviceInfo(cl_device_id    device,
 {
   size_t result_size = 0;
   void *result_data = NULL;
-  bool array = false;
 
   // Check device is valid
   if (device != m_device)
@@ -162,317 +161,372 @@ clGetDeviceInfo(cl_device_id    device,
   {
   case CL_DEVICE_TYPE:
     result_size = sizeof(cl_device_type);
-    result_data = new cl_device_type(CL_DEVICE_TYPE_CPU);
+    result_data = malloc(result_size);
+    *(cl_device_type*)result_data = CL_DEVICE_TYPE_CPU;
     break;
   case CL_DEVICE_VENDOR_ID:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(DEVICE_VENDOR_ID);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = DEVICE_VENDOR_ID;
     break;
   case CL_DEVICE_MAX_COMPUTE_UNITS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(3);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 3;
     break;
   case CL_DEVICE_MAX_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(MAX_WI_SIZE);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = MAX_WI_SIZE;
     break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES:
     result_size = 3*sizeof(size_t);
-    result_data = new size_t[3];
+    result_data = malloc(result_size);
     ((size_t*)result_data)[0] = MAX_WI_SIZE;
     ((size_t*)result_data)[1] = MAX_WI_SIZE;
     ((size_t*)result_data)[2] = MAX_WI_SIZE;
-    array = true;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_MAX_CLOCK_FREQUENCY:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_ADDRESS_BITS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(sizeof(size_t)<<3);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = sizeof(size_t)<<3;
     break;
   case CL_DEVICE_MAX_READ_IMAGE_ARGS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_MAX_WRITE_IMAGE_ARGS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
     result_size = sizeof(size_t);
-    result_data = new cl_ulong(MAX_GLOBAL_MEM_SIZE);
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = MAX_GLOBAL_MEM_SIZE;
     break;
   case CL_DEVICE_IMAGE2D_MAX_WIDTH:
     result_size = sizeof(size_t);
-    result_data = new size_t(0);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 0;
     break;
   case CL_DEVICE_IMAGE2D_MAX_HEIGHT:
     result_size = sizeof(size_t);
-    result_data = new size_t(0);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 0;
     break;
   case CL_DEVICE_IMAGE3D_MAX_WIDTH:
     result_size = sizeof(size_t);
-    result_data = new size_t(0);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 0;
     break;
   case CL_DEVICE_IMAGE3D_MAX_HEIGHT:
     result_size = sizeof(size_t);
-    result_data = new size_t(0);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 0;
     break;
   case CL_DEVICE_IMAGE3D_MAX_DEPTH:
     result_size = sizeof(size_t);
-    result_data = new size_t(0);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 0;
     break;
   case CL_DEVICE_IMAGE_SUPPORT:
     result_size = sizeof(cl_bool);
-    result_data = new cl_bool(CL_FALSE);
+    result_data = malloc(result_size);
+    *(cl_bool*)result_data = CL_FALSE;
     break;
   case CL_DEVICE_MAX_PARAMETER_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(1024);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 1024;
     break;
   case CL_DEVICE_MAX_SAMPLERS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(sizeof(cl_long16)<<3);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = sizeof(cl_long16)<<3;
     break;
   case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_SINGLE_FP_CONFIG:
     result_size = sizeof(cl_device_fp_config);
-    result_data = new cl_device_fp_config(
-      CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN);
+    result_data = malloc(result_size);
+    *(cl_device_fp_config*)result_data =
+     CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN;
     break;
   case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:
     result_size = sizeof(cl_device_mem_cache_type);
-    result_data = new cl_device_mem_cache_type(CL_NONE);
+    result_data = malloc(result_size);
+    *(cl_device_mem_cache_type*)result_data = CL_NONE;
     break;
   case CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_GLOBAL_MEM_CACHE_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(0);
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = 0;
     break;
   case CL_DEVICE_GLOBAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(MAX_GLOBAL_MEM_SIZE);
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = MAX_GLOBAL_MEM_SIZE;
     break;
   case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(MAX_GLOBAL_MEM_SIZE);
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = MAX_GLOBAL_MEM_SIZE;
     break;
   case CL_DEVICE_MAX_CONSTANT_ARGS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1024);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1024;
     break;
   case CL_DEVICE_LOCAL_MEM_TYPE:
     result_size = sizeof(cl_device_local_mem_type);
-    result_data = new cl_device_local_mem_type(CL_LOCAL);
+    result_data = malloc(result_size);
+    *(cl_device_local_mem_type*)result_data = CL_LOCAL;
     break;
   case CL_DEVICE_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(MAX_LOCAL_MEM_SIZE);
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = MAX_LOCAL_MEM_SIZE;
     break;
     return CL_INVALID_VALUE;
   case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
     result_size = sizeof(cl_bool);
-    result_data = new cl_bool(CL_FALSE);
+    result_data = malloc(result_size);
+    *(cl_bool*)result_data = CL_FALSE;
     break;
   case CL_DEVICE_PROFILING_TIMER_RESOLUTION:
     result_size = sizeof(size_t);
-    result_data = new size_t(1);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 1;
     break;
   case CL_DEVICE_ENDIAN_LITTLE:
     result_size = sizeof(cl_bool);
-    result_data = new cl_bool(CL_TRUE);
+    result_data = malloc(result_size);
+    *(cl_bool*)result_data = CL_TRUE;
     break;
   case CL_DEVICE_AVAILABLE:
     result_size = sizeof(cl_bool);
-    result_data = new cl_bool(CL_TRUE);
+    result_data = malloc(result_size);
+    *(cl_bool*)result_data = CL_TRUE;
     break;
   case CL_DEVICE_COMPILER_AVAILABLE:
     result_size = sizeof(cl_bool);
-    result_data = new cl_bool(CL_TRUE);
+    result_data = malloc(result_size);
+    *(cl_bool*)result_data = CL_TRUE;
     break;
   case CL_DEVICE_EXECUTION_CAPABILITIES:
     result_size = sizeof(cl_device_exec_capabilities);
-    result_data = new cl_device_exec_capabilities(CL_EXEC_KERNEL);
+    result_data = malloc(result_size);
+    *(cl_device_exec_capabilities*)result_data = CL_EXEC_KERNEL;
     break;
   case CL_DEVICE_QUEUE_PROPERTIES:
     result_size = sizeof(cl_command_queue_properties);
-    result_data = new cl_command_queue_properties(CL_QUEUE_PROFILING_ENABLE);
+    result_data = malloc(result_size);
+    *(cl_command_queue_properties*)result_data = CL_QUEUE_PROFILING_ENABLE;
     break;
   case CL_DEVICE_NAME:
     result_size = strlen(DEVICE_NAME) + 1;
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, DEVICE_NAME);
-    array = true;
     break;
   case CL_DEVICE_VENDOR:
     result_size = strlen(DEVICE_VENDOR) + 1;
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, DEVICE_VENDOR);
-    array = true;
     break;
   case CL_DRIVER_VERSION:
     result_size = sizeof(DRIVER_VERSION);
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, DRIVER_VERSION);
-    array = true;
     break;
   case CL_DEVICE_PROFILE:
     result_size = sizeof(DEVICE_PROFILE);
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, DEVICE_PROFILE);
-    array = true;
     break;
   case CL_DEVICE_VERSION:
     result_size = sizeof(DEVICE_VERSION);
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, DEVICE_VERSION);
-    array = true;
     break;
   case CL_DEVICE_EXTENSIONS:
     result_size = sizeof("");
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, "");
-    array = true;
     break;
   case CL_DEVICE_PLATFORM:
     result_size = sizeof(cl_platform_id);
-    result_data = new cl_platform_id(m_platform);
+    result_data = malloc(result_size);
+    *(cl_platform_id*)result_data = m_platform;
     break;
   case CL_DEVICE_DOUBLE_FP_CONFIG:
     result_size = sizeof(cl_device_fp_config);
-    result_data = new cl_device_fp_config(0);
+    result_data = malloc(result_size);
+    *(cl_device_fp_config*)result_data = 0;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_HOST_UNIFIED_MEMORY:
     result_size = sizeof(cl_bool);
-    result_data = new cl_bool(CL_FALSE);
+    result_data = malloc(result_size);
+    *(cl_bool*)result_data = CL_FALSE;
     break;
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_INT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_OPENCL_C_VERSION:
     result_size = sizeof(DEVICE_VERSION);
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, DEVICE_VERSION);
-    array = true;
     break;
   case CL_DEVICE_LINKER_AVAILABLE:
     result_size = sizeof(cl_bool);
-    result_data = new cl_bool(CL_TRUE);
+    result_data = malloc(result_size);
+    *(cl_bool*)result_data = CL_TRUE;
     break;
   case CL_DEVICE_BUILT_IN_KERNELS:
     result_size = sizeof("");
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, "");
-    array = true;
     break;
   case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(0);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 0;
     break;
   case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(0);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 0;
     break;
   case CL_DEVICE_PARENT_DEVICE:
     result_size = sizeof(cl_device_id);
-    result_data = new cl_device_id(NULL);
+    result_data = malloc(result_size);
+    *(cl_device_id*)result_data = NULL;
     break;
   case CL_DEVICE_PARTITION_MAX_SUB_DEVICES:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_PARTITION_PROPERTIES:
     result_size = sizeof(cl_device_partition_property);
-    result_data = new cl_device_partition_property(0);
+    result_data = malloc(result_size);
+    *(cl_device_partition_property*)result_data = 0;
     break;
   case CL_DEVICE_PARTITION_AFFINITY_DOMAIN:
     result_size = sizeof(cl_device_affinity_domain);
-    result_data = new cl_device_affinity_domain(0);
+    result_data = malloc(result_size);
+    *(cl_device_affinity_domain*)result_data = 0;
     break;
   case CL_DEVICE_PARTITION_TYPE:
     result_size = sizeof(cl_device_partition_property);
-    result_data = new cl_device_partition_property(0);
+    result_data = malloc(result_size);
+    *(cl_device_partition_property*)result_data = 0;
     break;
   case CL_DEVICE_REFERENCE_COUNT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:
     result_size = sizeof(cl_bool);
-    result_data = new cl_bool(CL_TRUE);
+    result_data = malloc(result_size);
+    *(cl_bool*)result_data = CL_TRUE;
     break;
   case CL_DEVICE_PRINTF_BUFFER_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(1024*1024);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 1024;
     break;
   default:
     return CL_INVALID_VALUE;
@@ -497,14 +551,7 @@ clGetDeviceInfo(cl_device_id    device,
     *param_value_size_ret = result_size;
   }
 
-  if (array)
-  {
-    delete[] result_data;
-  }
-  else
-  {
-    delete result_data;
-  }
+  free(result_data);
 
   return return_value;
 }
@@ -675,7 +722,6 @@ clGetContextInfo(cl_context         context,
 {
   size_t result_size = 0;
   void *result_data = NULL;
-  bool array = false;
 
   // Check context is valid
   if (!context)
@@ -687,21 +733,23 @@ clGetContextInfo(cl_context         context,
   {
   case CL_CONTEXT_REFERENCE_COUNT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(context->refCount);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = context->refCount;
     break;
   case CL_CONTEXT_NUM_DEVICES:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_CONTEXT_DEVICES:
     result_size = sizeof(cl_device_id);
-    result_data = new cl_device_id(m_device);
+    result_data = malloc(result_size);
+    *(cl_device_id*)result_data = m_device;
     break;
   case CL_CONTEXT_PROPERTIES:
     result_size = context->szProperties;
-    result_data = new unsigned char[result_size];
+    result_data = malloc(result_size);
     memcpy(result_data, context->properties, result_size);
-    array = true;
     break;
   default:
     return CL_INVALID_VALUE;
@@ -726,14 +774,7 @@ clGetContextInfo(cl_context         context,
     *param_value_size_ret = result_size;
   }
 
-  if (array)
-  {
-    delete[] result_data;
-  }
-  else
-  {
-    delete result_data;
-  }
+  free(result_data);
 
   return return_value;
 }
@@ -835,19 +876,23 @@ clGetCommandQueueInfo(cl_command_queue       command_queue ,
   {
   case CL_QUEUE_CONTEXT:
     result_size = sizeof(cl_context);
-    result_data = new cl_context(command_queue->context);
+    result_data = malloc(result_size);
+    *(cl_context*)result_data = command_queue->context;
     break;
   case CL_QUEUE_DEVICE:
     result_size = sizeof(cl_device_id);
-    result_data = new cl_device_id(m_device);
+    result_data = malloc(result_size);
+    *(cl_device_id*)result_data = m_device;
     break;
   case CL_QUEUE_REFERENCE_COUNT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(command_queue->refCount);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = command_queue->refCount;
     break;
   case CL_QUEUE_PROPERTIES:
     result_size = sizeof(cl_command_queue_properties);
-    result_data = new cl_command_queue_properties(command_queue->properties);
+    result_data = malloc(result_size);
+    *(cl_command_queue_properties*)result_data = command_queue->properties;
     break;
   default:
     return CL_INVALID_VALUE;
@@ -872,7 +917,7 @@ clGetCommandQueueInfo(cl_command_queue       command_queue ,
     *param_value_size_ret = result_size;
   }
 
-  delete result_data;
+  free(result_data);
 
   return return_value;
 }
@@ -1085,38 +1130,47 @@ clGetMemObjectInfo(cl_mem            memobj ,
   {
   case CL_MEM_TYPE:
     result_size = sizeof(cl_mem_object_type);
-    result_data = new cl_mem_object_type(CL_MEM_OBJECT_BUFFER);
+    result_data = malloc(result_size);
+    *(cl_mem_object_type*)result_data = CL_MEM_OBJECT_BUFFER;
     break;
   case CL_MEM_FLAGS:
     result_size = sizeof(cl_mem_flags);
-    result_data = new cl_mem_flags(memobj->flags);
+    result_data = malloc(result_size);
+    *(cl_mem_flags*)result_data = memobj->flags;
     break;
   case CL_MEM_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(memobj->size);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = memobj->size;
     break;
   case CL_MEM_HOST_PTR:
     result_size = sizeof(void*);
-    result_data = new void*(NULL);
+    result_data = malloc(result_size);
+    memset(result_data, NULL, result_size);
   case CL_MEM_MAP_COUNT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(0);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
     break;
   case CL_MEM_REFERENCE_COUNT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(memobj->refCount);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = memobj->refCount;
     break;
   case CL_MEM_CONTEXT:
     result_size = sizeof(cl_context);
-    result_data = new cl_context(memobj->context);
+    result_data = malloc(result_size);
+    *(cl_context*)result_data = memobj->context;
     break;
   case CL_MEM_ASSOCIATED_MEMOBJECT:
     result_size = sizeof(cl_mem);
-    result_data = new cl_mem(NULL);
+    result_data = malloc(result_size);
+    *(cl_mem*)result_data = NULL;
     break;
   case CL_MEM_OFFSET:
     result_size = sizeof(size_t);
-    result_data = new size_t(0);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 0;
     break;
   default:
     return CL_INVALID_VALUE;
@@ -1141,7 +1195,7 @@ clGetMemObjectInfo(cl_mem            memobj ,
     *param_value_size_ret = result_size;
   }
 
-  delete result_data;
+  free(result_data);
 
   return return_value;
 }
@@ -1455,7 +1509,6 @@ clGetProgramInfo(cl_program          program ,
 {
   size_t result_size = 0;
   void *result_data = NULL;
-  bool array = false;
 
   // Check program is valid
   if (!program)
@@ -1473,29 +1526,33 @@ clGetProgramInfo(cl_program          program ,
   {
   case CL_PROGRAM_REFERENCE_COUNT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(program->refCount);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = program->refCount;
     break;
   case CL_PROGRAM_CONTEXT:
     result_size = sizeof(cl_context);
-    result_data = new cl_context(program->context);
+    result_data = malloc(result_size);
+    *(cl_context*)result_data = program->context;
     break;
   case CL_PROGRAM_NUM_DEVICES:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(1);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 1;
     break;
   case CL_PROGRAM_DEVICES:
     result_size = sizeof(cl_device_id);
-    result_data = new cl_device_id(m_device);
+    result_data = malloc(result_size);
+    *(cl_device_id*)result_data = m_device;
     break;
   case CL_PROGRAM_SOURCE:
     result_size = strlen(program->program->getSource().c_str()) + 1;
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, program->program->getSource().c_str());
-    array = true;
     break;
   case CL_PROGRAM_BINARY_SIZES:
     result_size = sizeof(size_t);
-    result_data = new size_t(program->program->getBinarySize());
+    result_data = malloc(result_size);
+    *(size_t*)result_data = program->program->getBinarySize();
     break;
   case CL_PROGRAM_BINARIES:
     result_size = sizeof(unsigned char*);
@@ -1503,7 +1560,8 @@ clGetProgramInfo(cl_program          program ,
     break;
   case CL_PROGRAM_NUM_KERNELS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(program->program->getNumKernels());
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = program->program->getNumKernels();
     break;
   case CL_PROGRAM_KERNEL_NAMES:
   {
@@ -1519,9 +1577,8 @@ clGetProgramInfo(cl_program          program ,
       ret.erase(ret.length()-1);
     }
     result_size = strlen(ret.c_str()) + 1;
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, ret.c_str());
-    array = true;
     break;
   }
   default:
@@ -1555,14 +1612,7 @@ clGetProgramInfo(cl_program          program ,
     *param_value_size_ret = result_size;
   }
 
-  if (array)
-  {
-    delete[] result_data;
-  }
-  else
-  {
-    delete result_data;
-  }
+  free(result_data);
 
   return return_value;
 }
@@ -1577,7 +1627,6 @@ clGetProgramBuildInfo(cl_program             program ,
 {
   size_t result_size = 0;
   void *result_data = NULL;
-  bool array = false;
 
   // Check program is valid
   if (!program)
@@ -1589,24 +1638,24 @@ clGetProgramBuildInfo(cl_program             program ,
   {
   case CL_PROGRAM_BUILD_STATUS:
     result_size = sizeof(cl_build_status);
-    result_data = new cl_build_status(program->program->getBuildStatus());
+    result_data = malloc(result_size);
+    *(cl_build_status*)result_data = program->program->getBuildStatus();
     break;
   case CL_PROGRAM_BUILD_OPTIONS:
     result_size = strlen(program->program->getBuildOptions().c_str()) + 1;
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, program->program->getBuildOptions().c_str());
-    array = true;
     break;
   case CL_PROGRAM_BUILD_LOG:
     result_size = strlen(program->program->getBuildLog().c_str()) + 1;
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, program->program->getBuildLog().c_str());
-    array = true;
     break;
   case CL_PROGRAM_BINARY_TYPE:
     result_size = sizeof(cl_program_binary_type);
-    result_data = new cl_program_binary_type(
-      CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT);
+    result_data = malloc(result_size);
+    *(cl_program_binary_type*)result_data =
+      CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
     break;
   default:
     return CL_INVALID_VALUE;
@@ -1631,14 +1680,7 @@ clGetProgramBuildInfo(cl_program             program ,
     *param_value_size_ret = result_size;
   }
 
-  if (array)
-  {
-    delete[] result_data;
-  }
-  else
-  {
-    delete result_data;
-  }
+  free(result_data);
 
   return return_value;
 }
@@ -1808,7 +1850,6 @@ clGetKernelInfo(cl_kernel        kernel ,
 {
   size_t result_size = 0;
   void *result_data = NULL;
-  bool array = false;
 
   // Check kernel is valid
   if (!kernel)
@@ -1820,31 +1861,33 @@ clGetKernelInfo(cl_kernel        kernel ,
   {
   case CL_KERNEL_FUNCTION_NAME:
     result_size = strlen(kernel->kernel->getName().c_str()) + 1;
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, kernel->kernel->getName().c_str());
-    array = true;
     break;
   case CL_KERNEL_NUM_ARGS:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(kernel->kernel->getNumArguments());
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = kernel->kernel->getNumArguments();
     break;
   case CL_KERNEL_REFERENCE_COUNT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(kernel->refCount);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = kernel->refCount;
     break;
   case CL_KERNEL_CONTEXT:
     result_size = sizeof(cl_context);
-    result_data = new cl_context(kernel->program->context);
+    result_data = malloc(result_size);
+    *(cl_context*)result_data = kernel->program->context;
     break;
   case CL_KERNEL_PROGRAM:
     result_size = sizeof(cl_program);
-    result_data = new cl_program(kernel->program);
+    result_data = malloc(result_size);
+    *(cl_program*)result_data = kernel->program;
     break;
   case CL_KERNEL_ATTRIBUTES:
     result_size = strlen("") + 1;
-    result_data = new char[result_size];
+    result_data = malloc(result_size);
     strcpy((char*)result_data, "");
-    array = true;
     break;
   default:
     return CL_INVALID_VALUE;
@@ -1869,14 +1912,7 @@ clGetKernelInfo(cl_kernel        kernel ,
     *param_value_size_ret = result_size;
   }
 
-  if (array)
-  {
-    delete[] result_data;
-  }
-  else
-  {
-    delete result_data;
-  }
+  free(result_data);
 
   return return_value;
 
@@ -1904,7 +1940,6 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
 {
   size_t result_size = 0;
   void *result_data = NULL;
-  bool array = false;
 
   // Check parameters is valid
   if (!kernel)
@@ -1922,26 +1957,29 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
     return CL_INVALID_VALUE;
   case CL_KERNEL_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
-    result_data = new size_t(MAX_WI_SIZE);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = MAX_WI_SIZE;
     break;
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
     result_size = sizeof(size_t[3]);
-    result_data = new size_t[3];
+    result_data = malloc(result_size);
     memcpy(result_data, kernel->kernel->getRequiredWorkGroupSize(),
            result_size);
-    array = true;
     break;
   case CL_KERNEL_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(kernel->kernel->getLocalMemorySize());
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = kernel->kernel->getLocalMemorySize();
     break;
   case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
     result_size = sizeof(size_t);
-    result_data = new size_t(1);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = 1;
     break;
   case CL_KERNEL_PRIVATE_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = new cl_ulong(0); // TODO: Real value
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = 0; // TODO: Real value
     break;
   default:
     return CL_INVALID_VALUE;
@@ -1966,14 +2004,7 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
     *param_value_size_ret = result_size;
   }
 
-  if (array)
-  {
-    delete[] result_data;
-  }
-  else
-  {
-    delete result_data;
-  }
+  free(result_data);
 
   return return_value;
 }
@@ -2012,23 +2043,28 @@ clGetEventInfo(cl_event          event ,
   {
   case CL_EVENT_COMMAND_QUEUE:
     result_size = sizeof(cl_command_queue);
-    result_data = new cl_command_queue(event->queue);
+    result_data = malloc(result_size);
+    *(cl_command_queue*)result_data = event->queue;
     break;
   case CL_EVENT_CONTEXT:
     result_size = sizeof(cl_context);
-    result_data = new cl_context(event->queue->context);
+    result_data = malloc(result_size);
+    *(cl_context*)result_data = event->queue->context;
     break;
   case CL_EVENT_COMMAND_TYPE:
     result_size = sizeof(cl_command_type);
-    result_data = new cl_command_type(event->type);
+    result_data = malloc(result_size);
+    *(cl_command_type*)result_data = event->type;
     break;
   case CL_EVENT_COMMAND_EXECUTION_STATUS:
     result_size = sizeof(cl_int);
-    result_data = new cl_int(CL_COMPLETE);
+    result_data = malloc(result_size);
+    *(cl_int*)result_data = CL_COMPLETE;
     break;
   case CL_EVENT_REFERENCE_COUNT:
     result_size = sizeof(cl_uint);
-    result_data = new cl_uint(event->refCount);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = event->refCount;
     break;
   default:
     return CL_INVALID_VALUE;
@@ -2053,7 +2089,7 @@ clGetEventInfo(cl_event          event ,
     *param_value_size_ret = result_size;
   }
 
-  delete result_data;
+  free(result_data);
 
   return return_value;
 }
