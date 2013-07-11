@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <sys/time.h>
 
 #include "icd.h"
 
@@ -351,7 +352,7 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_PROFILING_TIMER_RESOLUTION:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(size_t*)result_data = 1;
+    *(size_t*)result_data = 1000;
     break;
   case CL_DEVICE_ENDIAN_LITTLE:
     result_size = sizeof(cl_bool);
@@ -2161,8 +2162,63 @@ clGetEventProfilingInfo(cl_event             event ,
                         void *               param_value ,
                         size_t *             param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check event is valid
+  if (!event)
+  {
+    return CL_INVALID_EVENT;
+  }
+
+  switch (param_name)
+  {
+  case CL_PROFILING_COMMAND_QUEUED:
+    result_size = sizeof(cl_ulong);
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = event->startTime;
+    break;
+  case CL_PROFILING_COMMAND_SUBMIT:
+    result_size = sizeof(cl_ulong);
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = event->startTime;
+    break;
+  case CL_PROFILING_COMMAND_START:
+    result_size = sizeof(cl_ulong);
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = event->startTime;
+    break;
+  case CL_PROFILING_COMMAND_END:
+    result_size = sizeof(cl_ulong);
+    result_data = malloc(result_size);
+    *(cl_ulong*)result_data = event->endTime;
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 
@@ -2218,6 +2274,11 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
     return CL_INVALID_VALUE;
   }
 
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Perform read
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
   bool ret = memory->load((unsigned char*)ptr, buffer->address, cb);
@@ -2226,6 +2287,10 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
     return CL_INVALID_VALUE;
   }
 
+  // Get end time
+  gettimeofday(&tv, NULL);
+  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Create event
   if (event)
   {
@@ -2233,6 +2298,8 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
     evt->dispatch = m_dispatchTable;
     evt->queue = command_queue;
     evt->type = CL_COMMAND_READ_BUFFER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
     evt->refCount = 1;
     *event = evt;
   }
@@ -2298,6 +2365,11 @@ clEnqueueReadBufferRect(cl_command_queue     command_queue ,
     host_origin[1] * host_row_pitch +
     host_origin[0];
 
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Perform read
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
   for (int z = 0; z < region[2]; z++)
@@ -2322,6 +2394,10 @@ clEnqueueReadBufferRect(cl_command_queue     command_queue ,
     }
   }
 
+  // Get end time
+  gettimeofday(&tv, NULL);
+  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Create event
   if (event)
   {
@@ -2329,6 +2405,8 @@ clEnqueueReadBufferRect(cl_command_queue     command_queue ,
     evt->dispatch = m_dispatchTable;
     evt->queue = command_queue;
     evt->type = CL_COMMAND_READ_BUFFER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
     evt->refCount = 1;
     *event = evt;
   }
@@ -2361,6 +2439,11 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
     return CL_INVALID_VALUE;
   }
 
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Perform write
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
   bool ret = memory->store((const unsigned char*)ptr, buffer->address, cb);
@@ -2369,6 +2452,10 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
     return CL_INVALID_VALUE;
   }
 
+  // Get end time
+  gettimeofday(&tv, NULL);
+  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Create event
   if (event)
   {
@@ -2376,6 +2463,8 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
     evt->dispatch = m_dispatchTable;
     evt->queue = command_queue;
     evt->type = CL_COMMAND_WRITE_BUFFER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
     evt->refCount = 1;
     *event = evt;
   }
@@ -2441,6 +2530,11 @@ clEnqueueWriteBufferRect(cl_command_queue     command_queue ,
     host_origin[1] * host_row_pitch +
     host_origin[0];
 
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Perform write
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
   for (int z = 0; z < region[2]; z++)
@@ -2465,6 +2559,10 @@ clEnqueueWriteBufferRect(cl_command_queue     command_queue ,
     }
   }
 
+  // Get end time
+  gettimeofday(&tv, NULL);
+  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Create event
   if (event)
   {
@@ -2472,6 +2570,8 @@ clEnqueueWriteBufferRect(cl_command_queue     command_queue ,
     evt->dispatch = m_dispatchTable;
     evt->queue = command_queue;
     evt->type = CL_COMMAND_WRITE_BUFFER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
     evt->refCount = 1;
     *event = evt;
   }
@@ -2500,6 +2600,11 @@ clEnqueueCopyBuffer(cl_command_queue     command_queue ,
     return CL_INVALID_MEM_OBJECT;
   }
 
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Perform copy
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
   bool ret = memory->copy(dst_buffer->address + dst_offset,
@@ -2510,6 +2615,10 @@ clEnqueueCopyBuffer(cl_command_queue     command_queue ,
     return CL_INVALID_VALUE;
   }
 
+  // Get end time
+  gettimeofday(&tv, NULL);
+  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Create event
   if (event)
   {
@@ -2517,6 +2626,8 @@ clEnqueueCopyBuffer(cl_command_queue     command_queue ,
     evt->dispatch = m_dispatchTable;
     evt->queue = command_queue;
     evt->type = CL_COMMAND_COPY_BUFFER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
     evt->refCount = 1;
     *event = evt;
   }
@@ -2577,6 +2688,11 @@ clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
     dst_origin[1] * dst_row_pitch +
     dst_origin[0];
 
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Perform copy
   spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
   for (int z = 0; z < region[2]; z++)
@@ -2604,6 +2720,10 @@ clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
     }
   }
 
+  // Get end time
+  gettimeofday(&tv, NULL);
+  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Create event
   if (event)
   {
@@ -2611,6 +2731,8 @@ clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
     evt->dispatch = m_dispatchTable;
     evt->queue = command_queue;
     evt->type = CL_COMMAND_COPY_BUFFER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
     evt->refCount = 1;
     *event = evt;
   }
@@ -2750,6 +2872,11 @@ clEnqueueMapBuffer(cl_command_queue  command_queue ,
     return NULL;
   }
 
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Map buffer
   void *ptr = buffer->context->device->getGlobalMemory()->mapBuffer(
     buffer->address, offset, cb);
@@ -2759,6 +2886,10 @@ clEnqueueMapBuffer(cl_command_queue  command_queue ,
     return NULL;
   }
 
+  // Get end time
+  gettimeofday(&tv, NULL);
+  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Create event
   if (event)
   {
@@ -2766,6 +2897,8 @@ clEnqueueMapBuffer(cl_command_queue  command_queue ,
     evt->dispatch = m_dispatchTable;
     evt->queue = command_queue;
     evt->type = CL_COMMAND_MAP_BUFFER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
     evt->refCount = 1;
     *event = evt;
   }
@@ -2811,6 +2944,12 @@ clEnqueueUnmapMemObject(cl_command_queue  command_queue ,
     return CL_INVALID_MEM_OBJECT;
   }
 
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+  double endTime = startTime;
+
   // Create event
   if (event)
   {
@@ -2818,6 +2957,8 @@ clEnqueueUnmapMemObject(cl_command_queue  command_queue ,
     evt->dispatch = m_dispatchTable;
     evt->queue = command_queue;
     evt->type = CL_COMMAND_UNMAP_MEM_OBJECT;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
     evt->refCount = 1;
     *event = evt;
   }
@@ -2875,12 +3016,21 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
     }
   }
 
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
   // Run kernel
   command_queue->context->device->run(*kernel->kernel,
                                       work_dim,
                                       global_work_offset,
                                       global_work_size,
                                       local_work_size);
+
+  // Get end time
+  gettimeofday(&tv, NULL);
+  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
 
   // Create event
   if (event)
@@ -2889,6 +3039,8 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
     evt->dispatch = m_dispatchTable;
     evt->queue = command_queue;
     evt->type = CL_COMMAND_NDRANGE_KERNEL;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
     evt->refCount = 1;
     *event = evt;
   }
