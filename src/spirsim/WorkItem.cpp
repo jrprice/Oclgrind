@@ -708,7 +708,7 @@ void WorkItem::br(const llvm::Instruction& instruction)
 
 void WorkItem::bwand(const llvm::Instruction& instruction, TypedValue& result)
 {
-  for (int i = 0; i < result.size; i++)
+  for (int i = 0; i < result.num; i++)
   {
     uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
     uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
@@ -718,7 +718,7 @@ void WorkItem::bwand(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::bwor(const llvm::Instruction& instruction, TypedValue& result)
 {
-  for (int i = 0; i < result.size; i++)
+  for (int i = 0; i < result.num; i++)
   {
     uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
     uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
@@ -728,7 +728,7 @@ void WorkItem::bwor(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::bwxor(const llvm::Instruction& instruction, TypedValue& result)
 {
-  for (int i = 0; i < result.size; i++)
+  for (int i = 0; i < result.num; i++)
   {
     uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
     uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
