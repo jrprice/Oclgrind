@@ -246,7 +246,7 @@ void WorkItem::dumpPrivateMemory() const
     switch (type)
     {
     case llvm::Type::IntegerTyID:
-      cout << " (" << getUnsignedInt(value) << ")";
+      cout << " (" << dec << getUnsignedInt(value) << ")";
       break;
     case llvm::Type::FloatTyID:
     case llvm::Type::DoubleTyID:
@@ -876,8 +876,17 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
   else if (name == "dot")
   {
+    const llvm::Value *opA = callInst->getArgOperand(0);
+    const llvm::Value *opB = callInst->getArgOperand(1);
+
+    int num = 1;
+    if (opA->getType()->isVectorTy())
+    {
+      num = opA->getType()->getVectorNumElements();
+    }
+
     double r = 0.f;
-    for (int i = 0; i < result.num; i++)
+    for (int i = 0; i < num; i++)
     {
       double a = getFloatValue(callInst->getArgOperand(0), i);
       double b = getFloatValue(callInst->getArgOperand(1), i);
