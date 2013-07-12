@@ -315,6 +315,10 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   {
     if (instruction.getOpcode() != llvm::Instruction::PHI)
     {
+      if (m_privateMemory.find(&instruction) != m_privateMemory.end())
+      {
+        delete[] m_privateMemory[&instruction].data;
+      }
       m_privateMemory[&instruction] = result;
     }
     else
@@ -813,6 +817,10 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
         cerr << "Unhandled function argument type " << id << endl;
       }
 
+      if (m_privateMemory.find(argItr) != m_privateMemory.end())
+      {
+        delete[] m_privateMemory[argItr].data;
+      }
       m_privateMemory[argItr] = value;
     }
 
@@ -1661,6 +1669,10 @@ void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
     const llvm::Value *returnVal = retInst->getReturnValue();
     if (returnVal)
     {
+      if (m_privateMemory.find(m_currInst) != m_privateMemory.end())
+      {
+        delete[] m_privateMemory[m_currInst].data;
+      }
       m_privateMemory[m_currInst] = clone(m_privateMemory[returnVal]);
     }
   }
