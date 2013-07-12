@@ -26,8 +26,6 @@ Memory::Memory()
 Memory::~Memory()
 {
   clear();
-
-  delete[] m_memory[0].data;
 }
 
 size_t Memory::allocateBuffer(size_t size)
@@ -75,9 +73,6 @@ void Memory::clear()
   m_memory.clear();
   m_freeBuffers = queue<int>();
   m_totalAllocated = 0;
-
-  // Reserve first buffer as a makeshift 'NULL'
-  m_memory[0].data = new unsigned char[0];
 }
 
 Memory* Memory::clone() const
@@ -203,7 +198,7 @@ int Memory::getNextBuffer()
 {
   if (m_freeBuffers.empty())
   {
-    return m_memory.size();
+    return m_memory.size() + 1;
   }
   else
   {
@@ -224,7 +219,8 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   size_t offset = EXTRACT_OFFSET(address);
 
   // Bounds check
-  if (buffer >= MAX_NUM_BUFFERS ||
+  if (buffer == 0 ||
+      buffer >= MAX_NUM_BUFFERS ||
       m_memory.find(buffer) == m_memory.end() ||
       offset+size > m_memory.at(buffer).size)
   {
@@ -258,7 +254,8 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
   size_t offset = EXTRACT_OFFSET(address);
 
   // Bounds check
-  if (buffer >= MAX_NUM_BUFFERS ||
+  if (buffer == 0 ||
+      buffer >= MAX_NUM_BUFFERS ||
       m_memory.find(buffer) == m_memory.end() ||
       offset+size > m_memory[buffer].size)
   {
