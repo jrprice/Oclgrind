@@ -520,15 +520,36 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
     break;
   }
 
+  // Basic error info
   cerr << endl << msg
        << " of size " << size
        << " at " << memType
-       << " memory address " << hex << address
-       << " by work-item (" << dec
+       << " memory address " << hex << address << endl;
+
+  // Work item
+  cerr << "\tWork-item:  Global(" << dec
        << m_globalID[0] << ","
        << m_globalID[1] << ","
        << m_globalID[2] << ")"
-       << endl << "\t";
+       << " Local(" << dec
+       << m_localID[0] << ","
+       << m_localID[1] << ","
+       << m_localID[2] << ")"
+       << endl;
+
+  // Work group
+  const size_t *group = m_workGroup.getGroupID();
+  cerr << "\tWork-group: (" << dec
+       << group[0] << ","
+       << group[1] << ","
+       << group[2] << ")"
+       << endl;
+
+  // Kernel
+  cerr << "\tKernel:     " << m_kernel.getName() << endl;
+
+  // Instruction
+  cerr << "\t";
   dumpInstruction(cerr, instruction);
 
   // Output debug information
