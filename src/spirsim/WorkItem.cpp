@@ -882,6 +882,16 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     assert(dim < 3);
     *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
   }
+  else if (name == "ceil")
+  {
+    double x = getFloatValue(callInst->getArgOperand(0));
+    setFloatResult(result, ceil(x));
+  }
+  else if (name == "cos")
+  {
+    double x = getFloatValue(callInst->getArgOperand(0));
+    setFloatResult(result, cos(x));
+  }
   else if (name == "dot")
   {
     const llvm::Value *opA = callInst->getArgOperand(0);
@@ -914,6 +924,11 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t b = getUnsignedInt(callInst->getArgOperand(1));
     uint64_t r = (a + b) >> 1;
     memcpy(result.data, &r, result.size);
+  }
+  else if (name == "log2")
+  {
+    double x = getFloatValue(callInst->getArgOperand(0));
+    setFloatResult(result, log2(x));
   }
   else if (name == "min")
   {
@@ -948,11 +963,6 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     double a = getFloatValue(callInst->getArgOperand(0));
     double b = getFloatValue(callInst->getArgOperand(1));
     setFloatResult(result, nextafterf(a, b));
-  }
-  else if (name == "cos")
-  {
-    double x = getFloatValue(callInst->getArgOperand(0));
-    setFloatResult(result, cos(x));
   }
   else if (name == "sin")
   {
