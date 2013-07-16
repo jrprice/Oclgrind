@@ -92,7 +92,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
             (OUTPUT_INSTRUCTIONS | OUTPUT_PRIVATE_MEM | OUTPUT_LOCAL_MEM))
         {
           cout << endl << BIG_SEPARATOR << endl;
-          cout << "Work-group ("
+          cout << "Work-group (" << dec
                << i << ","
                << j << ","
                << k
