@@ -949,6 +949,16 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     double b = getFloatValue(callInst->getArgOperand(1));
     setFloatResult(result, nextafterf(a, b));
   }
+  else if (name == "cos")
+  {
+    double x = getFloatValue(callInst->getArgOperand(0));
+    setFloatResult(result, cos(x));
+  }
+  else if (name == "sin")
+  {
+    double x = getFloatValue(callInst->getArgOperand(0));
+    setFloatResult(result, sin(x));
+  }
   else if (name == "sincos")
   {
     double x = getFloatValue(callInst->getArgOperand(0));
