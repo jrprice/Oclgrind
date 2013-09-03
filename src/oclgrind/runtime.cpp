@@ -3094,8 +3094,32 @@ clEnqueueMarkerWithWaitList(cl_command_queue  command_queue ,
                             cl_event *         event) CL_API_SUFFIX__VERSION_1_2
 
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  // Get time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+  double endTime = startTime;
+
+  // Create event
+  if (event)
+  {
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_MARKER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
+    evt->refCount = 1;
+    *event = evt;
+  }
+
+  return CL_SUCCESS;
 }
 
 extern CL_API_ENTRY cl_int CL_API_CALL
@@ -3104,8 +3128,32 @@ clEnqueueBarrierWithWaitList(cl_command_queue  command_queue ,
                              const cl_event *   event_wait_list ,
                              cl_event *         event) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  // Get time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+  double endTime = startTime;
+
+  // Create event
+  if (event)
+  {
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_BARRIER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
+    evt->refCount = 1;
+    *event = evt;
+  }
+
+  return CL_SUCCESS;
 }
 
 extern CL_API_ENTRY cl_int CL_API_CALL
@@ -3124,8 +3172,7 @@ CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueMarker(cl_command_queue     command_queue ,
                 cl_event *           event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return clEnqueueMarkerWithWaitList(command_queue, 0, NULL, event);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -3133,15 +3180,18 @@ clEnqueueWaitForEvents(cl_command_queue  command_queue ,
                        cl_uint           num_events ,
                        const cl_event *  event_list) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueBarrier(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return clEnqueueBarrierWithWaitList(command_queue, 0, NULL, NULL);
 }
 
 
