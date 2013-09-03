@@ -245,7 +245,7 @@ unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
     return false;
   }
 
-  return m_memory[buffer].data + offset;
+  return m_memory[buffer].data + offset + EXTRACT_OFFSET(address);
 }
 
 bool Memory::store(const unsigned char *source, size_t address, size_t size)
