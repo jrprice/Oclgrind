@@ -2751,8 +2751,64 @@ clEnqueueFillBuffer(cl_command_queue    command_queue ,
                     const cl_event *    event_wait_list ,
                     cl_event *          event) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+   // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!buffer)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+  if (offset + cb > buffer->size)
+  {
+    return CL_INVALID_VALUE;
+  }
+  if (!pattern || pattern_size == 0)
+  {
+    return CL_INVALID_VALUE;
+  }
+  if (offset%pattern_size || cb%pattern_size)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  // Get start time
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
+  // Perform fill
+  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
+  for (int i = 0; i < cb/pattern_size; i++)
+  {
+    bool ret = memory->store((const unsigned char*)pattern,
+                             buffer->address + offset + i*pattern_size,
+                             pattern_size);
+    if (!ret)
+    {
+      return CL_INVALID_VALUE;
+    }
+  }
+
+  // Get end time
+  gettimeofday(&tv, NULL);
+  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+
+  // Create event
+  if (event)
+  {
+    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
+    evt->dispatch = m_dispatchTable;
+    evt->queue = command_queue;
+    evt->type = CL_COMMAND_FILL_BUFFER;
+    evt->startTime = startTime;
+    evt->endTime = endTime;
+    evt->refCount = 1;
+    *event = evt;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
