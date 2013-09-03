@@ -961,6 +961,7 @@ clCreateBuffer(cl_context    context ,
   cl_mem mem = (cl_mem)malloc(sizeof(struct _cl_mem));
   mem->dispatch = m_dispatchTable;
   mem->context = context;
+  mem->parent = NULL;
   mem->size = size;
   mem->flags = flags;
   mem->callbacks = new std::stack<void (CL_CALLBACK *)(cl_mem, void *)>();
@@ -1000,11 +1001,42 @@ clCreateSubBuffer(cl_mem                    buffer ,
                   const void *              buffer_create_info ,
                   cl_int *                  errcode_ret) CL_API_SUFFIX__VERSION_1_1
 {
-  //cl_mem obj = (cl_mem) malloc(sizeof(struct _cl_mem));
-  //obj->dispatch = dispatchTable;
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
-  return NULL;
+  // Check parameters
+  if (!buffer || buffer->parent)
+  {
+    ERRCODE(CL_INVALID_MEM_OBJECT);
+    return NULL;
+  }
+  if (buffer_create_type != CL_BUFFER_CREATE_TYPE_REGION
+     || !buffer_create_info)
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+
+  _cl_buffer_region region = *(_cl_buffer_region*)buffer_create_info;
+  if (region.origin + region.size > buffer->size
+      || region.size == 0)
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+
+  // Create memory object
+  cl_mem mem = (cl_mem)malloc(sizeof(struct _cl_mem));
+  mem->dispatch = m_dispatchTable;
+  mem->context = buffer->context;
+  mem->parent = buffer;
+  mem->size = region.size;
+  mem->flags = buffer->flags;
+  mem->callbacks = new std::stack<void (CL_CALLBACK *)(cl_mem, void *)>();
+  mem->data = new std::stack<void*>();
+  mem->refCount = 1;
+  mem->address = buffer->address + region.origin;
+  clRetainMemObject(buffer);
+
+  ERRCODE(CL_SUCCESS);
+  return mem;
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL
@@ -1081,9 +1113,16 @@ clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 
   if (--memobj->refCount == 0)
   {
-    memobj->context->device->getGlobalMemory()->deallocateBuffer(
-      memobj->address);
-    clReleaseContext(memobj->context);
+    if (memobj->parent)
+    {
+      clReleaseMemObject(memobj->parent);
+    }
+    else
+    {
+      memobj->context->device->getGlobalMemory()->deallocateBuffer(
+        memobj->address);
+      clReleaseContext(memobj->context);
+    }
 
     while (!memobj->callbacks->empty())
     {

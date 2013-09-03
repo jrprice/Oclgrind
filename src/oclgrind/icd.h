@@ -70,6 +70,7 @@ struct _cl_mem
 {
   CLIicdDispatchTable* dispatch;
   cl_context context;
+  cl_mem parent;
   size_t address;
   size_t size;
   cl_mem_flags flags;
