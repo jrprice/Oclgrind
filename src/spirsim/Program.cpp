@@ -269,16 +269,13 @@ unsigned char* Program::getBinary() const
     return NULL;
   }
 
-  // Get bitcode
-  ifstream input(TEMP_BC_FILE, ifstream::binary);
-  input.seekg(0, ios_base::end);
-  size_t size = input.tellg();
-  unsigned char *ret = new unsigned char[size];
-  input.seekg(0, ios_base::beg);
-  input.read((char*)ret, size);
-  input.close();
-
-  return ret;
+  std::string str;
+  llvm::raw_string_ostream stream(str);
+  llvm::WriteBitcodeToFile(m_module, stream);
+  stream.str();
+  unsigned char *bitcode = new unsigned char[str.length()];
+  memcpy(bitcode, str.c_str(), str.length());
+  return bitcode;
 }
 
 size_t Program::getBinarySize() const
@@ -288,12 +285,11 @@ size_t Program::getBinarySize() const
     return 0;
   }
 
-  // Get bitcode size
-  ifstream input(TEMP_BC_FILE, ifstream::binary);
-  input.seekg(0, ios_base::end);
-  size_t size = input.tellg();
-  input.close();
-  return size;
+  std::string str;
+  llvm::raw_string_ostream stream(str);
+  llvm::WriteBitcodeToFile(m_module, stream);
+  stream.str();
+  return str.length();
 }
 
 const string& Program::getBuildLog() const
