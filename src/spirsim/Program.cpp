@@ -1,5 +1,6 @@
 #include "common.h"
 #include <fstream>
+#include <sys/time.h>
 
 #define __STDC_LIMIT_MACROS
 #define __STDC_CONSTANT_MACROS
@@ -23,8 +24,8 @@
 #include "Kernel.h"
 #include "Program.h"
 
-#define TEMP_CL_FILE "/tmp/oclgrind_temp.cl"
-#define TEMP_BC_FILE "/tmp/oclgrind_temp.bc"
+#define TEMP_CL_FILE "/tmp/oclgrind_%lX.cl"
+#define TEMP_BC_FILE "/tmp/oclgrind_%lX.bc"
 
 using namespace spirsim;
 using namespace std;
@@ -73,10 +74,22 @@ bool Program::build(const char *options)
     return true;
   }
 
+  // Generate unique tag for temporary files
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  srand(tv.tv_usec + tv.tv_sec*1e6);
+  unsigned long tag = rand();
+
+  // Construct unique filenames
+  char *tempCL = new char[strlen(TEMP_CL_FILE) + 17];
+  char *tempBC = new char[strlen(TEMP_BC_FILE) + 17];
+  sprintf(tempCL, TEMP_CL_FILE, tag);
+  sprintf(tempBC, TEMP_BC_FILE, tag);
+
   // Dump source to temporary file
-  // TODO: Build from memory?
+  // TODO: Build from memory? File remapping not working at present.
   ofstream temp;
-  temp.open(TEMP_CL_FILE);
+  temp.open(tempCL);
   temp << m_source;
   temp.close();
 
@@ -99,7 +112,7 @@ bool Program::build(const char *options)
     }
   }
 
-  args.push_back(TEMP_CL_FILE);
+  args.push_back(tempCL);
 
   // Create diagnostics engine
   m_buildLog = "";
@@ -153,11 +166,22 @@ bool Program::build(const char *options)
   m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
   m_module = action->takeModule();
 
-  // Dump bitcode for debugging
-  string err;
-  llvm::raw_fd_ostream output(TEMP_BC_FILE, err);
-  llvm::WriteBitcodeToFile(m_module, output);
-  output.close();
+  const char *keepTempsEnv = getenv("OCLGRIND_KEEP_TEMPS");
+  if (keepTempsEnv && strcmp(keepTempsEnv, "1") == 0)
+  {
+    // Dump bitcode for debugging
+    string err;
+    llvm::raw_fd_ostream output(tempBC, err);
+    llvm::WriteBitcodeToFile(m_module, output);
+    output.close();
+  }
+  else
+  {
+    remove(tempCL);
+  }
+
+  delete[] tempCL;
+  delete[] tempBC;
 
   m_buildStatus = CL_BUILD_SUCCESS;
   return true;
