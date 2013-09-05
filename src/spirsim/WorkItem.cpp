@@ -5,7 +5,6 @@
 #define __STDC_CONSTANT_MACROS
 #include "llvm/Constants.h"
 #include "llvm/DebugInfo.h"
-#include "llvm/Function.h"
 #include "llvm/Metadata.h"
 #include "llvm/InstrTypes.h"
 #include "llvm/Instruction.h"
@@ -848,437 +847,89 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     return;
   }
 
-  // TODO: Implement more builtin functions
-  // TODO: Cleaner implementation of this?
-  if (name == "barrier")
-  {
-    // TODO: Different types of barrier?
-    m_state = BARRIER;
-  }
-  else if (name == "get_work_dim")
-  {
-    *((uint*)result.data) = m_workGroup.getWorkDim();
-  }
-  else if (name == "get_global_id")
-  {
-    uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
-    assert(dim < 3);
-    *((size_t*)result.data) = m_globalID[dim];
-  }
-  else if (name == "get_global_size")
-  {
-    uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
-    assert(dim < 3);
-    *((size_t*)result.data) = m_workGroup.getGlobalSize()[dim];
-  }
-  else if (name == "get_global_offset")
-  {
-    uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
-    assert(dim < 3);
-    *((size_t*)result.data) = m_workGroup.getGlobalOffset()[dim];
-  }
-  else if (name == "get_group_id")
-  {
-    uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
-    assert(dim < 3);
-    *((size_t*)result.data) = m_workGroup.getGroupID()[dim];
-  }
-  else if (name == "get_num_groups")
-  {
-    uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
-    assert(dim < 3);
-    *((size_t*)result.data) =
-      m_workGroup.getGlobalSize()[dim] /
-      m_workGroup.getGroupSize()[dim];
-  }
-  else if (name == "get_local_id")
-  {
-    uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
-    assert(dim < 3);
-    *((size_t*)result.data) = m_localID[dim];
-  }
-  else if (name == "get_local_size")
-  {
-    uint64_t dim = getUnsignedInt(callInst->getArgOperand(0));
-    assert(dim < 3);
-    *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
-  }
-  else if (name == "ceil")
-  {
-    double x = getFloatValue(callInst->getArgOperand(0));
-    setFloatResult(result, ceil(x));
-  }
-  else if (name == "cos")
-  {
-    double x = getFloatValue(callInst->getArgOperand(0));
-    setFloatResult(result, cos(x));
-  }
-  else if (name == "dot")
-  {
-    const llvm::Value *opA = callInst->getArgOperand(0);
-    const llvm::Value *opB = callInst->getArgOperand(1);
+#define BUILTIN(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  fn(callInst, name, overload, result)
+#define BUILTIN_F1ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  builtin_f1arg(callInst, result, fn)
+#define BUILTIN_F2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  builtin_f2arg(callInst, result, fn)
+#define BUILTIN_F3ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  builtin_f3arg(callInst, result, fn)
+#define BUILTIN_U1ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  builtin_u1arg(callInst, result, fn)
+#define BUILTIN_U2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  builtin_u2arg(callInst, result, fn)
+#define BUILTIN_U2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  builtin_u3arg(callInst, result, fn)
+#define BUILTIN_S1ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  builtin_s1arg(callInst, result, fn)
+#define BUILTIN_S2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  builtin_s2arg(callInst, result, fn)
+#define BUILTIN_S2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+  builtin_s3arg(callInst, result, fn)
 
-    int num = 1;
-    if (opA->getType()->isVectorTy())
-    {
-      num = opA->getType()->getVectorNumElements();
-    }
+  if (false);
+  // Async Copy and Prefetch Functions
+  BUILTIN("async_work_group_copy", async_work_group_copy);
+  BUILTIN("async_work_group_strided_copy", async_work_group_copy);
+  BUILTIN("wait_group_events", wait_group_events);
+  BUILTIN("prefetch", prefetch);
 
-    double r = 0.f;
-    for (int i = 0; i < num; i++)
-    {
-      double a = getFloatValue(callInst->getArgOperand(0), i);
-      double b = getFloatValue(callInst->getArgOperand(1), i);
-      r += a * b;
-    }
-    setFloatResult(result, r);
-  }
-  else if (name == "fabsf" || name == "fabs")
-  {
-    double x = getFloatValue(callInst->getArgOperand(0));
-    setFloatResult(result, fabsf(x));
-  }
-  else if (name == "hadd")
-  {
-    // TODO: Non-integer overloads
-    uint64_t a = getUnsignedInt(callInst->getArgOperand(0));
-    uint64_t b = getUnsignedInt(callInst->getArgOperand(1));
-    uint64_t r = (a + b) >> 1;
-    memcpy(result.data, &r, result.size);
-  }
-  else if (name == "log2")
-  {
-    double x = getFloatValue(callInst->getArgOperand(0));
-    setFloatResult(result, log2(x));
-  }
-  else if (name == "min")
-  {
-    // TODO: Non-integer overloads
-    uint64_t a = getUnsignedInt(callInst->getArgOperand(0));
-    uint64_t b = getUnsignedInt(callInst->getArgOperand(1));
-    uint64_t r = min(a,b);
-    memcpy(result.data, &r, result.size);
-  }
-  else if (name == "native_divide")
-  {
-    for (int i = 0; i < result.num; i++)
-    {
-      double a = getFloatValue(callInst->getArgOperand(0), i);
-      double b = getFloatValue(callInst->getArgOperand(1), i);
-      setFloatResult(result, a / b, i);
-    }
-  }
-  else if (name == "native_exp")
-  {
-    double x = getFloatValue(callInst->getArgOperand(0));
-    setFloatResult(result, exp(x));
-  }
-  else if (name == "native_powr")
-  {
-    double a = getFloatValue(callInst->getArgOperand(0));
-    double b = getFloatValue(callInst->getArgOperand(1));
-    setFloatResult(result, pow(a, b));
-  }
-  else if (name == "nextafter")
-  {
-    double a = getFloatValue(callInst->getArgOperand(0));
-    double b = getFloatValue(callInst->getArgOperand(1));
-    setFloatResult(result, nextafterf(a, b));
-  }
-  else if (name == "sin")
-  {
-    double x = getFloatValue(callInst->getArgOperand(0));
-    setFloatResult(result, sin(x));
-  }
-  else if (name == "sincos")
-  {
-    double x = getFloatValue(callInst->getArgOperand(0));
-    size_t cv = getUnsignedInt(callInst->getArgOperand(1));
-    setFloatResult(result, cos(x));
-    m_stack->store(result.data, cv, result.size);
-    setFloatResult(result, sin(x));
-  }
-  else if (name == "sqrt" || name == "native_sqrt")
-  {
-    double a = getFloatValue(callInst->getArgOperand(0));
-    setFloatResult(result, sqrt(a));
-  }
-  else if (name == "async_work_group_copy" ||
-           name == "async_work_group_strided_copy")
-  {
-    int arg = 0;
+  // Common Functions
+  BUILTIN("clamp", clamp);
+  BUILTIN("max", max);
+  BUILTIN("min", min);
 
-    // Get src/dest addresses
-    const llvm::Value *destOp = callInst->getArgOperand(arg++);
-    const llvm::Value *srcOp = callInst->getArgOperand(arg++);
-    size_t dest = *(size_t*)(m_privateMemory[destOp].data);
-    size_t src = *(size_t*)(m_privateMemory[srcOp].data);
+  // Geometric Functions
+  BUILTIN("dot", dot);
 
-    // Get size of copy
-    size_t elemSize = getTypeSize(destOp->getType()->getPointerElementType());
-    uint64_t num = getUnsignedInt(callInst->getArgOperand(arg++));
+  // Integer Functions
+  BUILTIN("hadd", hadd);
 
-    // Get stride
-    uint64_t stride = 1;
-    size_t srcStride = 1;
-    size_t destStride = 1;
-    if (name == "async_work_group_strided_copy")
-    {
-      stride = getUnsignedInt(callInst->getArgOperand(arg++));
-    }
+  // Math Functions
+  BUILTIN_F1ARG("ceil", ceil);
+  BUILTIN_F1ARG("cos", cos);
+  BUILTIN_F1ARG("fabs", fabs);
+  BUILTIN_F1ARG("log2", log2);
+  BUILTIN_F1ARG("exp", exp);
+  BUILTIN_F2ARG("pow", pow);
+  BUILTIN_F2ARG("nextafter", nextafter);
+  BUILTIN_F1ARG("sin", sin);
+  BUILTIN("sincos", sincos);
+  BUILTIN_F1ARG("sqrt", sqrt);
 
-    uint64_t event = getUnsignedInt(callInst->getArgOperand(arg++));
+  // Synchronization Functions
+  BUILTIN("barrier", barrier);
 
-    // Get type of copy
-    WorkGroup::AsyncCopyType type;
-    if (destOp->getType()->getPointerAddressSpace() == AddrSpaceLocal)
-    {
-      type = WorkGroup::GLOBAL_TO_LOCAL;
-      srcStride = stride;
-    }
-    else
-    {
-      type = WorkGroup::LOCAL_TO_GLOBAL;
-      destStride = stride;
-    }
+  // Vector Data Load and Store Functions
+  BUILTIN("vload", vload);
+  BUILTIN("vstore", vstore);
 
-    // Register copy
-    WorkGroup::AsyncCopy copy = {
-      callInst,
-      type,
-      dest,
-      src,
-      elemSize,
-      num,
-      srcStride,
-      destStride
-    };
-    event = m_workGroup.async_copy(copy, event);
-    setIntResult(result, event);
-  }
-  else if (name == "wait_group_events")
-  {
-    uint64_t num = getUnsignedInt(callInst->getArgOperand(0));
-    const llvm::Value *ptrOp = callInst->getArgOperand(1);
-    size_t address = *(size_t*)(m_privateMemory[ptrOp].data);
-    for (int i = 0; i < num; i++)
-    {
-      // TODO: Can we safely assume this is private/stack data?
-      uint64_t event;
-      if (!m_stack->load((unsigned char*)&event, address, sizeof(uint64_t)))
-      {
-        outputMemoryError(*callInst, "Invalid read", AddrSpacePrivate,
-                          address, sizeof(uint64_t));
-        return;
-      }
-      m_workGroup.wait_event(event);
-      address += sizeof(uint64_t);
-    }
-    m_state = WAIT_EVENT;
-  }
-  else if (name == "prefetch")
-  {
-    // Do nothing.
-  }
-  else if (name.compare(0, 5, "vload") == 0)
-  {
-    // TODO: Non-integer overloads
-    const llvm::Value *ptrOp = callInst->getArgOperand(1);
-    size_t base = *(size_t*)(m_privateMemory[ptrOp].data);
-    uint64_t offset = getUnsignedInt(callInst->getArgOperand(0));
+  // Work-Item Functions
+  BUILTIN("get_global_id", get_global_id);
+  BUILTIN("get_global_size", get_global_size);
+  BUILTIN("get_global_offset", get_global_offset);
+  BUILTIN("get_group_id", get_group_id);
+  BUILTIN("get_local_id", get_local_id);
+  BUILTIN("get_local_size", get_local_size);
+  BUILTIN("get_num_groups", get_num_groups);
+  BUILTIN("get_work_dim", get_work_dim);
 
-    unsigned addressSpace = atoi(overload.substr(overload.length()-2).c_str());
+  // LLVM Intrinsics
+  BUILTIN("llvm.dbg.declare", llvm_dbg_declare);
+  BUILTIN("llvm.dbg.value", llvm_dbg_value);
+  BUILTIN("llvm.lifetime.start", llvm_lifetime_start);
+  BUILTIN("llvm.lifetime.end", llvm_lifetime_end);
+  BUILTIN("llvm.memcpy", llvm_memcpy);
+  BUILTIN("llvm.memset", llvm_memset);
+  BUILTIN("llvm.trap", llvm_trap);
 
-    Memory *memory = NULL;
-    switch (addressSpace)
-    {
-    case AddrSpacePrivate:
-      memory = m_stack;
-      break;
-    case AddrSpaceGlobal:
-    case AddrSpaceConstant:
-      memory = &m_globalMemory;
-      break;
-    case AddrSpaceLocal:
-      memory = m_workGroup.getLocalMemory();
-      break;
-    default:
-      cerr << "Unhandled address space '" << addressSpace << "'" << endl;
-      break;
-    }
-
-    if (!memory->load(result.data,
-                      base + offset*result.size*result.num,
-                      result.size*result.num))
-    {
-      outputMemoryError(instruction, "Invalid read",
-                        addressSpace, base + offset*result.size*result.num,
-                        result.size*result.num);
-    }
-  }
-  else if (name.compare(0, 6, "vstore") == 0)
-  {
-    // TODO: Non-integer overloads
-    const llvm::Value *value = callInst->getArgOperand(0);
-    size_t size = getTypeSize(value->getType());
-    unsigned char *data = new unsigned char[size];
-    if (isConstantOperand(value))
-    {
-      getConstantData(data, (const llvm::Constant*)value);
-    }
-    else
-    {
-      memcpy(data, m_privateMemory[value].data, size);
-    }
-    uint64_t offset = getUnsignedInt(callInst->getArgOperand(1));
-
-    const llvm::Value *ptrOp = callInst->getArgOperand(2);
-    size_t base = *(size_t*)(m_privateMemory[ptrOp].data);
-
-    unsigned addressSpace = atoi(overload.substr(overload.length()-2).c_str());
-
-    Memory *memory = NULL;
-    switch (addressSpace)
-    {
-    case AddrSpacePrivate:
-      memory = m_stack;
-      break;
-    case AddrSpaceGlobal:
-    case AddrSpaceConstant:
-      memory = &m_globalMemory;
-      break;
-    case AddrSpaceLocal:
-      memory = m_workGroup.getLocalMemory();
-      break;
-    default:
-      cerr << "Unhandled address space '" << addressSpace << "'" << endl;
-      break;
-    }
-
-    if (!memory->store(data, base + offset*size, size))
-    {
-      outputMemoryError(instruction, "Invalid write",
-                        addressSpace, base + offset*size, size);
-    }
-    delete[] data;
-  }
-  else if (name.compare(0, 11, "llvm.memcpy") == 0)
-  {
-    const llvm::MemCpyInst *memcpy = (const llvm::MemCpyInst*)callInst;
-    size_t dest = *(size_t*)(m_privateMemory[memcpy->getDest()].data);
-    size_t src = *(size_t*)(m_privateMemory[memcpy->getSource()].data);
-    size_t size = getUnsignedInt(memcpy->getLength());
-    unsigned destAddrSpace = memcpy->getDestAddressSpace();
-    unsigned srcAddrSpace = memcpy->getSourceAddressSpace();
-
-    Memory *destMemory = NULL;
-    switch (destAddrSpace)
-    {
-    case AddrSpacePrivate:
-      destMemory = m_stack;
-      break;
-    case AddrSpaceGlobal:
-    case AddrSpaceConstant:
-      destMemory = &m_globalMemory;
-      break;
-    case AddrSpaceLocal:
-      destMemory = m_workGroup.getLocalMemory();
-      break;
-    default:
-      cerr << "Unhandled address space '" << destAddrSpace << "'" << endl;
-      break;
-    }
-
-    Memory *srcMemory = NULL;
-    switch (srcAddrSpace)
-    {
-    case AddrSpacePrivate:
-      srcMemory = m_stack;
-      break;
-    case AddrSpaceGlobal:
-    case AddrSpaceConstant:
-      srcMemory = &m_globalMemory;
-      break;
-    case AddrSpaceLocal:
-      srcMemory = m_workGroup.getLocalMemory();
-      break;
-    default:
-      cerr << "Unhandled address space '" << srcAddrSpace << "'" << endl;
-      break;
-    }
-
-    unsigned char *buffer = new unsigned char[size];
-    if (!srcMemory->load(buffer, src, size))
-    {
-      outputMemoryError(instruction, "Invalid read",
-                        srcAddrSpace, src, size);
-    }
-    else if (!destMemory->store(buffer, dest, size))
-    {
-      outputMemoryError(instruction, "Invalid write",
-                        destAddrSpace, dest, size);
-    }
-    delete[] buffer;
-  }
-  else if (name.compare(0, 11, "llvm.memset") == 0)
-  {
-    const llvm::MemSetInst *memsetinst = (const llvm::MemSetInst*)callInst;
-    size_t dest = *(size_t*)(m_privateMemory[memsetinst->getDest()].data);
-    size_t size = getUnsignedInt(memsetinst->getLength());
-    unsigned addressSpace = memsetinst->getDestAddressSpace();
-
-    Memory *mem = NULL;
-    switch (addressSpace)
-    {
-    case AddrSpacePrivate:
-      mem = m_stack;
-      break;
-    case AddrSpaceGlobal:
-    case AddrSpaceConstant:
-      mem = &m_globalMemory;
-      break;
-    case AddrSpaceLocal:
-      mem = m_workGroup.getLocalMemory();
-      break;
-    default:
-      cerr << "Unhandled address space '" << addressSpace << "'" << endl;
-      break;
-    }
-
-    unsigned char *buffer = new unsigned char[size];
-    unsigned char value = getUnsignedInt(memsetinst->getArgOperand(1));
-    memset(buffer, value, size);
-    if (!mem->store(buffer, dest, size))
-    {
-      outputMemoryError(instruction, "Invalid write",
-                        addressSpace, dest, size);
-    }
-    delete[] buffer;
-  }
-  else if (name == "llvm.trap")
-  {
-    trap();
-  }
-  else if (name == "llvm.dbg.declare")
-  {
-    // TODO: Implement?
-  }
-  else if (name == "llvm.lifetime.start")
-  {
-    // TODO: Implement?
-  }
-  else if (name == "llvm.lifetime.end")
-  {
-    // TODO: Implement?
-  }
-  else if (name == "llvm.dbg.value")
-  {
-    updateVariable((const llvm::DbgValueInst*)callInst);
-  }
+  // Function didn't match builtin
   else
   {
     cerr << "Unhandled direct function call: " << name << endl;
   }
+  return;
 }
 
 void WorkItem::extract(const llvm::Instruction& instruction,

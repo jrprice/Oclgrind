@@ -7,10 +7,10 @@ lib_LTLIBRARIES = libspirsim.la liboclgrind.la
 
 libspirsim_la_SOURCES = src/sprisim/common.h src/spirsim/common.cpp	\
  src/spirsim/Device.cpp src/spirsim/WorkItem.h				\
- src/spirsim/WorkItem.cpp src/spirsim/WorkGroup.h			\
- src/spirsim/WorkGroup.cpp src/spirsim/Program.h			\
- src/spirsim/Program.cpp src/spirsim/Kernel.h src/spirsim/Kernel.cpp	\
- src/spirsim/Memory.h src/spirsim/Memory.cpp
+ src/spirsim/WorkItem.cpp src/spirsim/WorkItemBuiltins.cpp		\
+ src/spirsim/WorkGroup.h src/spirsim/WorkGroup.cpp			\
+ src/spirsim/Program.h src/spirsim/Program.cpp src/spirsim/Kernel.h	\
+ src/spirsim/Kernel.cpp src/spirsim/Memory.h src/spirsim/Memory.cpp
 libspirsim_la_LDFLAGS = -lclangCodeGen -lclangAST -lclang		\
 -lLLVMBitReader -lLLVMBitWriter -lLLVMAsmParser -lLLVMInstrumentation	\
 -lLLVMipo -lLLVMipa -lLLVMInstCombine -lLLVMLinker -lLLVMMC		\

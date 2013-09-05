@@ -3,6 +3,7 @@
 namespace llvm
 {
   class DbgValueInst;
+  class CallInst;
 }
 
 namespace spirsim
@@ -50,6 +51,7 @@ namespace spirsim
     void trap();
     void updateVariable(const llvm::DbgValueInst *instruction);
 
+    // SPIR instructions
     void add(const llvm::Instruction& instruction, TypedValue& result);
     void alloc(const llvm::Instruction& instruction, TypedValue& result);
     void ashr(const llvm::Instruction& instruction, TypedValue& result);
@@ -91,6 +93,74 @@ namespace spirsim
     void uitofp(const llvm::Instruction& instruction, TypedValue& result);
     void urem(const llvm::Instruction& instruction, TypedValue& result);
     void zext(const llvm::Instruction& instruction, TypedValue& result);
+
+#define DECLARE_BUILTIN(name)      void name(const llvm::CallInst *callInst, \
+                                             std::string name,               \
+                                             std::string overload,           \
+                                             TypedValue& result)
+    // Async Copy and Prefetch Functions
+    DECLARE_BUILTIN(async_work_group_copy);
+    DECLARE_BUILTIN(wait_group_events);
+    DECLARE_BUILTIN(prefetch);
+
+    // Common Functions
+    DECLARE_BUILTIN(clamp);
+    DECLARE_BUILTIN(max);
+    DECLARE_BUILTIN(min);
+
+    // Geometric Functions
+    DECLARE_BUILTIN(dot);
+
+    // Integer Functions
+    DECLARE_BUILTIN(hadd);
+
+    // Math Functions
+    DECLARE_BUILTIN(sincos);
+
+    // Synchronization Functions
+    DECLARE_BUILTIN(barrier);
+
+    // Vector Data Load and Store Functions
+    DECLARE_BUILTIN(vload);
+    DECLARE_BUILTIN(vstore);
+
+    // Work-Item Functions
+    DECLARE_BUILTIN(get_global_id);
+    DECLARE_BUILTIN(get_global_size);
+    DECLARE_BUILTIN(get_global_offset);
+    DECLARE_BUILTIN(get_group_id);
+    DECLARE_BUILTIN(get_local_id);
+    DECLARE_BUILTIN(get_local_size);
+    DECLARE_BUILTIN(get_num_groups);
+    DECLARE_BUILTIN(get_work_dim);
+
+    // LLVM Intrinisics
+    DECLARE_BUILTIN(llvm_dbg_declare);
+    DECLARE_BUILTIN(llvm_dbg_value);
+    DECLARE_BUILTIN(llvm_lifetime_start);
+    DECLARE_BUILTIN(llvm_lifetime_end);
+    DECLARE_BUILTIN(llvm_memcpy);
+    DECLARE_BUILTIN(llvm_memset);
+    DECLARE_BUILTIN(llvm_trap);
+
+    void builtin_f1arg(const llvm::CallInst *callInst, TypedValue& result,
+                       double (*func)(double));
+    void builtin_f2arg(const llvm::CallInst *callInst, TypedValue& result,
+                       double (*func)(double, double));
+    void builtin_f3arg(const llvm::CallInst *callInst, TypedValue& result,
+                       double (*func)(double, double, double));
+    void builtin_u1arg(const llvm::CallInst *callInst, TypedValue& result,
+                       uint64_t (*func)(uint64_t));
+    void builtin_u2arg(const llvm::CallInst *callInst, TypedValue& result,
+                       uint64_t (*func)(uint64_t, uint64_t));
+    void builtin_u3arg(const llvm::CallInst *callInst, TypedValue& result,
+                       uint64_t (*func)(uint64_t, uint64_t, uint64_t));
+    void builtin_s1arg(const llvm::CallInst *callInst, TypedValue& result,
+                       int64_t (*func)(int64_t));
+    void builtin_s2arg(const llvm::CallInst *callInst, TypedValue& result,
+                       int64_t (*func)(int64_t, int64_t));
+    void builtin_s3arg(const llvm::CallInst *callInst, TypedValue& result,
+                       int64_t (*func)(int64_t, int64_t, int64_t));
 
   private:
     size_t m_globalID[3];
