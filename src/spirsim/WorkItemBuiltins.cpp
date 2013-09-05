@@ -307,7 +307,11 @@ DEFINE_BUILTIN(min)
 
 DEFINE_BUILTIN(dot)
 {
-  int num = ARG(0)->getType()->getVectorNumElements();
+  int num = 1;
+  if (callInst->getType()->isVectorTy())
+  {
+    ARG(0)->getType()->getVectorNumElements();
+  }
 
   double r = 0.f;
   for (int i = 0; i < num; i++)

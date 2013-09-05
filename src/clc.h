@@ -199,6 +199,7 @@ BUILTIN_2ARG(float, min);
 // Geometric Functions //
 /////////////////////////
 
+float __OVERLOAD__ dot(float a, float b);
 float __OVERLOAD__ dot(float2 a, float2 b);
 float __OVERLOAD__ dot(float3 a, float3 b);
 float __OVERLOAD__ dot(float4 a, float4 b);
