@@ -1186,7 +1186,7 @@ clGetMemObjectInfo(cl_mem            memobj ,
   case CL_MEM_HOST_PTR:
     result_size = sizeof(void*);
     result_data = malloc(result_size);
-    memset(result_data, NULL, result_size);
+    memset(result_data, 0, result_size);
   case CL_MEM_MAP_COUNT:
     result_size = sizeof(cl_uint);
     result_data = malloc(result_size);
