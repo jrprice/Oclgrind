@@ -221,23 +221,23 @@ BUILTIN_2ARG_INTEGERS(min);
 // Math Functions //
 ////////////////////
 
-BUILTIN_2ARG(float, cos);
-BUILTIN_2ARG(float, fabs);
-BUILTIN_2ARG(float, exp);
+BUILTIN_1ARG(float, cos);
+BUILTIN_1ARG(float, fabs);
+BUILTIN_1ARG(float, exp);
 #define native_divide(a, b) (a/b)
 #define native_exp(x) exp(x)
 #define native_powr(a, b) pow(a, b)
 #define native_sqrt(x) sqrt(x)
 #define nextafter( _x, _y ) __builtin_nextafter( _x, _y )
 BUILTIN_2ARG(float, pow);
-BUILTIN_2ARG(float, sin);
+BUILTIN_1ARG(float, sin);
 float __OVERLOAD__ sincos(float x, float *cosval);
 float2 __OVERLOAD__ sincos(float2 x, float2 *cosval);
 float3 __OVERLOAD__ sincos(float3 x, float3 *cosval);
 float4 __OVERLOAD__ sincos(float4 x, float4 *cosval);
 float8 __OVERLOAD__ sincos(float8 x, float8 *cosval);
 float16 __OVERLOAD__ sincos(float16 x, float16 *cosval);
-BUILTIN_2ARG(float, sqrt);
+BUILTIN_1ARG(float, sqrt);
 
 
 //////////////////////////
