@@ -859,13 +859,13 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   builtin_u1arg(callInst, result, fn)
 #define BUILTIN_U2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
   builtin_u2arg(callInst, result, fn)
-#define BUILTIN_U2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_U3ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
   builtin_u3arg(callInst, result, fn)
 #define BUILTIN_S1ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
   builtin_s1arg(callInst, result, fn)
 #define BUILTIN_S2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
   builtin_s2arg(callInst, result, fn)
-#define BUILTIN_S2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_S3ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
   builtin_s3arg(callInst, result, fn)
 
   if (false);
