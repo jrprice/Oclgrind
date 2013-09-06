@@ -553,6 +553,16 @@ DEFINE_BUILTIN(remquo_builtin)
   }
 }
 
+DEFINE_BUILTIN(rootn)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    double x = FARGV(0, i);
+    int y = SARGV(1, i);
+    setFloatResult(result, pow(x, (double)(1.0/y)), i);
+  }
+}
+
 DEFINE_BUILTIN(sincos)
 {
   size_t cv = UARG(1);

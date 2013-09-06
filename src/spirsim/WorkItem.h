@@ -124,6 +124,7 @@ namespace spirsim
     DECLARE_BUILTIN(nan_builtin);
     DECLARE_BUILTIN(pown);
     DECLARE_BUILTIN(remquo_builtin);
+    DECLARE_BUILTIN(rootn);
     DECLARE_BUILTIN(sincos);
 
     // Synchronization Functions
