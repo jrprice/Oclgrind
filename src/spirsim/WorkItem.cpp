@@ -933,16 +933,25 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("tgamma", tgamma);
 
   // Native Math Functions
+  BUILTIN_F1ARG("half_cos", cos);
   BUILTIN_F1ARG("native_cos", cos);
-  //BUILTIN_F2ARG("native_divide", divide); // TODO: Map to a/b ?
+  BUILTIN_F1ARG("half_exp", exp);
   BUILTIN_F1ARG("native_exp", exp);
+  BUILTIN_F1ARG("half_exp2", exp2);
   BUILTIN_F1ARG("native_exp2", exp2);
+  BUILTIN_F1ARG("half_log", log);
   BUILTIN_F1ARG("native_log", log);
+  BUILTIN_F1ARG("half_log2", log2);
   BUILTIN_F1ARG("native_log2", log2);
+  BUILTIN_F1ARG("half_log10", log10);
   BUILTIN_F1ARG("native_log10", log10);
+  BUILTIN_F2ARG("half_powr", pow);
   BUILTIN_F2ARG("native_powr", pow);
+  BUILTIN_F1ARG("half_sin", sin);
   BUILTIN_F1ARG("native_sin", sin);
+  BUILTIN_F1ARG("half_sqrt", sqrt);
   BUILTIN_F1ARG("native_sqrt", sqrt);
+  BUILTIN_F1ARG("half_tan", tan);
   BUILTIN_F1ARG("native_tan", tan);
 
   // Synchronization Functions
