@@ -378,6 +378,32 @@ DEFINE_BUILTIN(fract)
   }
 }
 
+DEFINE_BUILTIN(frexp)
+{
+  size_t iptr = UARG(1);
+  for (int i = 0; i < result.num; i++)
+  {
+    int32_t e;
+    double r = frexpl(FARG(0), &e);
+
+    size_t offset = i*4;
+    switch (ARG(1)->getType()->getPointerAddressSpace())
+    {
+      case AddrSpacePrivate:
+        m_stack->store((const unsigned char*)&e, iptr + i*4, 4);
+        break;
+      case AddrSpaceGlobal:
+        m_globalMemory.store((const unsigned char*)&e, iptr + i*4, 4);
+        break;
+      case AddrSpaceLocal:
+        m_workGroup.getLocalMemory()->store((const unsigned char*)&e, iptr + i*4, 4);
+        break;
+    }
+
+    setFloatResult(result, r);
+  }
+}
+
 DEFINE_BUILTIN(sincos)
 {
   size_t cv = UARG(1);

@@ -221,6 +221,18 @@ BUILTIN_2ARG_INTEGERS(min);
 // Math Functions //
 ////////////////////
 
+#define BUILTIN_2TYPE_PTR(type1, type2, name) \
+ type1 __OVERLOAD__ name(type1, __global type2*); \
+ type1 __OVERLOAD__ name(type1, __local type2*); \
+ type1 __OVERLOAD__ name(type1, __private type2*);
+#define BUILTIN_PTR_ARG(type1, type2, name) \
+ BUILTIN_2TYPE_PTR(type1, type2, name) \
+ BUILTIN_2TYPE_PTR(type1##2, type2##2, name) \
+ BUILTIN_2TYPE_PTR(type1##3, type2##3, name) \
+ BUILTIN_2TYPE_PTR(type1##4, type2##4, name) \
+ BUILTIN_2TYPE_PTR(type1##8, type2##8, name) \
+ BUILTIN_2TYPE_PTR(type1##16, type2##16, name);
+
 BUILTIN_1ARG(float, acos);
 BUILTIN_1ARG(float, acosh);
 BUILTIN_1ARG(float, acospi);
@@ -251,24 +263,8 @@ BUILTIN_3ARG(float, fma);
 BUILTIN_2ARG(float, fmax);
 BUILTIN_2ARG(float, fmin);
 BUILTIN_2ARG(float, fmod);
-float __OVERLOAD__ fract(float x, __global float *cosval);
-float2 __OVERLOAD__ fract(float2 x, __global float2 *cosval);
-float3 __OVERLOAD__ fract(float3 x, __global float3 *cosval);
-float4 __OVERLOAD__ fract(float4 x, __global float4 *cosval);
-float8 __OVERLOAD__ fract(float8 x, __global float8 *cosval);
-float16 __OVERLOAD__ fract(float16 x, __global float16 *cosval);
-float __OVERLOAD__ fract(float x, __local float *cosval);
-float2 __OVERLOAD__ fract(float2 x, __local float2 *cosval);
-float3 __OVERLOAD__ fract(float3 x, __local float3 *cosval);
-float4 __OVERLOAD__ fract(float4 x, __local float4 *cosval);
-float8 __OVERLOAD__ fract(float8 x, __local float8 *cosval);
-float16 __OVERLOAD__ fract(float16 x, __local float16 *cosval);
-float __OVERLOAD__ fract(float x, __private float *cosval);
-float2 __OVERLOAD__ fract(float2 x, __private float2 *cosval);
-float3 __OVERLOAD__ fract(float3 x, __private float3 *cosval);
-float4 __OVERLOAD__ fract(float4 x, __private float4 *cosval);
-float8 __OVERLOAD__ fract(float8 x, __private float8 *cosval);
-float16 __OVERLOAD__ fract(float16 x, __private float16 *cosval);
+BUILTIN_PTR_ARG(float, float, fract);
+BUILTIN_PTR_ARG(float, int, frexp);
 BUILTIN_2ARG(float, hypot);
 BUILTIN_1ARG(float, lgamma);
 BUILTIN_1ARG(float, log);
@@ -285,24 +281,7 @@ BUILTIN_1ARG(float, round);
 BUILTIN_1ARG(float, sin);
 BUILTIN_1ARG(float, sinpi);
 BUILTIN_1ARG(float, sinh);
-float __OVERLOAD__ sincos(float x, __global float *cosval);
-float2 __OVERLOAD__ sincos(float2 x, __global float2 *cosval);
-float3 __OVERLOAD__ sincos(float3 x, __global float3 *cosval);
-float4 __OVERLOAD__ sincos(float4 x, __global float4 *cosval);
-float8 __OVERLOAD__ sincos(float8 x, __global float8 *cosval);
-float16 __OVERLOAD__ sincos(float16 x, __global float16 *cosval);
-float __OVERLOAD__ sincos(float x, __local float *cosval);
-float2 __OVERLOAD__ sincos(float2 x, __local float2 *cosval);
-float3 __OVERLOAD__ sincos(float3 x, __local float3 *cosval);
-float4 __OVERLOAD__ sincos(float4 x, __local float4 *cosval);
-float8 __OVERLOAD__ sincos(float8 x, __local float8 *cosval);
-float16 __OVERLOAD__ sincos(float16 x, __local float16 *cosval);
-float __OVERLOAD__ sincos(float x, __private float *cosval);
-float2 __OVERLOAD__ sincos(float2 x, __private float2 *cosval);
-float3 __OVERLOAD__ sincos(float3 x, __private float3 *cosval);
-float4 __OVERLOAD__ sincos(float4 x, __private float4 *cosval);
-float8 __OVERLOAD__ sincos(float8 x, __private float8 *cosval);
-float16 __OVERLOAD__ sincos(float16 x, __private float16 *cosval);
+BUILTIN_PTR_ARG(float, float, sincos);
 BUILTIN_1ARG(float, sqrt);
 BUILTIN_1ARG(float, tan);
 BUILTIN_1ARG(float, tanh);
