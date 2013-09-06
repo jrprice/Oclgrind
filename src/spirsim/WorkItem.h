@@ -121,6 +121,7 @@ namespace spirsim
     DECLARE_BUILTIN(ldexp_builtin);
     DECLARE_BUILTIN(lgamma_r);
     DECLARE_BUILTIN(modf_builtin);
+    DECLARE_BUILTIN(nan_builtin);
     DECLARE_BUILTIN(sincos);
 
     // Synchronization Functions

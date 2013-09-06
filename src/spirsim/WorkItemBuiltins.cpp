@@ -506,6 +506,15 @@ DEFINE_BUILTIN(modf_builtin)
   }
 }
 
+DEFINE_BUILTIN(nan_builtin)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t nancode = UARGV(0, i);
+    setFloatResult(result, nan(""), i);
+  }
+}
+
 DEFINE_BUILTIN(sincos)
 {
   size_t cv = UARG(1);

@@ -935,6 +935,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F2ARG("maxmag", maxmag);
   BUILTIN_F2ARG("minmag", minmag);
   BUILTIN("modf", modf_builtin);
+  BUILTIN("nan", nan_builtin);
   BUILTIN_F2ARG("nextafter", nextafter);
   BUILTIN_F2ARG("pow", pow);
   BUILTIN_F2ARG("powr", pow);
