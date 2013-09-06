@@ -378,13 +378,13 @@ DEFINE_BUILTIN(fract)
   }
 }
 
-DEFINE_BUILTIN(frexp)
+DEFINE_BUILTIN(frexp_builtin)
 {
   size_t iptr = UARG(1);
   for (int i = 0; i < result.num; i++)
   {
     int32_t e;
-    double r = frexpl(FARG(0), &e);
+    double r = frexp(FARG(0), &e);
 
     size_t offset = i*4;
     switch (ARG(1)->getType()->getPointerAddressSpace())
@@ -401,6 +401,14 @@ DEFINE_BUILTIN(frexp)
     }
 
     setFloatResult(result, r);
+  }
+}
+
+DEFINE_BUILTIN(ilogb_builtin)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    setIntResult(result, (int64_t)ilogb(FARGV(0, i)), i);
   }
 }
 
