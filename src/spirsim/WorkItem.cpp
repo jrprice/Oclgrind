@@ -908,6 +908,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("erf", erf);
   BUILTIN_F1ARG("exp", exp);
   BUILTIN_F1ARG("exp2", exp2);
+  BUILTIN_F1ARG("exp10", exp10);
   BUILTIN_F1ARG("expm1", expm1);
   BUILTIN_F1ARG("fabs", fabs);
   BUILTIN_F2ARG("fdim", fdim);
@@ -916,6 +917,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F2ARG("fmax", fmax);
   BUILTIN_F2ARG("fmin", fmin);
   BUILTIN_F2ARG("fmod", fmod);
+  BUILTIN("fract", fract);
   BUILTIN_F2ARG("hypot", hypot);
   BUILTIN_F1ARG("lgamma", lgamma);
   BUILTIN_F1ARG("log", log);

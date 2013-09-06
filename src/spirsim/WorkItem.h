@@ -115,6 +115,7 @@ namespace spirsim
     DECLARE_BUILTIN(hadd);
 
     // Math Functions
+    DECLARE_BUILTIN(fract);
     DECLARE_BUILTIN(sincos);
 
     // Synchronization Functions
@@ -191,5 +192,6 @@ double asinpi(double x);
 double atanpi(double x);
 double atan2pi(double x, double y);
 double cospi(double x);
+double exp10(double x);
 double sinpi(double x);
 double tanpi(double x);

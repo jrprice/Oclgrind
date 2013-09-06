@@ -346,18 +346,63 @@ double asinpi(double x){ return (asin(x) / M_PI); }
 double atanpi(double x){ return (atan(x) / M_PI); }
 double atan2pi(double x, double y){ return (atan2(x, y) / M_PI); }
 double cospi(double x){ return (cos(x * M_PI)); }
+double exp10(double x){ return pow(10, x); }
 double sinpi(double x){ return (sin(x * M_PI)); }
 double tanpi(double x){ return (tan(x * M_PI)); }
 
+DEFINE_BUILTIN(fract)
+{
+  size_t iptr = UARG(1);
+  for (int i = 0; i < result.num; i++)
+  {
+    double x = FARG(0);
+    double fl = floor(x);
+    double r = fmin(x - fl, 0x1.fffffep-1f);
+
+    size_t offset = i*result.size;
+    setFloatResult(result, fl, i);
+    switch (ARG(1)->getType()->getPointerAddressSpace())
+    {
+      case AddrSpacePrivate:
+        m_stack->store(result.data + offset, iptr + offset, result.size);
+        break;
+      case AddrSpaceGlobal:
+        m_globalMemory.store(result.data + offset, iptr + offset, result.size);
+        break;
+      case AddrSpaceLocal:
+        m_workGroup.getLocalMemory()->store(result.data + offset, iptr + offset, result.size);
+        break;
+    }
+
+    setFloatResult(result, r);
+  }
+}
+
 DEFINE_BUILTIN(sincos)
 {
-  double x = FARG(0);
   size_t cv = UARG(1);
-  setFloatResult(result, cos(x));
+  for (int i = 0; i < result.num; i++)
+  {
+    double x = FARGV(0, i);
 
-  // TODO: cosval might not be in private memory
-  m_stack->store(result.data, cv, result.size);
-  setFloatResult(result, sin(x));
+    size_t offset = i*result.size;
+    setFloatResult(result, cos(x), i);
+    switch (ARG(1)->getType()->getPointerAddressSpace())
+    {
+      case AddrSpacePrivate:
+        m_stack->store(result.data + offset, cv + offset, result.size);
+        break;
+      case AddrSpaceGlobal:
+        m_globalMemory.store(result.data + offset, cv + offset, result.size);
+        break;
+      case AddrSpaceLocal:
+        m_workGroup.getLocalMemory()->store(result.data + offset,
+                                            cv + offset, result.size);
+        break;
+    }
+
+    setFloatResult(result, sin(x), i);
+  }
 }
 
 
