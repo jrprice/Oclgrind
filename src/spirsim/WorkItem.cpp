@@ -945,6 +945,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("rint", rint);
   BUILTIN("rootn", rootn);
   BUILTIN_F1ARG("round", round);
+  BUILTIN_F1ARG("rsqrt", rsqrt);
   BUILTIN_F1ARG("sin", sin);
   BUILTIN_F1ARG("sinh", sinh);
   BUILTIN_F1ARG("sinpi", sinpi);
@@ -970,6 +971,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("native_log10", log10);
   BUILTIN_F2ARG("half_powr", pow);
   BUILTIN_F2ARG("native_powr", pow);
+  BUILTIN_F1ARG("half_rsqrt", rsqrt);
+  BUILTIN_F1ARG("native_rsqrt", rsqrt);
   BUILTIN_F1ARG("half_sin", sin);
   BUILTIN_F1ARG("native_sin", sin);
   BUILTIN_F1ARG("half_sqrt", sqrt);

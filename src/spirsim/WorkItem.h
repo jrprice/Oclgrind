@@ -204,5 +204,6 @@ double cospi(double x);
 double exp10(double x);
 double maxmag(double x, double y);
 double minmag(double x, double y);
+double rsqrt(double x);
 double sinpi(double x);
 double tanpi(double x);
