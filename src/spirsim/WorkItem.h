@@ -72,6 +72,7 @@ namespace spirsim
     void gep(const llvm::Instruction& instruction, TypedValue& result);
     void icmp(const llvm::Instruction& instruction, TypedValue& result);
     void insert(const llvm::Instruction& instruction, TypedValue& result);
+    void itrunc(const llvm::Instruction& instruction, TypedValue& result);
     void load(const llvm::Instruction& instruction, TypedValue& result);
     void lshr(const llvm::Instruction& instruction, TypedValue& result);
     void mul(const llvm::Instruction& instruction, TypedValue& result);
@@ -88,7 +89,6 @@ namespace spirsim
     void store(const llvm::Instruction& instruction);
     void sub(const llvm::Instruction& instruction, TypedValue& result);
     void swtch(const llvm::Instruction& instruction);
-    void trunc(const llvm::Instruction& instruction, TypedValue& result);
     void udiv(const llvm::Instruction& instruction, TypedValue& result);
     void uitofp(const llvm::Instruction& instruction, TypedValue& result);
     void urem(const llvm::Instruction& instruction, TypedValue& result);
@@ -120,6 +120,7 @@ namespace spirsim
     DECLARE_BUILTIN(ilogb_builtin);
     DECLARE_BUILTIN(ldexp_builtin);
     DECLARE_BUILTIN(lgamma_r);
+    DECLARE_BUILTIN(modf_builtin);
     DECLARE_BUILTIN(sincos);
 
     // Synchronization Functions

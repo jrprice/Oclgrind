@@ -186,7 +186,7 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     swtch(instruction);
     break;
   case llvm::Instruction::Trunc:
-    trunc(instruction, result);
+    itrunc(instruction, result);
     break;
   case llvm::Instruction::UDiv:
     udiv(instruction, result);
@@ -934,6 +934,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F3ARG("mad", fma);
   BUILTIN_F2ARG("maxmag", maxmag);
   BUILTIN_F2ARG("minmag", minmag);
+  BUILTIN("modf", modf_builtin);
   BUILTIN_F2ARG("nextafter", nextafter);
   BUILTIN_F2ARG("pow", pow);
   BUILTIN_F2ARG("powr", pow);
@@ -1307,6 +1308,15 @@ void WorkItem::insert(const llvm::Instruction& instruction,
   }
 }
 
+void WorkItem::itrunc(const llvm::Instruction& instruction, TypedValue& result)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t val = getUnsignedInt(instruction.getOperand(0), i);
+    setIntResult(result, val, i);
+  }
+}
+
 void WorkItem::load(const llvm::Instruction& instruction,
                     TypedValue& result)
 {
@@ -1669,15 +1679,6 @@ void WorkItem::swtch(const llvm::Instruction& instruction)
   llvm::ConstantInt *cval =
     (llvm::ConstantInt*)llvm::ConstantInt::get(cond->getType(), val);
   m_nextBlock = swtch->findCaseValue(cval).getCaseSuccessor();
-}
-
-void WorkItem::trunc(const llvm::Instruction& instruction, TypedValue& result)
-{
-  for (int i = 0; i < result.num; i++)
-  {
-    uint64_t val = getUnsignedInt(instruction.getOperand(0), i);
-    setIntResult(result, val, i);
-  }
 }
 
 void WorkItem::udiv(const llvm::Instruction& instruction, TypedValue& result)

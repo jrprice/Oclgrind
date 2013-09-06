@@ -477,6 +477,35 @@ DEFINE_BUILTIN(lgamma_r)
   }
 }
 
+DEFINE_BUILTIN(modf_builtin)
+{
+  size_t iptr = UARG(1);
+  for (int i = 0; i < result.num; i++)
+  {
+    double x = FARGV(0, i);
+    double integral = trunc(x);
+    double fractional = copysign(isinf(x) ? 0.0 : x - integral, x);
+
+    size_t offset = i*result.size;
+    setFloatResult(result, integral, i);
+    switch (ARG(1)->getType()->getPointerAddressSpace())
+    {
+      case AddrSpacePrivate:
+        m_stack->store(result.data + offset, iptr + offset, result.size);
+        break;
+      case AddrSpaceGlobal:
+        m_globalMemory.store(result.data + offset, iptr + offset, result.size);
+        break;
+      case AddrSpaceLocal:
+        m_workGroup.getLocalMemory()->store(result.data + offset,
+                                            iptr + offset, result.size);
+        break;
+    }
+
+    setFloatResult(result, fractional, i);
+  }
+}
+
 DEFINE_BUILTIN(sincos)
 {
   size_t cv = UARG(1);

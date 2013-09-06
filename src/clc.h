@@ -288,6 +288,7 @@ BUILTIN_1ARG(float, logb);
 BUILTIN_3ARG(float, mad);
 BUILTIN_2ARG(float, maxmag);
 BUILTIN_2ARG(float, minmag);
+BUILTIN_PTR_ARG(float, float, modf);
 BUILTIN_2ARG(float, nextafter);
 BUILTIN_2ARG(float, pow);
 BUILTIN_2ARG(float, powr);
