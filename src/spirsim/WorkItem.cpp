@@ -938,6 +938,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("nan", nan_builtin);
   BUILTIN_F2ARG("nextafter", nextafter);
   BUILTIN_F2ARG("pow", pow);
+  BUILTIN("pown", pown);
   BUILTIN_F2ARG("powr", pow);
   BUILTIN_F2ARG("remainder", remainder);
   BUILTIN_F1ARG("rint", rint);

@@ -515,6 +515,16 @@ DEFINE_BUILTIN(nan_builtin)
   }
 }
 
+DEFINE_BUILTIN(pown)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    double x = FARGV(0, i);
+    int32_t y = SARGV(1, i);
+    setFloatResult(result, pow(x, y), i);
+  }
+}
+
 DEFINE_BUILTIN(sincos)
 {
   size_t cv = UARG(1);
