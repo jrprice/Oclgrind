@@ -355,7 +355,7 @@ DEFINE_BUILTIN(fract)
   size_t iptr = UARG(1);
   for (int i = 0; i < result.num; i++)
   {
-    double x = FARG(0);
+    double x = FARGV(0, i);
     double fl = floor(x);
     double r = fmin(x - fl, 0x1.fffffep-1f);
 
@@ -374,7 +374,7 @@ DEFINE_BUILTIN(fract)
         break;
     }
 
-    setFloatResult(result, r);
+    setFloatResult(result, r, i);
   }
 }
 
@@ -384,9 +384,7 @@ DEFINE_BUILTIN(frexp_builtin)
   for (int i = 0; i < result.num; i++)
   {
     int32_t e;
-    double r = frexp(FARG(0), &e);
-
-    size_t offset = i*4;
+    double r = frexp(FARGV(0, i), &e);
     switch (ARG(1)->getType()->getPointerAddressSpace())
     {
       case AddrSpacePrivate:
@@ -400,7 +398,7 @@ DEFINE_BUILTIN(frexp_builtin)
         break;
     }
 
-    setFloatResult(result, r);
+    setFloatResult(result, r, i);
   }
 }
 
@@ -417,6 +415,30 @@ DEFINE_BUILTIN(ldexp_builtin)
   for (int i = 0; i < result.num; i++)
   {
     setFloatResult(result, ldexp(FARGV(0, i), SARGV(1, i)), i);
+  }
+}
+
+DEFINE_BUILTIN(lgamma_r)
+{
+  size_t signp = UARG(1);
+  for (int i = 0; i < result.num; i++)
+  {
+    double r = lgamma(FARGV(0, i));
+    int32_t s = (tgamma(FARGV(0, i)) < 0 ? -1 : 1);
+    switch (ARG(1)->getType()->getPointerAddressSpace())
+    {
+      case AddrSpacePrivate:
+        m_stack->store((const unsigned char*)&s, signp + i*4, 4);
+        break;
+      case AddrSpaceGlobal:
+        m_globalMemory.store((const unsigned char*)&s, signp + i*4, 4);
+        break;
+      case AddrSpaceLocal:
+        m_workGroup.getLocalMemory()->store((const unsigned char*)&s, signp + i*4, 4);
+        break;
+    }
+
+    setFloatResult(result, r, i);
   }
 }
 

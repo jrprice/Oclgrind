@@ -279,6 +279,7 @@ float4 __OVERLOAD__ ldexp(float4, int4);
 float8 __OVERLOAD__ ldexp(float8, int8);
 float16 __OVERLOAD__ ldexp(float16, int16);
 BUILTIN_1ARG(float, lgamma);
+BUILTIN_PTR_ARG(float, int, lgamma_r);
 BUILTIN_1ARG(float, log);
 BUILTIN_1ARG(float, log2);
 BUILTIN_1ARG(float, log10);
