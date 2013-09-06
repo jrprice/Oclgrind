@@ -525,6 +525,34 @@ DEFINE_BUILTIN(pown)
   }
 }
 
+DEFINE_BUILTIN(remquo_builtin)
+{
+  size_t quop = UARG(2);
+  for (int i = 0; i < result.num; i++)
+  {
+    double x = FARGV(0, i);
+    double y = FARGV(1, i);
+
+    int32_t quo;
+    double rem = remquo(x, y, &quo);
+
+    switch (ARG(2)->getType()->getPointerAddressSpace())
+    {
+      case AddrSpacePrivate:
+        m_stack->store((const unsigned char*)&quo, quop + i*4, 4);
+        break;
+      case AddrSpaceGlobal:
+        m_globalMemory.store((const unsigned char*)&quo, quop + i*4, 4);
+        break;
+      case AddrSpaceLocal:
+        m_workGroup.getLocalMemory()->store((const unsigned char*)&quo, quop + i*4, 4);
+        break;
+    }
+
+    setFloatResult(result, rem, i);
+  }
+}
+
 DEFINE_BUILTIN(sincos)
 {
   size_t cv = UARG(1);

@@ -941,6 +941,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("pown", pown);
   BUILTIN_F2ARG("powr", pow);
   BUILTIN_F2ARG("remainder", remainder);
+  BUILTIN("remquo", remquo_builtin);
   BUILTIN_F1ARG("rint", rint);
   BUILTIN_F1ARG("round", round);
   BUILTIN_F1ARG("sin", sin);
