@@ -350,6 +350,41 @@ double exp10(double x){ return pow(10, x); }
 double sinpi(double x){ return (sin(x * M_PI)); }
 double tanpi(double x){ return (tan(x * M_PI)); }
 
+double maxmag(double x, double y)
+{
+  double _x = fabs(x);
+  double _y = fabs(y);
+  if (_x > _y)
+  {
+    return x;
+  }
+  else if (_y > _x)
+  {
+    return y;
+  }
+  else
+  {
+    return fmax(x, y);
+  }
+}
+double minmag(double x, double y)
+{
+  double _x = fabs(x);
+  double _y = fabs(y);
+  if (_x < _y)
+  {
+    return x;
+  }
+  else if (_y < _x)
+  {
+    return y;
+  }
+  else
+  {
+    return fmin(x, y);
+  }
+}
+
 DEFINE_BUILTIN(fract)
 {
   size_t iptr = UARG(1);

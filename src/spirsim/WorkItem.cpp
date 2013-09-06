@@ -847,7 +847,9 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     return;
   }
 
-#define BUILTIN(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN(str, fn) else if (name == str) \
+  fn(callInst, name, overload, result)
+#define BUILTIN_PREFIX(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
   fn(callInst, name, overload, result)
 #define BUILTIN_F1ARG(str, fn) else if (name == str) \
   builtin_f1arg(callInst, result, fn)
@@ -929,6 +931,9 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("log10", log10);
   BUILTIN_F1ARG("log1p", log1p);
   BUILTIN_F1ARG("logb", logb);
+  BUILTIN_F3ARG("mad", fma);
+  BUILTIN_F2ARG("maxmag", maxmag);
+  BUILTIN_F2ARG("minmag", minmag);
   BUILTIN_F2ARG("nextafter", nextafter);
   BUILTIN_F2ARG("pow", pow);
   BUILTIN_F2ARG("powr", pow);
@@ -971,8 +976,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("barrier", barrier);
 
   // Vector Data Load and Store Functions
-  BUILTIN("vload", vload);
-  BUILTIN("vstore", vstore);
+  BUILTIN_PREFIX("vload", vload);
+  BUILTIN_PREFIX("vstore", vstore);
 
   // Work-Item Functions
   BUILTIN("get_global_id", get_global_id);
