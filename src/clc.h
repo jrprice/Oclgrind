@@ -221,16 +221,45 @@ BUILTIN_2ARG_INTEGERS(min);
 // Math Functions //
 ////////////////////
 
+BUILTIN_1ARG(float, acos);
+BUILTIN_1ARG(float, acosh);
+BUILTIN_1ARG(float, asin);
+BUILTIN_1ARG(float, asinh);
+BUILTIN_1ARG(float, atan);
+BUILTIN_2ARG(float, atan2);
+BUILTIN_1ARG(float, atanh);
+BUILTIN_1ARG(float, cbrt);
+BUILTIN_1ARG(float, ceil);
+BUILTIN_2ARG(float, copysign);
 BUILTIN_1ARG(float, cos);
-BUILTIN_1ARG(float, fabs);
+BUILTIN_1ARG(float, cosh);
+BUILTIN_1ARG(float, erfc);
+BUILTIN_1ARG(float, erf);
 BUILTIN_1ARG(float, exp);
-#define native_divide(a, b) (a/b)
-#define native_exp(x) exp(x)
-#define native_powr(a, b) pow(a, b)
-#define native_sqrt(x) sqrt(x)
-#define nextafter( _x, _y ) __builtin_nextafter( _x, _y )
+BUILTIN_1ARG(float, exp2);
+BUILTIN_1ARG(float, expm1);
+BUILTIN_1ARG(float, fabs);
+BUILTIN_2ARG(float, fdim);
+BUILTIN_1ARG(float, floor);
+BUILTIN_3ARG(float, fma);
+BUILTIN_2ARG(float, fmax);
+BUILTIN_2ARG(float, fmin);
+BUILTIN_2ARG(float, fmod);
+BUILTIN_2ARG(float, hypot);
+BUILTIN_1ARG(float, lgamma);
+BUILTIN_1ARG(float, log);
+BUILTIN_1ARG(float, log2);
+BUILTIN_1ARG(float, log10);
+BUILTIN_1ARG(float, log1p);
+BUILTIN_1ARG(float, logb);
+BUILTIN_2ARG(float, nextafter);
 BUILTIN_2ARG(float, pow);
+BUILTIN_2ARG(float, powr);
+BUILTIN_2ARG(float, remainder);
+BUILTIN_1ARG(float, rint);
+BUILTIN_1ARG(float, round);
 BUILTIN_1ARG(float, sin);
+BUILTIN_1ARG(float, sinh);
 float __OVERLOAD__ sincos(float x, float *cosval);
 float2 __OVERLOAD__ sincos(float2 x, float2 *cosval);
 float3 __OVERLOAD__ sincos(float3 x, float3 *cosval);
@@ -238,6 +267,22 @@ float4 __OVERLOAD__ sincos(float4 x, float4 *cosval);
 float8 __OVERLOAD__ sincos(float8 x, float8 *cosval);
 float16 __OVERLOAD__ sincos(float16 x, float16 *cosval);
 BUILTIN_1ARG(float, sqrt);
+BUILTIN_1ARG(float, tan);
+BUILTIN_1ARG(float, tanh);
+BUILTIN_1ARG(float, tgamma);
+
+// Native math functions
+BUILTIN_1ARG(float, native_cos);
+//BUILTIN_2ARG(float, native_divide);
+BUILTIN_1ARG(float, native_exp);
+BUILTIN_1ARG(float, native_exp2);
+BUILTIN_1ARG(float, native_log2);
+BUILTIN_1ARG(float, native_log10);
+BUILTIN_2ARG(float, native_powr);
+BUILTIN_1ARG(float, native_sin);
+BUILTIN_1ARG(float, native_sqrt);
+BUILTIN_1ARG(float, native_tan);
+
 
 
 //////////////////////////

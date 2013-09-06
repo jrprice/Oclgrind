@@ -887,16 +887,63 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("hadd", hadd);
 
   // Math Functions
+  BUILTIN_F1ARG("acos", acos);
+  BUILTIN_F1ARG("acosh", acosh);
+  BUILTIN_F1ARG("asin", asin);
+  BUILTIN_F1ARG("asinh", asinh);
+  BUILTIN_F1ARG("atan", atan);
+  BUILTIN_F2ARG("atan2", atan2);
+  BUILTIN_F1ARG("atanh", atanh);
+  BUILTIN_F1ARG("cbrt", cbrt);
   BUILTIN_F1ARG("ceil", ceil);
+  BUILTIN_F2ARG("copysign", copysign);
   BUILTIN_F1ARG("cos", cos);
-  BUILTIN_F1ARG("fabs", fabs);
-  BUILTIN_F1ARG("log2", log2);
+  BUILTIN_F1ARG("cosh", cosh);
+  BUILTIN_F1ARG("erfc", erfc);
+  BUILTIN_F1ARG("erf", erf);
   BUILTIN_F1ARG("exp", exp);
-  BUILTIN_F2ARG("pow", pow);
+  BUILTIN_F1ARG("exp2", exp2);
+  BUILTIN_F1ARG("expm1", expm1);
+  BUILTIN_F1ARG("fabs", fabs);
+  BUILTIN_F2ARG("fdim", fdim);
+  BUILTIN_F1ARG("floor", floor);
+  BUILTIN_F3ARG("fma", fma);
+  BUILTIN_F2ARG("fmax", fmax);
+  BUILTIN_F2ARG("fmin", fmin);
+  BUILTIN_F2ARG("fmod", fmod);
+  BUILTIN_F2ARG("hypot", hypot);
+  BUILTIN_F1ARG("lgamma", lgamma);
+  BUILTIN_F1ARG("log", log);
+  BUILTIN_F1ARG("log2", log2);
+  BUILTIN_F1ARG("log10", log10);
+  BUILTIN_F1ARG("log1p", log1p);
+  BUILTIN_F1ARG("logb", logb);
   BUILTIN_F2ARG("nextafter", nextafter);
+  BUILTIN_F2ARG("pow", pow);
+  BUILTIN_F2ARG("powr", pow);
+  BUILTIN_F2ARG("remainder", remainder);
+  BUILTIN_F1ARG("rint", rint);
+  BUILTIN_F1ARG("round", round);
   BUILTIN_F1ARG("sin", sin);
+  BUILTIN_F1ARG("sinh", sinh);
   BUILTIN("sincos", sincos);
   BUILTIN_F1ARG("sqrt", sqrt);
+  BUILTIN_F1ARG("tan", tan);
+  BUILTIN_F1ARG("tanh", tanh);
+  BUILTIN_F1ARG("tgamma", tgamma);
+
+  // Native Math Functions
+  BUILTIN_F1ARG("native_cos", cos);
+  //BUILTIN_F2ARG("native_divide", divide); // TODO: Map to a/b ?
+  BUILTIN_F1ARG("native_exp", exp);
+  BUILTIN_F1ARG("native_exp2", exp2);
+  BUILTIN_F1ARG("native_log", log);
+  BUILTIN_F1ARG("native_log2", log2);
+  BUILTIN_F1ARG("native_log10", log10);
+  BUILTIN_F2ARG("native_powr", pow);
+  BUILTIN_F1ARG("native_sin", sin);
+  BUILTIN_F1ARG("native_sqrt", sqrt);
+  BUILTIN_F1ARG("native_tan", tan);
 
   // Synchronization Functions
   BUILTIN("barrier", barrier);
