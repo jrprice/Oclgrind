@@ -955,6 +955,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("tanh", tanh);
   BUILTIN_F1ARG("tanpi", tanpi);
   BUILTIN_F1ARG("tgamma", tgamma);
+  BUILTIN_F1ARG("trunc", trunc);
 
   // Native Math Functions
   BUILTIN_F1ARG("half_cos", cos);

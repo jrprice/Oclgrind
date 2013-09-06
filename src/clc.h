@@ -341,6 +341,7 @@ BUILTIN_1ARG(float, tan);
 BUILTIN_1ARG(float, tanh);
 BUILTIN_1ARG(float, tanpi);
 BUILTIN_1ARG(float, tgamma);
+BUILTIN_1ARG(float, trunc);
 
 // Native math functions
 BUILTIN_1ARG(float, half_cos);
