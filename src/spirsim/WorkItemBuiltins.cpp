@@ -33,7 +33,7 @@ void WorkItem::builtin_f1arg(const llvm::CallInst *callInst,
 {
   for (int i = 0; i < result.num; i++)
   {
-    setFloatResult(result, (*func)(FARGV(0, i)), i);
+    setFloatResult(result, func(FARGV(0, i)), i);
   }
 }
 
@@ -43,7 +43,7 @@ void WorkItem::builtin_f2arg(const llvm::CallInst *callInst,
 {
   for (int i = 0; i < result.num; i++)
   {
-    setFloatResult(result, (*func)(FARGV(0, i), FARGV(1, i)), i);
+    setFloatResult(result, func(FARGV(0, i), FARGV(1, i)), i);
   }
 }
 
@@ -53,7 +53,7 @@ void WorkItem::builtin_f3arg(const llvm::CallInst *callInst,
 {
   for (int i = 0; i < result.num; i++)
   {
-    setFloatResult(result, (*func)(FARGV(0, i), FARGV(1, i), FARGV(2, i)), i);
+    setFloatResult(result, func(FARGV(0, i), FARGV(1, i), FARGV(2, i)), i);
   }
 }
 
@@ -63,7 +63,7 @@ void WorkItem::builtin_u1arg(const llvm::CallInst *callInst,
 {
   for (int i = 0; i < result.num; i++)
   {
-    setIntResult(result, (*func)(UARGV(0, i)), i);
+    setIntResult(result, func(UARGV(0, i)), i);
   }
 }
 
@@ -73,7 +73,7 @@ void WorkItem::builtin_u2arg(const llvm::CallInst *callInst,
 {
   for (int i = 0; i < result.num; i++)
   {
-    setIntResult(result, (*func)(UARGV(0, i), UARGV(1, i)), i);
+    setIntResult(result, func(UARGV(0, i), UARGV(1, i)), i);
   }
 }
 
@@ -83,7 +83,7 @@ void WorkItem::builtin_u3arg(const llvm::CallInst *callInst,
 {
   for (int i = 0; i < result.num; i++)
   {
-    setIntResult(result, (*func)(UARGV(0, i), UARGV(1, i), UARGV(2, i)), i);
+    setIntResult(result, func(UARGV(0, i), UARGV(1, i), UARGV(2, i)), i);
   }
 }
 
@@ -93,7 +93,7 @@ void WorkItem::builtin_s1arg(const llvm::CallInst *callInst,
 {
   for (int i = 0; i < result.num; i++)
   {
-    setIntResult(result, (*func)(SARGV(0, i)), i);
+    setIntResult(result, func(SARGV(0, i)), i);
   }
 }
 
@@ -103,7 +103,7 @@ void WorkItem::builtin_s2arg(const llvm::CallInst *callInst,
 {
   for (int i = 0; i < result.num; i++)
   {
-    setIntResult(result, (*func)(SARGV(0, i), SARGV(1, i)), i);
+    setIntResult(result, func(SARGV(0, i), SARGV(1, i)), i);
   }
 }
 
@@ -113,7 +113,7 @@ void WorkItem::builtin_s3arg(const llvm::CallInst *callInst,
 {
   for (int i = 0; i < result.num; i++)
   {
-    setIntResult(result, (*func)(SARGV(0, i), SARGV(1, i), SARGV(2, i)), i);
+    setIntResult(result, func(SARGV(0, i), SARGV(1, i), SARGV(2, i)), i);
   }
 }
 

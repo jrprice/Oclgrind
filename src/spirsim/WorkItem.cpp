@@ -849,23 +849,23 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
 #define BUILTIN(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
   fn(callInst, name, overload, result)
-#define BUILTIN_F1ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_F1ARG(str, fn) else if (name == str) \
   builtin_f1arg(callInst, result, fn)
-#define BUILTIN_F2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_F2ARG(str, fn) else if (name == str) \
   builtin_f2arg(callInst, result, fn)
-#define BUILTIN_F3ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_F3ARG(str, fn) else if (name == str) \
   builtin_f3arg(callInst, result, fn)
-#define BUILTIN_U1ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_U1ARG(str, fn) else if (name == str) \
   builtin_u1arg(callInst, result, fn)
-#define BUILTIN_U2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_U2ARG(str, fn) else if (name == str) \
   builtin_u2arg(callInst, result, fn)
-#define BUILTIN_U3ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_U3ARG(str, fn) else if (name == str) \
   builtin_u3arg(callInst, result, fn)
-#define BUILTIN_S1ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_S1ARG(str, fn) else if (name == str) \
   builtin_s1arg(callInst, result, fn)
-#define BUILTIN_S2ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_S2ARG(str, fn) else if (name == str) \
   builtin_s2arg(callInst, result, fn)
-#define BUILTIN_S3ARG(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
+#define BUILTIN_S3ARG(str, fn) else if (name == str) \
   builtin_s3arg(callInst, result, fn)
 
   if (false);
