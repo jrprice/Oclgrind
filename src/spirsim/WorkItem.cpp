@@ -921,6 +921,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("frexp", frexp_builtin);
   BUILTIN_F2ARG("hypot", hypot);
   BUILTIN("ilogb", ilogb_builtin);
+  BUILTIN("ldexp", ldexp_builtin);
   BUILTIN_F1ARG("lgamma", lgamma);
   BUILTIN_F1ARG("log", log);
   BUILTIN_F1ARG("log2", log2);

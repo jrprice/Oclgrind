@@ -118,6 +118,7 @@ namespace spirsim
     DECLARE_BUILTIN(fract);
     DECLARE_BUILTIN(frexp_builtin);
     DECLARE_BUILTIN(ilogb_builtin);
+    DECLARE_BUILTIN(ldexp_builtin);
     DECLARE_BUILTIN(sincos);
 
     // Synchronization Functions

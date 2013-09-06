@@ -412,6 +412,14 @@ DEFINE_BUILTIN(ilogb_builtin)
   }
 }
 
+DEFINE_BUILTIN(ldexp_builtin)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    setFloatResult(result, ldexp(FARGV(0, i), SARGV(1, i)), i);
+  }
+}
+
 DEFINE_BUILTIN(sincos)
 {
   size_t cv = UARG(1);
