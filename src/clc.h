@@ -346,6 +346,8 @@ BUILTIN_1ARG(float, trunc);
 // Native math functions
 BUILTIN_1ARG(float, half_cos);
 BUILTIN_1ARG(float, native_cos);
+BUILTIN_2ARG(float, half_divide);
+BUILTIN_2ARG(float, native_divide);
 BUILTIN_1ARG(float, half_exp);
 BUILTIN_1ARG(float, native_exp);
 BUILTIN_1ARG(float, half_exp2);
@@ -358,6 +360,8 @@ BUILTIN_1ARG(float, half_log10);
 BUILTIN_1ARG(float, native_log10);
 BUILTIN_2ARG(float, half_powr);
 BUILTIN_2ARG(float, native_powr);
+BUILTIN_1ARG(float, half_recip);
+BUILTIN_1ARG(float, native_recip);
 BUILTIN_1ARG(float, half_rsqrt);
 BUILTIN_1ARG(float, native_rsqrt);
 BUILTIN_1ARG(float, half_sin);

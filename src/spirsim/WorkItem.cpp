@@ -960,6 +960,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   // Native Math Functions
   BUILTIN_F1ARG("half_cos", cos);
   BUILTIN_F1ARG("native_cos", cos);
+  BUILTIN_F2ARG("half_divide", fdivide);
+  BUILTIN_F2ARG("native_divide", fdivide);
   BUILTIN_F1ARG("half_exp", exp);
   BUILTIN_F1ARG("native_exp", exp);
   BUILTIN_F1ARG("half_exp2", exp2);
@@ -972,6 +974,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("native_log10", log10);
   BUILTIN_F2ARG("half_powr", pow);
   BUILTIN_F2ARG("native_powr", pow);
+  BUILTIN_F1ARG("half_recip", frecip);
+  BUILTIN_F1ARG("native_recip", frecip);
   BUILTIN_F1ARG("half_rsqrt", rsqrt);
   BUILTIN_F1ARG("native_rsqrt", rsqrt);
   BUILTIN_F1ARG("half_sin", sin);

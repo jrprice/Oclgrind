@@ -202,6 +202,8 @@ double atanpi(double x);
 double atan2pi(double x, double y);
 double cospi(double x);
 double exp10(double x);
+double fdivide(double x, double y);
+double frecip(double x);
 double maxmag(double x, double y);
 double minmag(double x, double y);
 double rsqrt(double x);
