@@ -185,3 +185,11 @@ namespace spirsim
     bool m_debugOutput;
   };
 }
+
+double acospi(double x);
+double asinpi(double x);
+double atanpi(double x);
+double atan2pi(double x, double y);
+double cospi(double x);
+double sinpi(double x);
+double tanpi(double x);

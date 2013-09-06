@@ -889,16 +889,21 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   // Math Functions
   BUILTIN_F1ARG("acos", acos);
   BUILTIN_F1ARG("acosh", acosh);
+  BUILTIN_F1ARG("acospi", acospi);
   BUILTIN_F1ARG("asin", asin);
   BUILTIN_F1ARG("asinh", asinh);
+  BUILTIN_F1ARG("asinpi", asinpi);
   BUILTIN_F1ARG("atan", atan);
   BUILTIN_F2ARG("atan2", atan2);
   BUILTIN_F1ARG("atanh", atanh);
+  BUILTIN_F1ARG("atanpi", atanpi);
+  BUILTIN_F2ARG("atan2pi", atan2pi);
   BUILTIN_F1ARG("cbrt", cbrt);
   BUILTIN_F1ARG("ceil", ceil);
   BUILTIN_F2ARG("copysign", copysign);
   BUILTIN_F1ARG("cos", cos);
   BUILTIN_F1ARG("cosh", cosh);
+  BUILTIN_F1ARG("cospi", cospi);
   BUILTIN_F1ARG("erfc", erfc);
   BUILTIN_F1ARG("erf", erf);
   BUILTIN_F1ARG("exp", exp);
@@ -926,10 +931,12 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("round", round);
   BUILTIN_F1ARG("sin", sin);
   BUILTIN_F1ARG("sinh", sinh);
+  BUILTIN_F1ARG("sinpi", sinpi);
   BUILTIN("sincos", sincos);
   BUILTIN_F1ARG("sqrt", sqrt);
   BUILTIN_F1ARG("tan", tan);
   BUILTIN_F1ARG("tanh", tanh);
+  BUILTIN_F1ARG("tanpi", tanpi);
   BUILTIN_F1ARG("tgamma", tgamma);
 
   // Native Math Functions

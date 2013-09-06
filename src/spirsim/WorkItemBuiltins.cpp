@@ -341,11 +341,21 @@ DEFINE_BUILTIN(hadd)
 // Math Functions //
 ////////////////////
 
+double acospi(double x){ return (acos(x) / M_PI); }
+double asinpi(double x){ return (asin(x) / M_PI); }
+double atanpi(double x){ return (atan(x) / M_PI); }
+double atan2pi(double x, double y){ return (atan2(x, y) / M_PI); }
+double cospi(double x){ return (cos(x * M_PI)); }
+double sinpi(double x){ return (sin(x * M_PI)); }
+double tanpi(double x){ return (tan(x * M_PI)); }
+
 DEFINE_BUILTIN(sincos)
 {
   double x = FARG(0);
   size_t cv = UARG(1);
   setFloatResult(result, cos(x));
+
+  // TODO: cosval might not be in private memory
   m_stack->store(result.data, cv, result.size);
   setFloatResult(result, sin(x));
 }
