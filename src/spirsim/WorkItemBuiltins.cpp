@@ -634,6 +634,7 @@ int isnan_builtin(double x){ return isnan(x); }
 int isnormal_builtin(double x){ return isnormal(x); }
 int isordered_builtin(double x, double y){ return !isunordered(x, y); }
 int isunordered_builtin(double x, double y){ return isunordered(x, y); }
+int signbit_builtin(double x){ return signbit(x); }
 
 
 ///////////////////////////////

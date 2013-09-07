@@ -227,3 +227,4 @@ int isnan_builtin(double x);
 int isnormal_builtin(double x);
 int isordered_builtin(double x, double y);
 int isunordered_builtin(double x, double y);
+int signbit_builtin(double x);

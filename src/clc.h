@@ -365,6 +365,8 @@ BUILTIN_1ARG(int, float, isnan);
 BUILTIN_1ARG(int, float, isnormal);
 BUILTIN_2ARG(int, float, float, isordered);
 BUILTIN_2ARG(int, float, float, isunordered);
+BUILTIN_1ARG(int, float, signbit);
+
 
 
 ///////////////////////////////
