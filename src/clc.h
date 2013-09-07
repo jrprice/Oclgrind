@@ -327,6 +327,8 @@ BUILTIN_1ARG(float, float, half_exp);
 BUILTIN_1ARG(float, float, native_exp);
 BUILTIN_1ARG(float, float, half_exp2);
 BUILTIN_1ARG(float, float, native_exp2);
+BUILTIN_1ARG(float, float, half_exp10);
+BUILTIN_1ARG(float, float, native_exp10);
 BUILTIN_1ARG(float, float, half_log);
 BUILTIN_1ARG(float, float, native_log);
 BUILTIN_1ARG(float, float, half_log2);

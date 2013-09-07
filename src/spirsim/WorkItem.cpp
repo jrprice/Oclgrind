@@ -971,6 +971,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("native_exp", exp);
   BUILTIN_F1ARG("half_exp2", exp2);
   BUILTIN_F1ARG("native_exp2", exp2);
+  BUILTIN_F1ARG("half_exp10", exp10);
+  BUILTIN_F1ARG("native_exp10", exp10);
   BUILTIN_F1ARG("half_log", log);
   BUILTIN_F1ARG("native_log", log);
   BUILTIN_F1ARG("half_log2", log2);
