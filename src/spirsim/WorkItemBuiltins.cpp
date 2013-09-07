@@ -117,6 +117,29 @@ void WorkItem::builtin_s3arg(const llvm::CallInst *callInst,
   }
 }
 
+void WorkItem::builtin_rel1arg(const llvm::CallInst *callInst,
+                             TypedValue& result,
+                             int (*func)(double))
+{
+  int t = result.num > 1 ? -1 : 1;
+  for (int i = 0; i < result.num; i++)
+  {
+    setIntResult(result, (int64_t)func(FARGV(0, i))*t, i);
+  }
+}
+
+void WorkItem::builtin_rel2arg(const llvm::CallInst *callInst,
+                             TypedValue& result,
+                             int (*func)(double, double))
+{
+  int t = result.num > 1 ? -1 : 1;
+  for (int i = 0; i < result.num; i++)
+  {
+    setIntResult(result, (int64_t)func(FARGV(0, i), FARGV(1, i))*t, i);
+  }
+}
+
+
 ///////////////////////////////////////
 // Async Copy and Prefetch Functions //
 ///////////////////////////////////////
@@ -592,6 +615,25 @@ DEFINE_BUILTIN(sincos)
     setFloatResult(result, sin(x), i);
   }
 }
+
+
+///////////////////////////////
+// Relational Functions //
+///////////////////////////////
+
+int isequal_builtin(double x, double y){ return x == y; }
+int isnotequal_builtin(double x, double y){ return x != y; }
+int isgreater_builtin(double x, double y){ return isgreater(x, y); }
+int isgreaterequal_builtin(double x, double y){ return isgreaterequal(x, y); }
+int isless_builtin(double x, double y){ return isless(x, y); }
+int islessequal_builtin(double x, double y){ return islessequal(x, y); }
+int islessgreater_builtin(double x, double y){ return islessgreater(x, y); }
+int isfinite_builtin(double x){ return isfinite(x); }
+int isinf_builtin(double x){ return isinf(x); }
+int isnan_builtin(double x){ return isnan(x); }
+int isnormal_builtin(double x){ return isnormal(x); }
+int isordered_builtin(double x, double y){ return !isunordered(x, y); }
+int isunordered_builtin(double x, double y){ return isunordered(x, y); }
 
 
 ///////////////////////////////

@@ -869,6 +869,11 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   builtin_s2arg(callInst, result, fn)
 #define BUILTIN_S3ARG(str, fn) else if (name == str) \
   builtin_s3arg(callInst, result, fn)
+#define BUILTIN_REL1ARG(str, fn) else if (name == str) \
+  builtin_rel1arg(callInst, result, fn)
+#define BUILTIN_REL2ARG(str, fn) else if (name == str) \
+  builtin_rel2arg(callInst, result, fn)
+
 
   if (false);
   // Async Copy and Prefetch Functions
@@ -984,6 +989,21 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("native_sqrt", sqrt);
   BUILTIN_F1ARG("half_tan", tan);
   BUILTIN_F1ARG("native_tan", tan);
+
+  // Relational Functional
+  BUILTIN_REL2ARG("isequal", isequal_builtin);
+  BUILTIN_REL2ARG("isnotequal", isnotequal_builtin);
+  BUILTIN_REL2ARG("isgreater", isgreater_builtin);
+  BUILTIN_REL2ARG("isgreaterequal", isgreaterequal_builtin);
+  BUILTIN_REL2ARG("isless", isless_builtin);
+  BUILTIN_REL2ARG("islessequal", islessequal_builtin);
+  BUILTIN_REL2ARG("islessgreater", islessgreater_builtin);
+  BUILTIN_REL1ARG("isfinite", isfinite_builtin);
+  BUILTIN_REL1ARG("isinf", isinf_builtin);
+  BUILTIN_REL1ARG("isnan", isnan_builtin);
+  BUILTIN_REL1ARG("isnormal", isnormal_builtin);
+  BUILTIN_REL2ARG("isordered", isordered_builtin);
+  BUILTIN_REL2ARG("isunordered", isunordered_builtin);
 
   // Synchronization Functions
   BUILTIN("barrier", barrier);

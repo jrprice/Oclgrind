@@ -171,6 +171,10 @@ namespace spirsim
                        int64_t (*func)(int64_t, int64_t));
     void builtin_s3arg(const llvm::CallInst *callInst, TypedValue& result,
                        int64_t (*func)(int64_t, int64_t, int64_t));
+    void builtin_rel1arg(const llvm::CallInst *callInst, TypedValue& result,
+                         int (*func)(double));
+    void builtin_rel2arg(const llvm::CallInst *callInst, TypedValue& result,
+                         int (*func)(double, double));
 
   private:
     size_t m_globalID[3];
@@ -209,3 +213,17 @@ double minmag(double x, double y);
 double rsqrt(double x);
 double sinpi(double x);
 double tanpi(double x);
+
+int isequal_builtin(double x, double y);
+int isnotequal_builtin(double x, double y);
+int isgreater_builtin(double x, double y);
+int isgreaterequal_builtin(double x, double y);
+int isless_builtin(double x, double y);
+int islessequal_builtin(double x, double y);
+int islessgreater_builtin(double x, double y);
+int isfinite_builtin(double x);
+int isinf_builtin(double x);
+int isnan_builtin(double x);
+int isnormal_builtin(double x);
+int isordered_builtin(double x, double y);
+int isunordered_builtin(double x, double y);

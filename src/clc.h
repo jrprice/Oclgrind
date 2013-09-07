@@ -88,55 +88,55 @@ TYPEDEF_VECTOR(double);
 
 #define __OVERLOAD__ __attribute__((__overloadable__))
 
-#define BUILTIN_1ARG(type, name)        \
-	type __OVERLOAD__ name(type a);       \
-	type##2 __OVERLOAD__ name(type##2 a); \
-	type##3 __OVERLOAD__ name(type##3 a); \
-	type##4 __OVERLOAD__ name(type##4 a); \
-	type##8 __OVERLOAD__ name(type##8 a); \
-	type##16 __OVERLOAD__ name(type##16 a);
-#define BUILTIN_2ARG(type, name)                   \
-	type __OVERLOAD__ name(type a, type b);          \
-	type##2 __OVERLOAD__ name(type##2 a, type##2 b); \
-	type##3 __OVERLOAD__ name(type##3 a, type##3 b); \
-	type##4 __OVERLOAD__ name(type##4 a, type##4 b); \
-	type##8 __OVERLOAD__ name(type##8 a, type##8 b); \
-	type##16 __OVERLOAD__ name(type##16 a, type##16 b);
-#define BUILTIN_3ARG(type, name)                              \
-	type __OVERLOAD__ name(type a, type b, type c);             \
-	type##2 __OVERLOAD__ name(type##2 a, type##2 b, type##2 c); \
-	type##3 __OVERLOAD__ name(type##3 a, type##3 b, type##3 c); \
-	type##4 __OVERLOAD__ name(type##4 a, type##4 b, type##4 c); \
-	type##8 __OVERLOAD__ name(type##8 a, type##8 b, type##8 c); \
-	type##16 __OVERLOAD__ name(type##16 a, type##16 b, type##16 c);
+#define BUILTIN_1ARG(rtype, type0, name)  \
+	rtype __OVERLOAD__ name(type0 a);       \
+	rtype##2 __OVERLOAD__ name(type0##2 a); \
+	rtype##3 __OVERLOAD__ name(type0##3 a); \
+	rtype##4 __OVERLOAD__ name(type0##4 a); \
+	rtype##8 __OVERLOAD__ name(type0##8 a); \
+	rtype##16 __OVERLOAD__ name(type0##16 a);
+#define BUILTIN_2ARG(rtype, type0, type1, name)       \
+	rtype __OVERLOAD__ name(type0 a, type1 b);          \
+	rtype##2 __OVERLOAD__ name(type0##2 a, type1##2 b); \
+	rtype##3 __OVERLOAD__ name(type0##3 a, type1##3 b); \
+	rtype##4 __OVERLOAD__ name(type0##4 a, type1##4 b); \
+	rtype##8 __OVERLOAD__ name(type0##8 a, type1##8 b); \
+	rtype##16 __OVERLOAD__ name(type0##16 a, type1##16 b);
+#define BUILTIN_3ARG(rtype, type0, type1, type2, name)            \
+	rtype __OVERLOAD__ name(type0 a, type1 b, type2 c);             \
+	rtype##2 __OVERLOAD__ name(type0##2 a, type1##2 b, type2##2 c); \
+	rtype##3 __OVERLOAD__ name(type0##3 a, type1##3 b, type2##3 c); \
+	rtype##4 __OVERLOAD__ name(type0##4 a, type1##4 b, type2##4 c); \
+	rtype##8 __OVERLOAD__ name(type0##8 a, type1##8 b, type2##8 c); \
+	rtype##16 __OVERLOAD__ name(type0##16 a, type1##16 b, type2##16 c);
 
-#define BUILTIN_1ARG_INTEGERS(name) \
-	BUILTIN_1ARG(char, name)          \
-	BUILTIN_1ARG(uchar, name)         \
-	BUILTIN_1ARG(short, name)         \
-	BUILTIN_1ARG(ushort, name)        \
-	BUILTIN_1ARG(int, name)           \
-	BUILTIN_1ARG(uint, name)          \
-	BUILTIN_1ARG(long, name)          \
-	BUILTIN_1ARG(ulong, name);
-#define BUILTIN_2ARG_INTEGERS(name) \
-	BUILTIN_2ARG(char, name)          \
-	BUILTIN_2ARG(uchar, name)         \
-	BUILTIN_2ARG(short, name)         \
-	BUILTIN_2ARG(ushort, name)        \
-	BUILTIN_2ARG(int, name)           \
-	BUILTIN_2ARG(uint, name)          \
-	BUILTIN_2ARG(long, name)          \
-	BUILTIN_2ARG(ulong, name);
-#define BUILTIN_3ARG_INTEGERS(name) \
-	BUILTIN_3ARG(char, name)          \
-	BUILTIN_3ARG(uchar, name)         \
-	BUILTIN_3ARG(short, name)         \
-	BUILTIN_3ARG(ushort, name)        \
-	BUILTIN_3ARG(int, name)           \
-	BUILTIN_3ARG(uint, name)          \
-	BUILTIN_3ARG(long, name)          \
-	BUILTIN_3ARG(ulong, name);
+#define BUILTIN_1ARG_INTEGERS(name)  \
+	BUILTIN_1ARG(char, char, name)     \
+	BUILTIN_1ARG(uchar, uchar, name)   \
+	BUILTIN_1ARG(short, short, name)   \
+	BUILTIN_1ARG(ushort, ushort, name) \
+	BUILTIN_1ARG(int, int, name)       \
+	BUILTIN_1ARG(uint, uint, name)     \
+	BUILTIN_1ARG(long, long, name)     \
+	BUILTIN_1ARG(ulong, ulong, name);
+#define BUILTIN_2ARG_INTEGERS(name)          \
+	BUILTIN_2ARG(char, char, char, name)       \
+	BUILTIN_2ARG(uchar, uchar, uchar, name)    \
+	BUILTIN_2ARG(short, short, short, name)    \
+	BUILTIN_2ARG(ushort, ushort, ushort, name) \
+	BUILTIN_2ARG(int, int, int, name)          \
+	BUILTIN_2ARG(uint, uint, uint, name)       \
+	BUILTIN_2ARG(long, long, long, name)       \
+	BUILTIN_2ARG(ulong, ulong, ulong, name);
+#define BUILTIN_3ARG_INTEGERS(name)                  \
+	BUILTIN_3ARG(char, char, char, char, name)         \
+	BUILTIN_3ARG(uchar, uchar, uchar, uchar, name)     \
+	BUILTIN_3ARG(short, short, short, short, name)     \
+	BUILTIN_3ARG(ushort, ushort, ushort, ushort, name) \
+	BUILTIN_3ARG(int, int, int, int, name)             \
+	BUILTIN_3ARG(uint, uint, uint, uint, name)         \
+	BUILTIN_3ARG(long, long, long, long, name)         \
+	BUILTIN_3ARG(ulong, ulong, ulong, ulong, name);
 
 
 ///////////////////////////////////////
@@ -189,9 +189,9 @@ PREFETCH(float);
 // Common Functions //
 //////////////////////
 
-BUILTIN_3ARG(float, clamp);
-BUILTIN_2ARG(float, max);
-BUILTIN_2ARG(float, min);
+BUILTIN_3ARG(float, float, float, float, clamp);
+BUILTIN_2ARG(float, float, float, max);
+BUILTIN_2ARG(float, float, float, min);
 
 
 
@@ -233,78 +233,58 @@ BUILTIN_2ARG_INTEGERS(min);
  BUILTIN_2TYPE_PTR(type1##8, type2##8, name) \
  BUILTIN_2TYPE_PTR(type1##16, type2##16, name);
 
-BUILTIN_1ARG(float, acos);
-BUILTIN_1ARG(float, acosh);
-BUILTIN_1ARG(float, acospi);
-BUILTIN_1ARG(float, asin);
-BUILTIN_1ARG(float, asinh);
-BUILTIN_1ARG(float, asinpi);
-BUILTIN_1ARG(float, atan);
-BUILTIN_2ARG(float, atan2);
-BUILTIN_1ARG(float, atanh);
-BUILTIN_1ARG(float, atanpi);
-BUILTIN_2ARG(float, atan2pi);
-BUILTIN_1ARG(float, cbrt);
-BUILTIN_1ARG(float, ceil);
-BUILTIN_2ARG(float, copysign);
-BUILTIN_1ARG(float, cos);
-BUILTIN_1ARG(float, cosh);
-BUILTIN_1ARG(float, cospi);
-BUILTIN_1ARG(float, erfc);
-BUILTIN_1ARG(float, erf);
-BUILTIN_1ARG(float, exp);
-BUILTIN_1ARG(float, exp2);
-BUILTIN_1ARG(float, exp10);
-BUILTIN_1ARG(float, expm1);
-BUILTIN_1ARG(float, fabs);
-BUILTIN_2ARG(float, fdim);
-BUILTIN_1ARG(float, floor);
-BUILTIN_3ARG(float, fma);
-BUILTIN_2ARG(float, fmax);
-BUILTIN_2ARG(float, fmin);
-BUILTIN_2ARG(float, fmod);
+BUILTIN_1ARG(float, float, acos);
+BUILTIN_1ARG(float, float, acosh);
+BUILTIN_1ARG(float, float, acospi);
+BUILTIN_1ARG(float, float, asin);
+BUILTIN_1ARG(float, float, asinh);
+BUILTIN_1ARG(float, float, asinpi);
+BUILTIN_1ARG(float, float, atan);
+BUILTIN_2ARG(float, float, float, atan2);
+BUILTIN_1ARG(float, float, atanh);
+BUILTIN_1ARG(float, float, atanpi);
+BUILTIN_2ARG(float, float, float, atan2pi);
+BUILTIN_1ARG(float, float, cbrt);
+BUILTIN_1ARG(float, float, ceil);
+BUILTIN_2ARG(float, float, float, copysign);
+BUILTIN_1ARG(float, float, cos);
+BUILTIN_1ARG(float, float, cosh);
+BUILTIN_1ARG(float, float, cospi);
+BUILTIN_1ARG(float, float, erfc);
+BUILTIN_1ARG(float, float, erf);
+BUILTIN_1ARG(float, float, exp);
+BUILTIN_1ARG(float, float, exp2);
+BUILTIN_1ARG(float, float, exp10);
+BUILTIN_1ARG(float, float, expm1);
+BUILTIN_1ARG(float, float, fabs);
+BUILTIN_2ARG(float, float, float, fdim);
+BUILTIN_1ARG(float, float, floor);
+BUILTIN_3ARG(float, float, float, float, fma);
+BUILTIN_2ARG(float, float, float, fmax);
+BUILTIN_2ARG(float, float, float, fmin);
+BUILTIN_2ARG(float, float, float, fmod);
 BUILTIN_PTR_ARG(float, float, fract);
 BUILTIN_PTR_ARG(float, int, frexp);
-BUILTIN_2ARG(float, hypot);
-int __OVERLOAD__ ilogb(float);
-int2 __OVERLOAD__ ilogb(float2);
-int3 __OVERLOAD__ ilogb(float3);
-int4 __OVERLOAD__ ilogb(float4);
-int8 __OVERLOAD__ ilogb(float8);
-int16 __OVERLOAD__ ilogb(float16);
-float __OVERLOAD__ ldexp(float, int);
-float2 __OVERLOAD__ ldexp(float2, int2);
-float3 __OVERLOAD__ ldexp(float3, int3);
-float4 __OVERLOAD__ ldexp(float4, int4);
-float8 __OVERLOAD__ ldexp(float8, int8);
-float16 __OVERLOAD__ ldexp(float16, int16);
-BUILTIN_1ARG(float, lgamma);
+BUILTIN_2ARG(float, float, float, hypot);
+BUILTIN_1ARG(int, float, ilogb);
+BUILTIN_2ARG(float, float, int, ldexp);
+BUILTIN_1ARG(float, float, lgamma);
 BUILTIN_PTR_ARG(float, int, lgamma_r);
-BUILTIN_1ARG(float, log);
-BUILTIN_1ARG(float, log2);
-BUILTIN_1ARG(float, log10);
-BUILTIN_1ARG(float, log1p);
-BUILTIN_1ARG(float, logb);
-BUILTIN_3ARG(float, mad);
-BUILTIN_2ARG(float, maxmag);
-BUILTIN_2ARG(float, minmag);
+BUILTIN_1ARG(float, float, log);
+BUILTIN_1ARG(float, float, log2);
+BUILTIN_1ARG(float, float, log10);
+BUILTIN_1ARG(float, float, log1p);
+BUILTIN_1ARG(float, float, logb);
+BUILTIN_3ARG(float, float, float, float, mad);
+BUILTIN_2ARG(float, float, float, maxmag);
+BUILTIN_2ARG(float, float, float, minmag);
 BUILTIN_PTR_ARG(float, float, modf);
-float __OVERLOAD__ nan(uint);
-float2 __OVERLOAD__ nan(uint2);
-float3 __OVERLOAD__ nan(uint3);
-float4 __OVERLOAD__ nan(uint4);
-float8 __OVERLOAD__ nan(uint8);
-float16 __OVERLOAD__ nan(uint16);
-BUILTIN_2ARG(float, nextafter);
-BUILTIN_2ARG(float, pow);
-float __OVERLOAD__ pown(float, int);
-float2 __OVERLOAD__ pown(float2, int2);
-float3 __OVERLOAD__ pown(float3, int3);
-float4 __OVERLOAD__ pown(float4, int4);
-float8 __OVERLOAD__ pown(float8, int8);
-float16 __OVERLOAD__ pown(float16, int16);
-BUILTIN_2ARG(float, powr);
-BUILTIN_2ARG(float, remainder);
+BUILTIN_1ARG(float, uint, nan);
+BUILTIN_2ARG(float, float, float, nextafter);
+BUILTIN_2ARG(float, float, float, pow);
+BUILTIN_2ARG(float, float, int, pown);
+BUILTIN_2ARG(float, float, float, powr);
+BUILTIN_2ARG(float, float, float, remainder);
 float __OVERLOAD__ remquo(float, float, __global int*);
 float2 __OVERLOAD__ remquo(float2, float2, __global int2*);
 float3 __OVERLOAD__ remquo(float3, float3, __global int3*);
@@ -323,53 +303,48 @@ float3 __OVERLOAD__ remquo(float3, float3, __private int3*);
 float4 __OVERLOAD__ remquo(float4, float4, __private int4*);
 float8 __OVERLOAD__ remquo(float8, float8, __private int8*);
 float16 __OVERLOAD__ remquo(float16, float16, __private int16*);
-BUILTIN_1ARG(float, rint);
-float __OVERLOAD__ rootn(float, int);
-float2 __OVERLOAD__ rootn(float2, int2);
-float3 __OVERLOAD__ rootn(float3, int3);
-float4 __OVERLOAD__ rootn(float4, int4);
-float8 __OVERLOAD__ rootn(float8, int8);
-float16 __OVERLOAD__ rootn(float16, int16);
-BUILTIN_1ARG(float, round);
-BUILTIN_1ARG(float, rsqrt);
-BUILTIN_1ARG(float, sin);
-BUILTIN_1ARG(float, sinpi);
-BUILTIN_1ARG(float, sinh);
+BUILTIN_1ARG(float, float, rint);
+BUILTIN_2ARG(float, float, int, rootn);
+BUILTIN_1ARG(float, float, round);
+BUILTIN_1ARG(float, float, rsqrt);
+BUILTIN_1ARG(float, float, sin);
+BUILTIN_1ARG(float, float, sinpi);
+BUILTIN_1ARG(float, float, sinh);
 BUILTIN_PTR_ARG(float, float, sincos);
-BUILTIN_1ARG(float, sqrt);
-BUILTIN_1ARG(float, tan);
-BUILTIN_1ARG(float, tanh);
-BUILTIN_1ARG(float, tanpi);
-BUILTIN_1ARG(float, tgamma);
-BUILTIN_1ARG(float, trunc);
+BUILTIN_1ARG(float, float, sqrt);
+BUILTIN_1ARG(float, float, tan);
+BUILTIN_1ARG(float, float, tanh);
+BUILTIN_1ARG(float, float, tanpi);
+BUILTIN_1ARG(float, float, tgamma);
+BUILTIN_1ARG(float, float, trunc);
 
 // Native math functions
-BUILTIN_1ARG(float, half_cos);
-BUILTIN_1ARG(float, native_cos);
-BUILTIN_2ARG(float, half_divide);
-BUILTIN_2ARG(float, native_divide);
-BUILTIN_1ARG(float, half_exp);
-BUILTIN_1ARG(float, native_exp);
-BUILTIN_1ARG(float, half_exp2);
-BUILTIN_1ARG(float, native_exp2);
-BUILTIN_1ARG(float, half_log);
-BUILTIN_1ARG(float, native_log);
-BUILTIN_1ARG(float, half_log2);
-BUILTIN_1ARG(float, native_log2);
-BUILTIN_1ARG(float, half_log10);
-BUILTIN_1ARG(float, native_log10);
-BUILTIN_2ARG(float, half_powr);
-BUILTIN_2ARG(float, native_powr);
-BUILTIN_1ARG(float, half_recip);
-BUILTIN_1ARG(float, native_recip);
-BUILTIN_1ARG(float, half_rsqrt);
-BUILTIN_1ARG(float, native_rsqrt);
-BUILTIN_1ARG(float, half_sin);
-BUILTIN_1ARG(float, native_sin);
-BUILTIN_1ARG(float, half_sqrt);
-BUILTIN_1ARG(float, native_sqrt);
-BUILTIN_1ARG(float, half_tan);
-BUILTIN_1ARG(float, native_tan);
+BUILTIN_1ARG(float, float, half_cos);
+BUILTIN_1ARG(float, float, native_cos);
+BUILTIN_2ARG(float, float, float, half_divide);
+BUILTIN_2ARG(float, float, float, native_divide);
+BUILTIN_1ARG(float, float, half_exp);
+BUILTIN_1ARG(float, float, native_exp);
+BUILTIN_1ARG(float, float, half_exp2);
+BUILTIN_1ARG(float, float, native_exp2);
+BUILTIN_1ARG(float, float, half_log);
+BUILTIN_1ARG(float, float, native_log);
+BUILTIN_1ARG(float, float, half_log2);
+BUILTIN_1ARG(float, float, native_log2);
+BUILTIN_1ARG(float, float, half_log10);
+BUILTIN_1ARG(float, float, native_log10);
+BUILTIN_2ARG(float, float, float, half_powr);
+BUILTIN_2ARG(float, float, float, native_powr);
+BUILTIN_1ARG(float, float, half_recip);
+BUILTIN_1ARG(float, float, native_recip);
+BUILTIN_1ARG(float, float, half_rsqrt);
+BUILTIN_1ARG(float, float, native_rsqrt);
+BUILTIN_1ARG(float, float, half_sin);
+BUILTIN_1ARG(float, float, native_sin);
+BUILTIN_1ARG(float, float, half_sqrt);
+BUILTIN_1ARG(float, float, native_sqrt);
+BUILTIN_1ARG(float, float, half_tan);
+BUILTIN_1ARG(float, float, native_tan);
 
 
 
@@ -377,9 +352,19 @@ BUILTIN_1ARG(float, native_tan);
 // Relational Functions //
 //////////////////////////
 
-#define isinf( _x ) __builtin_isinf( _x )
-#define isnan( _x ) __builtin_isnan( _x )
-#define isnormal( _x ) __builtin_isnormal( _x )
+BUILTIN_2ARG(int, float, float, isequal);
+BUILTIN_2ARG(int, float, float, isnotequal);
+BUILTIN_2ARG(int, float, float, isgreater);
+BUILTIN_2ARG(int, float, float, isgreaterequal);
+BUILTIN_2ARG(int, float, float, isless);
+BUILTIN_2ARG(int, float, float, islessequal);
+BUILTIN_2ARG(int, float, float, islessgreater);
+BUILTIN_1ARG(int, float, isfinite);
+BUILTIN_1ARG(int, float, isinf);
+BUILTIN_1ARG(int, float, isnan);
+BUILTIN_1ARG(int, float, isnormal);
+BUILTIN_2ARG(int, float, float, isordered);
+BUILTIN_2ARG(int, float, float, isunordered);
 
 
 ///////////////////////////////
