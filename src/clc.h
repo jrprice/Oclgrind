@@ -354,6 +354,21 @@ BUILTIN_1ARG(float, float, native_tan);
 // Relational Functions //
 //////////////////////////
 
+#define BUILTIN_ANYALL(name, type) \
+	int __OVERLOAD__ name(type);  \
+	int __OVERLOAD__ name(type##2); \
+	int __OVERLOAD__ name(type##3); \
+	int __OVERLOAD__ name(type##4); \
+	int __OVERLOAD__ name(type##8); \
+	int __OVERLOAD__ name(type##16);
+BUILTIN_ANYALL(all, char);
+BUILTIN_ANYALL(all, short);
+BUILTIN_ANYALL(all, int);
+BUILTIN_ANYALL(all, long);
+BUILTIN_ANYALL(any, char);
+BUILTIN_ANYALL(any, short);
+BUILTIN_ANYALL(any, int);
+BUILTIN_ANYALL(any, long);
 BUILTIN_2ARG(int, float, float, isequal);
 BUILTIN_2ARG(int, float, float, isnotequal);
 BUILTIN_2ARG(int, float, float, isgreater);

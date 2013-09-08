@@ -993,6 +993,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("native_tan", tan);
 
   // Relational Functional
+  BUILTIN("all", all);
+  BUILTIN("any", any);
   BUILTIN_REL2ARG("isequal", isequal_builtin);
   BUILTIN_REL2ARG("isnotequal", isnotequal_builtin);
   BUILTIN_REL2ARG("isgreater", isgreater_builtin);

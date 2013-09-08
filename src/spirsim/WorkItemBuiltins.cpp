@@ -636,6 +636,45 @@ int isordered_builtin(double x, double y){ return !isunordered(x, y); }
 int isunordered_builtin(double x, double y){ return isunordered(x, y); }
 int signbit_builtin(double x){ return signbit(x); }
 
+DEFINE_BUILTIN(all)
+{
+  int num = 1;
+  if (ARG(0)->getType()->isVectorTy())
+  {
+    num = ARG(0)->getType()->getVectorNumElements();
+  }
+
+  for (int i = 0; i < num; i++)
+  {
+    if (!signbit(SARGV(0, i)))
+    {
+      setIntResult(result, (int64_t)0);
+      return;
+    }
+  }
+  setIntResult(result, (int64_t)1);
+}
+
+DEFINE_BUILTIN(any)
+{
+  int num = 1;
+  if (ARG(0)->getType()->isVectorTy())
+  {
+    num = ARG(0)->getType()->getVectorNumElements();
+  }
+
+  for (int i = 0; i < num; i++)
+  {
+    if (signbit(SARGV(0, i)))
+    {
+      setIntResult(result, (int64_t)1);
+      return;
+    }
+  }
+  setIntResult(result, (int64_t)0);
+}
+
+
 
 ///////////////////////////////
 // Synchronization Functions //

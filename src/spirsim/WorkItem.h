@@ -127,6 +127,10 @@ namespace spirsim
     DECLARE_BUILTIN(rootn);
     DECLARE_BUILTIN(sincos);
 
+    // Relational Functions
+    DECLARE_BUILTIN(all);
+    DECLARE_BUILTIN(any);
+
     // Synchronization Functions
     DECLARE_BUILTIN(barrier);
 
