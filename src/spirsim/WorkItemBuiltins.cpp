@@ -139,6 +139,18 @@ void WorkItem::builtin_rel2arg(const llvm::CallInst *callInst,
   }
 }
 
+char getOverloadArgType(string overload)
+{
+  char type = overload[0];
+  if (type == 'D')
+  {
+    char *typestr;
+    strtol(overload.c_str() + 2, &typestr, 10);
+    type = typestr[1];
+  }
+  return type;
+}
+
 
 ///////////////////////////////////////
 // Async Copy and Prefetch Functions //
@@ -233,13 +245,7 @@ template<typename T> T _min(T a, T b){return a < b ? a : b;}
 template<typename T> T _clamp(T x, T min, T max){return _min(x, _max(x, min));}
 DEFINE_BUILTIN(clamp)
 {
-  char type = overload[0];
-  if (type == 'D')
-  {
-    type = overload[4];
-  }
-
-  switch (type)
+  switch (getOverloadArgType(overload))
   {
     case 'f':
     case 'd':
@@ -264,13 +270,7 @@ DEFINE_BUILTIN(clamp)
 
 DEFINE_BUILTIN(max)
 {
-  char type = overload[0];
-  if (type == 'D')
-  {
-    type = overload[4];
-  }
-
-  switch (type)
+  switch (getOverloadArgType(overload))
   {
     case 'f':
     case 'd':
@@ -295,13 +295,7 @@ DEFINE_BUILTIN(max)
 
 DEFINE_BUILTIN(min)
 {
-  char type = overload[0];
-  if (type == 'D')
-  {
-    type = overload[4];
-  }
-
-  switch (type)
+  switch (getOverloadArgType(overload))
   {
     case 'f':
     case 'd':
@@ -674,6 +668,42 @@ DEFINE_BUILTIN(any)
   setIntResult(result, (int64_t)0);
 }
 
+uint64_t ibitselect(uint64_t a, uint64_t b, uint64_t c)
+{
+  return ((a & ~c) | (b & c));
+}
+
+double fbitselect(double a, double b, double c)
+{
+  uint64_t _a = *(uint64_t*)&a;
+  uint64_t _b = *(uint64_t*)&b;
+  uint64_t _c = *(uint64_t*)&c;
+  uint64_t _r = ibitselect(_a, _b, _c);
+  return *(double*)&_r;
+}
+
+DEFINE_BUILTIN(bitselect)
+{
+  switch (getOverloadArgType(overload))
+  {
+    case 'f':
+    case 'd':
+      builtin_f3arg(callInst, result, fbitselect);
+      break;
+    case 'h':
+    case 't':
+    case 'j':
+    case 'm':
+    case 'c':
+    case 's':
+    case 'i':
+    case 'l':
+      builtin_u3arg(callInst, result, ibitselect);
+      break;
+    default:
+      assert(false);
+    }
+}
 
 
 ///////////////////////////////

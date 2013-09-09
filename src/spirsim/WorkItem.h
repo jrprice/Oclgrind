@@ -130,6 +130,7 @@ namespace spirsim
     // Relational Functions
     DECLARE_BUILTIN(all);
     DECLARE_BUILTIN(any);
+    DECLARE_BUILTIN(bitselect);
 
     // Synchronization Functions
     DECLARE_BUILTIN(barrier);

@@ -369,6 +369,8 @@ BUILTIN_ANYALL(any, char);
 BUILTIN_ANYALL(any, short);
 BUILTIN_ANYALL(any, int);
 BUILTIN_ANYALL(any, long);
+BUILTIN_3ARG(float, float, float, float, bitselect);
+BUILTIN_3ARG_INTEGERS(bitselect);
 BUILTIN_2ARG(int, float, float, isequal);
 BUILTIN_2ARG(int, float, float, isnotequal);
 BUILTIN_2ARG(int, float, float, isgreater);

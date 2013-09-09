@@ -995,6 +995,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   // Relational Functional
   BUILTIN("all", all);
   BUILTIN("any", any);
+  BUILTIN("bitselect", bitselect);
   BUILTIN_REL2ARG("isequal", isequal_builtin);
   BUILTIN_REL2ARG("isnotequal", isnotequal_builtin);
   BUILTIN_REL2ARG("isgreater", isgreater_builtin);
