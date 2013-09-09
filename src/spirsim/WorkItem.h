@@ -131,6 +131,7 @@ namespace spirsim
     DECLARE_BUILTIN(all);
     DECLARE_BUILTIN(any);
     DECLARE_BUILTIN(bitselect);
+    DECLARE_BUILTIN(select_builtin);
 
     // Synchronization Functions
     DECLARE_BUILTIN(barrier);

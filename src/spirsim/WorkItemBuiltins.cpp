@@ -705,6 +705,35 @@ DEFINE_BUILTIN(bitselect)
     }
 }
 
+DEFINE_BUILTIN(select_builtin)
+{
+  char type = getOverloadArgType(overload);
+  for (int i = 0; i < result.num; i++)
+  {
+    int64_t c = SARGV(2, i);
+    bool _c = (result.num > 1) ? signbit(c) : c;
+    switch (type)
+    {
+      case 'f':
+      case 'd':
+        setFloatResult(result, _c ? FARGV(1, i) : FARGV(0, i), i);
+        break;
+      case 'h':
+      case 't':
+      case 'j':
+      case 'm':
+      case 'c':
+      case 's':
+      case 'i':
+      case 'l':
+       setIntResult(result, _c ? SARGV(1, i) : SARGV(0, i), i);
+      break;
+    default:
+      assert(false);
+    }
+  }
+}
+
 
 ///////////////////////////////
 // Synchronization Functions //

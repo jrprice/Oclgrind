@@ -1009,6 +1009,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_REL1ARG("isnormal", isnormal_builtin);
   BUILTIN_REL2ARG("isordered", isordered_builtin);
   BUILTIN_REL2ARG("isunordered", isunordered_builtin);
+  BUILTIN("select", select_builtin);
   BUILTIN_REL1ARG("signbit", signbit_builtin);
 
   // Synchronization Functions

@@ -386,6 +386,25 @@ BUILTIN_2ARG(int, float, float, isordered);
 BUILTIN_2ARG(int, float, float, isunordered);
 BUILTIN_1ARG(int, float, signbit);
 
+#define SELECT_TYPE(type, ctype) \
+	type __OVERLOAD__ select(type, type, ctype); \
+	type __OVERLOAD__ select(type, type, u##ctype);
+#define SELECT(type, ctype) \
+	SELECT_TYPE(type, ctype) \
+	SELECT_TYPE(type##2, ctype##2) \
+	SELECT_TYPE(type##3, ctype##3) \
+	SELECT_TYPE(type##4, ctype##4) \
+	SELECT_TYPE(type##8, ctype##8) \
+	SELECT_TYPE(type##16, ctype##16);
+SELECT(char, char);
+SELECT(uchar, char);
+SELECT(short, short);
+SELECT(ushort, short);
+SELECT(int, int);
+SELECT(uint, int);
+SELECT(long, long);
+SELECT(ulong, long);
+SELECT(float, int);
 
 
 ///////////////////////////////
