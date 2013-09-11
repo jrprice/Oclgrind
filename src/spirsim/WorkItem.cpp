@@ -116,6 +116,9 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   case llvm::Instruction::FMul:
     fmul(instruction, result);
     break;
+  case llvm::Instruction::FPExt:
+    fpext(instruction, result);
+    break;
   case llvm::Instruction::FPToSI:
     fptosi(instruction, result);
     break;
@@ -1159,11 +1162,19 @@ void WorkItem::fmul(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
+void WorkItem::fpext(const llvm::Instruction& instruction, TypedValue& result)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    double r = getFloatValue(instruction.getOperand(0), i);
+    setFloatResult(result, r, i);
+  }
+}
+
 void WorkItem::fptosi(const llvm::Instruction& instruction, TypedValue& result)
 {
   for (int i = 0; i < result.num; i++)
   {
-    const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
     int64_t r = (int64_t)getFloatValue(instruction.getOperand(0), i);
     setIntResult(result, r, i);
   }
