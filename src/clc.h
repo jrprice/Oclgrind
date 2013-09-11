@@ -419,10 +419,10 @@ void barrier(uint);
 //////////////////////////////////////////
 
 #define VLOAD_ADDRSPACE(type, width)                             \
-  type##width __OVERLOAD__ vload##width(size_t, type*);          \
-  type##width __OVERLOAD__ vload##width(size_t, __local type*);  \
-  type##width __OVERLOAD__ vload##width(size_t, __global type*); \
-  type##width __OVERLOAD__ vload##width(size_t, __constant type*);
+  type##width __OVERLOAD__ vload##width(size_t, const __private type*); \
+  type##width __OVERLOAD__ vload##width(size_t, const __local type*);   \
+  type##width __OVERLOAD__ vload##width(size_t, const __global type*);  \
+  type##width __OVERLOAD__ vload##width(size_t, const __constant type*);
 
 #define VSTORE_ADDRSPACE(type, width)                                   \
   void __OVERLOAD__ vstore##width(type##width, size_t, __local type*);  \
