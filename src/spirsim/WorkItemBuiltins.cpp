@@ -325,9 +325,9 @@ DEFINE_BUILTIN(min)
 DEFINE_BUILTIN(dot)
 {
   int num = 1;
-  if (callInst->getType()->isVectorTy())
+  if (ARG(0)->getType()->isVectorTy())
   {
-    ARG(0)->getType()->getVectorNumElements();
+    num = ARG(0)->getType()->getVectorNumElements();
   }
 
   double r = 0.f;
