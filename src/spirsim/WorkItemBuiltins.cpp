@@ -893,6 +893,88 @@ DEFINE_BUILTIN(get_work_dim)
 
 
 /////////////////////
+// Other Functions //
+/////////////////////
+
+DEFINE_BUILTIN(printf_builtin)
+{
+  const llvm::ConstantExpr *formatExpr = (llvm::ConstantExpr*)ARG(0);
+  TypedValue formatPtrData = resolveConstExpr(formatExpr);
+  size_t formatPtr = *(size_t*)formatPtrData.data;
+
+  int arg = 1;
+  while (true)
+  {
+    char c;
+    m_globalMemory.load((unsigned char*)&c, formatPtr++);
+    if (c == '\0')
+    {
+      break;
+    }
+
+    if (c == '%')
+    {
+      string format = "%";
+      while (true)
+      {
+        m_globalMemory.load((unsigned char*)&c, formatPtr++);
+        if (c == '\0')
+        {
+          cout << format;
+          break;
+        }
+
+        format += c;
+        bool done = false;
+        switch (c)
+        {
+          case 'd':
+          case 'i':
+            printf(format.c_str(), SARG(arg++));
+            done = true;
+            break;
+          case 'o':
+          case 'u':
+          case 'x':
+          case 'X':
+            printf(format.c_str(), UARG(arg++));
+            done = true;
+            break;
+          case 'f':
+          case 'F':
+          case 'e':
+          case 'E':
+          case 'g':
+          case 'G':
+          case 'a':
+          case 'A':
+            printf(format.c_str(), FARG(arg++));
+            done = true;
+            break;
+          case '%':
+            printf("%%");
+            done = true;
+            break;
+        }
+        if (done)
+        {
+          break;
+        }
+      }
+      if (c == '\0')
+      {
+        break;
+      }
+    }
+    else
+    {
+      cout << c;
+    }
+  }
+}
+
+
+/////////////////////
 // LLVM Intrinsics //
 /////////////////////
 

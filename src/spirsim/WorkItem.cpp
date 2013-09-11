@@ -1029,6 +1029,9 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("get_num_groups", get_num_groups);
   BUILTIN("get_work_dim", get_work_dim);
 
+  // Other Functions
+  BUILTIN("printf", printf_builtin);
+
   // LLVM Intrinsics
   BUILTIN("llvm.dbg.declare", llvm_dbg_declare);
   BUILTIN("llvm.dbg.value", llvm_dbg_value);

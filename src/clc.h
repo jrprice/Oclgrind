@@ -465,6 +465,14 @@ size_t get_num_groups(uint dim);
 uint get_work_dim();
 
 
+
+/////////////////////
+// Other Functions //
+/////////////////////
+
+int printf(__constant char * restrict, ...);
+
+
 /////////////////
 // Conversions //
 /////////////////

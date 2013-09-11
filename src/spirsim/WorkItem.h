@@ -150,6 +150,9 @@ namespace spirsim
     DECLARE_BUILTIN(get_num_groups);
     DECLARE_BUILTIN(get_work_dim);
 
+    // Other Functions
+    DECLARE_BUILTIN(printf_builtin);
+
     // LLVM Intrinisics
     DECLARE_BUILTIN(llvm_dbg_declare);
     DECLARE_BUILTIN(llvm_dbg_value);
