@@ -1034,8 +1034,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("llvm.dbg.value", llvm_dbg_value);
   BUILTIN("llvm.lifetime.start", llvm_lifetime_start);
   BUILTIN("llvm.lifetime.end", llvm_lifetime_end);
-  BUILTIN("llvm.memcpy", llvm_memcpy);
-  BUILTIN("llvm.memset", llvm_memset);
+  BUILTIN_PREFIX("llvm.memcpy", llvm_memcpy);
+  BUILTIN_PREFIX("llvm.memset", llvm_memset);
   BUILTIN("llvm.trap", llvm_trap);
 
   // Function didn't match builtin
