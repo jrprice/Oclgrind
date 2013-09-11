@@ -24,7 +24,7 @@ WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
                      const size_t globalOffset[3],
                      const size_t globalSize[3],
                      const size_t groupSize[3])
-  : m_globalMemory(globalMem)
+  : m_kernel(kernel), m_globalMemory(globalMem)
 {
   m_workDim = workDim;
   m_groupID[0] = wgid_x;
@@ -144,9 +144,9 @@ unsigned int WorkGroup::getWorkDim() const
   return m_workDim;
 }
 
-void WorkGroup::run(const Kernel& kernel, bool outputInstructions)
+void WorkGroup::run(bool outputInstructions)
 {
-  const llvm::Function *function = kernel.getFunction();
+  const llvm::Function *function = m_kernel.getFunction();
 
   // Run until all work-items have finished
   int numFinished = 0;

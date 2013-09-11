@@ -103,7 +103,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
         WorkGroup *workGroup = new WorkGroup(kernel, *m_globalMemory,
                                              workDim, i, j, k,
                                              offset, ndrange, wgsize);
-        workGroup->run(kernel, m_outputMask & OUTPUT_INSTRUCTIONS);
+        workGroup->run(m_outputMask & OUTPUT_INSTRUCTIONS);
 
         // Dump contents of memories
         if (m_outputMask & OUTPUT_PRIVATE_MEM)

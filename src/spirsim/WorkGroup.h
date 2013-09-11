@@ -42,7 +42,7 @@ namespace spirsim
     const size_t* getGroupSize() const;
     Memory* getLocalMemory() const;
     unsigned int getWorkDim() const;
-    void run(const Kernel& kernel, bool outputInstructions=false);
+    void run(bool outputInstructions=false);
     void wait_event(uint64_t event);
 
   private:
@@ -52,6 +52,7 @@ namespace spirsim
     size_t m_groupID[3];
     size_t m_groupSize[3];
     size_t m_totalWorkItems;
+    const Kernel& m_kernel;
     Memory *m_localMemory;
     Memory& m_globalMemory;
     WorkItem **m_workItems;
