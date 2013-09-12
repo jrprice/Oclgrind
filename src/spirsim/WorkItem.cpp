@@ -368,6 +368,11 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     val = getFloatValue(
       ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
   }
+  else if (operand->getValueID() == llvm::Value::ConstantDataVectorVal)
+  {
+    val = getFloatValue(
+      ((const llvm::ConstantDataVector*)operand)->getElementAsConstant(index));
+  }
   else if (id == llvm::Value::UndefValueVal)
   {
     val = -1;
@@ -389,7 +394,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     }
     else
     {
-      cerr << "Unhandled float semantics." << endl;
+      cerr << "Unhandled float semantics " << operand->getValueID() << endl;
       return 0;
     }
   }
