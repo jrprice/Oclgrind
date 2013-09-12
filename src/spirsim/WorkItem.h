@@ -117,7 +117,9 @@ namespace spirsim
     DECLARE_BUILTIN(normalize);
 
     // Integer Functions
+    DECLARE_BUILTIN(clz);
     DECLARE_BUILTIN(hadd);
+    DECLARE_BUILTIN(rotate);
 
     // Math Functions
     DECLARE_BUILTIN(fract);
@@ -221,6 +223,8 @@ double radians(double x);
 double sign(double x);
 double smoothstep(double edge0, double edge1, double x);
 double step_builtin(double edge, double x);
+
+uint64_t popcount(uint64_t x);
 
 double acospi(double x);
 double asinpi(double x);

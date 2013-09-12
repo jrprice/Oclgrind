@@ -231,10 +231,13 @@ BUILTIN_1ARG(float, float, fast_normalize);
 // Integer Functions //
 ///////////////////////
 
-BUILTIN_2ARG_INTEGERS(hadd);
 BUILTIN_3ARG_INTEGERS(clamp);
+BUILTIN_1ARG_INTEGERS(clz);
+BUILTIN_2ARG_INTEGERS(hadd);
 BUILTIN_2ARG_INTEGERS(max);
 BUILTIN_2ARG_INTEGERS(min);
+BUILTIN_1ARG_INTEGERS(popcount);
+BUILTIN_2ARG_INTEGERS(rotate);
 
 
 ////////////////////

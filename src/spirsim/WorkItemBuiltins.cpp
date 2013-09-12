@@ -445,11 +445,50 @@ DEFINE_BUILTIN(normalize)
 // Integer Functions //
 ///////////////////////
 
+DEFINE_BUILTIN(clz)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t x = UARGV(0, i);
+    int nz = 0;
+    while (x)
+    {
+      x >>= 1;
+      nz++;
+    }
+
+    setIntResult(result, (uint64_t)((result.size<<3) - nz), i);
+  }
+}
+
 DEFINE_BUILTIN(hadd)
 {
   for (int i = 0; i < result.num; i++)
   {
     setIntResult(result, (UARGV(0, i) + UARGV(1, i)) >> 1, i);
+  }
+}
+
+uint64_t popcount(uint64_t x)
+{
+  int i = 0;
+  while (x)
+  {
+    i += (x & 0x1);
+    x >>= 1;
+  }
+  return i;
+}
+
+DEFINE_BUILTIN(rotate)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t width = (result.size << 3);
+    uint64_t v  = UARGV(0, i);
+    uint64_t ls = UARGV(1, i) % width;
+    uint64_t rs = width - ls;
+    setIntResult(result, (v << ls) | (v >> rs), i);
   }
 }
 

@@ -912,7 +912,10 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("fast_normalize", normalize);
 
   // Integer Functions
+  BUILTIN("clz", clz);
   BUILTIN("hadd", hadd);
+  BUILTIN_U1ARG("popcount", popcount);
+  BUILTIN("rotate", rotate);
 
   // Math Functions
   BUILTIN_F1ARG("acos", acos);
