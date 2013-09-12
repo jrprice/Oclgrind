@@ -1092,6 +1092,7 @@ void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
 {
+  uint64_t t = result.num > 1 ? -1 : 1;
   llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
   for (int i = 0; i < result.num; i++)
   {
@@ -1143,7 +1144,7 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
       break;
     }
 
-    setIntResult(result, r, i);
+    setIntResult(result, r ? t : 0, i);
   }
 }
 
@@ -1273,8 +1274,8 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
 {
+  uint64_t t = result.num > 1 ? -1 : 1;
   llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
-
   for (int i = 0; i < result.num; i++)
   {
     // Load operands
@@ -1323,7 +1324,7 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
       break;
     }
 
-    setIntResult(result, r, i);
+    setIntResult(result, r ? t : 0, i);
   }
 }
 
@@ -1462,11 +1463,11 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
     switch (type)
     {
     case llvm::Type::IntegerTyID:
-      setIntResult(result, getUnsignedInt(value), i);
+      setIntResult(result, getUnsignedInt(value, i), i);
       break;
     case llvm::Type::FloatTyID:
     case llvm::Type::DoubleTyID:
-      setFloatResult(result, getFloatValue(value), i);
+      setFloatResult(result, getFloatValue(value, i), i);
       break;
     case llvm::Type::PointerTyID:
       memcpy(result.data, m_privateMemory[value].data, result.size);
@@ -1529,31 +1530,39 @@ void WorkItem::sdiv(const llvm::Instruction& instruction, TypedValue& result)
 
 void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
 {
-  // TODO: Vectors
   const llvm::SelectInst *selectInst = (llvm::SelectInst*)&instruction;
-  const bool cond = getUnsignedInt(selectInst->getCondition());
-  const llvm::Value *op = cond ?
-    selectInst->getTrueValue() :
-    selectInst->getFalseValue();
 
-  uint64_t i;
-  double f;
-
-  llvm::Type::TypeID type = op->getType()->getTypeID();
-  switch (type)
+  for (int i = 0; i < result.num; i++)
   {
-  case llvm::Type::IntegerTyID:
-    i = getUnsignedInt(op);
-    memcpy(result.data, &i, result.size);
-    break;
-  case llvm::Type::FloatTyID:
-  case llvm::Type::DoubleTyID:
-    f = getFloatValue(op);
-    setFloatResult(result, f);
-    break;
-  default:
-    cerr << "Unhandled type in select instruction: " << type << endl;
-    break;
+    const bool cond = getUnsignedInt(selectInst->getCondition(), i);
+    const llvm::Value *op = cond ?
+      selectInst->getTrueValue() :
+      selectInst->getFalseValue();
+
+    uint64_t u;
+    double f;
+
+    llvm::Type::TypeID type = op->getType()->getTypeID();
+    if (type == llvm::Type::VectorTyID)
+    {
+      type = op->getType()->getVectorElementType()->getTypeID();
+    }
+
+    switch (type)
+    {
+    case llvm::Type::IntegerTyID:
+      u = getUnsignedInt(op, i);
+      setIntResult(result, u, i);
+      break;
+    case llvm::Type::FloatTyID:
+    case llvm::Type::DoubleTyID:
+      f = getFloatValue(op, i);
+      setFloatResult(result, f, i);
+      break;
+    default:
+      cerr << "Unhandled type in select instruction: " << type << endl;
+      break;
+    }
   }
 }
 
