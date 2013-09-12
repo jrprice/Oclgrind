@@ -242,7 +242,7 @@ DEFINE_BUILTIN(prefetch)
 
 template<typename T> T _max(T a, T b){return a > b ? a : b;}
 template<typename T> T _min(T a, T b){return a < b ? a : b;}
-template<typename T> T _clamp(T x, T min, T max){return _min(x, _max(x, min));}
+template<typename T> T _clamp(T x, T min, T max){return _min(_max(x, min), max);}
 DEFINE_BUILTIN(clamp)
 {
   switch (getOverloadArgType(overload))
