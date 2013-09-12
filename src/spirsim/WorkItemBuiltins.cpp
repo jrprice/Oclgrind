@@ -355,6 +355,7 @@ DEFINE_BUILTIN(min)
     }
 }
 
+
 /////////////////////////
 // Geometric Functions //
 /////////////////////////
@@ -779,6 +780,11 @@ DEFINE_BUILTIN(select_builtin)
 DEFINE_BUILTIN(barrier)
 {
 	m_state = BARRIER;
+}
+
+DEFINE_BUILTIN(mem_fence)
+{
+  // TODO: Implement?
 }
 
 

@@ -1028,6 +1028,9 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
   // Synchronization Functions
   BUILTIN("barrier", barrier);
+  BUILTIN("mem_fence", mem_fence);
+  BUILTIN("read_mem_fence", mem_fence);
+  BUILTIN("write_mem_fence", mem_fence);
 
   // Vector Data Load and Store Functions
   BUILTIN_PREFIX("vload", vload);

@@ -136,6 +136,7 @@ namespace spirsim
 
     // Synchronization Functions
     DECLARE_BUILTIN(barrier);
+    DECLARE_BUILTIN(mem_fence);
 
     // Vector Data Load and Store Functions
     DECLARE_BUILTIN(vload);

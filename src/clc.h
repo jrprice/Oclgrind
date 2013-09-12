@@ -27,9 +27,6 @@ TYPEDEF_VECTOR(ulong);
 TYPEDEF_VECTOR(float);
 TYPEDEF_VECTOR(double);
 
-#define CLK_LOCAL_MEM_FENCE 1<<0
-#define CLK_GLOBAL_MEM_FENCE 1<<1
-
 #define __ENDIAN_LITTLE__ 1
 #define __OPENCL_VERSION__ 120
 #define __OPENCL_C_VERSION__ 120
@@ -198,7 +195,6 @@ BUILTIN_1ARG(float, float, radians);
 BUILTIN_1ARG(float, float, sign);
 BUILTIN_3ARG(float, float, float, float, smoothstep);
 BUILTIN_2ARG(float, float, float, step);
-
 
 
 /////////////////////////
@@ -417,7 +413,16 @@ SELECT(float, int);
 // Synchronization Functions //
 ///////////////////////////////
 
-void barrier(uint);
+typedef enum {
+  CLK_LOCAL_MEM_FENCE  = 1U << 0,
+  CLK_GLOBAL_MEM_FENCE = 1U << 1,
+  __unused_except_to_make_sure_the_enum_has_the_right_size = 1U << 31
+} cl_mem_fence_flags;
+
+void barrier(cl_mem_fence_flags);
+void mem_fence(cl_mem_fence_flags);
+void read_mem_fence(cl_mem_fence_flags);
+void write_mem_fence(cl_mem_fence_flags);
 
 
 //////////////////////////////////////////
