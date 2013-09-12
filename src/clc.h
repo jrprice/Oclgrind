@@ -190,8 +190,10 @@ PREFETCH(float);
 //////////////////////
 
 BUILTIN_3ARG(float, float, float, float, clamp);
+BUILTIN_1ARG(float, float, degrees);
 BUILTIN_2ARG(float, float, float, max);
 BUILTIN_2ARG(float, float, float, min);
+BUILTIN_1ARG(float, float, radians);
 
 
 

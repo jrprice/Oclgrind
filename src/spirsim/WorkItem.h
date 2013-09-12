@@ -210,6 +210,9 @@ namespace spirsim
   };
 }
 
+double degrees(double x);
+double radians(double x);
+
 double acospi(double x);
 double asinpi(double x);
 double atanpi(double x);

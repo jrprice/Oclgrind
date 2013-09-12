@@ -892,8 +892,10 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
   // Common Functions
   BUILTIN("clamp", clamp);
+  BUILTIN_F1ARG("degrees", degrees);
   BUILTIN("max", max);
   BUILTIN("min", min);
+  BUILTIN_F1ARG("radians", radians);
 
   // Geometric Functions
   BUILTIN("dot", dot);
