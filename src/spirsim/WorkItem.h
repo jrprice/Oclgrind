@@ -211,7 +211,11 @@ namespace spirsim
 }
 
 double degrees(double x);
+double mix(double x, double y, double a);
 double radians(double x);
+double sign(double x);
+double smoothstep(double edge0, double edge1, double x);
+double step_builtin(double edge, double x);
 
 double acospi(double x);
 double asinpi(double x);

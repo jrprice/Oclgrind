@@ -240,9 +240,18 @@ DEFINE_BUILTIN(prefetch)
 // Common Functions //
 //////////////////////
 
+template<typename T> T _max(T a, T b){return a > b ? a : b;}
+template<typename T> T _min(T a, T b){return a < b ? a : b;}
+template<typename T> T _clamp(T x, T min, T max){return _min(_max(x, min), max);}
+
 double degrees(double x)
 {
   return x * (180 / M_PI);
+}
+
+double mix(double x, double y, double a)
+{
+  return x + (y - x) * a;
 }
 
 double radians(double x)
@@ -250,9 +259,27 @@ double radians(double x)
   return x * (M_PI / 180);
 }
 
-template<typename T> T _max(T a, T b){return a > b ? a : b;}
-template<typename T> T _min(T a, T b){return a < b ? a : b;}
-template<typename T> T _clamp(T x, T min, T max){return _min(_max(x, min), max);}
+double sign(double x)
+{
+  if (isnan(x))  return  0.0;
+  if (x  >  0.0) return  1.0;
+  if (x == -0.0) return -0.0;
+  if (x ==  0.0) return  0.0;
+  if (x  <  0.0) return -1.0;
+  return 0.0;
+}
+
+double smoothstep(double edge0, double edge1, double x)
+{
+  double t = _clamp<double>((x - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2*t);
+}
+
+double step_builtin(double edge, double x)
+{
+  return (x < edge) ? 0.0 : 1.0;
+}
+
 DEFINE_BUILTIN(clamp)
 {
   switch (getOverloadArgType(overload))

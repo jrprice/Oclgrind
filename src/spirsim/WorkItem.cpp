@@ -895,7 +895,11 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("degrees", degrees);
   BUILTIN("max", max);
   BUILTIN("min", min);
+  BUILTIN_F3ARG("mix", mix);
   BUILTIN_F1ARG("radians", radians);
+  BUILTIN_F1ARG("sign", sign);
+  BUILTIN_F3ARG("smoothstep", smoothstep);
+  BUILTIN_F2ARG("step", step_builtin);
 
   // Geometric Functions
   BUILTIN("dot", dot);

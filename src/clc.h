@@ -193,7 +193,11 @@ BUILTIN_3ARG(float, float, float, float, clamp);
 BUILTIN_1ARG(float, float, degrees);
 BUILTIN_2ARG(float, float, float, max);
 BUILTIN_2ARG(float, float, float, min);
+BUILTIN_3ARG(float, float, float, float, mix);
 BUILTIN_1ARG(float, float, radians);
+BUILTIN_1ARG(float, float, sign);
+BUILTIN_3ARG(float, float, float, float, smoothstep);
+BUILTIN_2ARG(float, float, float, step);
 
 
 
