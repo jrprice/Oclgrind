@@ -98,7 +98,7 @@ namespace spirsim
 #define DECLARE_BUILTIN(name)      void name(const llvm::CallInst *callInst, \
                                              std::string name,               \
                                              std::string overload,           \
-                                             TypedValue& result)
+                                             TypedValue& result);
     // Async Copy and Prefetch Functions
     DECLARE_BUILTIN(async_work_group_copy);
     DECLARE_BUILTIN(wait_group_events);
@@ -110,7 +110,11 @@ namespace spirsim
     DECLARE_BUILTIN(min);
 
     // Geometric Functions
+    DECLARE_BUILTIN(cross);
     DECLARE_BUILTIN(dot);
+    DECLARE_BUILTIN(distance);
+    DECLARE_BUILTIN(length);
+    DECLARE_BUILTIN(normalize);
 
     // Integer Functions
     DECLARE_BUILTIN(hadd);

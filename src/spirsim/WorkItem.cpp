@@ -902,7 +902,14 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F2ARG("step", step_builtin);
 
   // Geometric Functions
+  BUILTIN("cross", cross);
   BUILTIN("dot", dot);
+  BUILTIN("distance", distance);
+  BUILTIN("length", length);
+  BUILTIN("normalize", normalize);
+  BUILTIN("fast_distance", distance);
+  BUILTIN("fast_length", length);
+  BUILTIN("fast_normalize", normalize);
 
   // Integer Functions
   BUILTIN("hadd", hadd);

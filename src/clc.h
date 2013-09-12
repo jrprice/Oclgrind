@@ -201,12 +201,30 @@ BUILTIN_2ARG(float, float, float, step);
 // Geometric Functions //
 /////////////////////////
 
-float __OVERLOAD__ dot(float a, float b);
-float __OVERLOAD__ dot(float2 a, float2 b);
-float __OVERLOAD__ dot(float3 a, float3 b);
-float __OVERLOAD__ dot(float4 a, float4 b);
-float __OVERLOAD__ dot(float8 a, float8 b);
-float __OVERLOAD__ dot(float16 a, float16 b);
+#define GEOM_1ARG(name) \
+ float __OVERLOAD__ name(float);  \
+ float __OVERLOAD__ name(float2); \
+ float __OVERLOAD__ name(float3); \
+ float __OVERLOAD__ name(float4); \
+ float __OVERLOAD__ name(float8); \
+ float __OVERLOAD__ name(float16);
+#define GEOM_2ARG(name) \
+ float __OVERLOAD__ name(float, float);   \
+ float __OVERLOAD__ name(float2, float2); \
+ float __OVERLOAD__ name(float3, float3); \
+ float __OVERLOAD__ name(float4, float4); \
+ float __OVERLOAD__ name(float8, float8); \
+ float __OVERLOAD__ name(float16, float16);
+
+float4 __OVERLOAD__ cross(float4, float4);
+float3 __OVERLOAD__ cross(float3, float3);
+GEOM_2ARG(dot);
+GEOM_2ARG(distance);
+GEOM_1ARG(length);
+BUILTIN_1ARG(float, float, normalize);
+GEOM_2ARG(fast_distance);
+GEOM_1ARG(fast_length);
+BUILTIN_1ARG(float, float, fast_normalize);
 
 
 ///////////////////////

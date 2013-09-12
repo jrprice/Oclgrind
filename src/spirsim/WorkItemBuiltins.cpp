@@ -360,6 +360,20 @@ DEFINE_BUILTIN(min)
 // Geometric Functions //
 /////////////////////////
 
+DEFINE_BUILTIN(cross)
+{
+  double u1 = FARGV(0, 0);
+  double u2 = FARGV(0, 1);
+  double u3 = FARGV(0, 2);
+  double v1 = FARGV(1, 0);
+  double v2 = FARGV(1, 1);
+  double v3 = FARGV(1, 2);
+  setFloatResult(result, u2*v3 - u3*v2, 0);
+  setFloatResult(result, u3*v1 - u1*v3, 1);
+  setFloatResult(result, u1*v2 - u2*v1, 2);
+  setFloatResult(result, 0, 3);
+}
+
 DEFINE_BUILTIN(dot)
 {
   int num = 1;
@@ -376,6 +390,54 @@ DEFINE_BUILTIN(dot)
     r += a * b;
   }
   setFloatResult(result, r);
+}
+
+DEFINE_BUILTIN(distance)
+{
+  int num = 1;
+  if (ARG(0)->getType()->isVectorTy())
+  {
+    num = ARG(0)->getType()->getVectorNumElements();
+  }
+
+  double distSq = 0.0;
+  for (int i = 0; i < num; i++)
+  {
+    double diff = FARGV(0,i) - FARGV(1,i);
+    distSq += diff*diff;
+  }
+  setFloatResult(result, sqrt(distSq));
+}
+
+DEFINE_BUILTIN(length)
+{
+  int num = 1;
+  if (ARG(0)->getType()->isVectorTy())
+  {
+    num = ARG(0)->getType()->getVectorNumElements();
+  }
+
+  double lengthSq = 0.0;
+  for (int i = 0; i < num; i++)
+  {
+    lengthSq += FARGV(0, i) * FARGV(0, i);
+  }
+  setFloatResult(result, sqrt(lengthSq));
+}
+
+DEFINE_BUILTIN(normalize)
+{
+  double lengthSq = 0.0;
+  for (int i = 0; i < result.num; i++)
+  {
+    lengthSq += FARGV(0, i) * FARGV(0, i);
+  }
+  double length = sqrt(lengthSq);
+
+  for (int i = 0; i < result.num; i++)
+  {
+    setFloatResult(result, FARGV(0, i)/length, i);
+  }
 }
 
 
