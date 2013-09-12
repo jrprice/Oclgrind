@@ -465,7 +465,33 @@ DEFINE_BUILTIN(hadd)
 {
   for (int i = 0; i < result.num; i++)
   {
-    setIntResult(result, (UARGV(0, i) + UARGV(1, i)) >> 1, i);
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+    case 't':
+    case 'j':
+    case 'm':
+    {
+      uint64_t a = UARGV(0, i);
+      uint64_t b = UARGV(1, i);
+      uint64_t c = (a > UINT64_MAX-b) ? ((uint64_t)1<<63) : 0;
+      setIntResult(result, ((a + b) >> 1) | c, i);
+      break;
+    }
+    case 'c':
+    case 's':
+    case 'i':
+    case 'l':
+    {
+      int64_t a = SARGV(0, i);
+      int64_t b = SARGV(1, i);
+      int64_t c = (a & b) & 1;
+      setIntResult(result, (a>>1) + (b>>1) + c, i);
+      break;
+    }
+    default:
+      assert(false);
+    }
   }
 }
 
@@ -478,6 +504,40 @@ uint64_t popcount(uint64_t x)
     x >>= 1;
   }
   return i;
+}
+
+DEFINE_BUILTIN(rhadd)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+    case 't':
+    case 'j':
+    case 'm':
+    {
+      uint64_t a = UARGV(0, i);
+      uint64_t b = UARGV(1, i);
+      uint64_t c = (a > UINT64_MAX-(b+1)) ? ((uint64_t)1<<63) : 0;
+      setIntResult(result, ((a + b + 1) >> 1) | c, i);
+      break;
+    }
+    case 'c':
+    case 's':
+    case 'i':
+    case 'l':
+    {
+      int64_t a = SARGV(0, i);
+      int64_t b = SARGV(1, i);
+      int64_t c = (a | b) & 1;
+      setIntResult(result, (a>>1) + (b>>1) + c, i);
+      break;
+    }
+    default:
+      assert(false);
+    }
+  }
 }
 
 DEFINE_BUILTIN(rotate)
