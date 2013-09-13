@@ -187,6 +187,7 @@ namespace spirsim
     {
       size_t num = type->getVectorNumElements();
       size_t sz = getTypeSize(type->getVectorElementType());
+      if (num == 3) num = 4; // Hack for 3-element vectors
       return num*sz;
     }
     else if (type->isPointerTy())
@@ -204,6 +205,12 @@ namespace spirsim
     unsigned id = operand->getValueID();
     return (id >= llvm::Value::ConstantFirstVal &&
             id <= llvm::Value::ConstantLastVal);
+  }
+
+  bool isVector3(const llvm::Value *value)
+  {
+    return (value->getType()->isVectorTy() &&
+            value->getType()->getVectorNumElements() == 3);
   }
 
   void getConstantData(unsigned char *data, const llvm::Constant *constant)

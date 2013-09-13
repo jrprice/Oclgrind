@@ -1336,6 +1336,13 @@ DEFINE_BUILTIN(vstore)
   const llvm::Value *value = ARG(0);
   size_t size = getTypeSize(value->getType());
   unsigned char *data = new unsigned char[size];
+  if (isVector3(value))
+  {
+    // 3-element vectors are same size as 4-element vectors,
+    // but vstore address offset shouldn't use this.
+    size = (size/4) * 3;
+  }
+
   if (isConstantOperand(value))
   {
     getConstantData(data, (const llvm::Constant*)value);

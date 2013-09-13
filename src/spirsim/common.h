@@ -65,6 +65,9 @@ namespace spirsim
   // Returns true if the operand is a constant value
   extern bool isConstantOperand(const llvm::Value *operand);
 
+  // Returns true if the value is a 3-element vector
+  extern bool isVector3(const llvm::Value *value);
+
   // Retrieve the raw data for a constant
   extern void getConstantData(unsigned char *data,
                               const llvm::Constant *constant);
