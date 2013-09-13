@@ -605,50 +605,88 @@ DEFINE_BUILTIN(hadd)
   }
 }
 
-uint64_t mul_hi_u64(uint64_t x, uint64_t y)
-{
-  uint64_t xl = x & UINT32_MAX;
-  uint64_t xh = x >> 32;
-  uint64_t yl = y & UINT32_MAX;
-  uint64_t yh = y >> 32;
-
-  uint64_t xlyl = xl*yl;
-  uint64_t xlyh = xl*yh;
-  uint64_t xhyl = xh*yl;
-  uint64_t xhyh = xh*yh;
-
-  uint64_t  a = xhyl + ((xlyl)>>32);
-  uint64_t al = a & UINT32_MAX;
-  uint64_t ah = a >> 32;
-  uint64_t  b = ((al + xlyh)>>32) + ah;
-
-  return xh*yh + b;
-}
-
-int64_t mul_hi_s64(int64_t x, int64_t y)
-{
-  // TODO: Sometimes 1 out
-  int64_t xl = x & UINT32_MAX;
-  int64_t xh = x >> 32;
-  int64_t yl = y & UINT32_MAX;
-  int64_t yh = y >> 32;
-
-  int64_t xlyl = xl*yl;
-  int64_t xlyh = xl*yh;
-  int64_t xhyl = xh*yl;
-  int64_t xhyh = xh*yh;
-
-  int64_t  a = xhyl + ((xlyl)>>32);
-  int64_t al = a & UINT32_MAX;
-  int64_t ah = a >> 32;
-  int64_t  b = ((al + xlyh)>>32) + ah;
-
-  return xh*yh + b;
-}
-
 uint64_t mad(uint64_t a, uint64_t b, uint64_t c)
 {
   return a*b + c;
+}
+
+uint64_t umul_hi(uint64_t x, uint64_t y, uint64_t bits)
+{
+  if (bits == 64)
+  {
+    uint64_t xl = x & UINT32_MAX;
+    uint64_t xh = x >> 32;
+    uint64_t yl = y & UINT32_MAX;
+    uint64_t yh = y >> 32;
+
+    uint64_t xlyl = xl*yl;
+    uint64_t xlyh = xl*yh;
+    uint64_t xhyl = xh*yl;
+    uint64_t xhyh = xh*yh;
+
+    uint64_t  a = xhyl + ((xlyl)>>32);
+    uint64_t al = a & UINT32_MAX;
+    uint64_t ah = a >> 32;
+    uint64_t  b = ((al + xlyh)>>32) + ah;
+
+    return xh*yh + b;
+  }
+  else
+  {
+    return (x*y) >> bits;
+  }
+}
+
+int64_t smul_hi(int64_t x, int64_t y, int64_t bits)
+{
+  if (bits == 64)
+  {
+    // TODO: Sometimes 1 out
+    int64_t xl = x & UINT32_MAX;
+    int64_t xh = x >> 32;
+    int64_t yl = y & UINT32_MAX;
+    int64_t yh = y >> 32;
+
+    int64_t xlyl = xl*yl;
+    int64_t xlyh = xl*yh;
+    int64_t xhyl = xh*yl;
+    int64_t xhyh = xh*yh;
+
+    int64_t  a = xhyl + ((xlyl)>>32);
+    int64_t al = a & UINT32_MAX;
+    int64_t ah = a >> 32;
+    int64_t  b = ((al + xlyh)>>32) + ah;
+
+    return xh*yh + b;
+  }
+  else
+  {
+    return (x*y) >> bits;
+  }
+}
+
+DEFINE_BUILTIN(mad_hi)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+    case 't':
+    case 'j':
+    case 'm':
+      setIntResult(result, umul_hi(UARGV(0, i), UARGV(1, i), result.size<<3) + UARGV(2, i), i);
+      break;
+    case 'c':
+    case 's':
+    case 'i':
+    case 'l':
+      setIntResult(result, smul_hi(SARGV(0, i), SARGV(1, i), result.size<<3) + SARGV(2, i), i);
+      break;
+    default:
+      assert(false);
+    }
+  }
 }
 
 DEFINE_BUILTIN(mad_sat)
@@ -670,7 +708,7 @@ DEFINE_BUILTIN(mad_sat)
       break;
     case 'm':
     {
-      uint64_t hi = mul_hi_u64(UARGV(0, i), UARGV(1, i));
+      uint64_t hi = umul_hi(UARGV(0, i), UARGV(1, i), 64);
       if (hi || UARGV(2, i) > uresult)
       {
         uresult = UINT64_MAX;
@@ -690,7 +728,7 @@ DEFINE_BUILTIN(mad_sat)
     case 'l':
     {
       // Check for overflow in multiplication
-      if (mul_hi_s64(SARGV(0, i), SARGV(1, i)))
+      if (smul_hi(SARGV(0, i), SARGV(1, i), 64))
       {
         sresult = (SARGV(0,i)>0) ^ (SARGV(1,i)>0) ? INT64_MIN : INT64_MAX;
       }
@@ -726,37 +764,15 @@ DEFINE_BUILTIN(mul_hi)
     case 'h':
     case 't':
     case 'j':
-    {
-      uint64_t x = UARGV(0, i);
-      uint64_t y = UARGV(1, i);
-      uint64_t r = x * y;
-      setIntResult(result, r >> (result.size<<3), i);
-      break;
-    }
     case 'm':
-    {
-      uint64_t x = UARGV(0, i);
-      uint64_t y = UARGV(1, i);
-      setIntResult(result, mul_hi_u64(x, y), i);
+      setIntResult(result, umul_hi(UARGV(0, i), UARGV(1, i), result.size<<3), i);
       break;
-    }
     case 'c':
     case 's':
     case 'i':
-    {
-      int64_t x = SARGV(0, i);
-      int64_t y = SARGV(1, i);
-      int64_t r = x * y;
-      setIntResult(result, r >> (result.size<<3), i);
-      break;
-    }
     case 'l':
-    {
-      int64_t x = SARGV(0, i);
-      int64_t y = SARGV(1, i);
-      setIntResult(result, mul_hi_s64(x, y), i);
+      setIntResult(result, smul_hi(SARGV(0, i), SARGV(1, i), result.size<<3), i);
       break;
-    }
     default:
       assert(false);
     }
