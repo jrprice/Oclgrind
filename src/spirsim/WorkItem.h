@@ -128,6 +128,7 @@ namespace spirsim
     DECLARE_BUILTIN(rhadd);
     DECLARE_BUILTIN(rotate);
     DECLARE_BUILTIN(sub_sat);
+    DECLARE_BUILTIN(upsample);
 
     // Math Functions
     DECLARE_BUILTIN(fract);

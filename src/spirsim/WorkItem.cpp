@@ -926,6 +926,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("rhadd", rhadd);
   BUILTIN("rotate", rotate);
   BUILTIN("sub_sat", sub_sat);
+  BUILTIN("upsample", upsample);
 
   // Math Functions
   BUILTIN_F1ARG("acos", acos);

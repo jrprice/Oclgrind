@@ -269,6 +269,19 @@ BUILTIN_1ARG_INTEGERS(popcount);
 BUILTIN_2ARG_INTEGERS(rhadd);
 BUILTIN_2ARG_INTEGERS(rotate);
 BUILTIN_2ARG_INTEGERS(sub_sat);
+#define UPSAMPLE_SIZES(out, in1, in2)            \
+	out     __OVERLOAD__ upsample(in1, in2);       \
+	out##2  __OVERLOAD__ upsample(in1##2, in2##2); \
+	out##3  __OVERLOAD__ upsample(in1##3, in2##3); \
+	out##4  __OVERLOAD__ upsample(in1##4, in2##4); \
+	out##8  __OVERLOAD__ upsample(in1##8, in2##8); \
+	out##16 __OVERLOAD__ upsample(in1##16, in2##16);
+#define UPSAMPLE(out, in)      \
+	UPSAMPLE_SIZES(out, in, u##in); \
+	UPSAMPLE_SIZES(u##out, u##in, u##in);
+UPSAMPLE(short, char);
+UPSAMPLE(int, short);
+UPSAMPLE(long, int);
 
 
 ////////////////////

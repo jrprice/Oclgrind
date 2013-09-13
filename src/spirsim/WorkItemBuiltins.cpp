@@ -886,6 +886,14 @@ DEFINE_BUILTIN(sub_sat)
   }
 }
 
+DEFINE_BUILTIN(upsample)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    setIntResult(result, (UARGV(0,i)<<(result.size<<2)) | UARGV(1, i), i);
+  }
+}
+
 
 ////////////////////
 // Math Functions //
