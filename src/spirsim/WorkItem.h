@@ -231,7 +231,9 @@ double sign(double x);
 double smoothstep(double edge0, double edge1, double x);
 double step_builtin(double edge, double x);
 
+uint64_t mad(uint64_t, uint64_t, uint64_t);
 uint64_t popcount(uint64_t x);
+uint64_t mul_builtin(uint64_t, uint64_t);
 
 double acospi(double x);
 double asinpi(double x);

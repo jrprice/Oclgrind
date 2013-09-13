@@ -917,7 +917,9 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("add_sat", add_sat);
   BUILTIN("clz", clz);
   BUILTIN("hadd", hadd);
+  BUILTIN_U3ARG("mad24", mad);
   BUILTIN("mad_sat", mad_sat);
+  BUILTIN_U2ARG("mul24", mul_builtin);
   BUILTIN("mul_hi", mul_hi);
   BUILTIN_U1ARG("popcount", popcount);
   BUILTIN("rhadd", rhadd);

@@ -646,6 +646,11 @@ int64_t mul_hi_s64(int64_t x, int64_t y)
   return xh*yh + b;
 }
 
+uint64_t mad(uint64_t a, uint64_t b, uint64_t c)
+{
+  return a*b + c;
+}
+
 DEFINE_BUILTIN(mad_sat)
 {
   for (int i = 0; i < result.num; i++)
@@ -705,6 +710,11 @@ DEFINE_BUILTIN(mad_sat)
       assert(false);
     }
   }
+}
+
+uint64_t mul_builtin(uint64_t a, uint64_t b)
+{
+  return a*b;
 }
 
 DEFINE_BUILTIN(mul_hi)
