@@ -117,6 +117,8 @@ namespace spirsim
     DECLARE_BUILTIN(normalize);
 
     // Integer Functions
+    DECLARE_BUILTIN(abs_builtin);
+    DECLARE_BUILTIN(abs_diff);
     DECLARE_BUILTIN(add_sat);
     DECLARE_BUILTIN(clz);
     DECLARE_BUILTIN(hadd);

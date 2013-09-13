@@ -912,6 +912,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("fast_normalize", normalize);
 
   // Integer Functions
+  BUILTIN("abs", abs_builtin);
+  BUILTIN("abs_diff", abs_diff);
   BUILTIN("add_sat", add_sat);
   BUILTIN("clz", clz);
   BUILTIN("hadd", hadd);

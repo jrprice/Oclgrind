@@ -186,6 +186,27 @@ PREFETCH(float);
 // Common Functions //
 //////////////////////
 
+#define ABS(type)                 \
+	u##type __OVERLOAD__ abs(type); \
+	u##type __OVERLOAD__ abs(u##type);
+#define ABS_DIFF(type)                       \
+	u##type __OVERLOAD__ abs_diff(type, type); \
+	u##type __OVERLOAD__ abs_diff(u##type, u##type);
+#define ABS_BOTH(type) \
+	ABS(type);           \
+	ABS_DIFF(type);
+#define ABS_ALL(type) \
+	ABS_BOTH(type);     \
+	ABS_BOTH(type##2);  \
+	ABS_BOTH(type##3);  \
+	ABS_BOTH(type##4);  \
+	ABS_BOTH(type##8);  \
+	ABS_BOTH(type##16);
+
+ABS_ALL(char);
+ABS_ALL(short);
+ABS_ALL(int);
+ABS_ALL(long);
 BUILTIN_3ARG(float, float, float, float, clamp);
 BUILTIN_1ARG(float, float, degrees);
 BUILTIN_2ARG(float, float, float, max);

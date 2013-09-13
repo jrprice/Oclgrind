@@ -445,6 +445,66 @@ DEFINE_BUILTIN(normalize)
 // Integer Functions //
 ///////////////////////
 
+DEFINE_BUILTIN(abs_builtin)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+    case 't':
+    case 'j':
+    case 'm':
+    {
+      setIntResult(result, UARGV(0,i), i);
+      break;
+    }
+    case 'c':
+    case 's':
+    case 'i':
+    case 'l':
+    {
+      setIntResult(result, abs(SARGV(0,i)), i);
+      break;
+    }
+    default:
+      assert(false);
+    }
+  }
+}
+
+DEFINE_BUILTIN(abs_diff)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+    case 't':
+    case 'j':
+    case 'm':
+    {
+      uint64_t a = UARGV(0, i);
+      uint64_t b = UARGV(1, i);
+      setIntResult(result, _max(a,b) - _min(a,b), i);
+      break;
+    }
+    case 'c':
+    case 's':
+    case 'i':
+    case 'l':
+    {
+      int64_t a = SARGV(0, i);
+      int64_t b = SARGV(1, i);
+      setIntResult(result, _max(a,b) - _min(a,b), i);
+      break;
+    }
+    default:
+      assert(false);
+    }
+  }
+}
+
 DEFINE_BUILTIN(add_sat)
 {
   for (int i = 0; i < result.num; i++)
