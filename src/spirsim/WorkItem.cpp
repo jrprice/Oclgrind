@@ -914,6 +914,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   // Integer Functions
   BUILTIN("clz", clz);
   BUILTIN("hadd", hadd);
+  BUILTIN("mul_hi", mul_hi);
   BUILTIN_U1ARG("popcount", popcount);
   BUILTIN("rhadd", rhadd);
   BUILTIN("rotate", rotate);

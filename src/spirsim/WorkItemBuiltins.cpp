@@ -474,7 +474,7 @@ DEFINE_BUILTIN(hadd)
     {
       uint64_t a = UARGV(0, i);
       uint64_t b = UARGV(1, i);
-      uint64_t c = (a > UINT64_MAX-b) ? ((uint64_t)1<<63) : 0;
+      uint64_t c = (a > UINT64_MAX-b) ? (1L<<63) : 0;
       setIntResult(result, ((a + b) >> 1) | c, i);
       break;
     }
@@ -487,6 +487,85 @@ DEFINE_BUILTIN(hadd)
       int64_t b = SARGV(1, i);
       int64_t c = (a & b) & 1;
       setIntResult(result, (a>>1) + (b>>1) + c, i);
+      break;
+    }
+    default:
+      assert(false);
+    }
+  }
+}
+
+DEFINE_BUILTIN(mul_hi)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+    case 't':
+    case 'j':
+    {
+      uint64_t x = UARGV(0, i);
+      uint64_t y = UARGV(1, i);
+      uint64_t r = x * y;
+      setIntResult(result, r >> (result.size<<3), i);
+      break;
+    }
+    case 'm':
+    {
+      uint64_t x = UARGV(0, i);
+      uint64_t y = UARGV(1, i);
+
+      uint64_t xl = x & UINT32_MAX;
+      uint64_t xh = x >> 32;
+      uint64_t yl = y & UINT32_MAX;
+      uint64_t yh = y >> 32;
+
+      uint64_t xlyl = xl*yl;
+      uint64_t xlyh = xl*yh;
+      uint64_t xhyl = xh*yl;
+      uint64_t xhyh = xh*yh;
+
+      uint64_t  a = xhyl + ((xlyl)>>32);
+      uint64_t al = a & UINT32_MAX;
+      uint64_t ah = a >> 32;
+      uint64_t  b = ((al + xlyh)>>32) + ah;
+
+      setIntResult(result, xh*yh + b, i);
+
+      break;
+    }
+    case 'c':
+    case 's':
+    case 'i':
+    {
+      int64_t x = SARGV(0, i);
+      int64_t y = SARGV(1, i);
+      int64_t r = x * y;
+      setIntResult(result, r >> (result.size<<3), i);
+      break;
+    }
+    case 'l':
+    {
+      int64_t x = SARGV(0, i);
+      int64_t y = SARGV(1, i);
+
+      int64_t xl = x & UINT32_MAX;
+      int64_t xh = x >> 32;
+      int64_t yl = y & UINT32_MAX;
+      int64_t yh = y >> 32;
+
+      int64_t xlyl = xl*yl;
+      int64_t xlyh = xl*yh;
+      int64_t xhyl = xh*yl;
+      int64_t xhyh = xh*yh;
+
+      int64_t  a = xhyl + ((xlyl)>>32);
+      int64_t al = a & UINT32_MAX;
+      int64_t ah = a >> 32;
+      int64_t  b = ((al + xlyh)>>32) + ah;
+
+      setIntResult(result, xh*yh + b, i);
       break;
     }
     default:
@@ -519,7 +598,7 @@ DEFINE_BUILTIN(rhadd)
     {
       uint64_t a = UARGV(0, i);
       uint64_t b = UARGV(1, i);
-      uint64_t c = (a > UINT64_MAX-(b+1)) ? ((uint64_t)1<<63) : 0;
+      uint64_t c = (a > UINT64_MAX-(b+1)) ? (1L<<63) : 0;
       setIntResult(result, ((a + b + 1) >> 1) | c, i);
       break;
     }

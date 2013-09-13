@@ -119,6 +119,7 @@ namespace spirsim
     // Integer Functions
     DECLARE_BUILTIN(clz);
     DECLARE_BUILTIN(hadd);
+    DECLARE_BUILTIN(mul_hi);
     DECLARE_BUILTIN(rhadd);
     DECLARE_BUILTIN(rotate);
 
