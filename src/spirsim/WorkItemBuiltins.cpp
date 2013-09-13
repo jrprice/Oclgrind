@@ -445,6 +445,56 @@ DEFINE_BUILTIN(normalize)
 // Integer Functions //
 ///////////////////////
 
+DEFINE_BUILTIN(add_sat)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t uresult = UARGV(0,i) + UARGV(1,i);
+    int64_t  sresult = SARGV(0,i) + SARGV(1,i);
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+      setIntResult(result, _min<uint64_t>(uresult, UINT8_MAX), i);
+      break;
+    case 't':
+      setIntResult(result, _min<uint64_t>(uresult, UINT16_MAX), i);
+      break;
+    case 'j':
+      setIntResult(result, _min<uint64_t>(uresult, UINT32_MAX), i);
+      break;
+    case 'm':
+    {
+      if (UARGV(1, i) > uresult)
+      {
+        uresult = UINT64_MAX;
+      }
+      setIntResult(result, uresult, i);
+      break;
+    }
+    case 'c':
+      setIntResult(result, _clamp<int64_t>(sresult, INT8_MIN, INT8_MAX), i);
+      break;
+    case 's':
+      setIntResult(result, _clamp<int64_t>(sresult, INT16_MIN, INT16_MAX), i);
+      break;
+    case 'i':
+      setIntResult(result, _clamp<int64_t>(sresult, INT32_MIN, INT32_MAX), i);
+      break;
+    case 'l':
+    {
+      if ((SARGV(0,i)>0) == (SARGV(1,i)>0) && (SARGV(0,i)>0) != (sresult>0))
+      {
+        sresult = (SARGV(0,i)>0) ? INT64_MAX : INT64_MIN;
+      }
+      setIntResult(result, sresult, i);
+      break;
+    }
+    default:
+      assert(false);
+    }
+  }
+}
+
 DEFINE_BUILTIN(clz)
 {
   for (int i = 0; i < result.num; i++)
@@ -495,6 +545,108 @@ DEFINE_BUILTIN(hadd)
   }
 }
 
+uint64_t mul_hi_u64(uint64_t x, uint64_t y)
+{
+  uint64_t xl = x & UINT32_MAX;
+  uint64_t xh = x >> 32;
+  uint64_t yl = y & UINT32_MAX;
+  uint64_t yh = y >> 32;
+
+  uint64_t xlyl = xl*yl;
+  uint64_t xlyh = xl*yh;
+  uint64_t xhyl = xh*yl;
+  uint64_t xhyh = xh*yh;
+
+  uint64_t  a = xhyl + ((xlyl)>>32);
+  uint64_t al = a & UINT32_MAX;
+  uint64_t ah = a >> 32;
+  uint64_t  b = ((al + xlyh)>>32) + ah;
+
+  return xh*yh + b;
+}
+
+int64_t mul_hi_s64(int64_t x, int64_t y)
+{
+  // TODO: Sometimes 1 out
+  int64_t xl = x & UINT32_MAX;
+  int64_t xh = x >> 32;
+  int64_t yl = y & UINT32_MAX;
+  int64_t yh = y >> 32;
+
+  int64_t xlyl = xl*yl;
+  int64_t xlyh = xl*yh;
+  int64_t xhyl = xh*yl;
+  int64_t xhyh = xh*yh;
+
+  int64_t  a = xhyl + ((xlyl)>>32);
+  int64_t al = a & UINT32_MAX;
+  int64_t ah = a >> 32;
+  int64_t  b = ((al + xlyh)>>32) + ah;
+
+  return xh*yh + b;
+}
+
+DEFINE_BUILTIN(mad_sat)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t uresult = UARGV(0,i)*UARGV(1,i) + UARGV(2,i);
+    int64_t  sresult = SARGV(0,i)*SARGV(1,i) + SARGV(2,i);
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+      setIntResult(result, _min<uint64_t>(uresult, UINT8_MAX), i);
+      break;
+    case 't':
+      setIntResult(result, _min<uint64_t>(uresult, UINT16_MAX), i);
+      break;
+    case 'j':
+      setIntResult(result, _min<uint64_t>(uresult, UINT32_MAX), i);
+      break;
+    case 'm':
+    {
+      uint64_t hi = mul_hi_u64(UARGV(0, i), UARGV(1, i));
+      if (hi || UARGV(2, i) > uresult)
+      {
+        uresult = UINT64_MAX;
+      }
+      setIntResult(result, uresult, i);
+      break;
+    }
+    case 'c':
+      setIntResult(result, _clamp<int64_t>(sresult, INT8_MIN, INT8_MAX), i);
+      break;
+    case 's':
+      setIntResult(result, _clamp<int64_t>(sresult, INT16_MIN, INT16_MAX), i);
+      break;
+    case 'i':
+      setIntResult(result, _clamp<int64_t>(sresult, INT32_MIN, INT32_MAX), i);
+      break;
+    case 'l':
+    {
+      // Check for overflow in multiplication
+      if (mul_hi_s64(SARGV(0, i), SARGV(1, i)))
+      {
+        sresult = (SARGV(0,i)>0) ^ (SARGV(1,i)>0) ? INT64_MIN : INT64_MAX;
+      }
+      else
+      {
+        // Check for overflow in addition
+        int64_t m = SARGV(0, i) * SARGV(1, i);
+        if ((m>0) == (SARGV(2,i)>0) && (m>0) != (sresult>0))
+        {
+          sresult = (m>0) ? INT64_MAX : INT64_MIN;
+        }
+      }
+      setIntResult(result, sresult, i);
+      break;
+    }
+    default:
+      assert(false);
+    }
+  }
+}
+
 DEFINE_BUILTIN(mul_hi)
 {
   for (int i = 0; i < result.num; i++)
@@ -515,24 +667,7 @@ DEFINE_BUILTIN(mul_hi)
     {
       uint64_t x = UARGV(0, i);
       uint64_t y = UARGV(1, i);
-
-      uint64_t xl = x & UINT32_MAX;
-      uint64_t xh = x >> 32;
-      uint64_t yl = y & UINT32_MAX;
-      uint64_t yh = y >> 32;
-
-      uint64_t xlyl = xl*yl;
-      uint64_t xlyh = xl*yh;
-      uint64_t xhyl = xh*yl;
-      uint64_t xhyh = xh*yh;
-
-      uint64_t  a = xhyl + ((xlyl)>>32);
-      uint64_t al = a & UINT32_MAX;
-      uint64_t ah = a >> 32;
-      uint64_t  b = ((al + xlyh)>>32) + ah;
-
-      setIntResult(result, xh*yh + b, i);
-
+      setIntResult(result, mul_hi_u64(x, y), i);
       break;
     }
     case 'c':
@@ -549,23 +684,7 @@ DEFINE_BUILTIN(mul_hi)
     {
       int64_t x = SARGV(0, i);
       int64_t y = SARGV(1, i);
-
-      int64_t xl = x & UINT32_MAX;
-      int64_t xh = x >> 32;
-      int64_t yl = y & UINT32_MAX;
-      int64_t yh = y >> 32;
-
-      int64_t xlyl = xl*yl;
-      int64_t xlyh = xl*yh;
-      int64_t xhyl = xh*yl;
-      int64_t xhyh = xh*yh;
-
-      int64_t  a = xhyl + ((xlyl)>>32);
-      int64_t al = a & UINT32_MAX;
-      int64_t ah = a >> 32;
-      int64_t  b = ((al + xlyh)>>32) + ah;
-
-      setIntResult(result, xh*yh + b, i);
+      setIntResult(result, mul_hi_s64(x, y), i);
       break;
     }
     default:
@@ -628,6 +747,56 @@ DEFINE_BUILTIN(rotate)
     uint64_t ls = UARGV(1, i) % width;
     uint64_t rs = width - ls;
     setIntResult(result, (v << ls) | (v >> rs), i);
+  }
+}
+
+DEFINE_BUILTIN(sub_sat)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t uresult = UARGV(0,i) - UARGV(1,i);
+    int64_t  sresult = SARGV(0,i) - SARGV(1,i);
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+      setIntResult(result, uresult > UINT8_MAX ? 0 : uresult, i);
+      break;
+    case 't':
+      setIntResult(result, uresult > UINT16_MAX ? 0 : uresult, i);
+      break;
+    case 'j':
+      setIntResult(result, uresult > UINT32_MAX ? 0 : uresult, i);
+      break;
+    case 'm':
+    {
+      if (UARGV(1, i) > UARGV(0, i))
+      {
+        uresult = 0;
+      }
+      setIntResult(result, uresult, i);
+      break;
+    }
+    case 'c':
+      setIntResult(result, _clamp<int64_t>(sresult, INT8_MIN, INT8_MAX), i);
+      break;
+    case 's':
+      setIntResult(result, _clamp<int64_t>(sresult, INT16_MIN, INT16_MAX), i);
+      break;
+    case 'i':
+      setIntResult(result, _clamp<int64_t>(sresult, INT32_MIN, INT32_MAX), i);
+      break;
+    case 'l':
+    {
+      if ((SARGV(0,i)>0) != (SARGV(1,i)>0) && (SARGV(0,i)>0) != (sresult>0))
+      {
+        sresult = (SARGV(0,i)>0) ? INT64_MAX : INT64_MIN;
+      }
+      setIntResult(result, sresult, i);
+      break;
+    }
+    default:
+      assert(false);
+    }
   }
 }
 

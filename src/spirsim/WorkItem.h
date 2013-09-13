@@ -117,11 +117,14 @@ namespace spirsim
     DECLARE_BUILTIN(normalize);
 
     // Integer Functions
+    DECLARE_BUILTIN(add_sat);
     DECLARE_BUILTIN(clz);
     DECLARE_BUILTIN(hadd);
+    DECLARE_BUILTIN(mad_sat);
     DECLARE_BUILTIN(mul_hi);
     DECLARE_BUILTIN(rhadd);
     DECLARE_BUILTIN(rotate);
+    DECLARE_BUILTIN(sub_sat);
 
     // Math Functions
     DECLARE_BUILTIN(fract);
