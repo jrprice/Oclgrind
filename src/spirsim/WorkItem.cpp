@@ -1554,7 +1554,7 @@ void WorkItem::sdiv(const llvm::Instruction& instruction, TypedValue& result)
   {
     int64_t a = getSignedInt(instruction.getOperand(0), i);
     int64_t b = getSignedInt(instruction.getOperand(1), i);
-    setIntResult(result, a / b, i);
+    setIntResult(result, b ? a / b : 0, i);
   }
 }
 
@@ -1674,7 +1674,7 @@ void WorkItem::srem(const llvm::Instruction& instruction, TypedValue& result)
   {
     int64_t a = getSignedInt(instruction.getOperand(0), i);
     int64_t b = getSignedInt(instruction.getOperand(1), i);
-    setIntResult(result, a % b, i);
+    setIntResult(result, b ? a % b : 0, i);
   }
 }
 
@@ -1784,7 +1784,7 @@ void WorkItem::udiv(const llvm::Instruction& instruction, TypedValue& result)
   {
     uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
     uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
-    setIntResult(result, a / b, i);
+    setIntResult(result, b ? a / b : 0, i);
   }
 }
 
@@ -1804,7 +1804,7 @@ void WorkItem::urem(const llvm::Instruction& instruction, TypedValue& result)
   {
     uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
     uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
-    setIntResult(result, a % b, i);
+    setIntResult(result, b ? a % b : 0, i);
   }
 }
 
