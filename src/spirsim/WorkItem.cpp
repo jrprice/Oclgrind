@@ -212,7 +212,7 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   }
 }
 
-void WorkItem::dumpPrivateMemory() const
+void WorkItem::dumpPrivateMemory()
 {
   cout << endl << "Work-item ("
        << m_globalID[0] << ","
@@ -340,7 +340,7 @@ const size_t* WorkItem::getGlobalID() const
 }
 
 double WorkItem::getFloatValue(const llvm::Value *operand,
-                               unsigned int index) const
+                               unsigned int index)
 {
   double val = 0;
   unsigned id = operand->getValueID();
@@ -363,15 +363,11 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
       return 0;
     }
   }
-  else if (operand->getValueID() == llvm::Value::ConstantVectorVal)
+  else if (operand->getValueID() == llvm::Value::ConstantVectorVal ||
+           operand->getValueID() == llvm::Value::ConstantDataVectorVal)
   {
     val = getFloatValue(
       ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
-  }
-  else if (operand->getValueID() == llvm::Value::ConstantDataVectorVal)
-  {
-    val = getFloatValue(
-      ((const llvm::ConstantDataVector*)operand)->getElementAsConstant(index));
   }
   else if (id == llvm::Value::UndefValueVal)
   {
@@ -380,6 +376,24 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
   else if (id == llvm::Value::ConstantAggregateZeroVal)
   {
     val = 0;
+  }
+  else if (id == llvm::Value::ConstantExprVal)
+  {
+    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
+    if (result.size == sizeof(float))
+    {
+      val = ((float*)result.data)[index];
+    }
+    else if (result.size == sizeof(double))
+    {
+      val = ((double*)result.data)[index];
+    }
+    else
+    {
+      cerr << "Unhandled float size: " << result.size << endl;
+      return 0;
+    }
+    delete[] result.data;
   }
   else if (isConstantOperand(operand))
   {
@@ -406,7 +420,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
 }
 
 int64_t WorkItem::getSignedInt(const llvm::Value *operand,
-                               unsigned int index) const
+                               unsigned int index)
 {
   int64_t val = 0;
   unsigned id = operand->getValueID();
@@ -452,6 +466,12 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
   {
     val = 0;
   }
+  else if (id == llvm::Value::ConstantExprVal)
+  {
+    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
+    memcpy(&val, result.data + index*result.size, result.size);
+    delete[] result.data;
+  }
   else
   {
     cerr << "Unhandled signed operand type " << id << endl;
@@ -465,7 +485,7 @@ WorkItem::State WorkItem::getState() const
 }
 
 uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
-                                  unsigned int index) const
+                                  unsigned int index)
 {
   uint64_t val = 0;
   unsigned id = operand->getValueID();
@@ -493,6 +513,12 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   else if (id == llvm::Value::ConstantIntVal)
   {
     val = ((const llvm::ConstantInt*)operand)->getZExtValue();
+  }
+  else if (id == llvm::Value::ConstantExprVal)
+  {
+    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
+    memcpy(&val, result.data + index*result.size, result.size);
+    delete[] result.data;
   }
   else
   {

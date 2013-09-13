@@ -25,17 +25,17 @@ namespace spirsim
 
     void clearBarrier();
     void dispatch(const llvm::Instruction& instruction, TypedValue& result);
-    void dumpPrivateMemory() const;
+    void dumpPrivateMemory();
     void enableDebugOutput(bool enable);
     void execute(const llvm::Instruction& instruction);
     const size_t* getGlobalID() const;
     double getFloatValue(const llvm::Value *operand,
-                         unsigned int index = 0) const;
+                         unsigned int index = 0);
     int64_t getSignedInt(const llvm::Value *operand,
-                         unsigned int index = 0) const;
+                         unsigned int index = 0);
     State getState() const;
     uint64_t getUnsignedInt(const llvm::Value *operand,
-                            unsigned int index = 0) const;
+                            unsigned int index = 0);
     void outputMemoryError(const llvm::Instruction& instruction,
                            const std::string& msg,
                            unsigned addressSpace,
