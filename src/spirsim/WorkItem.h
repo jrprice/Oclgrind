@@ -168,6 +168,9 @@ namespace spirsim
     DECLARE_BUILTIN(get_work_dim);
 
     // Other Functions
+    DECLARE_BUILTIN(convert_float);
+    DECLARE_BUILTIN(convert_uint);
+    DECLARE_BUILTIN(convert_sint);
     DECLARE_BUILTIN(printf_builtin);
 
     // LLVM Intrinisics

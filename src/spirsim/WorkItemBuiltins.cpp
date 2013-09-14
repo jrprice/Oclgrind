@@ -1449,6 +1449,84 @@ DEFINE_BUILTIN(get_work_dim)
 // Other Functions //
 /////////////////////
 
+DEFINE_BUILTIN(convert_float)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+    case 't':
+    case 'j':
+    case 'm':
+      setFloatResult(result, (float)UARGV(0, i), i);
+      break;
+    case 'c':
+    case 's':
+    case 'i':
+    case 'l':
+      setFloatResult(result, (float)SARGV(0, i), i);
+      break;
+    default:
+      assert(false);
+    }
+  }
+}
+
+DEFINE_BUILTIN(convert_uint)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+    case 't':
+    case 'j':
+    case 'm':
+      setIntResult(result, UARGV(0, i), i);
+      break;
+    case 'c':
+    case 's':
+    case 'i':
+    case 'l':
+      setIntResult(result, (uint64_t)SARGV(0, i), i);
+      break;
+    case 'f':
+      setIntResult(result, (uint64_t)FARGV(0, i), i);
+      break;
+    default:
+      assert(false);
+    }
+  }
+}
+
+DEFINE_BUILTIN(convert_sint)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    switch (getOverloadArgType(overload))
+    {
+    case 'h':
+    case 't':
+    case 'j':
+    case 'm':
+      setIntResult(result, (int64_t)UARGV(0, i), i);
+      break;
+    case 'c':
+    case 's':
+    case 'i':
+    case 'l':
+      setIntResult(result, SARGV(0, i), i);
+      break;
+    case 'f':
+      setIntResult(result, (int64_t)FARGV(0, i), i);
+      break;
+    default:
+      assert(false);
+    }
+  }
+}
+
 DEFINE_BUILTIN(printf_builtin)
 {
   const llvm::ConstantExpr *formatExpr = (llvm::ConstantExpr*)ARG(0);

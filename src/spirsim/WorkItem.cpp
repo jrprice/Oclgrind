@@ -1094,6 +1094,9 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN("get_work_dim", get_work_dim);
 
   // Other Functions
+  BUILTIN_PREFIX("convert_float", convert_float); // Conversion to floats
+  BUILTIN_PREFIX("convert_u",     convert_uint);  // Conversion to unsigned integers
+  BUILTIN_PREFIX("convert_",      convert_sint);  // Conversion to signed integers
   BUILTIN("printf", printf_builtin);
 
   // LLVM Intrinsics

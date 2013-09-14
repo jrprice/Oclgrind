@@ -607,3 +607,33 @@ int printf(__constant char * restrict, ...);
 #define as_float4( _x )  __builtin_astype( _x, float4 )
 #define as_float8( _x )  __builtin_astype( _x, float8 )
 #define as_float16( _x )  __builtin_astype( _x, float16 )
+
+#define CONVERT_TYPE_SIZE(out, in) \
+  out __OVERLOAD__ convert_##out(in);
+#define CONVERT_TYPE(out, in) \
+  CONVERT_TYPE_SIZE(out, in); \
+  CONVERT_TYPE_SIZE(out##2, in##2);       \
+  CONVERT_TYPE_SIZE(out##3, in##3);       \
+  CONVERT_TYPE_SIZE(out##4, in##4);       \
+  CONVERT_TYPE_SIZE(out##8, in##8);             \
+  CONVERT_TYPE_SIZE(out##16, in##16);
+#define CONVERT(out) \
+  CONVERT_TYPE(out, char);         \
+  CONVERT_TYPE(out, uchar);        \
+  CONVERT_TYPE(out, short);        \
+  CONVERT_TYPE(out, ushort);       \
+  CONVERT_TYPE(out, int);          \
+  CONVERT_TYPE(out, uint);         \
+  CONVERT_TYPE(out, long);         \
+  CONVERT_TYPE(out, ulong);        \
+  CONVERT_TYPE(out, float);
+
+CONVERT(char);
+CONVERT(uchar);
+CONVERT(short);
+CONVERT(ushort);
+CONVERT(int);
+CONVERT(uint);
+CONVERT(long);
+CONVERT(ulong);
+CONVERT(float);
