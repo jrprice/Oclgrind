@@ -1757,6 +1757,8 @@ clCreateKernel(cl_program       program ,
     return NULL;
   }
 
+  clRetainProgram(program);
+
   ERRCODE(CL_SUCCESS);
   return kernel;
 }
@@ -1795,6 +1797,8 @@ clCreateKernelsInProgram(cl_program      program ,
       kernel->program = program;
       kernel->refCount = 1;
       kernels[i++] = kernel;
+
+      clRetainProgram(program);
     }
   }
 
@@ -1828,6 +1832,7 @@ clReleaseKernel(cl_kernel    kernel) CL_API_SUFFIX__VERSION_1_0
 
   if (--kernel->refCount == 0)
   {
+    clReleaseProgram(kernel->program);
     delete kernel->kernel;
     free(kernel);
   }
