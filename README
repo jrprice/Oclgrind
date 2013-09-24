@@ -1,0 +1,54 @@
+========
+oclgrind
+========
+
+About
+-----
+This project implements a virtual OpenCL device simulator, including
+an OpenCL runtime with ICD support. The goal is to provide a debugging
+aid for OpenCL development. The simulator is built on an interpreter
+for SPIR. This is a side-project is being undertaken by James Price (a
+PhD student at the University of Bristol).
+
+
+Project Status
+--------------
+This project is by no means complete, and there are no guarantees that
+the simulator components will function at a satisfactory level, or
+even run at all. At present (Sep'13), the simulator has demonstated
+the ability to run real OpenCL programs out-of-the-box, including a
+medium complexity molecular docking code. The project also
+demonstrates valgrind-style detection of memory access
+errors. However, there are still gaps, including instructions and
+operands the interpreter can't handle, built-in functions that haven't
+been implemented, and runtime API calls that are still stubs. As this
+is a pet project, there are currently no timelines for a stable
+release.
+
+If you are using this project, you have likely been in contact with
+the author already. If you haven't, but are interested, please use the
+contact details below to get in touch.
+
+
+Usage
+-----
+To use this project you will require a SPIR-capable version of
+LLVM/Clang. Although SPIR functionality exists in the LLVM ToT, at
+present this project only functions with patches to the LLVM 3.2
+release that have been circulated internally in the Khronos OpenCL
+working group (of which the author is a member).
+
+The SPIR-capable LLVM headers and libraries need to be available in
+CPLUS_INCLUDE_PATH, LIBRARY_PATH, {DY}LD_LIBRARY_PATH, and PATH. The
+OpenCL C header file found at src/clc.h needs to be covered by a
+directory in C_INCLUDE_PATH. An ICD entry point for oclgrind needs to
+be created in /etc/OpenCL/vendors/ and pointed to
+liboclgrind.{so,dylib}.
+
+Further instructions on running the simulator avaiable on request.
+
+
+Contact
+-------
+For more details about this project, please contact:
+James Price <j.price@bristol.ac.uk>
