@@ -438,7 +438,7 @@ BUILTIN_1ARG(float, float, native_tan);
 ////////////////////////////
 
 #define SHUFFLE_TYPE(ret, type, mask) \
-  ret __OVERLOAD__ shuffle(type, mask);   \
+  ret __OVERLOAD__ shuffle(type, mask);       \
 	ret##2 __OVERLOAD__ shuffle(type, mask##2); \
 	ret##3 __OVERLOAD__ shuffle(type, mask##3); \
 	ret##4 __OVERLOAD__ shuffle(type, mask##4); \
@@ -461,6 +461,29 @@ SHUFFLE(long, ulong);
 SHUFFLE(ulong, ulong);
 SHUFFLE(float, uint);
 
+#define SHUFFLE2_TYPE(ret, type, mask) \
+  ret __OVERLOAD__ shuffle2(type, type, mask);       \
+	ret##2 __OVERLOAD__ shuffle2(type, type, mask##2); \
+	ret##3 __OVERLOAD__ shuffle2(type, type, mask##3); \
+	ret##4 __OVERLOAD__ shuffle2(type, type, mask##4); \
+	ret##8 __OVERLOAD__ shuffle2(type, type, mask##8); \
+	ret##16 __OVERLOAD__ shuffle2(type, type, mask##16);
+#define SHUFFLE2(type, mask) \
+	SHUFFLE2_TYPE(type, type, mask);    \
+	SHUFFLE2_TYPE(type, type##2, mask); \
+	SHUFFLE2_TYPE(type, type##3, mask); \
+	SHUFFLE2_TYPE(type, type##4, mask); \
+	SHUFFLE2_TYPE(type, type##8, mask); \
+	SHUFFLE2_TYPE(type, type##16, mask);
+SHUFFLE2(char, uchar);
+SHUFFLE2(uchar, uchar);
+SHUFFLE2(short, ushort);
+SHUFFLE2(ushort, ushort);
+SHUFFLE2(int, uint);
+SHUFFLE2(uint, uint);
+SHUFFLE2(long, ulong);
+SHUFFLE2(ulong, ulong);
+SHUFFLE2(float, uint);
 
 
 //////////////////////////

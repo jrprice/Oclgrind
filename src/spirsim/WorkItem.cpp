@@ -1107,6 +1107,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
   // Misc. Vector Functions
   BUILTIN("shuffle", shuffle_builtin);
+  BUILTIN("shuffle2", shuffle2_builtin);
 
   // Relational Functional
   BUILTIN("all", all);

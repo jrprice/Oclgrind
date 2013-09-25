@@ -1171,11 +1171,33 @@ DEFINE_BUILTIN(sincos)
 ////////////////////////////
 // Misc. Vector Functions //
 ////////////////////////////
+
 DEFINE_BUILTIN(shuffle_builtin)
 {
   for (int i = 0; i < result.num; i++)
   {
     setIntResult(result, UARGV(0, UARGV(1, i)), i);
+  }
+}
+
+DEFINE_BUILTIN(shuffle2_builtin)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t m = 1;
+    if (ARG(0)->getType()->isVectorTy())
+    {
+      m = ARG(0)->getType()->getVectorNumElements();
+    }
+
+    uint64_t src = 0;
+    uint64_t index = UARGV(2, i);
+    if (index >= m)
+    {
+      index -= m;
+      src = 1;
+    }
+    setIntResult(result, UARGV(src, index), i);
   }
 }
 

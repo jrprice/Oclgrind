@@ -161,6 +161,7 @@ namespace spirsim
 
     // Misc. Vector Functions
     DECLARE_BUILTIN(shuffle_builtin);
+    DECLARE_BUILTIN(shuffle2_builtin);
 
     // Relational Functions
     DECLARE_BUILTIN(all);
