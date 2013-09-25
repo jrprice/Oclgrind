@@ -1105,6 +1105,9 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   BUILTIN_F1ARG("half_tan", tan);
   BUILTIN_F1ARG("native_tan", tan);
 
+  // Misc. Vector Functions
+  BUILTIN("shuffle", shuffle_builtin);
+
   // Relational Functional
   BUILTIN("all", all);
   BUILTIN("any", any);

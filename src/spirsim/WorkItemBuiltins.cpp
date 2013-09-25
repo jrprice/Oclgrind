@@ -1168,6 +1168,18 @@ DEFINE_BUILTIN(sincos)
 }
 
 
+////////////////////////////
+// Misc. Vector Functions //
+////////////////////////////
+DEFINE_BUILTIN(shuffle_builtin)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    setIntResult(result, UARGV(0, UARGV(1, i)), i);
+  }
+}
+
+
 ///////////////////////////////
 // Relational Functions //
 ///////////////////////////////

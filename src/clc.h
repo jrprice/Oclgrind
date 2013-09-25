@@ -433,6 +433,36 @@ BUILTIN_1ARG(float, float, native_tan);
 
 
 
+////////////////////////////
+// Misc. Vector Functions //
+////////////////////////////
+
+#define SHUFFLE_TYPE(ret, type, mask) \
+  ret __OVERLOAD__ shuffle(type, mask);   \
+	ret##2 __OVERLOAD__ shuffle(type, mask##2); \
+	ret##3 __OVERLOAD__ shuffle(type, mask##3); \
+	ret##4 __OVERLOAD__ shuffle(type, mask##4); \
+	ret##8 __OVERLOAD__ shuffle(type, mask##8); \
+	ret##16 __OVERLOAD__ shuffle(type, mask##16);
+#define SHUFFLE(type, mask) \
+	SHUFFLE_TYPE(type, type, mask);    \
+	SHUFFLE_TYPE(type, type##2, mask); \
+	SHUFFLE_TYPE(type, type##3, mask); \
+	SHUFFLE_TYPE(type, type##4, mask); \
+	SHUFFLE_TYPE(type, type##8, mask); \
+	SHUFFLE_TYPE(type, type##16, mask);
+SHUFFLE(char, uchar);
+SHUFFLE(uchar, uchar);
+SHUFFLE(short, ushort);
+SHUFFLE(ushort, ushort);
+SHUFFLE(int, uint);
+SHUFFLE(uint, uint);
+SHUFFLE(long, ulong);
+SHUFFLE(ulong, ulong);
+SHUFFLE(float, uint);
+
+
+
 //////////////////////////
 // Relational Functions //
 //////////////////////////

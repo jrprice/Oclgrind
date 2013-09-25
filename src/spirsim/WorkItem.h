@@ -159,6 +159,9 @@ namespace spirsim
     DECLARE_BUILTIN(rootn);
     DECLARE_BUILTIN(sincos);
 
+    // Misc. Vector Functions
+    DECLARE_BUILTIN(shuffle_builtin);
+
     // Relational Functions
     DECLARE_BUILTIN(all);
     DECLARE_BUILTIN(any);
