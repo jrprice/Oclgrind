@@ -115,6 +115,7 @@ bool Program::build(const char *options)
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-triple");
   args.push_back("-spir64-unknown-unknown");
+  args.push_back("-O0");
 
   // Add OpenCL build options
   if (options)
