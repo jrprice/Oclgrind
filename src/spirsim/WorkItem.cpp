@@ -752,14 +752,50 @@ void WorkItem::ashr(const llvm::Instruction& instruction, TypedValue& result)
 void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
-  llvm::Value *operand = cast->getOperand(0);
-  if (m_privateMemory.find(operand) != m_privateMemory.end())
+  const llvm::Value *operand = cast->getOperand(0);
+  switch (operand->getValueID())
   {
-    memcpy(result.data, m_privateMemory[operand].data, result.size*result.num);
+  case llvm::Value::ConstantExprVal:
+  {
+    TypedValue op = resolveConstExpr((const llvm::ConstantExpr*)operand);
+    memcpy(result.data, op.data, result.size*result.num);
+    delete[] op.data;
+    break;
   }
-  else
+  case llvm::Value::ConstantVectorVal:
   {
-    cerr << "Unsupported bitcast operand." << endl;
+    const llvm::Type *type = operand->getType();
+    const llvm::Type *elemType = type->getVectorElementType();
+    size_t num = type->getVectorNumElements();
+    size_t elemSize = getTypeSize(elemType);
+    for (int i = 0; i < num; i++)
+    {
+      if (elemType->isIntegerTy())
+      {
+        uint64_t u = getUnsignedInt(operand, i);
+        memcpy(result.data + elemSize*i, &u, elemSize);
+      }
+      else if (elemType->isFloatTy())
+      {
+        TypedValue tmp = result;
+        tmp.size = elemSize;
+        tmp.num = num;
+        setFloatResult(tmp, getFloatValue(operand, i), i);
+      }
+    }
+    break;
+  }
+  default:
+    if (m_privateMemory.find(operand) != m_privateMemory.end())
+    {
+      memcpy(result.data, m_privateMemory[operand].data, result.size*result.num);
+    }
+    else
+    {
+      cerr << "Unsupported bitcast operand type ("
+           << operand->getValueID() << ")" << endl;
+    }
+    break;
   }
 }
 
