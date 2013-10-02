@@ -80,11 +80,11 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   for (int i = 0; i < workDim; i++)
   {
     ndrange[i] = globalSize[i];
-    if (globalOffset)
+    if (globalOffset[i])
     {
       offset[i] = globalOffset[i];
     }
-    if (localSize)
+    if (localSize[i])
     {
       wgsize[i] = localSize[i];
     }

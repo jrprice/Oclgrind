@@ -33,6 +33,7 @@ namespace spirsim
   {
   public:
     Kernel(const llvm::Function *function, const llvm::Module *module);
+    Kernel(const Kernel& kernel);
     virtual ~Kernel();
 
     TypedValueMap::const_iterator args_begin() const;

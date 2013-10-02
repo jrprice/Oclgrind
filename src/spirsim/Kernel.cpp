@@ -88,6 +88,17 @@ Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
   }
 }
 
+Kernel::Kernel(const Kernel& kernel)
+{
+  m_function = kernel.m_function;
+  m_arguments = kernel.m_arguments;
+  m_constants = kernel.m_constants;
+  m_constantBuffers = kernel.m_constantBuffers;
+  m_localMemory = kernel.m_localMemory->clone();
+  m_name = kernel.m_name;
+  memcpy(m_requiredWorkGroupSize, kernel.m_requiredWorkGroupSize, 3*sizeof(size_t));
+}
+
 Kernel::~Kernel()
 {
   delete m_localMemory;

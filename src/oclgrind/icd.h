@@ -22,6 +22,7 @@
 #include "rename_api.h"
 
 #include <CL/cl.h>
+#include <map>
 #include <stack>
 
 #ifndef CL_USE_DEPRECATED_OPENCL_1_0_APIS
@@ -39,6 +40,8 @@ namespace spirsim
   class Device;
   class Kernel;
   class Program;
+  class Queue;
+  struct Event;
 }
 
 typedef struct CLIicdDispatchTable_st
@@ -79,6 +82,7 @@ struct _cl_command_queue
   CLIicdDispatchTable* dispatch;
   cl_command_queue_properties properties;
   cl_context context;
+  spirsim::Queue *queue;
   unsigned int refCount;
 };
 
@@ -108,6 +112,7 @@ struct _cl_kernel
   CLIicdDispatchTable* dispatch;
   spirsim::Kernel *kernel;
   cl_program program;
+  std::map<cl_uint, cl_mem*> memArgs;
   unsigned int refCount;
 };
 
@@ -116,8 +121,7 @@ struct _cl_event
   CLIicdDispatchTable* dispatch;
   cl_command_queue queue;
   cl_command_type type;
-  double startTime;
-  double endTime;
+  spirsim::Event *event;
   unsigned int refCount;
 };
 

@@ -19,6 +19,7 @@
 #include <iostream>
 #include <sys/time.h>
 
+#include "async_queue.h"
 #include "icd.h"
 
 #include <CL/cl.h>
@@ -29,6 +30,7 @@
 #include <spirsim/Kernel.h>
 #include <spirsim/Memory.h>
 #include <spirsim/Program.h>
+#include <spirsim/Queue.h>
 
 using namespace std;
 
@@ -139,12 +141,12 @@ clGetDeviceIDs(cl_platform_id   platform,
   {
     return_value = CL_DEVICE_NOT_FOUND;
   }
-  else  if (devices)
+  else if (devices)
   {
     // Create device if haven't already
     if (!m_device)
     {
-      m_device = (cl_device_id)malloc(sizeof(cl_device_id));
+      m_device = new _cl_device_id;
       m_device->dispatch = m_dispatchTable;
     }
     *devices = m_device;
@@ -626,7 +628,7 @@ clCreateContext(const cl_context_properties * properties,
   }
 
   // Create context object
-  cl_context context = (cl_context)malloc(sizeof(struct _cl_context));
+  cl_context context = new _cl_context;
   context->dispatch = m_dispatchTable;
   context->device = new spirsim::Device();
   context->notify = pfn_notify;
@@ -674,7 +676,7 @@ clCreateContextFromType(const cl_context_properties * properties,
   }
 
   // Create context object
-  cl_context context = (cl_context)malloc(sizeof(struct _cl_context));
+  cl_context context = new _cl_context;
   context->dispatch = m_dispatchTable;
   context->device = new spirsim::Device();
   context->notify = pfn_notify;
@@ -724,7 +726,7 @@ clReleaseContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
   if (--context->refCount == 0)
   {
     delete context->device;
-    free(context);
+    delete context;
   }
 
   return CL_SUCCESS;
@@ -823,11 +825,14 @@ clCreateCommandQueue(cl_context                     context,
 
   // Create command-queue object
   cl_command_queue queue;
-  queue = (cl_command_queue)malloc(sizeof(struct _cl_command_queue));
+  queue = new _cl_command_queue;
+  queue->queue = new spirsim::Queue(*context->device);
   queue->dispatch = m_dispatchTable;
   queue->properties = properties;
   queue->context = context;
   queue->refCount = 1;
+
+  clRetainContext(context);
 
   ERRCODE(CL_SUCCESS);
   return queue;
@@ -867,7 +872,13 @@ clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 
   if (--command_queue->refCount == 0)
   {
-    free(command_queue);
+    // TODO: Retain/release queue from async thread
+    // TODO: Spec states that this function performs an implicit flush,
+    // so maybe we are OK to delete queue here?
+    clFinish(command_queue);
+    delete command_queue->queue;
+    clReleaseContext(command_queue->context);
+    delete command_queue;
   }
 
   return CL_SUCCESS;
@@ -974,7 +985,7 @@ clCreateBuffer(cl_context    context ,
   }
 
   // Create memory object
-  cl_mem mem = (cl_mem)malloc(sizeof(struct _cl_mem));
+  cl_mem mem = new _cl_mem;
   mem->dispatch = m_dispatchTable;
   mem->context = context;
   mem->parent = NULL;
@@ -1039,7 +1050,7 @@ clCreateSubBuffer(cl_mem                    buffer ,
   }
 
   // Create memory object
-  cl_mem mem = (cl_mem)malloc(sizeof(struct _cl_mem));
+  cl_mem mem = new _cl_mem;
   mem->dispatch = m_dispatchTable;
   mem->context = buffer->context;
   mem->parent = buffer;
@@ -1148,7 +1159,7 @@ clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
     }
     free(memobj->callbacks);
     free(memobj->data);
-    free(memobj);
+    delete memobj;
   }
 
   return CL_SUCCESS;
@@ -1357,7 +1368,7 @@ clCreateProgramWithSource(cl_context         context ,
   }
 
   // Create program object
-  cl_program prog = (cl_program)malloc(sizeof(struct _cl_program));
+  cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
   prog->program = new spirsim::Program(source);
   prog->context = context;
@@ -1400,7 +1411,7 @@ clCreateProgramWithBinary(cl_context                      context ,
   }
 
   // Create program object
-  cl_program prog = (cl_program)malloc(sizeof(struct _cl_program));
+  cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
   prog->program = spirsim::Program::createFromBitcode(binaries[0], lengths[0]);
   prog->context = context;
@@ -1461,7 +1472,7 @@ clReleaseProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
   if (--program->refCount == 0)
   {
     delete program->program;
-    free(program);
+    delete program;
   }
 
   return CL_SUCCESS;
@@ -1761,7 +1772,7 @@ clCreateKernel(cl_program       program ,
   }
 
   // Create kernel object
-  cl_kernel kernel = (cl_kernel)malloc(sizeof(struct _cl_kernel));
+  cl_kernel kernel = new _cl_kernel;
   kernel->dispatch = m_dispatchTable;
   kernel->kernel = program->program->createKernel(kernel_name);
   kernel->program = program;
@@ -1807,7 +1818,7 @@ clCreateKernelsInProgram(cl_program      program ,
     list<string> names = program->program->getKernelNames();
     for (list<string>::iterator itr = names.begin(); itr != names.end(); itr++)
     {
-      cl_kernel kernel = (cl_kernel)malloc(sizeof(struct _cl_kernel));
+      cl_kernel kernel = new _cl_kernel;
       kernel->dispatch = m_dispatchTable;
       kernel->kernel = program->program->createKernel(*itr);
       kernel->program = program;
@@ -1850,7 +1861,7 @@ clReleaseKernel(cl_kernel    kernel) CL_API_SUFFIX__VERSION_1_0
   {
     clReleaseProgram(kernel->program);
     delete kernel->kernel;
-    free(kernel);
+    delete kernel;
   }
 
   return CL_SUCCESS;
@@ -1891,6 +1902,7 @@ clSetKernelArg(cl_kernel     kernel ,
   case CL_KERNEL_ARG_ADDRESS_GLOBAL:
   case CL_KERNEL_ARG_ADDRESS_CONSTANT:
     value.data = (unsigned char*)&(*(cl_mem*)arg_value)->address;
+    kernel->memArgs[arg_index] = (cl_mem*)arg_value;
     break;
   default:
     return CL_INVALID_ARG_VALUE;
@@ -2081,6 +2093,9 @@ clWaitForEvents(cl_uint              num_events ,
     return CL_INVALID_VALUE;
   }
 
+  // TODO: Wait on each event?
+  clFinish(event_list[0]->queue);
+
   return CL_SUCCESS;
 }
 
@@ -2120,7 +2135,7 @@ clGetEventInfo(cl_event          event ,
   case CL_EVENT_COMMAND_EXECUTION_STATUS:
     result_size = sizeof(cl_int);
     result_data = malloc(result_size);
-    *(cl_int*)result_data = CL_COMPLETE;
+    *(cl_int*)result_data = event->event->state;
     break;
   case CL_EVENT_REFERENCE_COUNT:
     result_size = sizeof(cl_uint);
@@ -2189,7 +2204,11 @@ clReleaseEvent(cl_event  event) CL_API_SUFFIX__VERSION_1_0
 
   if (--event->refCount == 0)
   {
-    free(event);
+    if (event->event)
+    {
+      delete event->event;
+    }
+    delete event;
   }
 
   return CL_SUCCESS;
@@ -2236,22 +2255,22 @@ clGetEventProfilingInfo(cl_event             event ,
   case CL_PROFILING_COMMAND_QUEUED:
     result_size = sizeof(cl_ulong);
     result_data = malloc(result_size);
-    *(cl_ulong*)result_data = event->startTime;
+    *(cl_ulong*)result_data = event->event->queueTime;
     break;
   case CL_PROFILING_COMMAND_SUBMIT:
     result_size = sizeof(cl_ulong);
     result_data = malloc(result_size);
-    *(cl_ulong*)result_data = event->startTime;
+    *(cl_ulong*)result_data = event->event->startTime;
     break;
   case CL_PROFILING_COMMAND_START:
     result_size = sizeof(cl_ulong);
     result_data = malloc(result_size);
-    *(cl_ulong*)result_data = event->startTime;
+    *(cl_ulong*)result_data = event->event->startTime;
     break;
   case CL_PROFILING_COMMAND_END:
     result_size = sizeof(cl_ulong);
     result_data = malloc(result_size);
-    *(cl_ulong*)result_data = event->endTime;
+    *(cl_ulong*)result_data = event->event->endTime;
     break;
   default:
     return CL_INVALID_VALUE;
@@ -2292,6 +2311,9 @@ clFlush(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
     return CL_INVALID_COMMAND_QUEUE;
   }
 
+  // TODO: Implement properly?
+  clFinish(command_queue);
+
   return CL_SUCCESS;
 }
 
@@ -2304,9 +2326,19 @@ clFinish(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
     return CL_INVALID_COMMAND_QUEUE;
   }
 
+  while (!command_queue->queue->isEmpty())
+  {
+    // TODO: Move this update to async thread?
+    spirsim::Queue::Command *cmd = command_queue->queue->update();
+    if (cmd)
+    {
+      asyncQueueRelease(cmd);
+      delete cmd;
+    }
+  }
+
   return CL_SUCCESS;
 }
-
 
 /* Enqueued Commands APIs */
 CL_API_ENTRY cl_int CL_API_CALL
@@ -2333,35 +2365,24 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
   {
     return CL_INVALID_VALUE;
   }
-
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Perform read
-  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
-  bool ret = memory->load((unsigned char*)ptr, buffer->address, cb);
-  if (!ret)
+  if (offset + cb > buffer->size)
   {
     return CL_INVALID_VALUE;
   }
 
-  // Get end time
-  gettimeofday(&tv, NULL);
-  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+  // Enqueue command
+  spirsim::Queue::BufferCommand *cmd =
+    new spirsim::Queue::BufferCommand(spirsim::Queue::READ);
+  cmd->ptr = (unsigned char*)ptr;
+  cmd->address = buffer->address + offset;
+  cmd->size = cb;
+  asyncQueueRetain(cmd, buffer);
+  asyncEnqueue(command_queue, CL_COMMAND_READ_BUFFER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
-  // Create event
-  if (event)
+  if (blocking_read)
   {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_READ_BUFFER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
+    return clFinish(command_queue);
   }
 
   return CL_SUCCESS;
@@ -2425,50 +2446,35 @@ clEnqueueReadBufferRect(cl_command_queue     command_queue ,
     host_origin[1] * host_row_pitch +
     host_origin[0];
 
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Perform read
-  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
-  for (int z = 0; z < region[2]; z++)
+  // Ensure buffer region valid
+  size_t end =
+    buffer_offset + region[0] +
+    (region[1]-1) * buffer_row_pitch +
+    (region[2]-1) * buffer_slice_pitch;
+  if (end > buffer->size)
   {
-    for (int y = 0; y < region[1]; y++)
-    {
-      unsigned char *host =
-        (unsigned char*)ptr +
-        host_offset +
-        y * host_row_pitch +
-        z * host_slice_pitch;
-      size_t buff =
-        buffer->address +
-        buffer_offset +
-        y * buffer_row_pitch +
-        z * buffer_slice_pitch;
-      bool ret = memory->load(host, buff, region[0]);
-      if (!ret)
-      {
-        return CL_INVALID_VALUE;
-      }
-    }
+    return CL_INVALID_VALUE;
   }
 
-  // Get end time
-  gettimeofday(&tv, NULL);
-  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+  // Enqueue command
+  spirsim::Queue::BufferRectCommand *cmd =
+    new spirsim::Queue::BufferRectCommand(spirsim::Queue::READ_RECT);
+  cmd->ptr = (unsigned char*)ptr;
+  cmd->address = buffer->address;
+  cmd->buffer_offset[0] = buffer_offset;
+  cmd->buffer_offset[1] = buffer_row_pitch;
+  cmd->buffer_offset[2] = buffer_slice_pitch;
+  cmd->host_offset[0] = host_offset;
+  cmd->host_offset[1] = host_row_pitch;
+  cmd->host_offset[2] = host_slice_pitch;
+  memcpy(cmd->region, region, 3*sizeof(size_t));
+  asyncQueueRetain(cmd, buffer);
+  asyncEnqueue(command_queue, CL_COMMAND_READ_BUFFER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
-  // Create event
-  if (event)
+  if (blocking_read)
   {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_READ_BUFFER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
+    return clFinish(command_queue);
   }
 
   return CL_SUCCESS;
@@ -2498,35 +2504,24 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
   {
     return CL_INVALID_VALUE;
   }
-
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Perform write
-  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
-  bool ret = memory->store((const unsigned char*)ptr, buffer->address, cb);
-  if (!ret)
+  if (offset + cb > buffer->size)
   {
     return CL_INVALID_VALUE;
   }
 
-  // Get end time
-  gettimeofday(&tv, NULL);
-  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+  // Enqueue command
+  spirsim::Queue::BufferCommand *cmd =
+    new spirsim::Queue::BufferCommand(spirsim::Queue::WRITE);
+  cmd->ptr = (unsigned char*)ptr;
+  cmd->address = buffer->address + offset;
+  cmd->size = cb;
+  asyncQueueRetain(cmd, buffer);
+  asyncEnqueue(command_queue, CL_COMMAND_WRITE_BUFFER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
-  // Create event
-  if (event)
+  if (blocking_write)
   {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_WRITE_BUFFER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
+    return clFinish(command_queue);
   }
 
   return CL_SUCCESS;
@@ -2590,50 +2585,35 @@ clEnqueueWriteBufferRect(cl_command_queue     command_queue ,
     host_origin[1] * host_row_pitch +
     host_origin[0];
 
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Perform write
-  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
-  for (int z = 0; z < region[2]; z++)
+  // Ensure buffer region valid
+  size_t end =
+    buffer_offset + region[0] +
+    (region[1]-1) * buffer_row_pitch +
+    (region[2]-1) * buffer_slice_pitch;
+  if (end > buffer->size)
   {
-    for (int y = 0; y < region[1]; y++)
-    {
-      const unsigned char *host =
-        (const unsigned char*)ptr +
-        host_offset +
-        y * host_row_pitch +
-        z * host_slice_pitch;
-      size_t buff =
-        buffer->address +
-        buffer_offset +
-        y * buffer_row_pitch +
-        z * buffer_slice_pitch;
-      bool ret = memory->store(host, buff, region[0]);
-      if (!ret)
-      {
-        return CL_INVALID_VALUE;
-      }
-    }
+    return CL_INVALID_VALUE;
   }
 
-  // Get end time
-  gettimeofday(&tv, NULL);
-  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+  // Enqueue command
+  spirsim::Queue::BufferRectCommand *cmd =
+    new spirsim::Queue::BufferRectCommand(spirsim::Queue::WRITE_RECT);
+  cmd->ptr = (unsigned char*)ptr;
+  cmd->address = buffer->address;
+  cmd->buffer_offset[0] = buffer_offset;
+  cmd->buffer_offset[1] = buffer_row_pitch;
+  cmd->buffer_offset[2] = buffer_slice_pitch;
+  cmd->host_offset[0] = host_offset;
+  cmd->host_offset[1] = host_row_pitch;
+  cmd->host_offset[2] = host_slice_pitch;
+  memcpy(cmd->region, region, 3*sizeof(size_t));
+  asyncQueueRetain(cmd, buffer);
+  asyncEnqueue(command_queue, CL_COMMAND_WRITE_BUFFER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
-  // Create event
-  if (event)
+  if (blocking_write)
   {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_WRITE_BUFFER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
+    return clFinish(command_queue);
   }
 
   return CL_SUCCESS;
@@ -2659,38 +2639,21 @@ clEnqueueCopyBuffer(cl_command_queue     command_queue ,
   {
     return CL_INVALID_MEM_OBJECT;
   }
-
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Perform copy
-  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
-  bool ret = memory->copy(dst_buffer->address + dst_offset,
-                          src_buffer->address + src_offset,
-                          cb);
-  if (!ret)
+  if (dst_offset + cb > dst_buffer->size ||
+      src_offset + cb > src_buffer->size)
   {
     return CL_INVALID_VALUE;
   }
 
-  // Get end time
-  gettimeofday(&tv, NULL);
-  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Create event
-  if (event)
-  {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_COPY_BUFFER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
-  }
+  // Enqueue command
+  spirsim::Queue::CopyCommand *cmd = new spirsim::Queue::CopyCommand();
+  cmd->dst = dst_buffer->address + dst_offset;
+  cmd->src = src_buffer->address + src_offset;
+  cmd->size = cb;
+  asyncQueueRetain(cmd, src_buffer);
+  asyncQueueRetain(cmd, dst_buffer);
+  asyncEnqueue(command_queue, CL_COMMAND_COPY_BUFFER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
 }
@@ -2748,54 +2711,36 @@ clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
     dst_origin[1] * dst_row_pitch +
     dst_origin[0];
 
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Perform copy
-  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
-  for (int z = 0; z < region[2]; z++)
+  // Ensure buffer region valid
+  size_t src_end =
+    src_offset + region[0] +
+    (region[1]-1) * src_row_pitch +
+    (region[2]-1) * src_slice_pitch;
+  size_t dst_end =
+    dst_offset + region[0] +
+    (region[1]-1) * dst_row_pitch +
+    (region[2]-1) * dst_slice_pitch;
+  if (src_end > src_buffer->size ||
+      dst_end > dst_buffer->size)
   {
-    for (int y = 0; y < region[1]; y++)
-    {
-      // Compute addresses
-      size_t src =
-        src_buffer->address +
-        src_offset +
-        y * src_row_pitch +
-        z * src_slice_pitch;
-      size_t dst =
-        dst_buffer->address +
-        dst_offset +
-        y * dst_row_pitch +
-        z * dst_slice_pitch;
-
-      // Copy data
-      bool ret = memory->copy(dst, src, region[0]);
-      if (!ret)
-      {
-        return CL_INVALID_VALUE;
-      }
-    }
+    return CL_INVALID_VALUE;
   }
 
-  // Get end time
-  gettimeofday(&tv, NULL);
-  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Create event
-  if (event)
-  {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_COPY_BUFFER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
-  }
+  // Enqueue command
+  spirsim::Queue::CopyRectCommand *cmd = new spirsim::Queue::CopyRectCommand();
+  cmd->src = src_buffer->address;
+  cmd->dst = dst_buffer->address;
+  cmd->src_offset[0] = src_offset;
+  cmd->src_offset[1] = src_row_pitch;
+  cmd->src_offset[2] = src_slice_pitch;
+  cmd->dst_offset[0] = dst_offset;
+  cmd->dst_offset[1] = dst_row_pitch;
+  cmd->dst_offset[2] = dst_slice_pitch;
+  memcpy(cmd->region, region, 3*sizeof(size_t));
+  asyncQueueRetain(cmd, src_buffer);
+  asyncQueueRetain(cmd, dst_buffer);
+  asyncEnqueue(command_queue, CL_COMMAND_COPY_BUFFER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
 }
@@ -2833,40 +2778,15 @@ clEnqueueFillBuffer(cl_command_queue    command_queue ,
     return CL_INVALID_VALUE;
   }
 
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Perform fill
-  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
-  for (int i = 0; i < cb/pattern_size; i++)
-  {
-    bool ret = memory->store((const unsigned char*)pattern,
-                             buffer->address + offset + i*pattern_size,
-                             pattern_size);
-    if (!ret)
-    {
-      return CL_INVALID_VALUE;
-    }
-  }
-
-  // Get end time
-  gettimeofday(&tv, NULL);
-  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Create event
-  if (event)
-  {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_FILL_BUFFER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
-  }
+  // Enqueue command
+  spirsim::Queue::FillCommand *cmd =
+    new spirsim::Queue::FillCommand((const unsigned char*)pattern,
+                                    pattern_size);
+  cmd->address = buffer->address + offset;
+  cmd->size = cb;
+  asyncQueueRetain(cmd, buffer);
+  asyncEnqueue(command_queue, CL_COMMAND_FILL_BUFFER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
 }
@@ -2988,11 +2908,6 @@ clEnqueueMapBuffer(cl_command_queue  command_queue ,
     return NULL;
   }
 
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
   // Map buffer
   void *ptr = buffer->context->device->getGlobalMemory()->mapBuffer(
     buffer->address, offset, cb);
@@ -3002,24 +2917,18 @@ clEnqueueMapBuffer(cl_command_queue  command_queue ,
     return NULL;
   }
 
-  // Get end time
-  gettimeofday(&tv, NULL);
-  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Create event
-  if (event)
-  {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_MAP_BUFFER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
-  }
+  // Enqueue command
+  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  asyncQueueRetain(cmd, buffer);
+  asyncEnqueue(command_queue, CL_COMMAND_MAP_BUFFER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
   ERRCODE(CL_SUCCESS);
+  if (blocking_map)
+  {
+    ERRCODE(clFinish(command_queue));
+  }
+
   return ptr;
 }
 
@@ -3060,24 +2969,11 @@ clEnqueueUnmapMemObject(cl_command_queue  command_queue ,
     return CL_INVALID_MEM_OBJECT;
   }
 
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-  double endTime = startTime;
-
-  // Create event
-  if (event)
-  {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_UNMAP_MEM_OBJECT;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
-  }
+  // Enqueue command
+  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  asyncQueueRetain(cmd, memobj);
+  asyncEnqueue(command_queue, CL_COMMAND_UNMAP_MEM_OBJECT, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
 }
@@ -3132,34 +3028,26 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
     }
   }
 
-  // Get start time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
+  // TODO: Ensure all arguments have been set
 
-  // Run kernel
-  command_queue->context->device->run(*kernel->kernel,
-                                      work_dim,
-                                      global_work_offset,
-                                      global_work_size,
-                                      local_work_size);
-
-  // Get end time
-  gettimeofday(&tv, NULL);
-  double endTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-
-  // Create event
-  if (event)
+  // Enqueue command
+  spirsim::Queue::KernelCommand *cmd = new spirsim::Queue::KernelCommand();
+  cmd->kernel = new spirsim::Kernel(*kernel->kernel);
+  cmd->work_dim = work_dim;
+  memcpy(cmd->global_size, global_work_size, work_dim*sizeof(size_t));
+  memset(cmd->global_offset, 0, 3*sizeof(size_t));
+  memset(cmd->local_size, 0, 3*sizeof(size_t));
+  if (global_work_offset)
   {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_NDRANGE_KERNEL;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
+    memcpy(cmd->global_offset, global_work_offset, work_dim*sizeof(size_t));
   }
+  if (local_work_size)
+  {
+    memcpy(cmd->local_size, local_work_size, work_dim*sizeof(size_t));
+  }
+  asyncQueueRetain(cmd, kernel);
+  asyncEnqueue(command_queue, CL_COMMAND_NDRANGE_KERNEL, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
 }
@@ -3216,24 +3104,10 @@ clEnqueueMarkerWithWaitList(cl_command_queue  command_queue ,
     return CL_INVALID_COMMAND_QUEUE;
   }
 
-  // Get time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-  double endTime = startTime;
-
-  // Create event
-  if (event)
-  {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_MARKER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
-  }
+  // Enqueue command
+  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  asyncEnqueue(command_queue, CL_COMMAND_MARKER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
 }
@@ -3250,24 +3124,10 @@ clEnqueueBarrierWithWaitList(cl_command_queue  command_queue ,
     return CL_INVALID_COMMAND_QUEUE;
   }
 
-  // Get time
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  double startTime = tv.tv_usec*1e3 + tv.tv_sec*1e9;
-  double endTime = startTime;
-
-  // Create event
-  if (event)
-  {
-    cl_event evt = (cl_event)malloc(sizeof(struct _cl_event));
-    evt->dispatch = m_dispatchTable;
-    evt->queue = command_queue;
-    evt->type = CL_COMMAND_BARRIER;
-    evt->startTime = startTime;
-    evt->endTime = endTime;
-    evt->refCount = 1;
-    *event = evt;
-  }
+  // Enqueue command
+  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  asyncEnqueue(command_queue, CL_COMMAND_BARRIER, cmd,
+               num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
 }
@@ -3311,7 +3171,9 @@ clEnqueueBarrier(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
 }
 
 
+#ifndef SIZE_T_MAX
 #define SIZE_T_MAX (size_t) 0xFFFFFFFFFFFFFFFFULL
+#endif
 
 CL_API_ENTRY cl_mem CL_API_CALL
 clCreateFromGLBuffer(cl_context      context ,
