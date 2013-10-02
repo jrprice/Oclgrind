@@ -2266,6 +2266,13 @@ clSetUserEventStatus(cl_event    event ,
 
   event->event->state = execution_status;
 
+  // Perform callbacks
+  list< pair<void (CL_CALLBACK *)(cl_event, cl_int, void *), void*> >::iterator itr;
+  for (itr = event->callbacks.begin(); itr != event->callbacks.end(); itr++)
+  {
+    itr->first(event, execution_status, itr->second);
+  }
+
   return CL_SUCCESS;
 }
 
@@ -2275,9 +2282,22 @@ clSetEventCallback(cl_event     event ,
                    void (CL_CALLBACK *  pfn_notify)(cl_event, cl_int, void *),
                    void *       user_data) CL_API_SUFFIX__VERSION_1_1
 {
-  //pfn_notify(event, command_exec_callback_type, NULL);
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!event)
+  {
+    return CL_INVALID_EVENT;
+  }
+  if (!pfn_notify ||
+      (command_exec_callback_type != CL_COMPLETE &&
+       command_exec_callback_type != CL_SUBMITTED &&
+       command_exec_callback_type != CL_RUNNING))
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  event->callbacks.push_back(make_pair(pfn_notify, user_data));
+
+  return CL_SUCCESS;
 }
 
 /* Profiling APIs  */

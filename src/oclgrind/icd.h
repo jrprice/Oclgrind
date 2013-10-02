@@ -22,6 +22,7 @@
 #include "rename_api.h"
 
 #include <CL/cl.h>
+#include <list>
 #include <map>
 #include <stack>
 
@@ -122,6 +123,7 @@ struct _cl_event
   cl_command_queue queue;
   cl_command_type type;
   spirsim::Event *event;
+  std::list< std::pair<void (CL_CALLBACK *)(cl_event, cl_int, void *), void*> > callbacks;
   unsigned int refCount;
 };
 

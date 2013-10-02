@@ -116,7 +116,17 @@ void asyncQueueRelease(Queue::Command *cmd)
     delete ((Queue::KernelCommand*)cmd)->kernel;
   }
 
-  // Release event
-  clReleaseEvent(eventMap[cmd]);
+  // Remove event from map
+  cl_event event = eventMap[cmd];
   eventMap.erase(cmd);
+
+  // Perform callbacks
+  list< pair<void (CL_CALLBACK *)(cl_event, cl_int, void *), void*> >::iterator itr;
+  for (itr = event->callbacks.begin(); itr != event->callbacks.end(); itr++)
+  {
+    itr->first(event, event->event->state, itr->second);
+  }
+
+  // Release event
+  clReleaseEvent(event);
 }
