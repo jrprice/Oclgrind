@@ -119,6 +119,7 @@ struct _cl_kernel
 struct _cl_event
 {
   CLIicdDispatchTable* dispatch;
+  cl_context context;
   cl_command_queue queue;
   cl_command_type type;
   spirsim::Event *event;

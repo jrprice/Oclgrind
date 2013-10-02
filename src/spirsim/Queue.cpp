@@ -189,6 +189,12 @@ Queue::Command* Queue::update()
     {
       cmd->waitList.pop_front();
     }
+    else if (cmd->waitList.front()->state < 0)
+    {
+      cmd->event->state = cmd->waitList.front()->state;
+      m_queue.pop();
+      return cmd;
+    }
     else
     {
       return NULL;

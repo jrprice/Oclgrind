@@ -2093,10 +2093,34 @@ clWaitForEvents(cl_uint              num_events ,
     return CL_INVALID_VALUE;
   }
 
-  // TODO: Wait on each event?
-  clFinish(event_list[0]->queue);
+  cl_int ret = CL_SUCCESS;
 
-  return CL_SUCCESS;
+  // Wait for each event
+  for (int i = 0; i < num_events; i++)
+  {
+    while (event_list[i]->event->state != CL_COMPLETE &&
+           event_list[i]->event->state >= 0)
+    {
+      // If it's not a user event, update the queue
+      if (event_list[i]->queue)
+      {
+        spirsim::Queue::Command *cmd = event_list[0]->queue->queue->update();
+        if (cmd)
+        {
+          asyncQueueRelease(cmd);
+          delete cmd;
+        }
+      }
+    }
+
+    // Check if command terminated
+    if (event_list[i]->event->state < 0)
+    {
+      ret = CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST;
+    }
+  }
+
+  return ret;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -2125,7 +2149,7 @@ clGetEventInfo(cl_event          event ,
   case CL_EVENT_CONTEXT:
     result_size = sizeof(cl_context);
     result_data = malloc(result_size);
-    *(cl_context*)result_data = event->queue->context;
+    *(cl_context*)result_data = event->context;
     break;
   case CL_EVENT_COMMAND_TYPE:
     result_size = sizeof(cl_command_type);
@@ -2174,11 +2198,25 @@ CL_API_ENTRY cl_event CL_API_CALL
 clCreateUserEvent(cl_context     context ,
                   cl_int *       errcode_ret) CL_API_SUFFIX__VERSION_1_1
 {
-  //cl_event obj = (cl_event) malloc(sizeof(struct _cl_event));
-  //obj->dispatch = dispatchTable;
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
-  return NULL;
+  // Check parameters
+  if (!context)
+  {
+    ERRCODE(CL_INVALID_CONTEXT);
+    return NULL;
+  }
+
+  /// Create event object
+  cl_event event = new _cl_event;
+  event->dispatch = m_dispatchTable;
+  event->context = context;
+  event->queue = 0;
+  event->type = CL_COMMAND_USER;
+  event->event = new spirsim::Event();
+  event->event->state = CL_SUBMITTED;
+  event->refCount = 1;
+
+  ERRCODE(CL_SUCCESS);
+  return event;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -2218,8 +2256,23 @@ CL_API_ENTRY cl_int CL_API_CALL
 clSetUserEventStatus(cl_event    event ,
                      cl_int      execution_status) CL_API_SUFFIX__VERSION_1_1
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!event || event->queue)
+  {
+    return CL_INVALID_EVENT;
+  }
+  if (execution_status != CL_COMPLETE && execution_status >= 0)
+  {
+    return CL_INVALID_VALUE;
+  }
+  if (event->event->state == CL_COMPLETE || event->event->state < 0)
+  {
+    return CL_INVALID_OPERATION;
+  }
+
+  event->event->state = execution_status;
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -2248,6 +2301,10 @@ clGetEventProfilingInfo(cl_event             event ,
   if (!event)
   {
     return CL_INVALID_EVENT;
+  }
+  if (!event->queue)
+  {
+    return CL_PROFILING_INFO_NOT_AVAILABLE;
   }
 
   switch (param_name)

@@ -53,6 +53,7 @@ void asyncEnqueue(cl_command_queue queue,
   // Create event objects
   cl_event _event = new _cl_event;
   _event->dispatch = m_dispatchTable;
+  _event->context = queue->context;
   _event->queue = queue;
   _event->type = type;
   _event->event = event;
