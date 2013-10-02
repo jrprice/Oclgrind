@@ -991,8 +991,6 @@ clCreateBuffer(cl_context    context ,
   mem->parent = NULL;
   mem->size = size;
   mem->flags = flags;
-  mem->callbacks = new std::stack<void (CL_CALLBACK *)(cl_mem, void *)>();
-  mem->data = new std::stack<void*>();
   mem->refCount = 1;
   if (flags & CL_MEM_USE_HOST_PTR)
   {
@@ -1056,8 +1054,6 @@ clCreateSubBuffer(cl_mem                    buffer ,
   mem->parent = buffer;
   mem->size = region.size;
   mem->flags = buffer->flags;
-  mem->callbacks = new std::stack<void (CL_CALLBACK *)(cl_mem, void *)>();
-  mem->data = new std::stack<void*>();
   mem->refCount = 1;
   mem->address = buffer->address + region.origin;
   clRetainMemObject(buffer);
@@ -1151,14 +1147,13 @@ clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
       clReleaseContext(memobj->context);
     }
 
-    while (!memobj->callbacks->empty())
+    while (!memobj->callbacks.empty())
     {
-      memobj->callbacks->top()(memobj, memobj->data->top());
-      memobj->callbacks->pop();
-      memobj->data->pop();
+      pair<void (CL_CALLBACK *)(cl_mem, void *), void*> callback =
+        memobj->callbacks.top();
+      callback.first(memobj, callback.second);
+      memobj->callbacks.pop();
     }
-    free(memobj->callbacks);
-    free(memobj->data);
     delete memobj;
   }
 
@@ -1293,8 +1288,7 @@ clSetMemObjectDestructorCallback(cl_mem  memobj ,
     return CL_INVALID_VALUE;
   }
 
-  memobj->callbacks->push(pfn_notify);
-  memobj->data->push(user_data);
+  memobj->callbacks.push(make_pair(pfn_notify, user_data));
 
   return CL_SUCCESS;
 }

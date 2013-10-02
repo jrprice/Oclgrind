@@ -94,8 +94,7 @@ struct _cl_mem
   size_t address;
   size_t size;
   cl_mem_flags flags;
-  std::stack<void (CL_CALLBACK *)(cl_mem, void *)> *callbacks;
-  std::stack<void*> *data;
+  std::stack< std::pair<void (CL_CALLBACK *)(cl_mem, void *), void*> > callbacks;
   unsigned int refCount;
 };
 
