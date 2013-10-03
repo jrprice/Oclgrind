@@ -141,5 +141,6 @@ void asyncQueueRelease(Queue::Command *cmd)
   {
     clReleaseEvent(*waitItr);
   }
+  waitListMap.erase(cmd);
   clReleaseEvent(event);
 }
