@@ -2077,6 +2077,13 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
 }
 
 /* Event Object APIs  */
+
+// Utility to check if an event has completed (or terminated)
+inline bool isComplete(cl_event event)
+{
+  return (event->event->state == CL_COMPLETE || event->event->state < 0);
+}
+
 CL_API_ENTRY cl_int CL_API_CALL
 clWaitForEvents(cl_uint              num_events ,
                 const cl_event *     event_list) CL_API_SUFFIX__VERSION_1_0
@@ -2089,25 +2096,45 @@ clWaitForEvents(cl_uint              num_events ,
 
   cl_int ret = CL_SUCCESS;
 
-  // Wait for each event
-  for (int i = 0; i < num_events; i++)
+  // Loop until all events complete
+  bool complete = false;
+  while (!complete)
   {
-    while (event_list[i]->event->state != CL_COMPLETE &&
-           event_list[i]->event->state >= 0)
+    complete = true;
+    for (int i = 0; i < num_events; i++)
     {
+      // Skip event if already complete
+      if (isComplete(event_list[i]))
+      {
+        continue;
+      }
+
       // If it's not a user event, update the queue
       if (event_list[i]->queue)
       {
-        spirsim::Queue::Command *cmd = event_list[0]->queue->queue->update();
+        spirsim::Queue::Command *cmd = event_list[i]->queue->queue->update();
         if (cmd)
         {
           asyncQueueRelease(cmd);
           delete cmd;
         }
+
+        // If it's still not complete, update flag
+        if (!isComplete(event_list[i]))
+        {
+          complete = false;
+        }
+      }
+      else
+      {
+        complete = false;
       }
     }
+  }
 
-    // Check if command terminated
+  // Check if any command terminated unsuccessfully
+  for (int i = 0; i < num_events; i++)
+  {
     if (event_list[i]->event->state < 0)
     {
       ret = CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST;
