@@ -33,6 +33,7 @@ extern CLIicdDispatchTable *m_dispatchTable;
 static map< Queue::Command*, list<cl_mem> > memObjectMap;
 static map< Queue::Command*, cl_kernel > kernelMap;
 static map< Queue::Command*, cl_event > eventMap;
+static map< Queue::Command*, list<cl_event> > waitListMap;
 
 void asyncEnqueue(cl_command_queue queue,
                   cl_command_type type,
@@ -45,6 +46,8 @@ void asyncEnqueue(cl_command_queue queue,
   for (int i = 0; i < numEvents; i++)
   {
     cmd->waitList.push_back(waitList[i]->event);
+    waitListMap[cmd].push_back(waitList[i]);
+    clRetainEvent(waitList[i]);
   }
 
   // Enqueue command
@@ -121,12 +124,22 @@ void asyncQueueRelease(Queue::Command *cmd)
   eventMap.erase(cmd);
 
   // Perform callbacks
-  list< pair<void (CL_CALLBACK *)(cl_event, cl_int, void *), void*> >::iterator itr;
-  for (itr = event->callbacks.begin(); itr != event->callbacks.end(); itr++)
+  list< pair<void (CL_CALLBACK *)(cl_event, cl_int, void *),
+             void*> >::iterator callItr;
+  for (callItr = event->callbacks.begin();
+       callItr != event->callbacks.end();
+       callItr++)
   {
-    itr->first(event, event->event->state, itr->second);
+    callItr->first(event, event->event->state, callItr->second);
   }
 
-  // Release event
+  // Release events
+  list<cl_event>::iterator waitItr;
+  for (waitItr = waitListMap[cmd].begin();
+       waitItr != waitListMap[cmd].end();
+       waitItr++)
+  {
+    clReleaseEvent(*waitItr);
+  }
   clReleaseEvent(event);
 }
