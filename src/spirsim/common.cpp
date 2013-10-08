@@ -156,7 +156,6 @@ namespace spirsim
       }
       else
       {
-        cout << "Hello, world!" << endl;
         return llvm::GetElementPtrInst::Create(operands[0], operands.slice(1));
       }
     case llvm::Instruction::ICmp:
@@ -250,6 +249,12 @@ namespace spirsim
     {
       *(float*)data =
         ((llvm::ConstantFP*)constant)->getValueAPF().convertToFloat();
+      break;
+    }
+    case llvm::Type::DoubleTyID:
+    {
+      *(double*)data =
+        ((llvm::ConstantFP*)constant)->getValueAPF().convertToDouble();
       break;
     }
     case llvm::Type::VectorTyID:
