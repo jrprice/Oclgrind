@@ -49,6 +49,7 @@ static struct _cl_device_id *m_device = NULL;
 #define DEVICE_VERSION "OpenCL 1.2"
 #define DRIVER_VERSION "0.1"
 #define DEVICE_PROFILE "FULL_PROFILE"
+#define DEVICE_EXTENSIONS "cl_khr_fp64"
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformIDs(cl_uint           num_entries ,
@@ -238,7 +239,7 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:
     result_size = sizeof(cl_uint);
     result_data = malloc(result_size);
-    *(cl_uint*)result_data = 0;
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_MAX_CLOCK_FREQUENCY:
     result_size = sizeof(cl_uint);
@@ -423,9 +424,9 @@ clGetDeviceInfo(cl_device_id    device,
     strcpy((char*)result_data, DEVICE_VERSION);
     break;
   case CL_DEVICE_EXTENSIONS:
-    result_size = sizeof("");
+    result_size = strlen(DEVICE_EXTENSIONS) + 1;
     result_data = malloc(result_size);
-    strcpy((char*)result_data, "");
+    strcpy((char*)result_data, DEVICE_EXTENSIONS);
     break;
   case CL_DEVICE_PLATFORM:
     result_size = sizeof(cl_platform_id);
@@ -435,7 +436,10 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_DOUBLE_FP_CONFIG:
     result_size = sizeof(cl_device_fp_config);
     result_data = malloc(result_size);
-    *(cl_device_fp_config*)result_data = 0;
+    *(cl_device_fp_config*)result_data =
+      CL_FP_FMA | CL_FP_ROUND_TO_NEAREST |
+      CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF |
+      CL_FP_INF_NAN | CL_FP_DENORM;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:
     result_size = sizeof(cl_uint);
@@ -475,7 +479,7 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE:
     result_size = sizeof(cl_uint);
     result_data = malloc(result_size);
-    *(cl_uint*)result_data = 0;
+    *(cl_uint*)result_data = 1;
     break;
   case CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:
     result_size = sizeof(cl_uint);

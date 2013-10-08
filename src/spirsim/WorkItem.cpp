@@ -1151,6 +1151,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
   // Other Functions
   BUILTIN_PREFIX("convert_float", convert_float); // Conversion to floats
+  BUILTIN_PREFIX("convert_double", convert_float); // Conversion to doubles
   BUILTIN_PREFIX("convert_u",     convert_uint);  // Conversion to unsigned integers
   BUILTIN_PREFIX("convert_",      convert_sint);  // Conversion to signed integers
   BUILTIN("printf", printf_builtin);

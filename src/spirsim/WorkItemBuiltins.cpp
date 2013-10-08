@@ -1517,6 +1517,10 @@ DEFINE_BUILTIN(convert_float)
     case 'l':
       setFloatResult(result, (float)SARGV(0, i), i);
       break;
+    case 'f':
+    case 'd':
+      setFloatResult(result, FARGV(0, i), i);
+      break;
     default:
       assert(false);
     }
@@ -1542,6 +1546,7 @@ DEFINE_BUILTIN(convert_uint)
       setIntResult(result, (uint64_t)SARGV(0, i), i);
       break;
     case 'f':
+    case 'd':
       setIntResult(result, (uint64_t)FARGV(0, i), i);
       break;
     default:
@@ -1569,6 +1574,7 @@ DEFINE_BUILTIN(convert_sint)
       setIntResult(result, SARGV(0, i), i);
       break;
     case 'f':
+    case 'd':
       setIntResult(result, (int64_t)FARGV(0, i), i);
       break;
     default:

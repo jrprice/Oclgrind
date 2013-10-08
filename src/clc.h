@@ -34,7 +34,7 @@ typedef unsigned long intptr_t;
   typedef __attribute__((ext_vector_type(16))) type type##16;
 TYPEDEF_VECTOR(char);
 TYPEDEF_VECTOR(uchar);
-TYPEDEF_VECTOR(short)
+TYPEDEF_VECTOR(short);
 TYPEDEF_VECTOR(ushort);
 TYPEDEF_VECTOR(int);
 TYPEDEF_VECTOR(uint);
@@ -151,6 +151,16 @@ TYPEDEF_VECTOR(double);
 	BUILTIN_3ARG(long, long, long, long, name)         \
 	BUILTIN_3ARG(ulong, ulong, ulong, ulong, name);
 
+#define BUILTIN_1ARG_FLOATS(name)  \
+	BUILTIN_1ARG(float, float, name) \
+	BUILTIN_1ARG(double, double, name);
+#define BUILTIN_2ARG_FLOATS(name)         \
+	BUILTIN_2ARG(float, float, float, name) \
+	BUILTIN_2ARG(double, double, double, name);
+#define BUILTIN_3ARG_FLOATS(name)                \
+	BUILTIN_3ARG(float, float, float, float, name) \
+	BUILTIN_3ARG(double, double, double, double, name);
+
 
 ///////////////////////////////////////
 // Async Copy and Prefetch Functions //
@@ -177,6 +187,7 @@ ASYNC_COPY(uint);
 ASYNC_COPY(long);
 ASYNC_COPY(ulong);
 ASYNC_COPY(float);
+ASYNC_COPY(double);
 
 void wait_group_events(int, event_t*);
 
@@ -196,6 +207,7 @@ PREFETCH(uint);
 PREFETCH(long);
 PREFETCH(ulong);
 PREFETCH(float);
+PREFETCH(double);
 
 
 //////////////////////
@@ -223,45 +235,52 @@ ABS_ALL(char);
 ABS_ALL(short);
 ABS_ALL(int);
 ABS_ALL(long);
-BUILTIN_3ARG(float, float, float, float, clamp);
-BUILTIN_1ARG(float, float, degrees);
-BUILTIN_2ARG(float, float, float, max);
-BUILTIN_2ARG(float, float, float, min);
-BUILTIN_3ARG(float, float, float, float, mix);
-BUILTIN_1ARG(float, float, radians);
-BUILTIN_1ARG(float, float, sign);
-BUILTIN_3ARG(float, float, float, float, smoothstep);
-BUILTIN_2ARG(float, float, float, step);
+BUILTIN_3ARG_FLOATS(clamp);
+BUILTIN_1ARG_FLOATS(degrees);
+BUILTIN_2ARG_FLOATS(max);
+BUILTIN_2ARG_FLOATS(min);
+BUILTIN_3ARG_FLOATS(mix);
+BUILTIN_1ARG_FLOATS(radians);
+BUILTIN_1ARG_FLOATS(sign);
+BUILTIN_3ARG_FLOATS(smoothstep);
+BUILTIN_2ARG_FLOATS(step);
 
 
 /////////////////////////
 // Geometric Functions //
 /////////////////////////
 
-#define GEOM_1ARG(name) \
- float __OVERLOAD__ name(float);  \
- float __OVERLOAD__ name(float2); \
- float __OVERLOAD__ name(float3); \
- float __OVERLOAD__ name(float4); \
- float __OVERLOAD__ name(float8); \
- float __OVERLOAD__ name(float16);
-#define GEOM_2ARG(name) \
- float __OVERLOAD__ name(float, float);   \
- float __OVERLOAD__ name(float2, float2); \
- float __OVERLOAD__ name(float3, float3); \
- float __OVERLOAD__ name(float4, float4); \
- float __OVERLOAD__ name(float8, float8); \
- float __OVERLOAD__ name(float16, float16);
+#define GEOM_1ARG(type, name) \
+ type __OVERLOAD__ name(type);  \
+ type __OVERLOAD__ name(type##2); \
+ type __OVERLOAD__ name(type##3); \
+ type __OVERLOAD__ name(type##4); \
+ type __OVERLOAD__ name(type##8); \
+ type __OVERLOAD__ name(type##16);
+#define GEOM_2ARG(type, name) \
+ type __OVERLOAD__ name(type, type);   \
+ type __OVERLOAD__ name(type##2, type##2); \
+ type __OVERLOAD__ name(type##3, type##3); \
+ type __OVERLOAD__ name(type##4, type##4); \
+ type __OVERLOAD__ name(type##8, type##8); \
+ type __OVERLOAD__ name(type##16, type##16);
 
 float4 __OVERLOAD__ cross(float4, float4);
 float3 __OVERLOAD__ cross(float3, float3);
-GEOM_2ARG(dot);
-GEOM_2ARG(distance);
-GEOM_1ARG(length);
-BUILTIN_1ARG(float, float, normalize);
-GEOM_2ARG(fast_distance);
-GEOM_1ARG(fast_length);
-BUILTIN_1ARG(float, float, fast_normalize);
+double4 __OVERLOAD__ cross(double4, double4);
+double3 __OVERLOAD__ cross(double3, double3);
+GEOM_2ARG(float, dot);
+GEOM_2ARG(double, dot);
+GEOM_2ARG(float, distance);
+GEOM_2ARG(double, distance);
+GEOM_1ARG(float, length);
+GEOM_1ARG(double, length);
+BUILTIN_1ARG_FLOATS(normalize);
+GEOM_2ARG(float, fast_distance);
+GEOM_2ARG(double, fast_distance);
+GEOM_1ARG(float, fast_length);
+GEOM_1ARG(double, fast_length);
+BUILTIN_1ARG_FLOATS(fast_normalize);
 
 
 ///////////////////////
@@ -315,121 +334,121 @@ UPSAMPLE(long, int);
  BUILTIN_2TYPE_PTR(type1##4, type2##4, name) \
  BUILTIN_2TYPE_PTR(type1##8, type2##8, name) \
  BUILTIN_2TYPE_PTR(type1##16, type2##16, name);
+#define REMQUO(type, addrspace) \
+  type __OVERLOAD__ remquo(type, type, addrspace int*);          \
+	type##2 __OVERLOAD__ remquo(type##2, type##2, __global int2*); \
+	type##3 __OVERLOAD__ remquo(type##3, type##3, __global int3*); \
+	type##4 __OVERLOAD__ remquo(type##4, type##4, __global int4*); \
+	type##8 __OVERLOAD__ remquo(type##8, type##8, __global int8*); \
+	type##16 __OVERLOAD__ remquo(type##16, type##16, __global int16*);
 
-BUILTIN_1ARG(float, float, acos);
-BUILTIN_1ARG(float, float, acosh);
-BUILTIN_1ARG(float, float, acospi);
-BUILTIN_1ARG(float, float, asin);
-BUILTIN_1ARG(float, float, asinh);
-BUILTIN_1ARG(float, float, asinpi);
-BUILTIN_1ARG(float, float, atan);
-BUILTIN_2ARG(float, float, float, atan2);
-BUILTIN_1ARG(float, float, atanh);
-BUILTIN_1ARG(float, float, atanpi);
-BUILTIN_2ARG(float, float, float, atan2pi);
-BUILTIN_1ARG(float, float, cbrt);
-BUILTIN_1ARG(float, float, ceil);
-BUILTIN_2ARG(float, float, float, copysign);
-BUILTIN_1ARG(float, float, cos);
-BUILTIN_1ARG(float, float, cosh);
-BUILTIN_1ARG(float, float, cospi);
-BUILTIN_1ARG(float, float, erfc);
-BUILTIN_1ARG(float, float, erf);
-BUILTIN_1ARG(float, float, exp);
-BUILTIN_1ARG(float, float, exp2);
-BUILTIN_1ARG(float, float, exp10);
-BUILTIN_1ARG(float, float, expm1);
-BUILTIN_1ARG(float, float, fabs);
-BUILTIN_2ARG(float, float, float, fdim);
-BUILTIN_1ARG(float, float, floor);
-BUILTIN_3ARG(float, float, float, float, fma);
-BUILTIN_2ARG(float, float, float, fmax);
-BUILTIN_2ARG(float, float, float, fmin);
-BUILTIN_2ARG(float, float, float, fmod);
+BUILTIN_1ARG_FLOATS(acos);
+BUILTIN_1ARG_FLOATS(acosh);
+BUILTIN_1ARG_FLOATS(acospi);
+BUILTIN_1ARG_FLOATS(asin);
+BUILTIN_1ARG_FLOATS(asinh);
+BUILTIN_1ARG_FLOATS(asinpi);
+BUILTIN_1ARG_FLOATS(atan);
+BUILTIN_2ARG_FLOATS(atan2);
+BUILTIN_1ARG_FLOATS(atanh);
+BUILTIN_1ARG_FLOATS(atanpi);
+BUILTIN_2ARG_FLOATS(atan2pi);
+BUILTIN_1ARG_FLOATS(cbrt);
+BUILTIN_1ARG_FLOATS(ceil);
+BUILTIN_2ARG_FLOATS(copysign);
+BUILTIN_1ARG_FLOATS(cos);
+BUILTIN_1ARG_FLOATS(cosh);
+BUILTIN_1ARG_FLOATS(cospi);
+BUILTIN_1ARG_FLOATS(erfc);
+BUILTIN_1ARG_FLOATS(erf);
+BUILTIN_1ARG_FLOATS(exp);
+BUILTIN_1ARG_FLOATS(exp2);
+BUILTIN_1ARG_FLOATS(exp10);
+BUILTIN_1ARG_FLOATS(expm1);
+BUILTIN_1ARG_FLOATS(fabs);
+BUILTIN_2ARG_FLOATS(fdim);
+BUILTIN_1ARG_FLOATS(floor);
+BUILTIN_3ARG_FLOATS(fma);
+BUILTIN_2ARG_FLOATS(fmax);
+BUILTIN_2ARG_FLOATS(fmin);
+BUILTIN_2ARG_FLOATS(fmod);
 BUILTIN_PTR_ARG(float, float, fract);
+BUILTIN_PTR_ARG(double, double, fract);
 BUILTIN_PTR_ARG(float, int, frexp);
-BUILTIN_2ARG(float, float, float, hypot);
-BUILTIN_1ARG(int, float, ilogb);
-BUILTIN_2ARG(float, float, int, ldexp);
-BUILTIN_1ARG(float, float, lgamma);
+BUILTIN_PTR_ARG(double, int, frexp);
+BUILTIN_2ARG_FLOATS(hypot);
+BUILTIN_1ARG_FLOATS(ogb);
+BUILTIN_2ARG_FLOATS(exp);
+BUILTIN_1ARG_FLOATS(lgamma);
 BUILTIN_PTR_ARG(float, int, lgamma_r);
-BUILTIN_1ARG(float, float, log);
-BUILTIN_1ARG(float, float, log2);
-BUILTIN_1ARG(float, float, log10);
-BUILTIN_1ARG(float, float, log1p);
-BUILTIN_1ARG(float, float, logb);
-BUILTIN_3ARG(float, float, float, float, mad);
-BUILTIN_2ARG(float, float, float, maxmag);
-BUILTIN_2ARG(float, float, float, minmag);
+BUILTIN_PTR_ARG(double, int, lgamma_r);
+BUILTIN_1ARG_FLOATS(log);
+BUILTIN_1ARG_FLOATS(log2);
+BUILTIN_1ARG_FLOATS(log10);
+BUILTIN_1ARG_FLOATS(log1p);
+BUILTIN_1ARG_FLOATS(logb);
+BUILTIN_3ARG_FLOATS(mad);
+BUILTIN_2ARG_FLOATS(maxmag);
+BUILTIN_2ARG_FLOATS(minmag);
 BUILTIN_PTR_ARG(float, float, modf);
-BUILTIN_1ARG(float, uint, nan);
-BUILTIN_2ARG(float, float, float, nextafter);
-BUILTIN_2ARG(float, float, float, pow);
-BUILTIN_2ARG(float, float, int, pown);
-BUILTIN_2ARG(float, float, float, powr);
-BUILTIN_2ARG(float, float, float, remainder);
-float __OVERLOAD__ remquo(float, float, __global int*);
-float2 __OVERLOAD__ remquo(float2, float2, __global int2*);
-float3 __OVERLOAD__ remquo(float3, float3, __global int3*);
-float4 __OVERLOAD__ remquo(float4, float4, __global int4*);
-float8 __OVERLOAD__ remquo(float8, float8, __global int8*);
-float16 __OVERLOAD__ remquo(float16, float16, __global int16*);
-float __OVERLOAD__ remquo(float, float, __local int*);
-float2 __OVERLOAD__ remquo(float2, float2, __local int2*);
-float3 __OVERLOAD__ remquo(float3, float3, __local int3*);
-float4 __OVERLOAD__ remquo(float4, float4, __local int4*);
-float8 __OVERLOAD__ remquo(float8, float8, __local int8*);
-float16 __OVERLOAD__ remquo(float16, float16, __local int16*);
-float __OVERLOAD__ remquo(float, float, __private int*);
-float2 __OVERLOAD__ remquo(float2, float2, __private int2*);
-float3 __OVERLOAD__ remquo(float3, float3, __private int3*);
-float4 __OVERLOAD__ remquo(float4, float4, __private int4*);
-float8 __OVERLOAD__ remquo(float8, float8, __private int8*);
-float16 __OVERLOAD__ remquo(float16, float16, __private int16*);
-BUILTIN_1ARG(float, float, rint);
-BUILTIN_2ARG(float, float, int, rootn);
-BUILTIN_1ARG(float, float, round);
-BUILTIN_1ARG(float, float, rsqrt);
-BUILTIN_1ARG(float, float, sin);
-BUILTIN_1ARG(float, float, sinpi);
-BUILTIN_1ARG(float, float, sinh);
+BUILTIN_PTR_ARG(double, double, modf);
+BUILTIN_1ARG_FLOATS(an);
+BUILTIN_2ARG_FLOATS(nextafter);
+BUILTIN_2ARG_FLOATS(pow);
+BUILTIN_2ARG_FLOATS(wn);
+BUILTIN_2ARG_FLOATS(powr);
+BUILTIN_2ARG_FLOATS(remainder);
+REMQUO(float, global);
+REMQUO(float, local);
+REMQUO(float, private);
+REMQUO(double, global);
+REMQUO(double, local);
+REMQUO(double, private);
+BUILTIN_1ARG_FLOATS(rint);
+BUILTIN_2ARG_FLOATS(otn);
+BUILTIN_1ARG_FLOATS(round);
+BUILTIN_1ARG_FLOATS(rsqrt);
+BUILTIN_1ARG_FLOATS(sin);
+BUILTIN_1ARG_FLOATS(sinpi);
+BUILTIN_1ARG_FLOATS(sinh);
 BUILTIN_PTR_ARG(float, float, sincos);
-BUILTIN_1ARG(float, float, sqrt);
-BUILTIN_1ARG(float, float, tan);
-BUILTIN_1ARG(float, float, tanh);
-BUILTIN_1ARG(float, float, tanpi);
-BUILTIN_1ARG(float, float, tgamma);
-BUILTIN_1ARG(float, float, trunc);
+BUILTIN_PTR_ARG(double, double, sincos);
+BUILTIN_1ARG_FLOATS(sqrt);
+BUILTIN_1ARG_FLOATS(tan);
+BUILTIN_1ARG_FLOATS(tanh);
+BUILTIN_1ARG_FLOATS(tanpi);
+BUILTIN_1ARG_FLOATS(tgamma);
+BUILTIN_1ARG_FLOATS(trunc);
 
 // Native math functions
-BUILTIN_1ARG(float, float, half_cos);
-BUILTIN_1ARG(float, float, native_cos);
-BUILTIN_2ARG(float, float, float, half_divide);
-BUILTIN_2ARG(float, float, float, native_divide);
-BUILTIN_1ARG(float, float, half_exp);
-BUILTIN_1ARG(float, float, native_exp);
-BUILTIN_1ARG(float, float, half_exp2);
-BUILTIN_1ARG(float, float, native_exp2);
-BUILTIN_1ARG(float, float, half_exp10);
-BUILTIN_1ARG(float, float, native_exp10);
-BUILTIN_1ARG(float, float, half_log);
-BUILTIN_1ARG(float, float, native_log);
-BUILTIN_1ARG(float, float, half_log2);
-BUILTIN_1ARG(float, float, native_log2);
-BUILTIN_1ARG(float, float, half_log10);
-BUILTIN_1ARG(float, float, native_log10);
-BUILTIN_2ARG(float, float, float, half_powr);
-BUILTIN_2ARG(float, float, float, native_powr);
-BUILTIN_1ARG(float, float, half_recip);
-BUILTIN_1ARG(float, float, native_recip);
-BUILTIN_1ARG(float, float, half_rsqrt);
-BUILTIN_1ARG(float, float, native_rsqrt);
-BUILTIN_1ARG(float, float, half_sin);
-BUILTIN_1ARG(float, float, native_sin);
-BUILTIN_1ARG(float, float, half_sqrt);
-BUILTIN_1ARG(float, float, native_sqrt);
-BUILTIN_1ARG(float, float, half_tan);
-BUILTIN_1ARG(float, float, native_tan);
+BUILTIN_1ARG_FLOATS(half_cos);
+BUILTIN_1ARG_FLOATS(native_cos);
+BUILTIN_2ARG_FLOATS(half_divide);
+BUILTIN_2ARG_FLOATS(native_divide);
+BUILTIN_1ARG_FLOATS(half_exp);
+BUILTIN_1ARG_FLOATS(native_exp);
+BUILTIN_1ARG_FLOATS(half_exp2);
+BUILTIN_1ARG_FLOATS(native_exp2);
+BUILTIN_1ARG_FLOATS(half_exp10);
+BUILTIN_1ARG_FLOATS(native_exp10);
+BUILTIN_1ARG_FLOATS(half_log);
+BUILTIN_1ARG_FLOATS(native_log);
+BUILTIN_1ARG_FLOATS(half_log2);
+BUILTIN_1ARG_FLOATS(native_log2);
+BUILTIN_1ARG_FLOATS(half_log10);
+BUILTIN_1ARG_FLOATS(native_log10);
+BUILTIN_2ARG_FLOATS(half_powr);
+BUILTIN_2ARG_FLOATS(native_powr);
+BUILTIN_1ARG_FLOATS(half_recip);
+BUILTIN_1ARG_FLOATS(native_recip);
+BUILTIN_1ARG_FLOATS(half_rsqrt);
+BUILTIN_1ARG_FLOATS(native_rsqrt);
+BUILTIN_1ARG_FLOATS(half_sin);
+BUILTIN_1ARG_FLOATS(native_sin);
+BUILTIN_1ARG_FLOATS(half_sqrt);
+BUILTIN_1ARG_FLOATS(native_sqrt);
+BUILTIN_1ARG_FLOATS(half_tan);
+BUILTIN_1ARG_FLOATS(native_tan);
 
 
 
@@ -460,6 +479,7 @@ SHUFFLE(uint, uint);
 SHUFFLE(long, ulong);
 SHUFFLE(ulong, ulong);
 SHUFFLE(float, uint);
+SHUFFLE(double, ulong);
 
 #define SHUFFLE2_TYPE(ret, type, mask) \
   ret __OVERLOAD__ shuffle2(type, type, mask);       \
@@ -484,6 +504,7 @@ SHUFFLE2(uint, uint);
 SHUFFLE2(long, ulong);
 SHUFFLE2(ulong, ulong);
 SHUFFLE2(float, uint);
+SHUFFLE2(double, ulong);
 
 
 //////////////////////////
@@ -497,6 +518,12 @@ SHUFFLE2(float, uint);
 	int __OVERLOAD__ name(type##4); \
 	int __OVERLOAD__ name(type##8); \
 	int __OVERLOAD__ name(type##16);
+#define REL_1ARG(name) \
+	BUILTIN_1ARG(int, float, name); \
+	BUILTIN_1ARG(long, double, name);
+#define REL_2ARG(name) \
+	BUILTIN_2ARG(int, float, float, name); \
+	BUILTIN_2ARG(long, double, double, name);
 BUILTIN_ANYALL(all, char);
 BUILTIN_ANYALL(all, short);
 BUILTIN_ANYALL(all, int);
@@ -505,22 +532,22 @@ BUILTIN_ANYALL(any, char);
 BUILTIN_ANYALL(any, short);
 BUILTIN_ANYALL(any, int);
 BUILTIN_ANYALL(any, long);
-BUILTIN_3ARG(float, float, float, float, bitselect);
+BUILTIN_3ARG_FLOATS(bitselect);
 BUILTIN_3ARG_INTEGERS(bitselect);
-BUILTIN_2ARG(int, float, float, isequal);
-BUILTIN_2ARG(int, float, float, isnotequal);
-BUILTIN_2ARG(int, float, float, isgreater);
-BUILTIN_2ARG(int, float, float, isgreaterequal);
-BUILTIN_2ARG(int, float, float, isless);
-BUILTIN_2ARG(int, float, float, islessequal);
-BUILTIN_2ARG(int, float, float, islessgreater);
-BUILTIN_1ARG(int, float, isfinite);
-BUILTIN_1ARG(int, float, isinf);
-BUILTIN_1ARG(int, float, isnan);
-BUILTIN_1ARG(int, float, isnormal);
-BUILTIN_2ARG(int, float, float, isordered);
-BUILTIN_2ARG(int, float, float, isunordered);
-BUILTIN_1ARG(int, float, signbit);
+REL_2ARG(isequal);
+REL_2ARG(isnotequal);
+REL_2ARG(isgreater);
+REL_2ARG(isgreaterequal);
+REL_2ARG(isless);
+REL_2ARG(islessequal);
+REL_2ARG(islessgreater);
+REL_1ARG(isfinite);
+REL_1ARG(isinf);
+REL_1ARG(isnan);
+REL_1ARG(isnormal);
+REL_2ARG(isordered);
+REL_2ARG(isunordered);
+REL_1ARG(signbit);
 
 #define SELECT_TYPE(type, ctype) \
 	type __OVERLOAD__ select(type, type, ctype); \
@@ -541,6 +568,7 @@ SELECT(uint, int);
 SELECT(long, long);
 SELECT(ulong, long);
 SELECT(float, int);
+SELECT(double, long);
 
 
 ///////////////////////////////
@@ -594,6 +622,7 @@ VLOADSTORE(uint);
 VLOADSTORE(long);
 VLOADSTORE(ulong);
 VLOADSTORE(float);
+VLOADSTORE(double);
 
 
 /////////////////////////
@@ -676,6 +705,12 @@ int printf(__constant char * restrict, ...);
 #define as_float4( _x )  __builtin_astype( _x, float4 )
 #define as_float8( _x )  __builtin_astype( _x, float8 )
 #define as_float16( _x )  __builtin_astype( _x, float16 )
+#define as_double( _x )  __builtin_astype( _x, double )
+#define as_double2( _x )  __builtin_astype( _x, double2 )
+#define as_double3( _x )  __builtin_astype( _x, double3 )
+#define as_double4( _x )  __builtin_astype( _x, double4 )
+#define as_double8( _x )  __builtin_astype( _x, double8 )
+#define as_double16( _x )  __builtin_astype( _x, double16 )
 
 #define CONVERT_TYPE_SIZE(out, in) \
   out __OVERLOAD__ convert_##out(in);
@@ -686,16 +721,17 @@ int printf(__constant char * restrict, ...);
   CONVERT_TYPE_SIZE(out##4, in##4);       \
   CONVERT_TYPE_SIZE(out##8, in##8);             \
   CONVERT_TYPE_SIZE(out##16, in##16);
-#define CONVERT(out) \
-  CONVERT_TYPE(out, char);         \
-  CONVERT_TYPE(out, uchar);        \
-  CONVERT_TYPE(out, short);        \
-  CONVERT_TYPE(out, ushort);       \
-  CONVERT_TYPE(out, int);          \
-  CONVERT_TYPE(out, uint);         \
-  CONVERT_TYPE(out, long);         \
-  CONVERT_TYPE(out, ulong);        \
-  CONVERT_TYPE(out, float);
+#define CONVERT(out)         \
+  CONVERT_TYPE(out, char);   \
+  CONVERT_TYPE(out, uchar);  \
+  CONVERT_TYPE(out, short);  \
+  CONVERT_TYPE(out, ushort); \
+  CONVERT_TYPE(out, int);    \
+  CONVERT_TYPE(out, uint);   \
+  CONVERT_TYPE(out, long);   \
+  CONVERT_TYPE(out, ulong);  \
+  CONVERT_TYPE(out, float);  \
+  CONVERT_TYPE(out, double);
 
 CONVERT(char);
 CONVERT(uchar);
@@ -706,3 +742,4 @@ CONVERT(uint);
 CONVERT(long);
 CONVERT(ulong);
 CONVERT(float);
+CONVERT(double);
