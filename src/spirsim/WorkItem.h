@@ -57,12 +57,12 @@ namespace spirsim
                            unsigned addressSpace,
                            size_t address, size_t size) const;
     TypedValue resolveConstExpr(const llvm::ConstantExpr *expr);
-    void setFloatResult(TypedValue& result, double val,
-                        unsigned int index = 0) const;
-    void setIntResult(TypedValue& result, int64_t val,
-                      unsigned int index = 0) const;
-    void setIntResult(TypedValue& result, uint64_t val,
-                      unsigned int index = 0) const;
+    static void setFloatResult(TypedValue& result, double val,
+                               unsigned int index = 0);
+    static void setIntResult(TypedValue& result, int64_t val,
+                             unsigned int index = 0);
+    static void setIntResult(TypedValue& result, uint64_t val,
+                             unsigned int index = 0);
     State step(bool debugOutput = false);
     void trap();
     void updateVariable(const llvm::DbgValueInst *instruction);
@@ -111,10 +111,12 @@ namespace spirsim
     void urem(const llvm::Instruction& instruction, TypedValue& result);
     void zext(const llvm::Instruction& instruction, TypedValue& result);
 
-#define DECLARE_BUILTIN(name)      void name(const llvm::CallInst *callInst, \
-                                             std::string name,               \
-                                             std::string overload,           \
-                                             TypedValue& result);
+#define DECLARE_BUILTIN(name) static void name(WorkItem *workItem,             \
+                                               const llvm::CallInst *callInst, \
+                                               std::string name,               \
+                                               std::string overload,           \
+                                               TypedValue& result,             \
+                                               void *);
     // Async Copy and Prefetch Functions
     DECLARE_BUILTIN(async_work_group_copy);
     DECLARE_BUILTIN(wait_group_events);
@@ -202,28 +204,39 @@ namespace spirsim
     DECLARE_BUILTIN(llvm_memset);
     DECLARE_BUILTIN(llvm_trap);
 
-    void builtin_f1arg(const llvm::CallInst *callInst, TypedValue& result,
-                       double (*func)(double));
-    void builtin_f2arg(const llvm::CallInst *callInst, TypedValue& result,
-                       double (*func)(double, double));
-    void builtin_f3arg(const llvm::CallInst *callInst, TypedValue& result,
-                       double (*func)(double, double, double));
-    void builtin_u1arg(const llvm::CallInst *callInst, TypedValue& result,
-                       uint64_t (*func)(uint64_t));
-    void builtin_u2arg(const llvm::CallInst *callInst, TypedValue& result,
-                       uint64_t (*func)(uint64_t, uint64_t));
-    void builtin_u3arg(const llvm::CallInst *callInst, TypedValue& result,
-                       uint64_t (*func)(uint64_t, uint64_t, uint64_t));
-    void builtin_s1arg(const llvm::CallInst *callInst, TypedValue& result,
-                       int64_t (*func)(int64_t));
-    void builtin_s2arg(const llvm::CallInst *callInst, TypedValue& result,
-                       int64_t (*func)(int64_t, int64_t));
-    void builtin_s3arg(const llvm::CallInst *callInst, TypedValue& result,
-                       int64_t (*func)(int64_t, int64_t, int64_t));
-    void builtin_rel1arg(const llvm::CallInst *callInst, TypedValue& result,
-                         int (*func)(double));
-    void builtin_rel2arg(const llvm::CallInst *callInst, TypedValue& result,
-                         int (*func)(double, double));
+    static void builtin_f1arg(WorkItem*, const llvm::CallInst*,
+                              std::string, std::string, TypedValue& result,
+                              double (*func)(double));
+    static void builtin_f2arg(WorkItem*, const llvm::CallInst*,
+                              std::string, std::string, TypedValue& result,
+                              double (*func)(double, double));
+    static void builtin_f3arg(WorkItem*, const llvm::CallInst*,
+                              std::string, std::string, TypedValue& result,
+                              double (*func)(double, double, double));
+    static void builtin_u1arg(WorkItem*, const llvm::CallInst*,
+                              std::string, std::string, TypedValue& result,
+                              uint64_t (*func)(uint64_t));
+    static void builtin_u2arg(WorkItem*, const llvm::CallInst*,
+                              std::string, std::string, TypedValue& result,
+                              uint64_t (*func)(uint64_t, uint64_t));
+    static void builtin_u3arg(WorkItem*, const llvm::CallInst*,
+                              std::string, std::string, TypedValue& result,
+                              uint64_t (*func)(uint64_t, uint64_t, uint64_t));
+    static void builtin_s1arg(WorkItem*, const llvm::CallInst*,
+                              std::string, std::string, TypedValue& result,
+                              int64_t (*func)(int64_t));
+    static void builtin_s2arg(WorkItem*, const llvm::CallInst*,
+                              std::string, std::string, TypedValue& result,
+                              int64_t (*func)(int64_t, int64_t));
+    static void builtin_s3arg(WorkItem*, const llvm::CallInst*,
+                              std::string, std::string, TypedValue& result,
+                              int64_t (*func)(int64_t, int64_t, int64_t));
+    static void builtin_rel1arg(WorkItem*, const llvm::CallInst*,
+                                std::string, std::string, TypedValue& result,
+                                int (*func)(double));
+    static void builtin_rel2arg(WorkItem*, const llvm::CallInst*,
+                                std::string, std::string, TypedValue& result,
+                                int (*func)(double, double));
 
   private:
     size_t m_globalID[3];
@@ -246,45 +259,20 @@ namespace spirsim
     llvm::BasicBlock::const_iterator m_currInst;
     std::stack<ReturnAddress> m_callStack;
     bool m_debugOutput;
+
+    // Data structures for builtin functions
+    typedef struct _BuiltinFunction
+    {
+      void (*func)(WorkItem*, const llvm::CallInst*,
+                   std::string, std::string, TypedValue&, void*);
+      void *op;
+      _BuiltinFunction(){};
+      _BuiltinFunction(void (*f)(WorkItem*, const llvm::CallInst*,
+                       std::string, std::string, TypedValue&, void*),
+                       void *o) : func(f), op(o) {};
+    } BuiltinFunction;
+    static std::list< std::pair<std::string, BuiltinFunction> > prefixBuiltins;
+    static std::map<std::string, BuiltinFunction> builtins;
+    static std::map<std::string, BuiltinFunction> initBuiltins();
   };
 }
-
-double degrees(double x);
-double mix(double x, double y, double a);
-double radians(double x);
-double sign(double x);
-double smoothstep(double edge0, double edge1, double x);
-double step_builtin(double edge, double x);
-
-uint64_t mad(uint64_t, uint64_t, uint64_t);
-uint64_t popcount(uint64_t x);
-uint64_t mul_builtin(uint64_t, uint64_t);
-
-double acospi(double x);
-double asinpi(double x);
-double atanpi(double x);
-double atan2pi(double x, double y);
-double cospi(double x);
-double exp10(double x);
-double fdivide(double x, double y);
-double frecip(double x);
-double maxmag(double x, double y);
-double minmag(double x, double y);
-double rsqrt(double x);
-double sinpi(double x);
-double tanpi(double x);
-
-int isequal_builtin(double x, double y);
-int isnotequal_builtin(double x, double y);
-int isgreater_builtin(double x, double y);
-int isgreaterequal_builtin(double x, double y);
-int isless_builtin(double x, double y);
-int islessequal_builtin(double x, double y);
-int islessgreater_builtin(double x, double y);
-int isfinite_builtin(double x);
-int isinf_builtin(double x);
-int isnan_builtin(double x);
-int isnormal_builtin(double x);
-int isordered_builtin(double x, double y);
-int isunordered_builtin(double x, double y);
-int signbit_builtin(double x);

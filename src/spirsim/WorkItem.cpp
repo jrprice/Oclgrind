@@ -636,7 +636,7 @@ TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
 }
 
 void WorkItem::setFloatResult(TypedValue& result, double val,
-                              unsigned int index) const
+                              unsigned int index)
 {
   if (result.size == sizeof(float))
   {
@@ -653,13 +653,13 @@ void WorkItem::setFloatResult(TypedValue& result, double val,
 }
 
 void WorkItem::setIntResult(TypedValue& result, int64_t val,
-                            unsigned int index) const
+                            unsigned int index)
 {
   memcpy(result.data + index*result.size, &val, result.size);
 }
 
 void WorkItem::setIntResult(TypedValue& result, uint64_t val,
-                            unsigned int index) const
+                            unsigned int index)
 {
   memcpy(result.data + index*result.size, &val, result.size);
 }
@@ -933,244 +933,27 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     return;
   }
 
-#define BUILTIN(str, fn) else if (name == str) \
-  fn(callInst, name, overload, result)
-#define BUILTIN_PREFIX(str, fn) else if (name.compare(0, strlen(str), str) == 0) \
-  fn(callInst, name, overload, result)
-#define BUILTIN_F1ARG(str, fn) else if (name == str) \
-  builtin_f1arg(callInst, result, fn)
-#define BUILTIN_F2ARG(str, fn) else if (name == str) \
-  builtin_f2arg(callInst, result, fn)
-#define BUILTIN_F3ARG(str, fn) else if (name == str) \
-  builtin_f3arg(callInst, result, fn)
-#define BUILTIN_U1ARG(str, fn) else if (name == str) \
-  builtin_u1arg(callInst, result, fn)
-#define BUILTIN_U2ARG(str, fn) else if (name == str) \
-  builtin_u2arg(callInst, result, fn)
-#define BUILTIN_U3ARG(str, fn) else if (name == str) \
-  builtin_u3arg(callInst, result, fn)
-#define BUILTIN_S1ARG(str, fn) else if (name == str) \
-  builtin_s1arg(callInst, result, fn)
-#define BUILTIN_S2ARG(str, fn) else if (name == str) \
-  builtin_s2arg(callInst, result, fn)
-#define BUILTIN_S3ARG(str, fn) else if (name == str) \
-  builtin_s3arg(callInst, result, fn)
-#define BUILTIN_REL1ARG(str, fn) else if (name == str) \
-  builtin_rel1arg(callInst, result, fn)
-#define BUILTIN_REL2ARG(str, fn) else if (name == str) \
-  builtin_rel2arg(callInst, result, fn)
-
-
-  if (false);
-  // Async Copy and Prefetch Functions
-  BUILTIN("async_work_group_copy", async_work_group_copy);
-  BUILTIN("async_work_group_strided_copy", async_work_group_copy);
-  BUILTIN("wait_group_events", wait_group_events);
-  BUILTIN("prefetch", prefetch);
-
-  // Common Functions
-  BUILTIN("clamp", clamp);
-  BUILTIN_F1ARG("degrees", degrees);
-  BUILTIN("max", max);
-  BUILTIN("min", min);
-  BUILTIN_F3ARG("mix", mix);
-  BUILTIN_F1ARG("radians", radians);
-  BUILTIN_F1ARG("sign", sign);
-  BUILTIN_F3ARG("smoothstep", smoothstep);
-  BUILTIN_F2ARG("step", step_builtin);
-
-  // Geometric Functions
-  BUILTIN("cross", cross);
-  BUILTIN("dot", dot);
-  BUILTIN("distance", distance);
-  BUILTIN("length", length);
-  BUILTIN("normalize", normalize);
-  BUILTIN("fast_distance", distance);
-  BUILTIN("fast_length", length);
-  BUILTIN("fast_normalize", normalize);
-
-  // Integer Functions
-  BUILTIN("abs", abs_builtin);
-  BUILTIN("abs_diff", abs_diff);
-  BUILTIN("add_sat", add_sat);
-  BUILTIN("clz", clz);
-  BUILTIN("hadd", hadd);
-  BUILTIN_U3ARG("mad24", mad);
-  BUILTIN("mad_hi", mad_hi);
-  BUILTIN("mad_sat", mad_sat);
-  BUILTIN_U2ARG("mul24", mul_builtin);
-  BUILTIN("mul_hi", mul_hi);
-  BUILTIN_U1ARG("popcount", popcount);
-  BUILTIN("rhadd", rhadd);
-  BUILTIN("rotate", rotate);
-  BUILTIN("sub_sat", sub_sat);
-  BUILTIN("upsample", upsample);
-
-  // Math Functions
-  BUILTIN_F1ARG("acos", acos);
-  BUILTIN_F1ARG("acosh", acosh);
-  BUILTIN_F1ARG("acospi", acospi);
-  BUILTIN_F1ARG("asin", asin);
-  BUILTIN_F1ARG("asinh", asinh);
-  BUILTIN_F1ARG("asinpi", asinpi);
-  BUILTIN_F1ARG("atan", atan);
-  BUILTIN_F2ARG("atan2", atan2);
-  BUILTIN_F1ARG("atanh", atanh);
-  BUILTIN_F1ARG("atanpi", atanpi);
-  BUILTIN_F2ARG("atan2pi", atan2pi);
-  BUILTIN_F1ARG("cbrt", cbrt);
-  BUILTIN_F1ARG("ceil", ceil);
-  BUILTIN_F2ARG("copysign", copysign);
-  BUILTIN_F1ARG("cos", cos);
-  BUILTIN_F1ARG("cosh", cosh);
-  BUILTIN_F1ARG("cospi", cospi);
-  BUILTIN_F1ARG("erfc", erfc);
-  BUILTIN_F1ARG("erf", erf);
-  BUILTIN_F1ARG("exp", exp);
-  BUILTIN_F1ARG("exp2", exp2);
-  BUILTIN_F1ARG("exp10", exp10);
-  BUILTIN_F1ARG("expm1", expm1);
-  BUILTIN_F1ARG("fabs", fabs);
-  BUILTIN_F2ARG("fdim", fdim);
-  BUILTIN_F1ARG("floor", floor);
-  BUILTIN_F3ARG("fma", fma);
-  BUILTIN_F2ARG("fmax", fmax);
-  BUILTIN_F2ARG("fmin", fmin);
-  BUILTIN_F2ARG("fmod", fmod);
-  BUILTIN("fract", fract);
-  BUILTIN("frexp", frexp_builtin);
-  BUILTIN_F2ARG("hypot", hypot);
-  BUILTIN("ilogb", ilogb_builtin);
-  BUILTIN("ldexp", ldexp_builtin);
-  BUILTIN_F1ARG("lgamma", lgamma);
-  BUILTIN("lgamma_r", lgamma_r);
-  BUILTIN_F1ARG("log", log);
-  BUILTIN_F1ARG("log2", log2);
-  BUILTIN_F1ARG("log10", log10);
-  BUILTIN_F1ARG("log1p", log1p);
-  BUILTIN_F1ARG("logb", logb);
-  BUILTIN_F3ARG("mad", fma);
-  BUILTIN_F2ARG("maxmag", maxmag);
-  BUILTIN_F2ARG("minmag", minmag);
-  BUILTIN("modf", modf_builtin);
-  BUILTIN("nan", nan_builtin);
-  BUILTIN_F2ARG("nextafter", nextafter);
-  BUILTIN_F2ARG("pow", pow);
-  BUILTIN("pown", pown);
-  BUILTIN_F2ARG("powr", pow);
-  BUILTIN_F2ARG("remainder", remainder);
-  BUILTIN("remquo", remquo_builtin);
-  BUILTIN_F1ARG("rint", rint);
-  BUILTIN("rootn", rootn);
-  BUILTIN_F1ARG("round", round);
-  BUILTIN_F1ARG("rsqrt", rsqrt);
-  BUILTIN_F1ARG("sin", sin);
-  BUILTIN_F1ARG("sinh", sinh);
-  BUILTIN_F1ARG("sinpi", sinpi);
-  BUILTIN("sincos", sincos);
-  BUILTIN_F1ARG("sqrt", sqrt);
-  BUILTIN_F1ARG("tan", tan);
-  BUILTIN_F1ARG("tanh", tanh);
-  BUILTIN_F1ARG("tanpi", tanpi);
-  BUILTIN_F1ARG("tgamma", tgamma);
-  BUILTIN_F1ARG("trunc", trunc);
-
-  // Native Math Functions
-  BUILTIN_F1ARG("half_cos", cos);
-  BUILTIN_F1ARG("native_cos", cos);
-  BUILTIN_F2ARG("half_divide", fdivide);
-  BUILTIN_F2ARG("native_divide", fdivide);
-  BUILTIN_F1ARG("half_exp", exp);
-  BUILTIN_F1ARG("native_exp", exp);
-  BUILTIN_F1ARG("half_exp2", exp2);
-  BUILTIN_F1ARG("native_exp2", exp2);
-  BUILTIN_F1ARG("half_exp10", exp10);
-  BUILTIN_F1ARG("native_exp10", exp10);
-  BUILTIN_F1ARG("half_log", log);
-  BUILTIN_F1ARG("native_log", log);
-  BUILTIN_F1ARG("half_log2", log2);
-  BUILTIN_F1ARG("native_log2", log2);
-  BUILTIN_F1ARG("half_log10", log10);
-  BUILTIN_F1ARG("native_log10", log10);
-  BUILTIN_F2ARG("half_powr", pow);
-  BUILTIN_F2ARG("native_powr", pow);
-  BUILTIN_F1ARG("half_recip", frecip);
-  BUILTIN_F1ARG("native_recip", frecip);
-  BUILTIN_F1ARG("half_rsqrt", rsqrt);
-  BUILTIN_F1ARG("native_rsqrt", rsqrt);
-  BUILTIN_F1ARG("half_sin", sin);
-  BUILTIN_F1ARG("native_sin", sin);
-  BUILTIN_F1ARG("half_sqrt", sqrt);
-  BUILTIN_F1ARG("native_sqrt", sqrt);
-  BUILTIN_F1ARG("half_tan", tan);
-  BUILTIN_F1ARG("native_tan", tan);
-
-  // Misc. Vector Functions
-  BUILTIN("shuffle", shuffle_builtin);
-  BUILTIN("shuffle2", shuffle2_builtin);
-
-  // Relational Functional
-  BUILTIN("all", all);
-  BUILTIN("any", any);
-  BUILTIN("bitselect", bitselect);
-  BUILTIN_REL2ARG("isequal", isequal_builtin);
-  BUILTIN_REL2ARG("isnotequal", isnotequal_builtin);
-  BUILTIN_REL2ARG("isgreater", isgreater_builtin);
-  BUILTIN_REL2ARG("isgreaterequal", isgreaterequal_builtin);
-  BUILTIN_REL2ARG("isless", isless_builtin);
-  BUILTIN_REL2ARG("islessequal", islessequal_builtin);
-  BUILTIN_REL2ARG("islessgreater", islessgreater_builtin);
-  BUILTIN_REL1ARG("isfinite", isfinite_builtin);
-  BUILTIN_REL1ARG("isinf", isinf_builtin);
-  BUILTIN_REL1ARG("isnan", isnan_builtin);
-  BUILTIN_REL1ARG("isnormal", isnormal_builtin);
-  BUILTIN_REL2ARG("isordered", isordered_builtin);
-  BUILTIN_REL2ARG("isunordered", isunordered_builtin);
-  BUILTIN("select", select_builtin);
-  BUILTIN_REL1ARG("signbit", signbit_builtin);
-
-  // Synchronization Functions
-  BUILTIN("barrier", barrier);
-  BUILTIN("mem_fence", mem_fence);
-  BUILTIN("read_mem_fence", mem_fence);
-  BUILTIN("write_mem_fence", mem_fence);
-
-  // Vector Data Load and Store Functions
-  BUILTIN_PREFIX("vload", vload);
-  BUILTIN_PREFIX("vstore", vstore);
-
-  // Work-Item Functions
-  BUILTIN("get_global_id", get_global_id);
-  BUILTIN("get_global_size", get_global_size);
-  BUILTIN("get_global_offset", get_global_offset);
-  BUILTIN("get_group_id", get_group_id);
-  BUILTIN("get_local_id", get_local_id);
-  BUILTIN("get_local_size", get_local_size);
-  BUILTIN("get_num_groups", get_num_groups);
-  BUILTIN("get_work_dim", get_work_dim);
-
-  // Other Functions
-  BUILTIN_PREFIX("convert_float", convert_float); // Conversion to floats
-  BUILTIN_PREFIX("convert_double", convert_float); // Conversion to doubles
-  BUILTIN_PREFIX("convert_u",     convert_uint);  // Conversion to unsigned integers
-  BUILTIN_PREFIX("convert_",      convert_sint);  // Conversion to signed integers
-  BUILTIN("printf", printf_builtin);
-
-  // LLVM Intrinsics
-  BUILTIN("llvm.dbg.declare", llvm_dbg_declare);
-  BUILTIN("llvm.dbg.value", llvm_dbg_value);
-  BUILTIN("llvm.lifetime.start", llvm_lifetime_start);
-  BUILTIN("llvm.lifetime.end", llvm_lifetime_end);
-  BUILTIN_PREFIX("llvm.memcpy", llvm_memcpy);
-  BUILTIN_PREFIX("llvm.memset", llvm_memset);
-  BUILTIN("llvm.trap", llvm_trap);
-
-  // Function didn't match builtin
-  else
+  // Find builtin function in map
+  map<string,BuiltinFunction>::iterator bItr = builtins.find(name);
+  if (bItr != builtins.end())
   {
-    cerr << "Unhandled direct function call: " << name << endl;
+    bItr->second.func(this, callInst, name, overload, result, bItr->second.op);
+    return;
   }
-  return;
+
+  // Check for builtin with matching prefix
+  list< pair<string, BuiltinFunction> >::iterator pItr;
+  for (pItr = prefixBuiltins.begin(); pItr != prefixBuiltins.end(); pItr++)
+  {
+    if (name.compare(0, pItr->first.length(), pItr->first) == 0)
+    {
+      pItr->second.func(this, callInst, name, overload, result, pItr->second.op);
+      return;
+    }
+  }
+
+  // Function didn't match any builtins
+  cerr << "Unhandled direct function call: " << name << endl;
 }
 
 void WorkItem::extract(const llvm::Instruction& instruction,

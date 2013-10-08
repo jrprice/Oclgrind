@@ -31,19 +31,22 @@
 using namespace spirsim;
 using namespace std;
 
-#define DEFINE_BUILTIN(name)      void WorkItem::name(const llvm::CallInst *callInst, \
-																											std::string fnName,             \
-																											std::string overload,           \
-																											TypedValue& result)
+#define DEFINE_BUILTIN(name)                                              \
+  void WorkItem::name(WorkItem *workItem, const llvm::CallInst *callInst, \
+                      std::string fnName, std::string overload,           \
+                      TypedValue& result, void *)
 #define ARG(i) (callInst->getArgOperand(i))
-#define UARG(i) getUnsignedInt(callInst->getArgOperand(i))
-#define SARG(i) getSignedInt(callInst->getArgOperand(i))
-#define FARG(i) getFloatValue(callInst->getArgOperand(i))
-#define UARGV(i,v) getUnsignedInt(callInst->getArgOperand(i), v)
-#define SARGV(i,v) getSignedInt(callInst->getArgOperand(i), v)
-#define FARGV(i,v) getFloatValue(callInst->getArgOperand(i), v)
+#define UARG(i) workItem->getUnsignedInt(callInst->getArgOperand(i))
+#define SARG(i) workItem->getSignedInt(callInst->getArgOperand(i))
+#define FARG(i) workItem->getFloatValue(callInst->getArgOperand(i))
+#define UARGV(i,v) workItem->getUnsignedInt(callInst->getArgOperand(i), v)
+#define SARGV(i,v) workItem->getSignedInt(callInst->getArgOperand(i), v)
+#define FARGV(i,v) workItem->getFloatValue(callInst->getArgOperand(i), v)
 
-void WorkItem::builtin_f1arg(const llvm::CallInst *callInst,
+void WorkItem::builtin_f1arg(WorkItem *workItem,
+                             const llvm::CallInst *callInst,
+                             string name,
+                             string overload,
                              TypedValue& result,
                              double (*func)(double))
 {
@@ -53,7 +56,10 @@ void WorkItem::builtin_f1arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_f2arg(const llvm::CallInst *callInst,
+void WorkItem::builtin_f2arg(WorkItem *workItem,
+                             const llvm::CallInst *callInst,
+                             string name,
+                             string overload,
                              TypedValue& result,
                              double (*func)(double, double))
 {
@@ -63,7 +69,10 @@ void WorkItem::builtin_f2arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_f3arg(const llvm::CallInst *callInst,
+void WorkItem::builtin_f3arg(WorkItem *workItem,
+                             const llvm::CallInst *callInst,
+                             string name,
+                             string overload,
                              TypedValue& result,
                              double (*func)(double, double, double))
 {
@@ -73,7 +82,10 @@ void WorkItem::builtin_f3arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_u1arg(const llvm::CallInst *callInst,
+void WorkItem::builtin_u1arg(WorkItem *workItem,
+                             const llvm::CallInst *callInst,
+                             string name,
+                             string overload,
                              TypedValue& result,
                              uint64_t (*func)(uint64_t))
 {
@@ -83,7 +95,10 @@ void WorkItem::builtin_u1arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_u2arg(const llvm::CallInst *callInst,
+void WorkItem::builtin_u2arg(WorkItem *workItem,
+                             const llvm::CallInst *callInst,
+                             string name,
+                             string overload,
                              TypedValue& result,
                              uint64_t (*func)(uint64_t, uint64_t))
 {
@@ -93,7 +108,10 @@ void WorkItem::builtin_u2arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_u3arg(const llvm::CallInst *callInst,
+void WorkItem::builtin_u3arg(WorkItem *workItem,
+                             const llvm::CallInst *callInst,
+                             string name,
+                             string overload,
                              TypedValue& result,
                              uint64_t (*func)(uint64_t, uint64_t, uint64_t))
 {
@@ -103,7 +121,10 @@ void WorkItem::builtin_u3arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_s1arg(const llvm::CallInst *callInst,
+void WorkItem::builtin_s1arg(WorkItem *workItem,
+                             const llvm::CallInst *callInst,
+                             string name,
+                             string overload,
                              TypedValue& result,
                              int64_t (*func)(int64_t))
 {
@@ -113,7 +134,10 @@ void WorkItem::builtin_s1arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_s2arg(const llvm::CallInst *callInst,
+void WorkItem::builtin_s2arg(WorkItem *workItem,
+                             const llvm::CallInst *callInst,
+                             string name,
+                             string overload,
                              TypedValue& result,
                              int64_t (*func)(int64_t, int64_t))
 {
@@ -123,7 +147,10 @@ void WorkItem::builtin_s2arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_s3arg(const llvm::CallInst *callInst,
+void WorkItem::builtin_s3arg(WorkItem *workItem,
+                             const llvm::CallInst *callInst,
+                             string name,
+                             string overload,
                              TypedValue& result,
                              int64_t (*func)(int64_t, int64_t, int64_t))
 {
@@ -133,9 +160,12 @@ void WorkItem::builtin_s3arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_rel1arg(const llvm::CallInst *callInst,
-                             TypedValue& result,
-                             int (*func)(double))
+void WorkItem::builtin_rel1arg(WorkItem *workItem,
+                               const llvm::CallInst *callInst,
+                               string name,
+                               string overload,
+                               TypedValue& result,
+                               int (*func)(double))
 {
   int t = result.num > 1 ? -1 : 1;
   for (int i = 0; i < result.num; i++)
@@ -144,9 +174,12 @@ void WorkItem::builtin_rel1arg(const llvm::CallInst *callInst,
   }
 }
 
-void WorkItem::builtin_rel2arg(const llvm::CallInst *callInst,
-                             TypedValue& result,
-                             int (*func)(double, double))
+void WorkItem::builtin_rel2arg(WorkItem *workItem,
+                               const llvm::CallInst *callInst,
+                               string name,
+                               string overload,
+                               TypedValue& result,
+                               int (*func)(double, double))
 {
   int t = result.num > 1 ? -1 : 1;
   for (int i = 0; i < result.num; i++)
@@ -179,8 +212,8 @@ DEFINE_BUILTIN(async_work_group_copy)
   // Get src/dest addresses
   const llvm::Value *destOp = ARG(arg++);
   const llvm::Value *srcOp = ARG(arg++);
-  size_t dest = *(size_t*)(m_privateMemory[destOp].data);
-  size_t src = *(size_t*)(m_privateMemory[srcOp].data);
+  size_t dest = *(size_t*)(workItem->m_privateMemory[destOp].data);
+  size_t src = *(size_t*)(workItem->m_privateMemory[srcOp].data);
 
   // Get size of copy
   size_t elemSize = getTypeSize(destOp->getType()->getPointerElementType());
@@ -221,7 +254,7 @@ DEFINE_BUILTIN(async_work_group_copy)
     srcStride,
     destStride
   };
-  event = m_workGroup.async_copy(copy, event);
+  event = workItem->m_workGroup.async_copy(copy, event);
   setIntResult(result, event);
 }
 
@@ -229,21 +262,22 @@ DEFINE_BUILTIN(wait_group_events)
 {
   uint64_t num = UARG(0);
   const llvm::Value *ptrOp = ARG(1);
-  size_t address = *(size_t*)(m_privateMemory[ptrOp].data);
+  size_t address = *(size_t*)(workItem->m_privateMemory[ptrOp].data);
   for (int i = 0; i < num; i++)
   {
     // TODO: Can we safely assume this is private/stack data?
     uint64_t event;
-    if (!m_stack->load((unsigned char*)&event, address, sizeof(uint64_t)))
+    if (!workItem->m_stack->load((unsigned char*)&event,
+                                 address, sizeof(uint64_t)))
     {
-      outputMemoryError(*callInst, "Invalid read", AddrSpacePrivate,
-                        address, sizeof(uint64_t));
+      workItem->outputMemoryError(*callInst, "Invalid read", AddrSpacePrivate,
+                            address, sizeof(uint64_t));
       return;
     }
-    m_workGroup.wait_event(event);
+    workItem->m_workGroup.wait_event(event);
     address += sizeof(uint64_t);
   }
-  m_state = WAIT_EVENT;
+  workItem->m_state = WAIT_EVENT;
 }
 
 DEFINE_BUILTIN(prefetch)
@@ -302,19 +336,19 @@ DEFINE_BUILTIN(clamp)
   {
     case 'f':
     case 'd':
-      builtin_f3arg(callInst, result, _clamp);
+      builtin_f3arg(workItem, callInst, fnName, overload, result, _clamp);
       break;
     case 'h':
     case 't':
     case 'j':
     case 'm':
-      builtin_u3arg(callInst, result, _clamp);
+      builtin_u3arg(workItem, callInst, fnName, overload, result, _clamp);
       break;
     case 'c':
     case 's':
     case 'i':
     case 'l':
-      builtin_s3arg(callInst, result, _clamp);
+      builtin_s3arg(workItem, callInst, fnName, overload, result, _clamp);
       break;
     default:
       assert(false);
@@ -327,19 +361,19 @@ DEFINE_BUILTIN(max)
   {
     case 'f':
     case 'd':
-      builtin_f2arg(callInst, result, fmax);
+      builtin_f2arg(workItem, callInst, fnName, overload, result, fmax);
       break;
     case 'h':
     case 't':
     case 'j':
     case 'm':
-      builtin_u2arg(callInst, result, _max);
+      builtin_u2arg(workItem, callInst, fnName, overload, result, _max);
       break;
     case 'c':
     case 's':
     case 'i':
     case 'l':
-      builtin_s2arg(callInst, result, _max);
+      builtin_s2arg(workItem, callInst, fnName, overload, result, _max);
       break;
     default:
       assert(false);
@@ -352,19 +386,19 @@ DEFINE_BUILTIN(min)
   {
     case 'f':
     case 'd':
-      builtin_f2arg(callInst, result, fmin);
+      builtin_f2arg(workItem, callInst, fnName, overload, result, fmin);
       break;
     case 'h':
     case 't':
     case 'j':
     case 'm':
-      builtin_u2arg(callInst, result, _min);
+      builtin_u2arg(workItem, callInst, fnName, overload, result, _min);
       break;
     case 'c':
     case 's':
     case 'i':
     case 'l':
-      builtin_s2arg(callInst, result, _min);
+      builtin_s2arg(workItem, callInst, fnName, overload, result, _min);
       break;
     default:
       assert(false);
@@ -691,13 +725,19 @@ DEFINE_BUILTIN(mad_hi)
     case 't':
     case 'j':
     case 'm':
-      setIntResult(result, umul_hi(UARGV(0, i), UARGV(1, i), result.size<<3) + UARGV(2, i), i);
+      setIntResult(result,
+                   umul_hi(UARGV(0, i), UARGV(1, i),
+                           result.size<<3) + UARGV(2, i),
+                   i);
       break;
     case 'c':
     case 's':
     case 'i':
     case 'l':
-      setIntResult(result, smul_hi(SARGV(0, i), SARGV(1, i), result.size<<3) + SARGV(2, i), i);
+      setIntResult(result,
+                   smul_hi(SARGV(0, i), SARGV(1, i),
+                           result.size<<3) + SARGV(2, i),
+                   i);
       break;
     default:
       assert(false);
@@ -976,13 +1016,16 @@ DEFINE_BUILTIN(fract)
     switch (ARG(1)->getType()->getPointerAddressSpace())
     {
       case AddrSpacePrivate:
-        m_stack->store(result.data + offset, iptr + offset, result.size);
+        workItem->m_stack->store(result.data + offset,
+                                 iptr + offset, result.size);
         break;
       case AddrSpaceGlobal:
-        m_globalMemory.store(result.data + offset, iptr + offset, result.size);
+        workItem->m_globalMemory.store(result.data + offset,
+                                       iptr + offset, result.size);
         break;
       case AddrSpaceLocal:
-        m_workGroup.getLocalMemory()->store(result.data + offset, iptr + offset, result.size);
+        workItem->m_workGroup.getLocalMemory()->store(
+          result.data + offset,iptr + offset, result.size);
         break;
     }
 
@@ -1000,13 +1043,14 @@ DEFINE_BUILTIN(frexp_builtin)
     switch (ARG(1)->getType()->getPointerAddressSpace())
     {
       case AddrSpacePrivate:
-        m_stack->store((const unsigned char*)&e, iptr + i*4, 4);
+        workItem->m_stack->store((const unsigned char*)&e, iptr + i*4, 4);
         break;
       case AddrSpaceGlobal:
-        m_globalMemory.store((const unsigned char*)&e, iptr + i*4, 4);
+        workItem->m_globalMemory.store((const unsigned char*)&e, iptr + i*4, 4);
         break;
       case AddrSpaceLocal:
-        m_workGroup.getLocalMemory()->store((const unsigned char*)&e, iptr + i*4, 4);
+        workItem->m_workGroup.getLocalMemory()->store(
+          (const unsigned char*)&e, iptr + i*4, 4);
         break;
     }
 
@@ -1040,13 +1084,14 @@ DEFINE_BUILTIN(lgamma_r)
     switch (ARG(1)->getType()->getPointerAddressSpace())
     {
       case AddrSpacePrivate:
-        m_stack->store((const unsigned char*)&s, signp + i*4, 4);
+        workItem->m_stack->store((const unsigned char*)&s, signp + i*4, 4);
         break;
       case AddrSpaceGlobal:
-        m_globalMemory.store((const unsigned char*)&s, signp + i*4, 4);
+        workItem->m_globalMemory.store((const unsigned char*)&s, signp + i*4, 4);
         break;
       case AddrSpaceLocal:
-        m_workGroup.getLocalMemory()->store((const unsigned char*)&s, signp + i*4, 4);
+        workItem->m_workGroup.getLocalMemory()->store(
+          (const unsigned char*)&s, signp + i*4, 4);
         break;
     }
 
@@ -1068,14 +1113,16 @@ DEFINE_BUILTIN(modf_builtin)
     switch (ARG(1)->getType()->getPointerAddressSpace())
     {
       case AddrSpacePrivate:
-        m_stack->store(result.data + offset, iptr + offset, result.size);
+        workItem->m_stack->store(result.data + offset,
+                                 iptr + offset, result.size);
         break;
       case AddrSpaceGlobal:
-        m_globalMemory.store(result.data + offset, iptr + offset, result.size);
+        workItem->m_globalMemory.store(result.data + offset,
+                                       iptr + offset, result.size);
         break;
       case AddrSpaceLocal:
-        m_workGroup.getLocalMemory()->store(result.data + offset,
-                                            iptr + offset, result.size);
+        workItem->m_workGroup.getLocalMemory()->store(
+          result.data + offset, iptr + offset, result.size);
         break;
     }
 
@@ -1116,13 +1163,15 @@ DEFINE_BUILTIN(remquo_builtin)
     switch (ARG(2)->getType()->getPointerAddressSpace())
     {
       case AddrSpacePrivate:
-        m_stack->store((const unsigned char*)&quo, quop + i*4, 4);
+        workItem->m_stack->store((const unsigned char*)&quo, quop + i*4, 4);
         break;
       case AddrSpaceGlobal:
-        m_globalMemory.store((const unsigned char*)&quo, quop + i*4, 4);
+        workItem->m_globalMemory.store((const unsigned char*)&quo,
+                                       quop + i*4, 4);
         break;
       case AddrSpaceLocal:
-        m_workGroup.getLocalMemory()->store((const unsigned char*)&quo, quop + i*4, 4);
+        workItem->m_workGroup.getLocalMemory()->store(
+          (const unsigned char*)&quo, quop + i*4, 4);
         break;
     }
 
@@ -1152,14 +1201,16 @@ DEFINE_BUILTIN(sincos)
     switch (ARG(1)->getType()->getPointerAddressSpace())
     {
       case AddrSpacePrivate:
-        m_stack->store(result.data + offset, cv + offset, result.size);
+        workItem->m_stack->store(result.data + offset,
+                                 cv + offset, result.size);
         break;
       case AddrSpaceGlobal:
-        m_globalMemory.store(result.data + offset, cv + offset, result.size);
+        workItem->m_globalMemory.store(result.data + offset,
+                                       cv + offset, result.size);
         break;
       case AddrSpaceLocal:
-        m_workGroup.getLocalMemory()->store(result.data + offset,
-                                            cv + offset, result.size);
+        workItem->m_workGroup.getLocalMemory()->store(
+          result.data + offset, cv + offset, result.size);
         break;
     }
 
@@ -1279,7 +1330,7 @@ DEFINE_BUILTIN(bitselect)
   {
     case 'f':
     case 'd':
-      builtin_f3arg(callInst, result, fbitselect);
+      builtin_f3arg(workItem, callInst, fnName, overload, result, fbitselect);
       break;
     case 'h':
     case 't':
@@ -1289,7 +1340,7 @@ DEFINE_BUILTIN(bitselect)
     case 's':
     case 'i':
     case 'l':
-      builtin_u3arg(callInst, result, ibitselect);
+      builtin_u3arg(workItem, callInst, fnName, overload, result, ibitselect);
       break;
     default:
       assert(false);
@@ -1332,7 +1383,7 @@ DEFINE_BUILTIN(select_builtin)
 
 DEFINE_BUILTIN(barrier)
 {
-	m_state = BARRIER;
+  workItem->m_state = BARRIER;
 }
 
 DEFINE_BUILTIN(mem_fence)
@@ -1348,7 +1399,7 @@ DEFINE_BUILTIN(mem_fence)
 DEFINE_BUILTIN(vload)
 {
   const llvm::Value *ptrOp = ARG(1);
-  size_t base = *(size_t*)(m_privateMemory[ptrOp].data);
+  size_t base = *(size_t*)(workItem->m_privateMemory[ptrOp].data);
   uint64_t offset = UARG(0);
 
   unsigned addressSpace = atoi(overload.substr(overload.length()-2).c_str());
@@ -1357,14 +1408,14 @@ DEFINE_BUILTIN(vload)
   switch (addressSpace)
   {
   case AddrSpacePrivate:
-    memory = m_stack;
+    memory = workItem->m_stack;
     break;
   case AddrSpaceGlobal:
   case AddrSpaceConstant:
-    memory = &m_globalMemory;
+    memory = &workItem->m_globalMemory;
     break;
   case AddrSpaceLocal:
-    memory = m_workGroup.getLocalMemory();
+    memory = workItem->m_workGroup.getLocalMemory();
     break;
   default:
     cerr << "Unhandled address space '" << addressSpace << "'" << endl;
@@ -1375,9 +1426,9 @@ DEFINE_BUILTIN(vload)
                     base + offset*result.size*result.num,
                     result.size*result.num))
   {
-    outputMemoryError(*callInst, "Invalid read",
-                      addressSpace, base + offset*result.size*result.num,
-                      result.size*result.num);
+    workItem->outputMemoryError(*callInst, "Invalid read",
+                          addressSpace, base + offset*result.size*result.num,
+                          result.size*result.num);
   }
 }
 
@@ -1399,12 +1450,12 @@ DEFINE_BUILTIN(vstore)
   }
   else
   {
-    memcpy(data, m_privateMemory[value].data, size);
+    memcpy(data, workItem->m_privateMemory[value].data, size);
   }
   uint64_t offset = UARG(1);
 
   const llvm::Value *ptrOp = ARG(2);
-  size_t base = *(size_t*)(m_privateMemory[ptrOp].data);
+  size_t base = *(size_t*)(workItem->m_privateMemory[ptrOp].data);
 
   unsigned addressSpace = atoi(overload.substr(overload.length()-2).c_str());
 
@@ -1412,14 +1463,14 @@ DEFINE_BUILTIN(vstore)
   switch (addressSpace)
   {
   case AddrSpacePrivate:
-    memory = m_stack;
+    memory = workItem->m_stack;
     break;
   case AddrSpaceGlobal:
   case AddrSpaceConstant:
-    memory = &m_globalMemory;
+    memory = &workItem->m_globalMemory;
     break;
   case AddrSpaceLocal:
-    memory = m_workGroup.getLocalMemory();
+    memory = workItem->m_workGroup.getLocalMemory();
     break;
   default:
     cerr << "Unhandled address space '" << addressSpace << "'" << endl;
@@ -1428,8 +1479,8 @@ DEFINE_BUILTIN(vstore)
 
   if (!memory->store(data, base + offset*size, size))
   {
-    outputMemoryError(*callInst, "Invalid write",
-                      addressSpace, base + offset*size, size);
+    workItem->outputMemoryError(*callInst, "Invalid write",
+                          addressSpace, base + offset*size, size);
   }
   delete[] data;
 }
@@ -1441,57 +1492,58 @@ DEFINE_BUILTIN(vstore)
 
 DEFINE_BUILTIN(get_global_id)
 {
-	uint64_t dim = UARG(0);
+  uint64_t dim = UARG(0);
   assert(dim < 3);
-  *((size_t*)result.data) = m_globalID[dim];
+  *((size_t*)result.data) = workItem->m_globalID[dim];
 }
 
 DEFINE_BUILTIN(get_global_size)
 {
   uint64_t dim = UARG(0);
   assert(dim < 3);
-  *((size_t*)result.data) = m_workGroup.getGlobalSize()[dim];
+  *((size_t*)result.data) = workItem->m_workGroup.getGlobalSize()[dim];
 }
 
 DEFINE_BUILTIN(get_global_offset)
 {
   uint64_t dim = UARG(0);
   assert(dim < 3);
-  *((size_t*)result.data) = m_workGroup.getGlobalOffset()[dim];
+  *((size_t*)result.data) = workItem->m_workGroup.getGlobalOffset()[dim];
 }
 
 DEFINE_BUILTIN(get_group_id)
 {
   uint64_t dim = UARG(0);
   assert(dim < 3);
-  *((size_t*)result.data) = m_workGroup.getGroupID()[dim];
+  *((size_t*)result.data) = workItem->m_workGroup.getGroupID()[dim];
 }
 
 DEFINE_BUILTIN(get_local_id)
 {
   uint64_t dim = UARG(0);
   assert(dim < 3);
-  *((size_t*)result.data) = m_localID[dim];
+  *((size_t*)result.data) = workItem->m_localID[dim];
 }
 
 DEFINE_BUILTIN(get_local_size)
 {
   uint64_t dim = UARG(0);
   assert(dim < 3);
-  *((size_t*)result.data) = m_workGroup.getGroupSize()[dim];
+  *((size_t*)result.data) = workItem->m_workGroup.getGroupSize()[dim];
 }
 
 DEFINE_BUILTIN(get_num_groups)
 {
   uint64_t dim = UARG(0);
   assert(dim < 3);
-  size_t num = m_workGroup.getGlobalSize()[dim] / m_workGroup.getGroupSize()[dim];
+  size_t num = workItem->m_workGroup.getGlobalSize()[dim] /
+               workItem->m_workGroup.getGroupSize()[dim];
   *((size_t*)result.data) = num;
 }
 
 DEFINE_BUILTIN(get_work_dim)
 {
-  *((uint*)result.data) = m_workGroup.getWorkDim();
+  *((uint*)result.data) = workItem->m_workGroup.getWorkDim();
 }
 
 
@@ -1586,14 +1638,14 @@ DEFINE_BUILTIN(convert_sint)
 DEFINE_BUILTIN(printf_builtin)
 {
   const llvm::ConstantExpr *formatExpr = (llvm::ConstantExpr*)ARG(0);
-  TypedValue formatPtrData = resolveConstExpr(formatExpr);
+  TypedValue formatPtrData = workItem->resolveConstExpr(formatExpr);
   size_t formatPtr = *(size_t*)formatPtrData.data;
 
   int arg = 1;
   while (true)
   {
     char c;
-    m_globalMemory.load((unsigned char*)&c, formatPtr++);
+    workItem->m_globalMemory.load((unsigned char*)&c, formatPtr++);
     if (c == '\0')
     {
       break;
@@ -1604,7 +1656,7 @@ DEFINE_BUILTIN(printf_builtin)
       string format = "%";
       while (true)
       {
-        m_globalMemory.load((unsigned char*)&c, formatPtr++);
+        workItem->m_globalMemory.load((unsigned char*)&c, formatPtr++);
         if (c == '\0')
         {
           cout << format;
@@ -1672,7 +1724,7 @@ DEFINE_BUILTIN(llvm_dbg_declare)
 
 DEFINE_BUILTIN(llvm_dbg_value)
 {
-  updateVariable((const llvm::DbgValueInst*)callInst);
+  workItem->updateVariable((const llvm::DbgValueInst*)callInst);
 }
 
 DEFINE_BUILTIN(llvm_lifetime_start)
@@ -1687,25 +1739,25 @@ DEFINE_BUILTIN(llvm_lifetime_end)
 
 DEFINE_BUILTIN(llvm_memcpy)
 {
-  const llvm::MemCpyInst *memcpyInst = (const llvm::MemCpyInst*)callInst;
-  size_t dest = *(size_t*)(m_privateMemory[memcpyInst->getDest()].data);
-  size_t src = *(size_t*)(m_privateMemory[memcpyInst->getSource()].data);
-  size_t size = getUnsignedInt(memcpyInst->getLength());
-  unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
-  unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
+  const llvm::MemCpyInst *cpyInst = (const llvm::MemCpyInst*)callInst;
+  size_t dest = *(size_t*)(workItem->m_privateMemory[cpyInst->getDest()].data);
+  size_t src = *(size_t*)(workItem->m_privateMemory[cpyInst->getSource()].data);
+  size_t size = workItem->getUnsignedInt(cpyInst->getLength());
+  unsigned destAddrSpace = cpyInst->getDestAddressSpace();
+  unsigned srcAddrSpace = cpyInst->getSourceAddressSpace();
 
   Memory *destMemory = NULL;
   switch (destAddrSpace)
   {
   case AddrSpacePrivate:
-    destMemory = m_stack;
+    destMemory = workItem->m_stack;
     break;
   case AddrSpaceGlobal:
   case AddrSpaceConstant:
-    destMemory = &m_globalMemory;
+    destMemory = &workItem->m_globalMemory;
     break;
   case AddrSpaceLocal:
-    destMemory = m_workGroup.getLocalMemory();
+    destMemory = workItem->m_workGroup.getLocalMemory();
     break;
   default:
     cerr << "Unhandled address space '" << destAddrSpace << "'" << endl;
@@ -1716,14 +1768,14 @@ DEFINE_BUILTIN(llvm_memcpy)
   switch (srcAddrSpace)
   {
   case AddrSpacePrivate:
-    srcMemory = m_stack;
+    srcMemory = workItem->m_stack;
     break;
   case AddrSpaceGlobal:
   case AddrSpaceConstant:
-    srcMemory = &m_globalMemory;
+    srcMemory = &workItem->m_globalMemory;
     break;
   case AddrSpaceLocal:
-    srcMemory = m_workGroup.getLocalMemory();
+    srcMemory = workItem->m_workGroup.getLocalMemory();
     break;
   default:
     cerr << "Unhandled address space '" << srcAddrSpace << "'" << endl;
@@ -1733,36 +1785,36 @@ DEFINE_BUILTIN(llvm_memcpy)
   unsigned char *buffer = new unsigned char[size];
   if (!srcMemory->load(buffer, src, size))
   {
-    outputMemoryError(*callInst, "Invalid read",
-                      srcAddrSpace, src, size);
+    workItem->outputMemoryError(*callInst, "Invalid read",
+                          srcAddrSpace, src, size);
   }
   else if (!destMemory->store(buffer, dest, size))
   {
-    outputMemoryError(*callInst, "Invalid write",
-                      destAddrSpace, dest, size);
+    workItem->outputMemoryError(*callInst, "Invalid write",
+                          destAddrSpace, dest, size);
   }
   delete[] buffer;
 }
 
 DEFINE_BUILTIN(llvm_memset)
 {
-  const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)callInst;
-  size_t dest = *(size_t*)(m_privateMemory[memsetInst->getDest()].data);
-  size_t size = getUnsignedInt(memsetInst->getLength());
-  unsigned addressSpace = memsetInst->getDestAddressSpace();
+  const llvm::MemSetInst *setInst = (const llvm::MemSetInst*)callInst;
+  size_t dest = *(size_t*)(workItem->m_privateMemory[setInst->getDest()].data);
+  size_t size = workItem->getUnsignedInt(setInst->getLength());
+  unsigned addressSpace = setInst->getDestAddressSpace();
 
   Memory *mem = NULL;
   switch (addressSpace)
   {
   case AddrSpacePrivate:
-    mem = m_stack;
+    mem = workItem->m_stack;
     break;
   case AddrSpaceGlobal:
   case AddrSpaceConstant:
-    mem = &m_globalMemory;
+    mem = &workItem->m_globalMemory;
     break;
   case AddrSpaceLocal:
-    mem = m_workGroup.getLocalMemory();
+    mem = workItem->m_workGroup.getLocalMemory();
     break;
   default:
     cerr << "Unhandled address space '" << addressSpace << "'" << endl;
@@ -1770,17 +1822,240 @@ DEFINE_BUILTIN(llvm_memset)
   }
 
   unsigned char *buffer = new unsigned char[size];
-  unsigned char value = getUnsignedInt(memsetInst->getArgOperand(1));
+  unsigned char value = workItem->getUnsignedInt(setInst->getArgOperand(1));
   memset(buffer, value, size);
   if (!mem->store(buffer, dest, size))
   {
-    outputMemoryError(*callInst, "Invalid write",
-                      addressSpace, dest, size);
+    workItem->outputMemoryError(*callInst, "Invalid write",
+                          addressSpace, dest, size);
   }
   delete[] buffer;
 }
 
 DEFINE_BUILTIN(llvm_trap)
 {
-  trap();
+  workItem->trap();
+}
+
+// Generate builtin function map
+#define BUILTIN_CAST                        \
+  void(*)(WorkItem*, const llvm::CallInst*, \
+  std::string, std::string, TypedValue& result, void*)
+#define F1ARG(name) (double(*)(double))name
+#define F2ARG(name) (double(*)(double,double))name
+#define ADD_BUILTIN(name, func, op)         \
+  builtins[name] = BuiltinFunction((BUILTIN_CAST)func, (void*)op);
+#define ADD_PREFIX_BUILTIN(name, func, op)  \
+  prefixBuiltins.push_back(                 \
+    make_pair(name, BuiltinFunction((BUILTIN_CAST)func, (void*)op)));
+list< pair<string, WorkItem::BuiltinFunction> > WorkItem::prefixBuiltins;
+map<string, WorkItem::BuiltinFunction> WorkItem::builtins = initBuiltins();
+map<string, WorkItem::BuiltinFunction> WorkItem::initBuiltins()
+{
+  map<string, BuiltinFunction> builtins;
+
+  // Async Copy and Prefetch Functions
+  ADD_BUILTIN("async_work_group_copy", async_work_group_copy, NULL);
+  ADD_BUILTIN("async_work_group_strided_copy", async_work_group_copy, NULL);
+  ADD_BUILTIN("wait_group_events", wait_group_events, NULL);
+  ADD_BUILTIN("prefetch", prefetch, NULL);
+
+  // Common Functions
+  ADD_BUILTIN("clamp", clamp, NULL);
+  ADD_BUILTIN("degrees", builtin_f1arg, degrees);
+  ADD_BUILTIN("max", max, NULL);
+  ADD_BUILTIN("min", min, NULL);
+  ADD_BUILTIN("mix", builtin_f3arg, mix);
+  ADD_BUILTIN("radians", builtin_f1arg, radians);
+  ADD_BUILTIN("sign", builtin_f1arg, sign);
+  ADD_BUILTIN("smoothstep", builtin_f3arg, smoothstep);
+  ADD_BUILTIN("step", builtin_f2arg, step_builtin);
+
+  // Geometric Functions
+  ADD_BUILTIN("cross", cross, NULL);
+  ADD_BUILTIN("dot", dot, NULL);
+  ADD_BUILTIN("distance", distance, NULL);
+  ADD_BUILTIN("length", length, NULL);
+  ADD_BUILTIN("normalize", normalize, NULL);
+  ADD_BUILTIN("fast_distance", distance, NULL);
+  ADD_BUILTIN("fast_length", length, NULL);
+  ADD_BUILTIN("fast_normalize", normalize, NULL);
+
+  // Integer Functions
+  ADD_BUILTIN("abs", abs_builtin, NULL);
+  ADD_BUILTIN("abs_diff", abs_diff, NULL);
+  ADD_BUILTIN("add_sat", add_sat, NULL);
+  ADD_BUILTIN("clz", clz, NULL);
+  ADD_BUILTIN("hadd", hadd, NULL);
+  ADD_BUILTIN("mad24", builtin_u3arg, mad);
+  ADD_BUILTIN("mad_hi", mad_hi, NULL);
+  ADD_BUILTIN("mad_sat", mad_sat, NULL);
+  ADD_BUILTIN("mul24", builtin_u2arg, mul_builtin);
+  ADD_BUILTIN("mul_hi", mul_hi, NULL);
+  ADD_BUILTIN("popcount", builtin_u1arg, popcount);
+  ADD_BUILTIN("rhadd", rhadd, NULL);
+  ADD_BUILTIN("rotate", rotate, NULL);
+  ADD_BUILTIN("sub_sat", sub_sat, NULL);
+  ADD_BUILTIN("upsample", upsample, NULL);
+
+  // Math Functions
+  ADD_BUILTIN("acos", builtin_f1arg, F1ARG(acos));
+  ADD_BUILTIN("acosh", builtin_f1arg, acosh);
+  ADD_BUILTIN("acospi", builtin_f1arg, acospi);
+  ADD_BUILTIN("asin", builtin_f1arg, F1ARG(asin));
+  ADD_BUILTIN("asinh", builtin_f1arg, asinh);
+  ADD_BUILTIN("asinpi", builtin_f1arg, asinpi);
+  ADD_BUILTIN("atan", builtin_f1arg, F1ARG(atan));
+  ADD_BUILTIN("atan2", builtin_f2arg, F2ARG(atan2));
+  ADD_BUILTIN("atanh", builtin_f1arg, atanh);
+  ADD_BUILTIN("atanpi", builtin_f1arg, atanpi);
+  ADD_BUILTIN("atan2pi", builtin_f2arg, atan2pi);
+  ADD_BUILTIN("cbrt", builtin_f1arg, cbrt);
+  ADD_BUILTIN("ceil", builtin_f1arg, F1ARG(ceil));
+  ADD_BUILTIN("copysign", builtin_f2arg, copysign);
+  ADD_BUILTIN("cos", builtin_f1arg, F1ARG(cos));
+  ADD_BUILTIN("cosh", builtin_f1arg, F1ARG(cosh));
+  ADD_BUILTIN("cospi", builtin_f1arg, cospi);
+  ADD_BUILTIN("erfc", builtin_f1arg, erfc);
+  ADD_BUILTIN("erf", builtin_f1arg, erf);
+  ADD_BUILTIN("exp", builtin_f1arg, F1ARG(exp));
+  ADD_BUILTIN("exp2", builtin_f1arg, exp2);
+  ADD_BUILTIN("exp10", builtin_f1arg, exp10);
+  ADD_BUILTIN("expm1", builtin_f1arg, expm1);
+  ADD_BUILTIN("fabs", builtin_f1arg, F1ARG(fabs));
+  ADD_BUILTIN("fdim", builtin_f2arg, fdim);
+  ADD_BUILTIN("floor", builtin_f1arg, F1ARG(floor));
+  ADD_BUILTIN("fma", builtin_f3arg, fma);
+  ADD_BUILTIN("fmax", builtin_f2arg, fmax);
+  ADD_BUILTIN("fmin", builtin_f2arg, fmin);
+  ADD_BUILTIN("fmod", builtin_f2arg, F2ARG(fmod));
+  ADD_BUILTIN("fract", fract, NULL);
+  ADD_BUILTIN("frexp", frexp_builtin, NULL);
+  ADD_BUILTIN("hypot", builtin_f2arg, hypot);
+  ADD_BUILTIN("ilogb", ilogb_builtin, NULL);
+  ADD_BUILTIN("ldexp", ldexp_builtin, NULL);
+  ADD_BUILTIN("lgamma", builtin_f1arg, lgamma);
+  ADD_BUILTIN("lgamma_r", lgamma_r, NULL);
+  ADD_BUILTIN("log", builtin_f1arg, F1ARG(log));
+  ADD_BUILTIN("log2", builtin_f1arg, F1ARG(log2));
+  ADD_BUILTIN("log10", builtin_f1arg, F1ARG(log10));
+  ADD_BUILTIN("log1p", builtin_f1arg, log1p);
+  ADD_BUILTIN("logb", builtin_f1arg, logb);
+  ADD_BUILTIN("mad", builtin_f3arg, fma);
+  ADD_BUILTIN("maxmag", builtin_f2arg, maxmag);
+  ADD_BUILTIN("minmag", builtin_f2arg, minmag);
+  ADD_BUILTIN("modf", modf_builtin, NULL);
+  ADD_BUILTIN("nan", nan_builtin, NULL);
+  ADD_BUILTIN("nextafter", builtin_f2arg, nextafter);
+  ADD_BUILTIN("pow", builtin_f2arg, F2ARG(pow));
+  ADD_BUILTIN("pown", pown, NULL);
+  ADD_BUILTIN("powr", builtin_f2arg, F2ARG(pow));
+  ADD_BUILTIN("remainder", builtin_f2arg, remainder);
+  ADD_BUILTIN("remquo", remquo_builtin, NULL);
+  ADD_BUILTIN("rint", builtin_f1arg, rint);
+  ADD_BUILTIN("rootn", rootn, NULL);
+  ADD_BUILTIN("round", builtin_f1arg, round);
+  ADD_BUILTIN("rsqrt", builtin_f1arg, rsqrt);
+  ADD_BUILTIN("sin", builtin_f1arg, F1ARG(sin));
+  ADD_BUILTIN("sinh", builtin_f1arg, F1ARG(sinh));
+  ADD_BUILTIN("sinpi", builtin_f1arg, sinpi);
+  ADD_BUILTIN("sincos", sincos, NULL);
+  ADD_BUILTIN("sqrt", builtin_f1arg, F1ARG(sqrt));
+  ADD_BUILTIN("tan", builtin_f1arg, F1ARG(tan));
+  ADD_BUILTIN("tanh", builtin_f1arg, F1ARG(tanh));
+  ADD_BUILTIN("tanpi", builtin_f1arg, tanpi);
+  ADD_BUILTIN("tgamma", builtin_f1arg, tgamma);
+  ADD_BUILTIN("trunc", builtin_f1arg, trunc);
+
+  // Native Math Functions
+  ADD_BUILTIN("half_cos", builtin_f1arg, F1ARG(cos));
+  ADD_BUILTIN("native_cos", builtin_f1arg, F1ARG(cos));
+  ADD_BUILTIN("half_divide", builtin_f2arg, fdivide);
+  ADD_BUILTIN("native_divide", builtin_f2arg, fdivide);
+  ADD_BUILTIN("half_exp", builtin_f1arg, F1ARG(exp));
+  ADD_BUILTIN("native_exp", builtin_f1arg, F1ARG(exp));
+  ADD_BUILTIN("half_exp2", builtin_f1arg, exp2);
+  ADD_BUILTIN("native_exp2", builtin_f1arg, exp2);
+  ADD_BUILTIN("half_exp10", builtin_f1arg, exp10);
+  ADD_BUILTIN("native_exp10", builtin_f1arg, exp10);
+  ADD_BUILTIN("half_log", builtin_f1arg, F1ARG(log));
+  ADD_BUILTIN("native_log", builtin_f1arg, F1ARG(log));
+  ADD_BUILTIN("half_log2", builtin_f1arg, log2);
+  ADD_BUILTIN("native_log2", builtin_f1arg, log2);
+  ADD_BUILTIN("half_log10", builtin_f1arg, F1ARG(log10));
+  ADD_BUILTIN("native_log10", builtin_f1arg, F1ARG(log10));
+  ADD_BUILTIN("half_powr", builtin_f2arg, F2ARG(pow));
+  ADD_BUILTIN("native_powr", builtin_f2arg, F2ARG(pow));
+  ADD_BUILTIN("half_recip", builtin_f1arg, frecip);
+  ADD_BUILTIN("native_recip", builtin_f1arg, frecip);
+  ADD_BUILTIN("half_rsqrt", builtin_f1arg, rsqrt);
+  ADD_BUILTIN("native_rsqrt", builtin_f1arg, rsqrt);
+  ADD_BUILTIN("half_sin", builtin_f1arg, F1ARG(sin));
+  ADD_BUILTIN("native_sin", builtin_f1arg, F1ARG(sin));
+  ADD_BUILTIN("half_sqrt", builtin_f1arg, F1ARG(sqrt));
+  ADD_BUILTIN("native_sqrt", builtin_f1arg, F1ARG(sqrt));
+  ADD_BUILTIN("half_tan", builtin_f1arg, F1ARG(tan));
+  ADD_BUILTIN("native_tan", builtin_f1arg, F1ARG(tan));
+
+  // Misc. Vector Functions
+  ADD_BUILTIN("shuffle", shuffle_builtin, NULL);
+  ADD_BUILTIN("shuffle2", shuffle2_builtin, NULL);
+
+  // Relational Functional
+  ADD_BUILTIN("all", all, NULL);
+  ADD_BUILTIN("any", any, NULL);
+  ADD_BUILTIN("bitselect", bitselect, NULL);
+  ADD_BUILTIN("isequal", builtin_rel2arg, isequal_builtin);
+  ADD_BUILTIN("isnotequal", builtin_rel2arg, isnotequal_builtin);
+  ADD_BUILTIN("isgreater", builtin_rel2arg, isgreater_builtin);
+  ADD_BUILTIN("isgreaterequal", builtin_rel2arg, isgreaterequal_builtin);
+  ADD_BUILTIN("isless", builtin_rel2arg, isless_builtin);
+  ADD_BUILTIN("islessequal", builtin_rel2arg, islessequal_builtin);
+  ADD_BUILTIN("islessgreater", builtin_rel2arg, islessgreater_builtin);
+  ADD_BUILTIN("isfinite", builtin_rel1arg, isfinite_builtin);
+  ADD_BUILTIN("isinf", builtin_rel1arg, isinf_builtin);
+  ADD_BUILTIN("isnan", builtin_rel1arg, isnan_builtin);
+  ADD_BUILTIN("isnormal", builtin_rel1arg, isnormal_builtin);
+  ADD_BUILTIN("isordered", builtin_rel2arg, isordered_builtin);
+  ADD_BUILTIN("isunordered", builtin_rel2arg, isunordered_builtin);
+  ADD_BUILTIN("select", select_builtin, NULL);
+  ADD_BUILTIN("signbit", builtin_rel1arg, signbit_builtin);
+
+  // Synchronization Functions
+  ADD_BUILTIN("barrier", barrier, NULL);
+  ADD_BUILTIN("mem_fence", mem_fence, NULL);
+  ADD_BUILTIN("read_mem_fence", mem_fence, NULL);
+  ADD_BUILTIN("write_mem_fence", mem_fence, NULL);
+
+  // Vector Data Load and Store Functions
+  ADD_PREFIX_BUILTIN("vload", vload, NULL);
+  ADD_PREFIX_BUILTIN("vstore", vstore, NULL);
+
+  // Work-Item Functions
+  ADD_BUILTIN("get_global_id", get_global_id, NULL);
+  ADD_BUILTIN("get_global_size", get_global_size, NULL);
+  ADD_BUILTIN("get_global_offset", get_global_offset, NULL);
+  ADD_BUILTIN("get_group_id", get_group_id, NULL);
+  ADD_BUILTIN("get_local_id", get_local_id, NULL);
+  ADD_BUILTIN("get_local_size", get_local_size, NULL);
+  ADD_BUILTIN("get_num_groups", get_num_groups, NULL);
+  ADD_BUILTIN("get_work_dim", get_work_dim, NULL);
+
+  // Other Functions
+  ADD_PREFIX_BUILTIN("convert_float",  convert_float, NULL); // Floats
+  ADD_PREFIX_BUILTIN("convert_double", convert_float, NULL); // Doubles
+  ADD_PREFIX_BUILTIN("convert_u",      convert_uint, NULL);  // Unsigned integers
+  ADD_PREFIX_BUILTIN("convert_",       convert_sint, NULL);  // Signed integers
+  ADD_BUILTIN("printf", printf_builtin, NULL);
+
+  // LLVM Intrinsics
+  ADD_BUILTIN("llvm.dbg.declare", llvm_dbg_declare, NULL);
+  ADD_BUILTIN("llvm.dbg.value", llvm_dbg_value, NULL);
+  ADD_BUILTIN("llvm.lifetime.start", llvm_lifetime_start, NULL);
+  ADD_BUILTIN("llvm.lifetime.end", llvm_lifetime_end, NULL);
+  ADD_PREFIX_BUILTIN("llvm.memcpy", llvm_memcpy, NULL);
+  ADD_PREFIX_BUILTIN("llvm.memset", llvm_memset, NULL);
+  ADD_BUILTIN("llvm.trap", llvm_trap, NULL);
+
+  return builtins;
 }
