@@ -1485,52 +1485,55 @@ namespace spirsim
     DEFINE_BUILTIN(get_global_id)
     {
       uint64_t dim = UARG(0);
-      assert(dim < 3);
-      *((size_t*)result.data) = workItem->m_globalID[dim];
+      size_t r = dim < 3 ? workItem->m_globalID[dim] : 0;
+      *((size_t*)result.data) = r;
     }
 
     DEFINE_BUILTIN(get_global_size)
     {
       uint64_t dim = UARG(0);
-      assert(dim < 3);
-      *((size_t*)result.data) = workItem->m_workGroup.getGlobalSize()[dim];
+      size_t r = dim < 3 ? workItem->m_workGroup.getGlobalSize()[dim] : 0;
+      *((size_t*)result.data) = r;
     }
 
     DEFINE_BUILTIN(get_global_offset)
     {
       uint64_t dim = UARG(0);
-      assert(dim < 3);
-      *((size_t*)result.data) = workItem->m_workGroup.getGlobalOffset()[dim];
+      size_t r = dim < 3 ? workItem->m_workGroup.getGlobalOffset()[dim] : 0;
+      *((size_t*)result.data) = r;
     }
 
     DEFINE_BUILTIN(get_group_id)
     {
       uint64_t dim = UARG(0);
-      assert(dim < 3);
-      *((size_t*)result.data) = workItem->m_workGroup.getGroupID()[dim];
+      size_t r = dim < 3 ? workItem->m_workGroup.getGroupID()[dim] : 0;
+      *((size_t*)result.data) = r;
     }
 
     DEFINE_BUILTIN(get_local_id)
     {
       uint64_t dim = UARG(0);
-      assert(dim < 3);
-      *((size_t*)result.data) = workItem->m_localID[dim];
+      size_t r = dim < 3 ? workItem->m_localID[dim] : 0;
+      *((size_t*)result.data) = r;
     }
 
     DEFINE_BUILTIN(get_local_size)
     {
       uint64_t dim = UARG(0);
-      assert(dim < 3);
-      *((size_t*)result.data) = workItem->m_workGroup.getGroupSize()[dim];
+      size_t r = dim < 3 ? workItem->m_workGroup.getGroupSize()[dim] : 0;
+      *((size_t*)result.data) = r;
     }
 
     DEFINE_BUILTIN(get_num_groups)
     {
       uint64_t dim = UARG(0);
-      assert(dim < 3);
-      size_t num = workItem->m_workGroup.getGlobalSize()[dim] /
-      workItem->m_workGroup.getGroupSize()[dim];
-      *((size_t*)result.data) = num;
+      size_t r = 0;
+      if (dim < 3)
+      {
+        r = workItem->m_workGroup.getGlobalSize()[dim] /
+            workItem->m_workGroup.getGroupSize()[dim];
+      }
+      *((size_t*)result.data) = r;
     }
 
     DEFINE_BUILTIN(get_work_dim)
