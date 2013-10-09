@@ -16,13 +16,8 @@
 
 #include "common.h"
 
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
-#include "llvm/Constants.h"
-#include "llvm/Instruction.h"
 #include "llvm/Instructions.h"
 #include "llvm/Operator.h"
-#include "llvm/Type.h"
 
 using namespace spirsim;
 using namespace std;

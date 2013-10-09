@@ -19,7 +19,6 @@
 #include <sys/time.h>
 
 #include <CL/cl.h>
-
 #include "Device.h"
 #include "Memory.h"
 #include "Queue.h"

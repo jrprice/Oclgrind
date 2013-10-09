@@ -16,14 +16,9 @@
 
 #include "common.h"
 
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
 #include "llvm/Constants.h"
 #include "llvm/DerivedTypes.h"
-#include "llvm/Function.h"
-#include "llvm/Metadata.h"
 #include "llvm/Module.h"
-#include "llvm/Type.h"
 
 #include "CL/cl.h"
 #include "Kernel.h"

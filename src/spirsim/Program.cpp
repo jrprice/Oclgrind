@@ -18,22 +18,14 @@
 #include <fstream>
 #include <sys/time.h>
 
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
-#include <llvm/ADT/IntrusiveRefCntPtr.h>
-#include "llvm/ADT/OwningPtr.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/system_error.h"
 #include "llvm/Transforms/Scalar.h"
-#include <clang/Basic/DiagnosticOptions.h>
 #include <clang/CodeGen/CodeGenAction.h>
 #include <clang/Frontend/CompilerInstance.h>
-#include <clang/Frontend/CompilerInvocation.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 
 #include <CL/cl.h>

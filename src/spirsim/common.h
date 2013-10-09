@@ -29,6 +29,9 @@
 #include <stack>
 #include <vector>
 
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+
 #define BIG_SEPARATOR   "================================"
 #define SMALL_SEPARATOR "--------------------------------"
 

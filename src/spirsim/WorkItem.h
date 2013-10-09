@@ -16,6 +16,8 @@
 
 #include "common.h"
 
+#include "llvm/Function.h"
+
 namespace llvm
 {
   class DbgValueInst;

@@ -17,12 +17,8 @@
 #include "common.h"
 #include <algorithm>
 
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
-#include "llvm/Function.h"
 #include "llvm/Instructions.h"
 #include "llvm/IntrinsicInst.h"
-#include "llvm/Type.h"
 
 #include "Memory.h"
 #include "WorkGroup.h"

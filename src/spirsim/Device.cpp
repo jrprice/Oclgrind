@@ -17,10 +17,6 @@
 #include "common.h"
 #include <istream>
 
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
-#include "llvm/Support/InstIterator.h"
-
 #include "Kernel.h"
 #include "Memory.h"
 #include "Device.h"
