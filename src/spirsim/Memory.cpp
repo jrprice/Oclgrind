@@ -48,14 +48,14 @@ size_t Memory::allocateBuffer(size_t size)
   // Check requested size doesn't exceed maximum
   if (size > MAX_BUFFER_SIZE)
   {
-    return NULL;
+    return 0;
   }
 
   // Find first unallocated buffer slot
   int b = getNextBuffer();
   if (b < 0 || b >= MAX_NUM_BUFFERS)
   {
-    return NULL;
+    return 0;
   }
 
   // Create buffer
@@ -120,14 +120,14 @@ size_t Memory::createHostBuffer(size_t size, void *ptr)
   // Check requested size doesn't exceed maximum
   if (size > MAX_BUFFER_SIZE)
   {
-    return NULL;
+    return 0;
   }
 
   // Find first unallocated buffer slot
   int b = getNextBuffer();
   if (b < 0 || b >= MAX_NUM_BUFFERS)
   {
-    return NULL;
+    return 0;
   }
 
   // Create buffer
@@ -257,7 +257,7 @@ unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
       m_memory.find(buffer) == m_memory.end() ||
       offset+size > m_memory[buffer].size)
   {
-    return false;
+    return NULL;
   }
 
   return m_memory[buffer].data + offset + EXTRACT_OFFSET(address);
