@@ -29,9 +29,28 @@ namespace spirsim
   class Kernel;
   class Memory;
   class WorkGroup;
+  class WorkItem;
+  class WorkItemBuiltins;
+
+  // Data structures for builtin functions
+  typedef struct _BuiltinFunction
+  {
+    void (*func)(WorkItem*, const llvm::CallInst*,
+                 std::string, std::string, TypedValue&, void*);
+    void *op;
+    _BuiltinFunction(){};
+    _BuiltinFunction(void (*f)(WorkItem*, const llvm::CallInst*,
+                     std::string, std::string, TypedValue&, void*),
+                     void *o) : func(f), op(o) {};
+  } BuiltinFunction;
+  extern std::map<std::string,BuiltinFunction> workItemBuiltins;
+  extern std::list< std::pair<std::string,
+                              BuiltinFunction> > workItemPrefixBuiltins;
 
   class WorkItem
   {
+    friend class WorkItemBuiltins;
+
   public:
     enum State {READY, BARRIER, WAIT_EVENT, FINISHED};
 
@@ -113,133 +132,6 @@ namespace spirsim
     void urem(const llvm::Instruction& instruction, TypedValue& result);
     void zext(const llvm::Instruction& instruction, TypedValue& result);
 
-#define DECLARE_BUILTIN(name) static void name(WorkItem *workItem,             \
-                                               const llvm::CallInst *callInst, \
-                                               std::string name,               \
-                                               std::string overload,           \
-                                               TypedValue& result,             \
-                                               void *);
-    // Async Copy and Prefetch Functions
-    DECLARE_BUILTIN(async_work_group_copy);
-    DECLARE_BUILTIN(wait_group_events);
-    DECLARE_BUILTIN(prefetch);
-
-    // Common Functions
-    DECLARE_BUILTIN(clamp);
-    DECLARE_BUILTIN(max);
-    DECLARE_BUILTIN(min);
-
-    // Geometric Functions
-    DECLARE_BUILTIN(cross);
-    DECLARE_BUILTIN(dot);
-    DECLARE_BUILTIN(distance);
-    DECLARE_BUILTIN(length);
-    DECLARE_BUILTIN(normalize);
-
-    // Integer Functions
-    DECLARE_BUILTIN(abs_builtin);
-    DECLARE_BUILTIN(abs_diff);
-    DECLARE_BUILTIN(add_sat);
-    DECLARE_BUILTIN(clz);
-    DECLARE_BUILTIN(hadd);
-    DECLARE_BUILTIN(mad_hi);
-    DECLARE_BUILTIN(mad_sat);
-    DECLARE_BUILTIN(mul_hi);
-    DECLARE_BUILTIN(rhadd);
-    DECLARE_BUILTIN(rotate);
-    DECLARE_BUILTIN(sub_sat);
-    DECLARE_BUILTIN(upsample);
-
-    // Math Functions
-    DECLARE_BUILTIN(fract);
-    DECLARE_BUILTIN(frexp_builtin);
-    DECLARE_BUILTIN(ilogb_builtin);
-    DECLARE_BUILTIN(ldexp_builtin);
-    DECLARE_BUILTIN(lgamma_r);
-    DECLARE_BUILTIN(modf_builtin);
-    DECLARE_BUILTIN(nan_builtin);
-    DECLARE_BUILTIN(pown);
-    DECLARE_BUILTIN(remquo_builtin);
-    DECLARE_BUILTIN(rootn);
-    DECLARE_BUILTIN(sincos);
-
-    // Misc. Vector Functions
-    DECLARE_BUILTIN(shuffle_builtin);
-    DECLARE_BUILTIN(shuffle2_builtin);
-
-    // Relational Functions
-    DECLARE_BUILTIN(all);
-    DECLARE_BUILTIN(any);
-    DECLARE_BUILTIN(bitselect);
-    DECLARE_BUILTIN(select_builtin);
-
-    // Synchronization Functions
-    DECLARE_BUILTIN(barrier);
-    DECLARE_BUILTIN(mem_fence);
-
-    // Vector Data Load and Store Functions
-    DECLARE_BUILTIN(vload);
-    DECLARE_BUILTIN(vstore);
-
-    // Work-Item Functions
-    DECLARE_BUILTIN(get_global_id);
-    DECLARE_BUILTIN(get_global_size);
-    DECLARE_BUILTIN(get_global_offset);
-    DECLARE_BUILTIN(get_group_id);
-    DECLARE_BUILTIN(get_local_id);
-    DECLARE_BUILTIN(get_local_size);
-    DECLARE_BUILTIN(get_num_groups);
-    DECLARE_BUILTIN(get_work_dim);
-
-    // Other Functions
-    DECLARE_BUILTIN(convert_float);
-    DECLARE_BUILTIN(convert_uint);
-    DECLARE_BUILTIN(convert_sint);
-    DECLARE_BUILTIN(printf_builtin);
-
-    // LLVM Intrinisics
-    DECLARE_BUILTIN(llvm_dbg_declare);
-    DECLARE_BUILTIN(llvm_dbg_value);
-    DECLARE_BUILTIN(llvm_lifetime_start);
-    DECLARE_BUILTIN(llvm_lifetime_end);
-    DECLARE_BUILTIN(llvm_memcpy);
-    DECLARE_BUILTIN(llvm_memset);
-    DECLARE_BUILTIN(llvm_trap);
-
-    static void builtin_f1arg(WorkItem*, const llvm::CallInst*,
-                              std::string, std::string, TypedValue& result,
-                              double (*func)(double));
-    static void builtin_f2arg(WorkItem*, const llvm::CallInst*,
-                              std::string, std::string, TypedValue& result,
-                              double (*func)(double, double));
-    static void builtin_f3arg(WorkItem*, const llvm::CallInst*,
-                              std::string, std::string, TypedValue& result,
-                              double (*func)(double, double, double));
-    static void builtin_u1arg(WorkItem*, const llvm::CallInst*,
-                              std::string, std::string, TypedValue& result,
-                              uint64_t (*func)(uint64_t));
-    static void builtin_u2arg(WorkItem*, const llvm::CallInst*,
-                              std::string, std::string, TypedValue& result,
-                              uint64_t (*func)(uint64_t, uint64_t));
-    static void builtin_u3arg(WorkItem*, const llvm::CallInst*,
-                              std::string, std::string, TypedValue& result,
-                              uint64_t (*func)(uint64_t, uint64_t, uint64_t));
-    static void builtin_s1arg(WorkItem*, const llvm::CallInst*,
-                              std::string, std::string, TypedValue& result,
-                              int64_t (*func)(int64_t));
-    static void builtin_s2arg(WorkItem*, const llvm::CallInst*,
-                              std::string, std::string, TypedValue& result,
-                              int64_t (*func)(int64_t, int64_t));
-    static void builtin_s3arg(WorkItem*, const llvm::CallInst*,
-                              std::string, std::string, TypedValue& result,
-                              int64_t (*func)(int64_t, int64_t, int64_t));
-    static void builtin_rel1arg(WorkItem*, const llvm::CallInst*,
-                                std::string, std::string, TypedValue& result,
-                                int (*func)(double));
-    static void builtin_rel2arg(WorkItem*, const llvm::CallInst*,
-                                std::string, std::string, TypedValue& result,
-                                int (*func)(double, double));
-
   private:
     size_t m_globalID[3];
     size_t m_localID[3];
@@ -261,20 +153,5 @@ namespace spirsim
     llvm::BasicBlock::const_iterator m_currInst;
     std::stack<ReturnAddress> m_callStack;
     bool m_debugOutput;
-
-    // Data structures for builtin functions
-    typedef struct _BuiltinFunction
-    {
-      void (*func)(WorkItem*, const llvm::CallInst*,
-                   std::string, std::string, TypedValue&, void*);
-      void *op;
-      _BuiltinFunction(){};
-      _BuiltinFunction(void (*f)(WorkItem*, const llvm::CallInst*,
-                       std::string, std::string, TypedValue&, void*),
-                       void *o) : func(f), op(o) {};
-    } BuiltinFunction;
-    static std::list< std::pair<std::string, BuiltinFunction> > prefixBuiltins;
-    static std::map<std::string, BuiltinFunction> builtins;
-    static std::map<std::string, BuiltinFunction> initBuiltins();
   };
 }

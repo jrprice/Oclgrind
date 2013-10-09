@@ -887,7 +887,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     // Set function arguments
     int i = 0;
     llvm::Function::const_arg_iterator argItr;
-    for (argItr = function->arg_begin(); argItr != function->arg_end(); argItr++)
+    for (argItr = function->arg_begin();
+         argItr != function->arg_end(); argItr++)
     {
       const llvm::Value *arg = callInst->getArgOperand(i++);
 
@@ -930,8 +931,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
 
   // Find builtin function in map
-  map<string,BuiltinFunction>::iterator bItr = builtins.find(name);
-  if (bItr != builtins.end())
+  map<string,BuiltinFunction>::iterator bItr = workItemBuiltins.find(name);
+  if (bItr != workItemBuiltins.end())
   {
     bItr->second.func(this, callInst, name, overload, result, bItr->second.op);
     return;
@@ -939,11 +940,13 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
   // Check for builtin with matching prefix
   list< pair<string, BuiltinFunction> >::iterator pItr;
-  for (pItr = prefixBuiltins.begin(); pItr != prefixBuiltins.end(); pItr++)
+  for (pItr = workItemPrefixBuiltins.begin();
+       pItr != workItemPrefixBuiltins.end(); pItr++)
   {
     if (name.compare(0, pItr->first.length(), pItr->first) == 0)
     {
-      pItr->second.func(this, callInst, name, overload, result, pItr->second.op);
+      pItr->second.func(this, callInst, name,
+                        overload, result, pItr->second.op);
       return;
     }
   }
