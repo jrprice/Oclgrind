@@ -18,6 +18,8 @@
 #define __common_h_
 
 #include "config.h"
+#include <cstdio>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <list>
