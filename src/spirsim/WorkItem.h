@@ -135,11 +135,11 @@ namespace spirsim
   private:
     size_t m_globalID[3];
     size_t m_localID[3];
-    TypedValueMap m_privateMemory;
+    TypedValueMap m_instResults;
     TypedValueMap m_phiTemps;
     std::map<std::string,const llvm::Value*> m_variables;
     const Kernel& m_kernel;
-    Memory *m_stack;
+    Memory *m_privateMemory;
     Memory& m_globalMemory;
     WorkGroup& m_workGroup;
 

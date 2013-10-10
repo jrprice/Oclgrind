@@ -183,8 +183,8 @@ namespace spirsim
       // Get src/dest addresses
       const llvm::Value *destOp = ARG(arg++);
       const llvm::Value *srcOp = ARG(arg++);
-      size_t dest = *(size_t*)(workItem->m_privateMemory[destOp].data);
-      size_t src = *(size_t*)(workItem->m_privateMemory[srcOp].data);
+      size_t dest = *(size_t*)(workItem->m_instResults[destOp].data);
+      size_t src = *(size_t*)(workItem->m_instResults[srcOp].data);
 
       // Get size of copy
       size_t elemSize = getTypeSize(destOp->getType()->getPointerElementType());
@@ -234,12 +234,12 @@ namespace spirsim
     {
       uint64_t num = UARG(0);
       const llvm::Value *ptrOp = ARG(1);
-      size_t address = *(size_t*)(workItem->m_privateMemory[ptrOp].data);
+      size_t address = *(size_t*)(workItem->m_instResults[ptrOp].data);
       for (int i = 0; i < num; i++)
       {
         // TODO: Can we safely assume this is private/stack data?
         uint64_t event;
-        if (!workItem->m_stack->load((unsigned char*)&event,
+        if (!workItem->m_privateMemory->load((unsigned char*)&event,
          address, sizeof(uint64_t)))
         {
           workItem->outputMemoryError(*callInst, "Invalid read",
@@ -1002,7 +1002,7 @@ namespace spirsim
         switch (ARG(1)->getType()->getPointerAddressSpace())
         {
           case AddrSpacePrivate:
-            workItem->m_stack->store(result.data + offset,
+            workItem->m_privateMemory->store(result.data + offset,
                                      iptr + offset, result.size);
             break;
           case AddrSpaceGlobal:
@@ -1029,7 +1029,7 @@ namespace spirsim
         switch (ARG(1)->getType()->getPointerAddressSpace())
         {
           case AddrSpacePrivate:
-            workItem->m_stack->store((const unsigned char*)&e,
+            workItem->m_privateMemory->store((const unsigned char*)&e,
                                      iptr + i*4, 4);
             break;
           case AddrSpaceGlobal:
@@ -1072,7 +1072,7 @@ namespace spirsim
         switch (ARG(1)->getType()->getPointerAddressSpace())
         {
           case AddrSpacePrivate:
-            workItem->m_stack->store((const unsigned char*)&s, signp + i*4, 4);
+            workItem->m_privateMemory->store((const unsigned char*)&s, signp + i*4, 4);
             break;
           case AddrSpaceGlobal:
             workItem->m_globalMemory.store((const unsigned char*)&s,
@@ -1102,7 +1102,7 @@ namespace spirsim
         switch (ARG(1)->getType()->getPointerAddressSpace())
         {
           case AddrSpacePrivate:
-            workItem->m_stack->store(result.data + offset,
+            workItem->m_privateMemory->store(result.data + offset,
                                      iptr + offset, result.size);
             break;
           case AddrSpaceGlobal:
@@ -1152,7 +1152,7 @@ namespace spirsim
         switch (ARG(2)->getType()->getPointerAddressSpace())
         {
           case AddrSpacePrivate:
-            workItem->m_stack->store((const unsigned char*)&quo,
+            workItem->m_privateMemory->store((const unsigned char*)&quo,
                                      quop + i*4, 4);
             break;
           case AddrSpaceGlobal:
@@ -1191,7 +1191,7 @@ namespace spirsim
         switch (ARG(1)->getType()->getPointerAddressSpace())
         {
           case AddrSpacePrivate:
-            workItem->m_stack->store(result.data + offset,
+            workItem->m_privateMemory->store(result.data + offset,
                                      cv + offset, result.size);
             break;
           case AddrSpaceGlobal:
@@ -1389,7 +1389,7 @@ namespace spirsim
     DEFINE_BUILTIN(vload)
     {
       const llvm::Value *ptrOp = ARG(1);
-      size_t base = *(size_t*)(workItem->m_privateMemory[ptrOp].data);
+      size_t base = *(size_t*)(workItem->m_instResults[ptrOp].data);
       uint64_t offset = UARG(0);
 
       string addrSpaceStr = overload.substr(overload.length()-2);
@@ -1399,7 +1399,7 @@ namespace spirsim
       switch (addressSpace)
       {
         case AddrSpacePrivate:
-          memory = workItem->m_stack;
+          memory = workItem->m_privateMemory;
           break;
         case AddrSpaceGlobal:
         case AddrSpaceConstant:
@@ -1441,12 +1441,12 @@ namespace spirsim
       }
       else
       {
-        memcpy(data, workItem->m_privateMemory[value].data, size);
+        memcpy(data, workItem->m_instResults[value].data, size);
       }
       uint64_t offset = UARG(1);
 
       const llvm::Value *ptrOp = ARG(2);
-      size_t base = *(size_t*)(workItem->m_privateMemory[ptrOp].data);
+      size_t base = *(size_t*)(workItem->m_instResults[ptrOp].data);
 
       string addrSpaceStr = overload.substr(overload.length()-2);
       unsigned addressSpace = atoi(addrSpaceStr.c_str());
@@ -1455,7 +1455,7 @@ namespace spirsim
       switch (addressSpace)
       {
         case AddrSpacePrivate:
-        memory = workItem->m_stack;
+        memory = workItem->m_privateMemory;
         break;
         case AddrSpaceGlobal:
         case AddrSpaceConstant:
@@ -1736,9 +1736,9 @@ namespace spirsim
     {
       const llvm::MemCpyInst *memcpyInst = (const llvm::MemCpyInst*)callInst;
       size_t dest =
-        *(size_t*)(workItem->m_privateMemory[memcpyInst->getDest()].data);
+        *(size_t*)(workItem->m_instResults[memcpyInst->getDest()].data);
       size_t src =
-        *(size_t*)(workItem->m_privateMemory[memcpyInst->getSource()].data);
+        *(size_t*)(workItem->m_instResults[memcpyInst->getSource()].data);
       size_t size = workItem->getUnsignedInt(memcpyInst->getLength());
       unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
       unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
@@ -1747,7 +1747,7 @@ namespace spirsim
       switch (destAddrSpace)
       {
         case AddrSpacePrivate:
-          destMemory = workItem->m_stack;
+          destMemory = workItem->m_privateMemory;
           break;
         case AddrSpaceGlobal:
         case AddrSpaceConstant:
@@ -1765,7 +1765,7 @@ namespace spirsim
       switch (srcAddrSpace)
       {
         case AddrSpacePrivate:
-          srcMemory = workItem->m_stack;
+          srcMemory = workItem->m_privateMemory;
           break;
         case AddrSpaceGlobal:
         case AddrSpaceConstant:
@@ -1797,7 +1797,7 @@ namespace spirsim
     {
       const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)callInst;
       size_t dest =
-        *(size_t*)(workItem->m_privateMemory[memsetInst->getDest()].data);
+        *(size_t*)(workItem->m_instResults[memsetInst->getDest()].data);
       size_t size = workItem->getUnsignedInt(memsetInst->getLength());
       unsigned addressSpace = memsetInst->getDestAddressSpace();
 
@@ -1805,7 +1805,7 @@ namespace spirsim
       switch (addressSpace)
       {
         case AddrSpacePrivate:
-          mem = workItem->m_stack;
+          mem = workItem->m_privateMemory;
           break;
         case AddrSpaceGlobal:
         case AddrSpaceConstant:

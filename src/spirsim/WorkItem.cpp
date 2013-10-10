@@ -54,10 +54,10 @@ WorkItem::WorkItem(WorkGroup& workGroup,
   TypedValueMap::const_iterator argItr;
   for (argItr = kernel.args_begin(); argItr != kernel.args_end(); argItr++)
   {
-    m_privateMemory[argItr->first] = clone(argItr->second);
+    m_instResults[argItr->first] = clone(argItr->second);
   }
 
-  m_stack = new Memory();
+  m_privateMemory = new Memory();
 
   m_prevBlock = NULL;
   m_nextBlock = NULL;
@@ -71,12 +71,12 @@ WorkItem::~WorkItem()
 {
   // Free private memory
   TypedValueMap::iterator pmItr;
-  for (pmItr = m_privateMemory.begin();
-       pmItr != m_privateMemory.end(); pmItr++)
+  for (pmItr = m_instResults.begin();
+       pmItr != m_instResults.end(); pmItr++)
   {
     delete[] pmItr->second.data;
   }
-  delete m_stack;
+  delete m_privateMemory;
 }
 
 void WorkItem::clearBarrier()
@@ -237,8 +237,8 @@ void WorkItem::dumpPrivateMemory()
   {
     // Check variable has an assigned value
     const llvm::Value *value = varItr->second;
-    TypedValueMap::const_iterator itr = m_privateMemory.find(value);
-    if (itr == m_privateMemory.end())
+    TypedValueMap::const_iterator itr = m_instResults.find(value);
+    if (itr == m_instResults.end())
     {
       continue;
     }
@@ -274,10 +274,10 @@ void WorkItem::dumpPrivateMemory()
   }
 
   // Dump stack contents
-  if (m_stack->getTotalAllocated() > 0)
+  if (m_privateMemory->getTotalAllocated() > 0)
   {
     cout << endl << "Stack:";
-    m_stack->dump();
+    m_privateMemory->dump();
   }
 }
 
@@ -311,12 +311,12 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     TypedValueMap::iterator itr;
     for (itr = m_phiTemps.begin(); itr != m_phiTemps.end(); itr++)
     {
-      if (m_privateMemory.find(itr->first) != m_privateMemory.end())
+      if (m_instResults.find(itr->first) != m_instResults.end())
       {
-        delete[] m_privateMemory[itr->first].data;
+        delete[] m_instResults[itr->first].data;
       }
 
-      m_privateMemory[itr->first] = itr->second;
+      m_instResults[itr->first] = itr->second;
     }
     m_phiTemps.clear();
   }
@@ -329,11 +329,11 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   {
     if (instruction.getOpcode() != llvm::Instruction::PHI)
     {
-      if (m_privateMemory.find(&instruction) != m_privateMemory.end())
+      if (m_instResults.find(&instruction) != m_instResults.end())
       {
-        delete[] m_privateMemory[&instruction].data;
+        delete[] m_instResults[&instruction].data;
       }
-      m_privateMemory[&instruction] = result;
+      m_instResults[&instruction] = result;
     }
     else
     {
@@ -360,7 +360,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
       id == llvm::Value::ArgumentVal ||
       id >= llvm::Value::InstructionVal)
   {
-    TypedValue op = m_privateMemory.at(operand);
+    TypedValue op = m_instResults.at(operand);
     if (op.size == sizeof(float))
     {
       val = ((float*)op.data)[index];
@@ -440,7 +440,7 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
       id == llvm::Value::ArgumentVal ||
       id >= llvm::Value::InstructionVal)
   {
-    TypedValue op = m_privateMemory.at(operand);
+    TypedValue op = m_instResults.at(operand);
     switch (op.size)
     {
     case 1:
@@ -505,7 +505,7 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
       id == llvm::Value::ArgumentVal ||
       id >= llvm::Value::InstructionVal)
   {
-    TypedValue op = m_privateMemory.at(operand);
+    TypedValue op = m_instResults.at(operand);
     memcpy(&val, op.data + index*op.size, op.size);
   }
   else if (id == llvm::Value::ConstantVectorVal ||
@@ -729,7 +729,7 @@ void WorkItem::alloc(const llvm::Instruction& instruction, TypedValue& result)
 
   // Perform allocation
   size_t size = getTypeSize(type);
-  size_t address = m_stack->allocateBuffer(size);
+  size_t address = m_privateMemory->allocateBuffer(size);
 
   // Create pointer to alloc'd memory
   *((size_t*)result.data) = address;
@@ -782,9 +782,9 @@ void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
     break;
   }
   default:
-    if (m_privateMemory.find(operand) != m_privateMemory.end())
+    if (m_instResults.find(operand) != m_instResults.end())
     {
-      memcpy(result.data, m_privateMemory[operand].data, result.size*result.num);
+      memcpy(result.data, m_instResults[operand].data, result.size*result.num);
     }
     else
     {
@@ -805,7 +805,7 @@ void WorkItem::br(const llvm::Instruction& instruction)
   else
   {
     // Conditional branch
-    bool pred = *((bool*)m_privateMemory[instruction.getOperand(0)].data);
+    bool pred = *((bool*)m_instResults[instruction.getOperand(0)].data);
     const llvm::Value *iftrue = instruction.getOperand(2);
     const llvm::Value *iffalse = instruction.getOperand(1);
     m_nextBlock = (const llvm::BasicBlock*)(pred ? iftrue : iffalse);
@@ -905,7 +905,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
           id == llvm::Value::ArgumentVal ||
           id >= llvm::Value::InstructionVal)
       {
-        memcpy(value.data, m_privateMemory[arg].data, size);
+        memcpy(value.data, m_instResults[arg].data, size);
       }
       else if (id == llvm::Value::ConstantFPVal)
       {
@@ -920,11 +920,11 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
         cerr << "Unhandled function argument type " << id << endl;
       }
 
-      if (m_privateMemory.find(argItr) != m_privateMemory.end())
+      if (m_instResults.find(argItr) != m_instResults.end())
       {
-        delete[] m_privateMemory[argItr].data;
+        delete[] m_instResults[argItr].data;
       }
-      m_privateMemory[argItr] = value;
+      m_instResults[argItr] = value;
     }
 
     return;
@@ -1120,7 +1120,7 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   }
   else
   {
-    address = *((size_t*)m_privateMemory[base].data);
+    address = *((size_t*)m_instResults[base].data);
   }
   llvm::Type *ptrType = gepInst->getPointerOperandType();
   assert(ptrType->isPointerTy());
@@ -1291,7 +1291,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
   }
   else
   {
-    address = *((size_t*)m_privateMemory[ptrOp].data);
+    address = *((size_t*)m_instResults[ptrOp].data);
   }
 
   // Check address space
@@ -1299,7 +1299,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
   switch (addressSpace)
   {
   case AddrSpacePrivate:
-    memory = m_stack;
+    memory = m_privateMemory;
     break;
   case AddrSpaceGlobal:
   case AddrSpaceConstant:
@@ -1368,7 +1368,7 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
       setFloatResult(result, getFloatValue(value, i), i);
       break;
     case llvm::Type::PointerTyID:
-      memcpy(result.data, m_privateMemory[value].data, result.size);
+      memcpy(result.data, m_instResults[value].data, result.size);
       break;
     default:
       cerr << "Unhandled type in phi instruction: " << type << endl;
@@ -1402,11 +1402,11 @@ void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
     const llvm::Value *returnVal = retInst->getReturnValue();
     if (returnVal)
     {
-      if (m_privateMemory.find(m_currInst) != m_privateMemory.end())
+      if (m_instResults.find(m_currInst) != m_instResults.end())
       {
-        delete[] m_privateMemory[m_currInst].data;
+        delete[] m_instResults[m_currInst].data;
       }
-      m_privateMemory[m_currInst] = clone(m_privateMemory[returnVal]);
+      m_instResults[m_currInst] = clone(m_instResults[returnVal]);
     }
   }
   else
@@ -1555,7 +1555,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
   unsigned addressSpace = storeInst->getPointerAddressSpace();
 
   // Get address
-  size_t address = *((size_t*)m_privateMemory[ptrOp].data);
+  size_t address = *((size_t*)m_instResults[ptrOp].data);
 
   // TODO: Genericise operand handling
   size_t size = getTypeSize(valOp->getType());
@@ -1576,15 +1576,15 @@ void WorkItem::store(const llvm::Instruction& instruction)
   }
   else
   {
-    if (m_privateMemory.find(valOp) != m_privateMemory.end())
+    if (m_instResults.find(valOp) != m_instResults.end())
     {
       // TODO: Cleaner solution for this
-      memcpy(data, m_privateMemory[valOp].data, size);
+      memcpy(data, m_instResults[valOp].data, size);
     }
     else if (valOp->getValueID() >= llvm::Value::InstructionVal)
     {
       execute(*(llvm::Instruction*)valOp);
-      memcpy(data, m_privateMemory[valOp].data, m_privateMemory[valOp].size);
+      memcpy(data, m_instResults[valOp].data, m_instResults[valOp].size);
     }
     else
     {
@@ -1597,7 +1597,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
   switch (addressSpace)
   {
   case AddrSpacePrivate:
-    memory = m_stack;
+    memory = m_privateMemory;
     break;
   case AddrSpaceGlobal:
     memory = &m_globalMemory;
