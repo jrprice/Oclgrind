@@ -48,6 +48,7 @@ Device::Device()
   ADD_CMD("clear",        "cl", clear);
   ADD_CMD("continue",     "c",  cont);
   ADD_CMD("help",         "h",  help);
+  ADD_CMD("info",         "i",  info);
   ADD_CMD("list",         "l",  list);
   ADD_CMD("print",        "p",  print);
   ADD_CMD("printglobal",  "pg", printglobal);
@@ -74,31 +75,31 @@ void Device::run(Kernel& kernel, unsigned int workDim,
                  const size_t *localSize)
 {
   // Set-up offsets and sizes
-  size_t offset[3] = {0,0,0};
-  size_t ndrange[3] = {1,1,1};
-  size_t wgsize[3] = {1,1,1};
+  m_globalSize[0] = m_globalSize[1] = m_globalSize[2] = 1;
+  m_globalOffset[0] = m_globalOffset[1] = m_globalOffset[2] = 0;
+  m_localSize[0] = m_localSize[1] = m_localSize[2] = 1;
   for (int i = 0; i < workDim; i++)
   {
-    ndrange[i] = globalSize[i];
+    m_globalSize[i] = globalSize[i];
     if (globalOffset[i])
     {
-      offset[i] = globalOffset[i];
+      m_globalOffset[i] = globalOffset[i];
     }
     if (localSize[i])
     {
-      wgsize[i] = localSize[i];
+      m_localSize[i] = localSize[i];
     }
   }
 
   // Allocate and initialise constant memory
   kernel.allocateConstants(m_globalMemory);
 
-  // Create work-groups
-  m_numGroups[0] = ndrange[0]/wgsize[0];
-  m_numGroups[1] = ndrange[1]/wgsize[1];
-  m_numGroups[2] = ndrange[2]/wgsize[2];
-  size_t totalNumGroups = m_numGroups[0]*m_numGroups[1]*m_numGroups[2];
-  m_workGroups = new WorkGroup*[totalNumGroups];
+  // Prepare kernel invocation
+  m_kernel = &kernel;
+  m_numGroups[0] = m_globalSize[0]/m_localSize[0];
+  m_numGroups[1] = m_globalSize[1]/m_localSize[1];
+  m_numGroups[2] = m_globalSize[2]/m_localSize[2];
+  m_workGroups = new WorkGroup*[m_numGroups[0]*m_numGroups[1]*m_numGroups[2]];
   for (int k = 0; k < m_numGroups[2]; k++)
   {
     for (int j = 0; j < m_numGroups[1]; j++)
@@ -106,8 +107,8 @@ void Device::run(Kernel& kernel, unsigned int workDim,
       for (int i = 0; i < m_numGroups[0]; i++)
       {
         m_workGroups[i + (k*m_numGroups[1] + j)*m_numGroups[0]] =
-          new WorkGroup(kernel, *m_globalMemory,
-                        workDim, i, j, k, offset, ndrange, wgsize);
+          new WorkGroup(kernel, *m_globalMemory, workDim, i, j, k,
+                        m_globalOffset, m_globalSize, m_localSize);
       }
     }
   }
@@ -116,6 +117,8 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   if (m_interactive)
   {
     m_running = true;
+    cout << endl;
+    info(vector<string>());
   }
   else
   {
@@ -129,7 +132,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   {
     // Prompt for command
     string cmd;
-    cout << ">> " << std::flush;
+    cout << "(oclgrind) " << std::flush;
     getline(cin, cmd);
 
     // Split command into tokens
@@ -142,6 +145,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
     // Check for end of stream or empty command
     if (cin.eof())
     {
+      cout << "(quit)" << endl;
       quit(tokens);
     }
     if (tokens.size() == 0)
@@ -162,7 +166,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   }
 
   // Destroy work-groups
-  for (int i = 0; i < totalNumGroups; i++)
+  for (int i = 0; i < m_numGroups[0]*m_numGroups[1]*m_numGroups[2]; i++)
   {
     delete m_workGroups[i];
   }
@@ -223,6 +227,7 @@ void Device::help(vector<string> args)
     cout << "  clear        (cl)" << endl;
     cout << "  continue     (c)" << endl;
     cout << "  help         (h)" << endl;
+    cout << "  info         (i)" << endl;
     cout << "  list         (l)" << endl;
     cout << "  print        (p)" << endl;
     cout << "  printglobal  (pg)" << endl;
@@ -254,6 +259,10 @@ void Device::help(vector<string> args)
   else if (args[1] == "help")
   {
     cout << "Display usage information for a command." << endl;
+  }
+  else if (args[1] == "info")
+  {
+    cout << "Display information about current debugging context." << endl;
   }
   else if (args[1] == "list")
   {
@@ -292,6 +301,20 @@ void Device::help(vector<string> args)
   {
     cout << "Unrecognized command '" << args[1] << "'" << endl;
   }
+}
+
+void Device::info(vector<string> args)
+{
+  cout << "Running kernel '" << m_kernel->getName() << "'" << endl
+       << "-> Global work size:   (" << m_globalSize[0] << ","
+                                     << m_globalSize[1] << ","
+                                     << m_globalSize[2] << ")" << endl
+       << "-> Global work offset: (" << m_globalOffset[0] << ","
+                                     << m_globalOffset[1] << ","
+                                     << m_globalOffset[2] << ")" << endl
+       << "-> Local work size:    (" << m_localSize[0] << ","
+                                     << m_localSize[1] << ","
+                                     << m_localSize[2] << ")" << endl;
 }
 
 void Device::list(vector<string> args)

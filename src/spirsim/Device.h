@@ -40,6 +40,9 @@ namespace spirsim
     // Current kernel invocation
     Kernel *m_kernel;
     WorkGroup **m_workGroups;
+    size_t m_globalSize[3];
+    size_t m_globalOffset[3];
+    size_t m_localSize[3];
     size_t m_numGroups[3];
 
     bool m_interactive;
@@ -54,6 +57,7 @@ namespace spirsim
     CMD(clear);
     CMD(cont);
     CMD(help);
+    CMD(info);
     CMD(list);
     CMD(print);
     CMD(printglobal);
