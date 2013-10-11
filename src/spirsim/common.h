@@ -17,8 +17,12 @@
 #ifndef __common_h_
 #define __common_h_
 
+#define __STDC_LIMIT_MACROS
+#define __STDC_CONSTANT_MACROS
+
 #include "config.h"
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -27,10 +31,8 @@
 #include <queue>
 #include <set>
 #include <stack>
+#include <stdint.h>
 #include <vector>
-
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
 
 #define BIG_SEPARATOR   "================================"
 #define SMALL_SEPARATOR "--------------------------------"
