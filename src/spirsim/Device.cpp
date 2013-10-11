@@ -215,8 +215,83 @@ void Device::cont(vector<string> args)
 
 void Device::help(vector<string> args)
 {
-  // TODO: Implement
-  cout << "Unimplemented command 'help'" << endl;
+  if (args.size() < 2)
+  {
+    cout << "Command list:" << endl;
+    cout << "  backtrace    (bt)" << endl;
+    cout << "  break        (b)" << endl;
+    cout << "  clear        (cl)" << endl;
+    cout << "  continue     (c)" << endl;
+    cout << "  help         (h)" << endl;
+    cout << "  list         (l)" << endl;
+    cout << "  print        (p)" << endl;
+    cout << "  printglobal  (pg)" << endl;
+    cout << "  printlocal   (pl)" << endl;
+    cout << "  printprivate (pp)" << endl;
+    cout << "  quit         (q)" << endl;
+    cout << "  step         (s)" << endl;
+    cout << "  workitem     (wi)" << endl;
+    cout << "(type 'help command' for more information)" << endl;
+    return;
+  }
+
+  if (args[1] == "backtrace")
+  {
+    // TODO: Help message
+  }
+  else if (args[1] == "break")
+  {
+    // TODO: Help message
+  }
+  else if (args[1] == "clear")
+  {
+    // TODO: Help message
+  }
+  else if (args[1] == "continue")
+  {
+    cout << "Continue kernel execution until next breakpoint." << endl;
+  }
+  else if (args[1] == "help")
+  {
+    cout << "Display usage information for a command." << endl;
+  }
+  else if (args[1] == "list")
+  {
+    // TODO: Help message
+  }
+  else if (args[1] == "print")
+  {
+    // TODO: Help message
+  }
+  else if (args[1] == "printglobal")
+  {
+    // TODO: Help message
+  }
+  else if (args[1] == "printlocal")
+  {
+    // TODO: Help message
+  }
+  else if (args[1] == "printprivate")
+  {
+    // TODO: Help message
+  }
+  else if (args[1] == "quit")
+  {
+    cout << "Quit interactive debugger "
+        << "(and terminate current kernel invocation)." << endl;
+  }
+  else if (args[1] == "step")
+  {
+    // TODO: Help message
+  }
+  else if (args[1] == "workitem")
+  {
+    // TODO: Help message
+  }
+  else
+  {
+    cout << "Unrecognized command '" << args[1] << "'" << endl;
+  }
 }
 
 void Device::list(vector<string> args)
