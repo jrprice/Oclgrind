@@ -39,7 +39,7 @@ struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
-#define MAX_GLOBAL_MEM_SIZE 16 * 1048576 // 16 MB
+#define MAX_GLOBAL_MEM_SIZE 1048576 // 16 MB
 #define MAX_LOCAL_MEM_SIZE 1048576 // 1 MB
 #define MAX_WI_SIZE (unsigned short)-1
 
@@ -3118,15 +3118,16 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
     return CL_INVALID_GLOBAL_WORK_SIZE;
   }
 
-  // Check work group size is valid
-  if (local_work_size)
+  // Check global and local sizes are valid
+  for (int i = 0; i < work_dim; i++)
   {
-    for (int i = 0; i < work_dim; i++)
+    if (!global_work_size[i])
     {
-      if (global_work_size[i] % local_work_size[i])
-      {
-        return CL_INVALID_WORK_GROUP_SIZE;
-      }
+      return CL_INVALID_GLOBAL_WORK_SIZE;
+    }
+    if (local_work_size && global_work_size[i] % local_work_size[i])
+    {
+      return CL_INVALID_WORK_GROUP_SIZE;
     }
   }
 

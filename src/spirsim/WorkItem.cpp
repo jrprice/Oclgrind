@@ -690,6 +690,7 @@ void WorkItem::trap()
        << m_globalID[1] << ","
        << m_globalID[2] << ") terminated unexpectedly." << endl;
   m_state = FINISHED;
+  m_workGroup.notifyFinished(this);
 }
 
 void WorkItem::updateVariable(const llvm::DbgValueInst *instruction)
@@ -1408,6 +1409,7 @@ void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
   {
     m_nextBlock = NULL;
     m_state = FINISHED;
+    m_workGroup.notifyFinished(this);
   }
 }
 

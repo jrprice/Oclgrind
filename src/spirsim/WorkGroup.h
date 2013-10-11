@@ -50,6 +50,7 @@ namespace spirsim
     virtual ~WorkGroup();
 
     uint64_t async_copy(AsyncCopy copy, uint64_t event);
+    void clearBarrier();
     void dumpLocalMemory() const;
     void dumpPrivateMemory() const;
     const size_t* getGlobalOffset() const;
@@ -57,8 +58,11 @@ namespace spirsim
     const size_t* getGroupID() const;
     const size_t* getGroupSize() const;
     Memory* getLocalMemory() const;
+    WorkItem *getNextWorkItem() const;
     unsigned int getWorkDim() const;
-    void run();
+    bool hasBarrier() const;
+    void notifyBarrier(WorkItem *workItem);
+    void notifyFinished(WorkItem *workItem);
     void wait_event(uint64_t event);
 
   private:
@@ -72,6 +76,9 @@ namespace spirsim
     Memory *m_localMemory;
     Memory& m_globalMemory;
     WorkItem **m_workItems;
+
+    std::set<WorkItem*> m_running;
+    std::set<WorkItem*> m_barrier;
 
     uint64_t m_nextEvent;
     std::map< uint64_t, std::list<AsyncCopy> > m_pendingEvents;

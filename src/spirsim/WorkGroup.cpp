@@ -62,6 +62,7 @@ WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
       {
         WorkItem *workItem = new WorkItem(*this, kernel, globalMem, i, j, k);
         m_workItems[i + (j + k*groupSize[1])*groupSize[0]] = workItem;
+        m_running.insert(workItem);
       }
     }
   }
@@ -102,6 +103,66 @@ uint64_t WorkGroup::async_copy(AsyncCopy copy, uint64_t event)
   m_pendingEvents[event].push_back(copy);
 
   return event;
+}
+
+void WorkGroup::clearBarrier()
+{
+  // Check for divergence
+  if (m_barrier.size() != m_totalWorkItems)
+  {
+    cerr << "Barrier divergence detected." << endl;
+    // TODO: Do something? Break?
+  }
+
+  // Move work-items to running state
+  set<WorkItem*>::iterator itr;
+  for (itr = m_barrier.begin(); itr != m_barrier.end(); itr++)
+  {
+    (*itr)->clearBarrier();
+    m_running.insert(*itr);
+  }
+  m_barrier.clear();
+
+  // Check if we're waiting on an event
+  if (!m_waitEvents.empty())
+  {
+    // Perform group copy
+    set<uint64_t>::iterator eItr;
+    for (eItr = m_waitEvents.begin(); eItr != m_waitEvents.end(); eItr++)
+    {
+      list<AsyncCopy> copies = m_pendingEvents[*eItr];
+      list<AsyncCopy>::iterator itr;
+      for (itr = copies.begin(); itr != copies.end(); itr++)
+      {
+        Memory *destMem, *srcMem;
+        if (itr->type == GLOBAL_TO_LOCAL)
+        {
+          destMem = m_localMemory;
+          srcMem = &m_globalMemory;
+        }
+        else
+        {
+          destMem = &m_globalMemory;
+          srcMem = m_localMemory;
+        }
+
+        size_t src = itr->src;
+        size_t dest = itr->dest;
+        unsigned char *buffer = new unsigned char[itr->size];
+        for (int i = 0; i < itr->num; i++)
+        {
+          // TODO: Check result of load/store and produce error message
+          srcMem->load(buffer, src, itr->size);
+          destMem->store(buffer, dest, itr->size);
+          src += itr->srcStride * itr->size;
+          dest += itr->destStride * itr->size;
+        }
+        delete[] buffer;
+      }
+      m_pendingEvents.erase(*eItr);
+    }
+    m_waitEvents.clear();
+  }
 }
 
 void WorkGroup::dumpLocalMemory() const
@@ -147,116 +208,34 @@ Memory* WorkGroup::getLocalMemory() const
   return m_localMemory;
 }
 
+WorkItem* WorkGroup::getNextWorkItem() const
+{
+  if (m_running.empty())
+  {
+    return NULL;
+  }
+  return *m_running.begin();
+}
+
 unsigned int WorkGroup::getWorkDim() const
 {
   return m_workDim;
 }
 
-void WorkGroup::run()
+bool WorkGroup::hasBarrier() const
 {
-  // Run until all work-items have finished
-  int numFinished = 0;
-  while (numFinished < m_totalWorkItems)
-  {
-    // Run work-items in order
-    int numBarriers = 0;
-    int numWaitEvents = 0;
-    for (int i = 0; i < m_totalWorkItems; i++)
-    {
-      // Check if work-item is ready to execute
-      WorkItem *workItem = m_workItems[i];
-      if (workItem->getState() != WorkItem::READY)
-      {
-        continue;
-      }
+  return !m_barrier.empty();
+}
 
-      // Run work-item until barrier or complete
-      WorkItem::State state = workItem->getState();
-      while (state == WorkItem::READY)
-      {
-        state = workItem->step();
-      }
+void WorkGroup::notifyBarrier(WorkItem *workItem)
+{
+  m_running.erase(workItem);
+  m_barrier.insert(workItem);
+}
 
-      // Update counters
-      if (state == WorkItem::BARRIER)
-      {
-        numBarriers++;
-      }
-      else if (state == WorkItem::WAIT_EVENT)
-      {
-        numWaitEvents++;
-      }
-      else if (state == WorkItem::FINISHED)
-      {
-        numFinished++;
-      }
-    }
-
-    // TODO: Handle work-items hitting different barriers
-    // Check if all work-items have reached a barrier
-    if (numBarriers == m_totalWorkItems)
-    {
-      for (int i = 0; i < m_totalWorkItems; i++)
-      {
-        m_workItems[i]->clearBarrier();
-      }
-    }
-    else if (numBarriers > 0)
-    {
-      cerr << "Barrier divergence detected." << endl;
-      return;
-    }
-
-    if (numWaitEvents == m_totalWorkItems)
-    {
-      // Perform group copy
-      set<uint64_t>::iterator eItr;
-      for (eItr = m_waitEvents.begin(); eItr != m_waitEvents.end(); eItr++)
-      {
-        list<AsyncCopy> copies = m_pendingEvents[*eItr];
-        list<AsyncCopy>::iterator itr;
-        for (itr = copies.begin(); itr != copies.end(); itr++)
-        {
-          Memory *destMem, *srcMem;
-          if (itr->type == GLOBAL_TO_LOCAL)
-          {
-            destMem = m_localMemory;
-            srcMem = &m_globalMemory;
-          }
-          else
-          {
-            destMem = &m_globalMemory;
-            srcMem = m_localMemory;
-          }
-
-          size_t src = itr->src;
-          size_t dest = itr->dest;
-          unsigned char *buffer = new unsigned char[itr->size];
-          for (int i = 0; i < itr->num; i++)
-          {
-            // TODO: Check result of load/store and produce error message
-            srcMem->load(buffer, src, itr->size);
-            destMem->store(buffer, dest, itr->size);
-            src += itr->srcStride * itr->size;
-            dest += itr->destStride * itr->size;
-          }
-          delete[] buffer;
-        }
-        m_pendingEvents.erase(*eItr);
-      }
-      m_waitEvents.clear();
-
-      for (int i = 0; i < m_totalWorkItems; i++)
-      {
-        m_workItems[i]->clearBarrier();
-      }
-    }
-    else if (numWaitEvents > 0)
-    {
-      cerr << "Wait for events divergence detected." << endl;
-      return;
-    }
-  }
+void WorkGroup::notifyFinished(WorkItem *workItem)
+{
+  m_running.erase(workItem);
 }
 
 void WorkGroup::wait_event(uint64_t event)

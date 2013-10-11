@@ -21,6 +21,7 @@ namespace spirsim
   class Kernel;
   class Memory;
   class WorkGroup;
+  class WorkItem;
 
   class Device
   {
@@ -40,6 +41,9 @@ namespace spirsim
     // Current kernel invocation
     Kernel *m_kernel;
     WorkGroup **m_workGroups;
+    WorkGroup *m_currentWorkGroup;
+    WorkItem *m_currentWorkItem;
+    std::set<WorkGroup*> m_runningGroups;
     size_t m_globalSize[3];
     size_t m_globalOffset[3];
     size_t m_localSize[3];
@@ -47,6 +51,7 @@ namespace spirsim
 
     bool m_interactive;
     bool m_running;
+    bool m_break;
     typedef void (Device::*Command)(std::vector<std::string>);
     std::map<std::string, Command> m_commands;
 

@@ -23,9 +23,13 @@
 #include "Memory.h"
 #include "Device.h"
 #include "WorkGroup.h"
+#include "WorkItem.h"
 
 using namespace spirsim;
 using namespace std;
+
+// Compute flattened 1D index from 3D index and sizes
+#define INDEX(id, num) (id[0] + (id[1] + id[2]*num[1])*num[0])
 
 Device::Device()
 {
@@ -74,6 +78,8 @@ void Device::run(Kernel& kernel, unsigned int workDim,
                  const size_t *globalSize,
                  const size_t *localSize)
 {
+  assert(m_runningGroups.empty());
+
   // Set-up offsets and sizes
   m_globalSize[0] = m_globalSize[1] = m_globalSize[2] = 1;
   m_globalOffset[0] = m_globalOffset[1] = m_globalOffset[2] = 0;
@@ -106,12 +112,17 @@ void Device::run(Kernel& kernel, unsigned int workDim,
     {
       for (int i = 0; i < m_numGroups[0]; i++)
       {
-        m_workGroups[i + (k*m_numGroups[1] + j)*m_numGroups[0]] =
+        WorkGroup *workGroup =
           new WorkGroup(kernel, *m_globalMemory, workDim, i, j, k,
                         m_globalOffset, m_globalSize, m_localSize);
+        m_workGroups[i + (k*m_numGroups[1] + j)*m_numGroups[0]] = workGroup;
+        m_runningGroups.insert(workGroup);
       }
     }
   }
+
+  m_currentWorkGroup = m_workGroups[0];
+  m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
 
   // Check if we're in interactive mode
   if (m_interactive)
@@ -201,18 +212,36 @@ void Device::clear(vector<string> args)
 
 void Device::cont(vector<string> args)
 {
-  // TODO: Implement properly
-  for (int k = 0; k < m_numGroups[2]; k++)
+  m_break = false;
+  while (!m_break)
   {
-    for (int j = 0; j < m_numGroups[1]; j++)
+    // Run current work-item as far as possible
+    while (m_currentWorkItem->step() == WorkItem::READY);
+
+    // Switch to next ready work-item
+    m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
+    if (m_currentWorkItem)
     {
-      for (int i = 0; i < m_numGroups[0]; i++)
-      {
-        WorkGroup *workGroup =
-          m_workGroups[i + (k*m_numGroups[1] + j)*m_numGroups[0]];
-        workGroup->run();
-      }
+      continue;
     }
+
+    // Check if there are work-items at a barrier
+    if (m_currentWorkGroup->hasBarrier())
+    {
+      // Resume execution
+      m_currentWorkGroup->clearBarrier();
+      m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
+      continue;
+    }
+
+    // Switch to next work-group
+    m_runningGroups.erase(m_currentWorkGroup);
+    if (m_runningGroups.empty())
+    {
+      break;
+    }
+    m_currentWorkGroup = *m_runningGroups.begin();
+    m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
   }
   m_running = false;
 }
@@ -315,6 +344,11 @@ void Device::info(vector<string> args)
        << "-> Local work size:    (" << m_localSize[0] << ","
                                      << m_localSize[1] << ","
                                      << m_localSize[2] << ")" << endl;
+
+  const size_t *gid = m_currentWorkItem->getGlobalID();
+  cout << endl << "Current work-item: (" << gid[0] << ","
+                                         << gid[1] << ","
+                                         << gid[2] << ")" << endl;
 }
 
 void Device::list(vector<string> args)
