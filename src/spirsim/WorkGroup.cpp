@@ -152,10 +152,8 @@ unsigned int WorkGroup::getWorkDim() const
   return m_workDim;
 }
 
-void WorkGroup::run(bool outputInstructions)
+void WorkGroup::run()
 {
-  const llvm::Function *function = m_kernel.getFunction();
-
   // Run until all work-items have finished
   int numFinished = 0;
   while (numFinished < m_totalWorkItems)
@@ -172,50 +170,25 @@ void WorkGroup::run(bool outputInstructions)
         continue;
       }
 
-      // Debug output
-      if (outputInstructions)
-      {
-        cout << SMALL_SEPARATOR << endl;
-        const size_t *gid = m_workItems[i]->getGlobalID();
-        cout << "Work-item ("
-             << gid[0] << "," << gid[1] << "," << gid[2]
-             << "):" << endl;
-      }
-
       // Run work-item until barrier or complete
       WorkItem::State state = workItem->getState();
       while (state == WorkItem::READY)
       {
-        state = workItem->step(outputInstructions);
+        state = workItem->step();
       }
 
       // Update counters
       if (state == WorkItem::BARRIER)
       {
         numBarriers++;
-        if (outputInstructions)
-        {
-          cout << SMALL_SEPARATOR << endl;
-          cout << "Barrier reached." << endl;
-        }
       }
       else if (state == WorkItem::WAIT_EVENT)
       {
         numWaitEvents++;
-        if (outputInstructions)
-        {
-          cout << SMALL_SEPARATOR << endl;
-          cout << "Wait for events reached." << endl;
-        }
       }
       else if (state == WorkItem::FINISHED)
       {
         numFinished++;
-        if (outputInstructions)
-        {
-          cout << SMALL_SEPARATOR << endl;
-          cout << "Kernel completed." << endl;
-        }
       }
     }
 
@@ -227,14 +200,10 @@ void WorkGroup::run(bool outputInstructions)
       {
         m_workItems[i]->clearBarrier();
       }
-      if (outputInstructions)
-      {
-        cout << "All work-items reached barrier." << endl;
-      }
     }
     else if (numBarriers > 0)
     {
-      cout << "Barrier divergence detected." << endl;
+      cerr << "Barrier divergence detected." << endl;
       return;
     }
 
@@ -281,21 +250,12 @@ void WorkGroup::run(bool outputInstructions)
       {
         m_workItems[i]->clearBarrier();
       }
-      if (outputInstructions)
-      {
-        cout << "All work-items reached wait for events." << endl;
-      }
     }
     else if (numWaitEvents > 0)
     {
-      cout << "Wait for events divergence detected." << endl;
+      cerr << "Wait for events divergence detected." << endl;
       return;
     }
-  }
-
-  if (outputInstructions)
-  {
-    cout << "All work-items completed kernel." << endl;
   }
 }
 

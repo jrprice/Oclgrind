@@ -58,7 +58,7 @@ namespace spirsim
     const size_t* getGroupSize() const;
     Memory* getLocalMemory() const;
     unsigned int getWorkDim() const;
-    void run(bool outputInstructions=false);
+    void run();
     void wait_event(uint64_t event);
 
   private:

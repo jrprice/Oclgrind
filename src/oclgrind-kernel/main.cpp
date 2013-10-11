@@ -24,7 +24,7 @@
 using namespace spirsim;
 using namespace std;
 
-static unsigned char outputMask = 0;
+static bool outputGlobalMemory = false;
 static const char *simfile = NULL;
 
 static size_t ndrange[3];
@@ -63,9 +63,14 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  // Run device
-  device->setOutputMask(outputMask);
-  device->run(*kernel, 3, NULL, ndrange, wgsize);
+  // Run kernel
+  size_t offset[3] = {0,0,0};
+  device->run(*kernel, 3, offset, ndrange, wgsize);
+  if (outputGlobalMemory)
+  {
+    device->getGlobalMemory()->dump();
+  }
+
   delete device;
   delete kernel;
   delete program;
@@ -200,16 +205,7 @@ static bool parseArguments(int argc, char *argv[])
         switch (*opt)
         {
         case 'g':
-          outputMask |= Device::OUTPUT_GLOBAL_MEM;
-          break;
-        case 'l':
-          outputMask |= Device::OUTPUT_LOCAL_MEM;
-          break;
-        case 'p':
-          outputMask |= Device::OUTPUT_PRIVATE_MEM;
-          break;
-        case 'i':
-          outputMask |= Device::OUTPUT_INSTRUCTIONS;
+          outputGlobalMemory = true;
           break;
         default:
           cout << "Unrecognised option '" << argv[i] << "'" << endl;
@@ -243,5 +239,5 @@ static bool parseArguments(int argc, char *argv[])
 
 static void printUsage()
 {
-  cout << "Usage: oclgrind [-g] [-p] [-i] simfile" << endl;
+  cout << "Usage: oclgrind [-g] simfile" << endl;
 }

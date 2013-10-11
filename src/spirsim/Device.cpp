@@ -16,6 +16,8 @@
 
 #include "common.h"
 #include <istream>
+#include <iterator>
+#include <sstream>
 
 #include "Kernel.h"
 #include "Memory.h"
@@ -28,31 +30,32 @@ using namespace std;
 Device::Device()
 {
   m_globalMemory = new Memory();
-  m_outputMask = 0;
+  m_interactive = false;
 
-  // Check environment variables for output masks
-  const char *env;
+  // Check for interactive environment variable
+  const char *env = getenv("OCLGRIND_INTERACTIVE");
+  if (env && strcmp(env, "1") == 0)
+  {
+    m_interactive = true;
+  }
 
-  env = getenv("OCLGRIND_OUTPUT_PRIVATE_MEM");
-  if (env && strcmp(env, "1") == 0)
-  {
-    m_outputMask |= OUTPUT_PRIVATE_MEM;
-  }
-  env = getenv("OCLGRIND_OUTPUT_LOCAL_MEM");
-  if (env && strcmp(env, "1") == 0)
-  {
-    m_outputMask |= OUTPUT_LOCAL_MEM;
-  }
-  env = getenv("OCLGRIND_OUTPUT_GLOBAL_MEM");
-  if (env && strcmp(env, "1") == 0)
-  {
-    m_outputMask |= OUTPUT_GLOBAL_MEM;
-  }
-  env = getenv("OCLGRIND_OUTPUT_INSTRUCTIONS");
-  if (env && strcmp(env, "1") == 0)
-  {
-    m_outputMask |= OUTPUT_INSTRUCTIONS;
-  }
+  // Set-up interactive commands
+#define ADD_CMD(name, sname, func)  \
+  m_commands[name] = &Device::func; \
+  m_commands[sname] = &Device::func;
+  ADD_CMD("backtrace",    "bt", backtrace);
+  ADD_CMD("break",        "b",  brk);
+  ADD_CMD("clear",        "cl", clear);
+  ADD_CMD("continue",     "c",  cont);
+  ADD_CMD("help",         "h",  help);
+  ADD_CMD("list",         "l",  list);
+  ADD_CMD("print",        "p",  print);
+  ADD_CMD("printglobal",  "pg", printglobal);
+  ADD_CMD("printlocal",   "pl", printlocal);
+  ADD_CMD("printprivate", "pp", printprivate);
+  ADD_CMD("quit",         "q",  quit);
+  ADD_CMD("step",         "s",  step);
+  ADD_CMD("workitem",     "wi", workitem);
 }
 
 Device::~Device()
@@ -70,6 +73,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
                  const size_t *globalSize,
                  const size_t *localSize)
 {
+  // Set-up offsets and sizes
   size_t offset[3] = {0,0,0};
   size_t ndrange[3] = {1,1,1};
   size_t wgsize[3] = {1,1,1};
@@ -90,61 +94,175 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   kernel.allocateConstants(m_globalMemory);
 
   // Create work-groups
-  size_t numGroups[3] = {ndrange[0]/wgsize[0],
-                         ndrange[1]/wgsize[1],
-                         ndrange[2]/wgsize[2]};
-  size_t totalNumGroups = numGroups[0]*numGroups[1]*numGroups[2];
-  for (int k = 0; k < numGroups[2]; k++)
+  m_numGroups[0] = ndrange[0]/wgsize[0];
+  m_numGroups[1] = ndrange[1]/wgsize[1];
+  m_numGroups[2] = ndrange[2]/wgsize[2];
+  size_t totalNumGroups = m_numGroups[0]*m_numGroups[1]*m_numGroups[2];
+  m_workGroups = new WorkGroup*[totalNumGroups];
+  for (int k = 0; k < m_numGroups[2]; k++)
   {
-    for (int j = 0; j < numGroups[1]; j++)
+    for (int j = 0; j < m_numGroups[1]; j++)
     {
-      for (int i = 0; i < numGroups[0]; i++)
+      for (int i = 0; i < m_numGroups[0]; i++)
       {
-        if (m_outputMask &
-            (OUTPUT_INSTRUCTIONS | OUTPUT_PRIVATE_MEM | OUTPUT_LOCAL_MEM))
-        {
-          cout << endl << BIG_SEPARATOR << endl;
-          cout << "Work-group (" << dec
-               << i << ","
-               << j << ","
-               << k
-               << ")" << endl;
-          cout << BIG_SEPARATOR << endl;
-        }
-
-        WorkGroup *workGroup = new WorkGroup(kernel, *m_globalMemory,
-                                             workDim, i, j, k,
-                                             offset, ndrange, wgsize);
-        workGroup->run(m_outputMask & OUTPUT_INSTRUCTIONS);
-
-        // Dump contents of memories
-        if (m_outputMask & OUTPUT_PRIVATE_MEM)
-        {
-          workGroup->dumpPrivateMemory();
-        }
-        if (m_outputMask & OUTPUT_LOCAL_MEM)
-        {
-          workGroup->dumpLocalMemory();
-        }
-
-        delete workGroup;
+        m_workGroups[i + (k*m_numGroups[1] + j)*m_numGroups[0]] =
+          new WorkGroup(kernel, *m_globalMemory,
+                        workDim, i, j, k, offset, ndrange, wgsize);
       }
     }
   }
 
+  // Check if we're in interactive mode
+  if (m_interactive)
+  {
+    m_running = true;
+  }
+  else
+  {
+    // If not, just run kernel
+    cont(vector<string>());
+    m_running = false;
+  }
+
+  // Interactive debugging loop
+  while (m_running)
+  {
+    // Prompt for command
+    string cmd;
+    cout << ">> " << std::flush;
+    getline(cin, cmd);
+
+    // Split command into tokens
+    vector<string> tokens;
+    istringstream iss(cmd);
+    copy(istream_iterator<string>(iss),
+         istream_iterator<string>(),
+         back_inserter< vector<string> >(tokens));
+
+    // Check for end of stream or empty command
+    if (cin.eof())
+    {
+      quit(tokens);
+    }
+    if (tokens.size() == 0)
+    {
+      continue;
+    }
+
+    // Find command in map and execute
+    map<string,Command>::iterator itr = m_commands.find(tokens[0]);
+    if (itr != m_commands.end())
+    {
+      (this->*itr->second)(tokens);
+    }
+    else
+    {
+      cout << "Unrecognized command '" << tokens[0] << "'" << endl;
+    }
+  }
+
+  // Destroy work-groups
+  for (int i = 0; i < totalNumGroups; i++)
+  {
+    delete m_workGroups[i];
+  }
+  delete[] m_workGroups;
+
   // Deallocate constant memory
   kernel.deallocateConstants(m_globalMemory);
-
-  // Output global memory dump if required
-  if (m_outputMask & OUTPUT_GLOBAL_MEM)
-  {
-    cout << endl << BIG_SEPARATOR << endl << "Global Memory:";
-    m_globalMemory->dump();
-    cout << BIG_SEPARATOR << endl;
-  }
 }
 
-void Device::setOutputMask(unsigned char mask)
+
+////////////////////////////////
+//// Interactive Debugging  ////
+////////////////////////////////
+
+void Device::backtrace(vector<string> args)
 {
-  m_outputMask = mask;
+  // TODO: Implement
+  cout << "Unimplemented command 'backtrace'" << endl;
+}
+
+void Device::brk(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'brk'" << endl;
+}
+
+void Device::clear(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'clear'" << endl;
+}
+
+void Device::cont(vector<string> args)
+{
+  // TODO: Implement properly
+  for (int k = 0; k < m_numGroups[2]; k++)
+  {
+    for (int j = 0; j < m_numGroups[1]; j++)
+    {
+      for (int i = 0; i < m_numGroups[0]; i++)
+      {
+        WorkGroup *workGroup =
+          m_workGroups[i + (k*m_numGroups[1] + j)*m_numGroups[0]];
+        workGroup->run();
+      }
+    }
+  }
+  m_running = false;
+}
+
+void Device::help(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'help'" << endl;
+}
+
+void Device::list(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'list'" << endl;
+}
+
+void Device::print(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'print'" << endl;
+}
+
+void Device::printglobal(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'printglobal'" << endl;
+}
+
+void Device::printlocal(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'printlocal'" << endl;
+}
+
+void Device::printprivate(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'printprivate'" << endl;
+}
+
+void Device::quit(vector<string> args)
+{
+  m_interactive = false;
+  m_running = false;
+}
+
+void Device::step(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'step'" << endl;
+}
+
+void Device::workitem(vector<string> args)
+{
+  // TODO: Implement
+  cout << "Unimplemented command 'workitem'" << endl;
 }

@@ -20,15 +20,10 @@ namespace spirsim
 {
   class Kernel;
   class Memory;
+  class WorkGroup;
 
   class Device
   {
-  public:
-    static const unsigned char OUTPUT_GLOBAL_MEM = 0x01;
-    static const unsigned char OUTPUT_LOCAL_MEM = 0x02;
-    static const unsigned char OUTPUT_PRIVATE_MEM = 0x04;
-    static const unsigned char OUTPUT_INSTRUCTIONS = 0x08;
-
   public:
     Device();
     virtual ~Device();
@@ -38,10 +33,34 @@ namespace spirsim
              const size_t *globalOffset,
              const size_t *globalSize,
              const size_t *localSize);
-    void setOutputMask(unsigned char mask);
 
   private:
     Memory *m_globalMemory;
-    unsigned char m_outputMask;
+
+    // Current kernel invocation
+    Kernel *m_kernel;
+    WorkGroup **m_workGroups;
+    size_t m_numGroups[3];
+
+    bool m_interactive;
+    bool m_running;
+    typedef void (Device::*Command)(std::vector<std::string>);
+    std::map<std::string, Command> m_commands;
+
+    // Interactive commands
+#define CMD(name) void name(std::vector<std::string> args);
+    CMD(backtrace);
+    CMD(brk);
+    CMD(clear);
+    CMD(cont);
+    CMD(help);
+    CMD(list);
+    CMD(print);
+    CMD(printglobal);
+    CMD(printlocal);
+    CMD(printprivate);
+    CMD(quit);
+    CMD(step);
+    CMD(workitem);
   };
 }

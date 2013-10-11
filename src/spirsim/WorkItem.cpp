@@ -660,14 +660,9 @@ void WorkItem::setIntResult(TypedValue& result, uint64_t val,
   memcpy(result.data + index*result.size, &val, result.size);
 }
 
-WorkItem::State WorkItem::step(bool debugOutput)
+WorkItem::State WorkItem::step()
 {
   assert(m_state == READY);
-
-  if (debugOutput)
-  {
-    dumpInstruction(cout, *m_currInst, true);
-  }
 
   // Execute the next instruction
   execute(*m_currInst);

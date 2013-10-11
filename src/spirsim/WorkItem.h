@@ -84,7 +84,7 @@ namespace spirsim
                              unsigned int index = 0);
     static void setIntResult(TypedValue& result, uint64_t val,
                              unsigned int index = 0);
-    State step(bool debugOutput = false);
+    State step();
     void trap();
     void updateVariable(const llvm::DbgValueInst *instruction);
 
