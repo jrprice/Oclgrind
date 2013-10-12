@@ -455,6 +455,7 @@ void Device::quit(vector<string> args)
 {
   m_interactive = false;
   m_running = false;
+  m_runningGroups.clear();
 }
 
 void Device::step(vector<string> args)
