@@ -88,7 +88,6 @@ namespace spirsim
                              unsigned int index = 0);
     State step();
     void trap();
-    void updateVariable(const llvm::DbgValueInst *instruction);
 
     // SPIR instructions
     void add(const llvm::Instruction& instruction, TypedValue& result);
@@ -139,7 +138,7 @@ namespace spirsim
     size_t m_localID[3];
     TypedValueMap m_instResults;
     TypedValueMap m_phiTemps;
-    std::map<std::string,const llvm::Value*> m_variables;
+    std::map<std::string, const llvm::Value*> m_variables;
     const Kernel& m_kernel;
     Memory *m_privateMemory;
     Memory& m_globalMemory;
@@ -155,5 +154,8 @@ namespace spirsim
     llvm::BasicBlock::const_iterator m_currInst;
     std::stack<ReturnAddress> m_callStack;
     bool m_debugOutput;
+
+    void printInterpretedValue(const llvm::Type *type,
+                               const unsigned char *data);
   };
 }

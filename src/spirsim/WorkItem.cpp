@@ -18,7 +18,6 @@
 #include <cxxabi.h>
 
 #include "llvm/DebugInfo.h"
-#include "llvm/Metadata.h"
 #include "llvm/InstrTypes.h"
 #include "llvm/Instruction.h"
 #include "llvm/Instructions.h"
@@ -576,6 +575,66 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
   cerr << endl;
 }
 
+void WorkItem::printInterpretedValue(const llvm::Type *type,
+                                     const unsigned char *data)
+{
+  // TODO: Interpret other types (array, struct)
+  size_t size = getTypeSize(type);
+  switch (type->getTypeID())
+  {
+  case llvm::Type::FloatTyID:
+    cout << *(float*)data;
+    break;
+  case llvm::Type::DoubleTyID:
+    cout << *(double*)data;
+    break;
+  case llvm::Type::IntegerTyID:
+    switch (size)
+    {
+    case 1:
+      cout << (int)*(char*)data;
+      break;
+    case 2:
+      cout << *(short*)data;
+      break;
+    case 4:
+      cout << *(int*)data;
+      break;
+    case 8:
+      cout << *(long*)data;
+      break;
+    default:
+      cout << "(invalid integer size)";
+      break;
+    }
+    break;
+  case llvm::Type::VectorTyID:
+  {
+    const llvm::Type *elemType = type->getVectorElementType();
+    cout << "(";
+    for (int i = 0; i < type->getVectorNumElements(); i++)
+    {
+      if (i > 0)
+      {
+        cout << ",";
+      }
+      printInterpretedValue(elemType, data+i*getTypeSize(elemType));
+    }
+    cout << ")";
+    break;
+  }
+  case llvm::Type::PointerTyID:
+    cout << "0x" << hex << *(size_t*)data;
+    break;
+  default:
+    cout << "(raw) 0x" << hex << uppercase << setw(2) << setfill('0');
+    for (int i = 0; i < size; i++)
+    {
+      cout << (int)data[i];
+    }
+  }
+}
+
 bool WorkItem::printVariable(string name)
 {
   // Find variable
@@ -586,31 +645,28 @@ bool WorkItem::printVariable(string name)
     return false;
   }
 
-  // Print value (interpreted, if possible)
-  // TODO: Interpret other types (vector, array, struct)
+  // Get variable value
   const llvm::Value *value = itr->second;
   TypedValue result = m_instResults[value];
-  const llvm::Type::TypeID type = value->getType()->getTypeID();
-  switch (type)
+  const llvm::Type *type = value->getType();
+
+  if (((const llvm::Instruction*)value)->getOpcode()
+       == llvm::Instruction::Alloca)
   {
-  case llvm::Type::IntegerTyID:
-    cout << dec << getSignedInt(value);
-    break;
-  case llvm::Type::PointerTyID:
-    cout << "0x" << hex << *(size_t*)result.data;
-    break;
-  case llvm::Type::FloatTyID:
-  case llvm::Type::DoubleTyID:
-    cout << getFloatValue(value);
-    break;
-  default:
-    cout << "0x";
-    for (int i = 0; i < result.size*result.num; i++)
-    {
-      cout << hex << uppercase << setw(2) << setfill('0')
-           << (int)result.data[i];
-    }
-    break;
+    // If value is alloca result, look-up data at address
+    const llvm::Type *elemType = value->getType()->getPointerElementType();
+    size_t address = *(size_t*)result.data;
+    size_t size = getTypeSize(elemType);
+    unsigned char *data = new unsigned char[size];
+    m_privateMemory->load(data, address, size);
+
+    printInterpretedValue(elemType, data);
+
+    delete[] data;
+  }
+  else
+  {
+    printInterpretedValue(type, result.data);
   }
 
   return true;
@@ -696,16 +752,6 @@ void WorkItem::trap()
   m_workGroup.notifyFinished(this);
 }
 
-void WorkItem::updateVariable(const llvm::DbgValueInst *instruction)
-{
-  const llvm::Value *value = instruction->getValue();
-  const llvm::MDNode *variable = instruction->getVariable();
-  uint64_t offset = instruction->getOffset();
-
-  const llvm::MDString *var = ((const llvm::MDString*)variable->getOperand(2));
-  std::string name = var->getString().str();
-  m_variables[name] = value;
-}
 
 ////////////////////////////////
 //// Instruction execution  ////

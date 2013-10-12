@@ -19,6 +19,7 @@
 
 #include "llvm/Instructions.h"
 #include "llvm/IntrinsicInst.h"
+#include "llvm/Metadata.h"
 
 #include "Memory.h"
 #include "WorkGroup.h"
@@ -1716,12 +1717,24 @@ namespace spirsim
 
     DEFINE_BUILTIN(llvm_dbg_declare)
     {
-      // TODO: Implement?
+      const llvm::DbgDeclareInst *dbgInst =
+        (const llvm::DbgDeclareInst*)callInst;
+      const llvm::Value *addr = dbgInst->getAddress();
+      const llvm::MDNode *var = dbgInst->getVariable();
+      const llvm::MDString *name = ((const llvm::MDString*)var->getOperand(2));
+      workItem->m_variables[name->getString().str()] = addr;
     }
 
     DEFINE_BUILTIN(llvm_dbg_value)
     {
-      workItem->updateVariable((const llvm::DbgValueInst*)callInst);
+      const llvm::DbgValueInst *dbgInst = (const llvm::DbgValueInst*)callInst;
+      const llvm::Value *value = dbgInst->getValue();
+      const llvm::MDNode *var = dbgInst->getVariable();
+      uint64_t offset = dbgInst->getOffset();
+
+      // TODO: Use offset?
+      const llvm::MDString *name = ((const llvm::MDString*)var->getOperand(2));
+      workItem->m_variables[name->getString().str()] = value;
     }
 
     DEFINE_BUILTIN(llvm_lifetime_start)
