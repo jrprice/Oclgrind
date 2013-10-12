@@ -27,7 +27,9 @@
 using namespace spirsim;
 using namespace std;
 
-Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
+Kernel::Kernel(const Program& program,
+               const llvm::Function *function, const llvm::Module *module)
+ : m_program(program)
 {
   m_function = function;
   m_localMemory = new Memory();
@@ -84,6 +86,7 @@ Kernel::Kernel(const llvm::Function *function, const llvm::Module *module)
 }
 
 Kernel::Kernel(const Kernel& kernel)
+ : m_program(kernel.m_program)
 {
   m_function = kernel.m_function;
   m_arguments = kernel.m_arguments;
@@ -211,6 +214,11 @@ const std::string& Kernel::getName() const
 unsigned int Kernel::getNumArguments() const
 {
   return m_function->arg_size();
+}
+
+const Program& Kernel::getProgram() const
+{
+  return m_program;
 }
 
 const size_t* Kernel::getRequiredWorkGroupSize() const

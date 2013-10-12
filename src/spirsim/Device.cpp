@@ -19,9 +19,12 @@
 #include <iterator>
 #include <sstream>
 
+#include "llvm/DebugInfo.h"
+
 #include "Kernel.h"
 #include "Memory.h"
 #include "Device.h"
+#include "Program.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
@@ -157,6 +160,20 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   if (m_interactive)
   {
     m_running = true;
+
+    // Get source code (if available) and split into lines
+    string source = kernel.getProgram().getSource();
+    m_sourceLines.clear();
+    if (!source.empty())
+    {
+      std::stringstream ss(source);
+      std::string line;
+      while(std::getline(ss, line, '\n'))
+      {
+        m_sourceLines.push_back(line);
+      }
+    }
+
     cout << endl;
     info(vector<string>());
   }
@@ -214,6 +231,35 @@ void Device::run(Kernel& kernel, unsigned int workDim,
 
   // Deallocate constant memory
   kernel.deallocateConstants(m_globalMemory);
+}
+
+void Device::printCurrentLine() const
+{
+  if (!m_currentWorkItem)
+  {
+    return;
+  }
+
+  const llvm::Instruction *inst = m_currentWorkItem->getCurrentInstruction();
+  llvm::MDNode *md = inst->getMetadata("dbg");
+  if (!m_sourceLines.empty() && md)
+  {
+    llvm::DILocation loc(md);
+    size_t lineNum = loc.getLineNumber()-1;
+    if (lineNum < m_sourceLines.size())
+    {
+      cout << (lineNum+1) << "\t" << m_sourceLines[lineNum] << endl;
+    }
+    else
+    {
+      cout << "Invalid line number: " << lineNum << endl;
+    }
+  }
+  else
+  {
+    cout << "Source line not available." << endl;
+    dumpInstruction(cout, *m_currentWorkItem->getCurrentInstruction());
+  }
 }
 
 
@@ -352,12 +398,18 @@ void Device::info(vector<string> args)
                                      << m_localSize[2] << ")" << endl;
 
   // Current work-item
-  const size_t *gid = m_currentWorkItem->getGlobalID();
-  cout << endl << "Current work-item: (" << gid[0] << ","
-                                         << gid[1] << ","
-                                         << gid[2] << ")" << endl;
-  // TODO: Show source line if available
-  dumpInstruction(cout, *m_currentWorkItem->getCurrentInstruction());
+  if (m_currentWorkItem)
+  {
+    const size_t *gid = m_currentWorkItem->getGlobalID();
+    cout << endl << "Current work-item: (" << gid[0] << ","
+                                           << gid[1] << ","
+                                           << gid[2] << ")" << endl;
+    printCurrentLine();
+  }
+  else
+  {
+    cout << "All work-items finished." << endl;
+  }
 }
 
 void Device::list(vector<string> args)
@@ -400,7 +452,7 @@ void Device::step(vector<string> args)
 {
   if (!m_currentWorkItem)
   {
-    cerr << "All work-items finished." << endl;
+    cout << "All work-items finished." << endl;
     return;
   }
 
@@ -417,11 +469,7 @@ void Device::step(vector<string> args)
                                            << gid[2] << ")" << endl;
     }
   }
-  if (m_currentWorkItem)
-  {
-    // TODO: Show source line if available
-    dumpInstruction(cout, *m_currentWorkItem->getCurrentInstruction());
-  }
+  printCurrentLine();
 }
 
 void Device::workitem(vector<string> args)

@@ -28,11 +28,13 @@ namespace llvm
 namespace spirsim
 {
   class Memory;
+  class Program;
 
   class Kernel
   {
   public:
-    Kernel(const llvm::Function *function, const llvm::Module *module);
+    Kernel(const Program& program,
+           const llvm::Function *function, const llvm::Module *module);
     Kernel(const Kernel& kernel);
     virtual ~Kernel();
 
@@ -47,10 +49,12 @@ namespace spirsim
     size_t getLocalMemorySize() const;
     const std::string& getName() const;
     unsigned int getNumArguments() const;
+    const Program& getProgram() const;
     const size_t* getRequiredWorkGroupSize() const;
     void setArgument(unsigned int index, TypedValue value);
 
   private:
+    const Program& m_program;
     const llvm::Function *m_function;
     TypedValueMap m_arguments;
     std::list<const llvm::GlobalVariable*> m_constants;
