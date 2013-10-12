@@ -55,6 +55,7 @@ namespace spirsim
     size_t m_localSize[3];
     size_t m_numGroups[3];
     std::vector<std::string> m_sourceLines;
+    size_t m_listPosition;
 
     bool m_interactive;
     bool m_running;
@@ -65,6 +66,7 @@ namespace spirsim
     size_t getCurrentLineNumber() const;
     bool nextWorkItem();
     void printCurrentLine() const;
+    void printSourceLine(size_t lineNum) const;
 
     // Interactive commands
 #define CMD(name) void name(std::vector<std::string> args);

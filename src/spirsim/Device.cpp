@@ -31,6 +31,8 @@
 using namespace spirsim;
 using namespace std;
 
+#define LIST_LENGTH 10
+
 // Compute flattened 1D index from 3D index and sizes
 #define INDEX(id, num) (id[0] + (id[1] + id[2]*num[1])*num[0])
 
@@ -165,6 +167,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
     }
   }
 
+  m_listPosition = 0;
   m_currentWorkGroup = m_workGroups[0];
   m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
 
@@ -255,19 +258,24 @@ void Device::printCurrentLine() const
   size_t lineNum = getCurrentLineNumber();
   if (!m_sourceLines.empty() && lineNum > 0)
   {
-    if (lineNum <= m_sourceLines.size())
-    {
-      cout << lineNum << "\t" << m_sourceLines[lineNum-1] << endl;
-    }
-    else
-    {
-      cout << "Invalid line number: " << lineNum-1 << endl;
-    }
+    printSourceLine(lineNum);
   }
   else
   {
     cout << "Source line not available." << endl;
     dumpInstruction(cout, *m_currentWorkItem->getCurrentInstruction());
+  }
+}
+
+void Device::printSourceLine(size_t lineNum) const
+{
+  if (lineNum && lineNum <= m_sourceLines.size())
+  {
+    cout << lineNum << "\t" << m_sourceLines[lineNum-1] << endl;
+  }
+  else
+  {
+    cout << "Invalid line number: " << lineNum-1 << endl;
   }
 }
 
@@ -303,6 +311,7 @@ void Device::cont(vector<string> args)
 
     nextWorkItem();
   }
+  m_listPosition = 0;
   m_running = false;
 }
 
@@ -355,7 +364,13 @@ void Device::help(vector<string> args)
   }
   else if (args[1] == "list")
   {
-    // TODO: Help message
+    cout << "List source lines." << endl
+         << "With no argument, lists " << LIST_LENGTH
+         << " lines after previous listing." << endl
+         << "Use - to list " << LIST_LENGTH
+         << " lines before the previous listing" << endl
+         << "Use a numeric argument to list around a specific line number."
+         << endl;
   }
   else if (args[1] == "print")
   {
@@ -424,8 +439,67 @@ void Device::info(vector<string> args)
 
 void Device::list(vector<string> args)
 {
-  // TODO: Implement
-  cout << "Unimplemented command 'list'" << endl;
+  if (m_sourceLines.empty())
+  {
+    cout << "No source code available." << endl;
+    return;
+  }
+
+  // Check for an argument
+  size_t start = 0;
+  bool forwards = true;
+  if (args.size() > 1)
+  {
+    if (args[1] == "-")
+    {
+      forwards = false;
+    }
+    else
+    {
+      // Parse argument as a target line number
+      istringstream ss(args[1]);
+      ss >> start;
+      if (!ss.eof())
+      {
+        cout << "Invalid line number." << endl;
+        return;
+      }
+      start = start > LIST_LENGTH/2 ? start - LIST_LENGTH/2 : 1;
+    }
+  }
+
+  if (!start)
+  {
+    if (forwards)
+    {
+      // Starting position is the previous list position + LIST_LENGTH
+      start = m_listPosition ?
+        m_listPosition + LIST_LENGTH : getCurrentLineNumber() + 1;
+      if (start >= m_sourceLines.size() + 1)
+      {
+        m_listPosition = m_sourceLines.size() + 1;
+        return;
+      }
+    }
+    else
+    {
+      // Starting position is the previous list position - LIST_LENGTH
+      start = m_listPosition ? m_listPosition : getCurrentLineNumber();
+      start = start > LIST_LENGTH ? start - LIST_LENGTH : 1;
+    }
+  }
+
+  // Display lines
+  for (int i = 0; i < LIST_LENGTH; i++)
+  {
+    if (start + i >= m_sourceLines.size() + 1)
+    {
+      break;
+    }
+    printSourceLine(start + i);
+  }
+
+  m_listPosition = start;
 }
 
 void Device::print(vector<string> args)
@@ -508,6 +582,7 @@ void Device::step(vector<string> args)
     }
   }
   printCurrentLine();
+  m_listPosition = 0;
 }
 
 void Device::workitem(vector<string> args)
