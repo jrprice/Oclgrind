@@ -62,6 +62,7 @@ namespace spirsim
     typedef void (Device::*Command)(std::vector<std::string>);
     std::map<std::string, Command> m_commands;
 
+    size_t getCurrentLineNumber() const;
     bool nextWorkItem();
     void printCurrentLine() const;
 

@@ -71,6 +71,18 @@ Device::~Device()
   delete m_globalMemory;
 }
 
+size_t Device::getCurrentLineNumber() const
+{
+  const llvm::Instruction *inst = m_currentWorkItem->getCurrentInstruction();
+  llvm::MDNode *md = inst->getMetadata("dbg");
+  if (md)
+  {
+    llvm::DILocation loc(md);
+    return loc.getLineNumber();
+  }
+  return 0;
+}
+
 Memory* Device::getGlobalMemory() const
 {
   return m_globalMemory;
@@ -240,19 +252,16 @@ void Device::printCurrentLine() const
     return;
   }
 
-  const llvm::Instruction *inst = m_currentWorkItem->getCurrentInstruction();
-  llvm::MDNode *md = inst->getMetadata("dbg");
-  if (!m_sourceLines.empty() && md)
+  size_t lineNum = getCurrentLineNumber();
+  if (!m_sourceLines.empty() && lineNum > 0)
   {
-    llvm::DILocation loc(md);
-    size_t lineNum = loc.getLineNumber()-1;
-    if (lineNum < m_sourceLines.size())
+    if (lineNum <= m_sourceLines.size())
     {
-      cout << (lineNum+1) << "\t" << m_sourceLines[lineNum] << endl;
+      cout << lineNum << "\t" << m_sourceLines[lineNum-1] << endl;
     }
     else
     {
-      cout << "Invalid line number: " << lineNum << endl;
+      cout << "Invalid line number: " << lineNum-1 << endl;
     }
   }
   else
@@ -456,8 +465,22 @@ void Device::step(vector<string> args)
     return;
   }
 
-  // TODO: Step whole source line if available
-  if (m_currentWorkItem->step() != WorkItem::READY)
+  // Step whole source lines, if available
+  size_t prevLine = getCurrentLineNumber();
+  size_t currLine = prevLine;
+  WorkItem::State state = m_currentWorkItem->getState();
+  do
+  {
+    state = m_currentWorkItem->step();
+    if (state != WorkItem::READY)
+    {
+      break;
+    }
+    currLine = getCurrentLineNumber();
+  }
+  while (!m_sourceLines.empty() && (currLine == prevLine || currLine == 0));
+
+  if (state != WorkItem::READY)
   {
     // Switch to next work-item
     if (nextWorkItem())
