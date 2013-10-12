@@ -339,6 +339,7 @@ void Device::help(vector<string> args)
 
 void Device::info(vector<string> args)
 {
+  // Kernel invocation information
   cout << "Running kernel '" << m_kernel->getName() << "'" << endl
        << "-> Global work size:   (" << m_globalSize[0] << ","
                                      << m_globalSize[1] << ","
@@ -350,10 +351,13 @@ void Device::info(vector<string> args)
                                      << m_localSize[1] << ","
                                      << m_localSize[2] << ")" << endl;
 
+  // Current work-item
   const size_t *gid = m_currentWorkItem->getGlobalID();
   cout << endl << "Current work-item: (" << gid[0] << ","
                                          << gid[1] << ","
                                          << gid[2] << ")" << endl;
+  // TODO: Show source line if available
+  dumpInstruction(cout, *m_currentWorkItem->getCurrentInstruction());
 }
 
 void Device::list(vector<string> args)
