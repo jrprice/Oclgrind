@@ -359,7 +359,7 @@ void Device::help(vector<string> args)
   }
   else if (args[1] == "print")
   {
-    // TODO: Help message
+    cout << "Print the values of one or more variables." << endl;
   }
   else if (args[1] == "printglobal")
   {
@@ -380,7 +380,8 @@ void Device::help(vector<string> args)
   }
   else if (args[1] == "step")
   {
-    // TODO: Help message
+    cout << "Step forward a single source line,"
+         << " or an instruction if no source available." << endl;
   }
   else if (args[1] == "workitem")
   {
