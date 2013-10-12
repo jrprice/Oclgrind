@@ -320,20 +320,20 @@ void Device::help(vector<string> args)
   if (args.size() < 2)
   {
     cout << "Command list:" << endl;
-    cout << "  backtrace    (bt)" << endl;
-    cout << "  break        (b)" << endl;
-    cout << "  clear        (cl)" << endl;
+//    cout << "  backtrace    (bt)" << endl;
+//    cout << "  break        (b)" << endl;
+//    cout << "  clear        (cl)" << endl;
     cout << "  continue     (c)" << endl;
     cout << "  help         (h)" << endl;
     cout << "  info         (i)" << endl;
     cout << "  list         (l)" << endl;
     cout << "  print        (p)" << endl;
-    cout << "  printglobal  (pg)" << endl;
-    cout << "  printlocal   (pl)" << endl;
-    cout << "  printprivate (pp)" << endl;
+//    cout << "  printglobal  (pg)" << endl;
+//    cout << "  printlocal   (pl)" << endl;
+//    cout << "  printprivate (pp)" << endl;
     cout << "  quit         (q)" << endl;
     cout << "  step         (s)" << endl;
-    cout << "  workitem     (wi)" << endl;
+//    cout << "  workitem     (wi)" << endl;
     cout << "(type 'help command' for more information)" << endl;
     return;
   }
