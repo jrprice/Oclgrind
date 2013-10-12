@@ -65,6 +65,7 @@ namespace spirsim
     void dumpPrivateMemory();
     void enableDebugOutput(bool enable);
     void execute(const llvm::Instruction& instruction);
+    const llvm::Instruction* getCurrentInstruction() const;
     const size_t* getGlobalID() const;
     double getFloatValue(const llvm::Value *operand,
                          unsigned int index = 0);

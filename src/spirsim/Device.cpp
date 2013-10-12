@@ -73,6 +73,35 @@ Memory* Device::getGlobalMemory() const
   return m_globalMemory;
 }
 
+bool Device::nextWorkItem()
+{
+  // Switch to next ready work-item
+  m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
+  if (m_currentWorkItem)
+  {
+    return true;
+  }
+
+  // Check if there are work-items at a barrier
+  if (m_currentWorkGroup->hasBarrier())
+  {
+    // Resume execution
+    m_currentWorkGroup->clearBarrier();
+    m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
+    return true;
+  }
+
+  // Switch to next work-group
+  m_runningGroups.erase(m_currentWorkGroup);
+  if (m_runningGroups.empty())
+  {
+    return false;
+  }
+  m_currentWorkGroup = *m_runningGroups.begin();
+  m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
+  return true;
+}
+
 void Device::run(Kernel& kernel, unsigned int workDim,
                  const size_t *globalOffset,
                  const size_t *globalSize,
@@ -212,36 +241,12 @@ void Device::clear(vector<string> args)
 
 void Device::cont(vector<string> args)
 {
-  m_break = false;
-  while (!m_break)
+  while (m_currentWorkItem)
   {
     // Run current work-item as far as possible
     while (m_currentWorkItem->step() == WorkItem::READY);
 
-    // Switch to next ready work-item
-    m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
-    if (m_currentWorkItem)
-    {
-      continue;
-    }
-
-    // Check if there are work-items at a barrier
-    if (m_currentWorkGroup->hasBarrier())
-    {
-      // Resume execution
-      m_currentWorkGroup->clearBarrier();
-      m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
-      continue;
-    }
-
-    // Switch to next work-group
-    m_runningGroups.erase(m_currentWorkGroup);
-    if (m_runningGroups.empty())
-    {
-      break;
-    }
-    m_currentWorkGroup = *m_runningGroups.begin();
-    m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
+    nextWorkItem();
   }
   m_running = false;
 }
@@ -389,8 +394,30 @@ void Device::quit(vector<string> args)
 
 void Device::step(vector<string> args)
 {
-  // TODO: Implement
-  cout << "Unimplemented command 'step'" << endl;
+  if (!m_currentWorkItem)
+  {
+    cerr << "All work-items finished." << endl;
+    return;
+  }
+
+  // TODO: Step whole source line if available
+  if (m_currentWorkItem->step() != WorkItem::READY)
+  {
+    // Switch to next work-item
+    if (nextWorkItem())
+    {
+      // Print new WI id
+      const size_t *gid = m_currentWorkItem->getGlobalID();
+      cout << "Now executing work-item: (" << gid[0] << ","
+                                           << gid[1] << ","
+                                           << gid[2] << ")" << endl;
+    }
+  }
+  if (m_currentWorkItem)
+  {
+    // TODO: Show source line if available
+    dumpInstruction(cout, *m_currentWorkItem->getCurrentInstruction());
+  }
 }
 
 void Device::workitem(vector<string> args)

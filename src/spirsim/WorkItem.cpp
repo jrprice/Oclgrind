@@ -346,6 +346,11 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   }
 }
 
+const llvm::Instruction* WorkItem::getCurrentInstruction() const
+{
+  return m_currInst;
+}
+
 const size_t* WorkItem::getGlobalID() const
 {
   return m_globalID;

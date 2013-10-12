@@ -55,6 +55,8 @@ namespace spirsim
     typedef void (Device::*Command)(std::vector<std::string>);
     std::map<std::string, Command> m_commands;
 
+    bool nextWorkItem();
+
     // Interactive commands
 #define CMD(name) void name(std::vector<std::string> args);
     CMD(backtrace);
