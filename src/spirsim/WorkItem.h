@@ -78,6 +78,7 @@ namespace spirsim
                            const std::string& msg,
                            unsigned addressSpace,
                            size_t address, size_t size) const;
+    bool printVariable(std::string name);
     TypedValue resolveConstExpr(const llvm::ConstantExpr *expr);
     static void setFloatResult(TypedValue& result, double val,
                                unsigned int index = 0);

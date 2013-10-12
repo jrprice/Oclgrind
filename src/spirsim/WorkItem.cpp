@@ -232,48 +232,6 @@ void WorkItem::dumpPrivateMemory()
        << m_globalID[2]
        << ") Private Memory:" << endl;
 
-  map<string,const llvm::Value*>::const_iterator varItr;
-  for (varItr = m_variables.begin(); varItr != m_variables.end(); varItr++)
-  {
-    // Check variable has an assigned value
-    const llvm::Value *value = varItr->second;
-    TypedValueMap::const_iterator itr = m_instResults.find(value);
-    if (itr == m_instResults.end())
-    {
-      continue;
-    }
-
-    // Output synbolic name
-    cout << setw(16) << setfill(' ') << left;
-    cout << varItr->first << right << ":";
-
-    // Output bytes
-    const TypedValue result = itr->second;
-    for (int i = 0; i < result.size*result.num; i++)
-    {
-      cout << " " << hex << uppercase << setw(2) << setfill('0')
-           << (int)result.data[i];
-    }
-
-    // Interpret value
-    const llvm::Type::TypeID type = value->getType()->getTypeID();
-    switch (type)
-    {
-    case llvm::Type::IntegerTyID:
-      cout << " (" << dec << getUnsignedInt(value) << ")";
-      break;
-    case llvm::Type::FloatTyID:
-    case llvm::Type::DoubleTyID:
-      cout << " (" << getFloatValue(value) << ")";
-      break;
-    default:
-      break;
-    }
-
-    cout << setw(0) << endl;
-  }
-
-  // Dump stack contents
   if (m_privateMemory->getTotalAllocated() > 0)
   {
     cout << endl << "Stack:";
@@ -616,6 +574,46 @@ void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
          << " of " << loc.getFilename().str() << endl;
   }
   cerr << endl;
+}
+
+bool WorkItem::printVariable(string name)
+{
+  // Find variable
+  map<string, const llvm::Value*>::const_iterator itr;
+  itr = m_variables.find(name);
+  if (itr == m_variables.end())
+  {
+    return false;
+  }
+
+  // Print value (interpreted, if possible)
+  // TODO: Interpret other types (vector, array, struct)
+  const llvm::Value *value = itr->second;
+  TypedValue result = m_instResults[value];
+  const llvm::Type::TypeID type = value->getType()->getTypeID();
+  switch (type)
+  {
+  case llvm::Type::IntegerTyID:
+    cout << dec << getSignedInt(value);
+    break;
+  case llvm::Type::PointerTyID:
+    cout << "0x" << hex << *(size_t*)result.data;
+    break;
+  case llvm::Type::FloatTyID:
+  case llvm::Type::DoubleTyID:
+    cout << getFloatValue(value);
+    break;
+  default:
+    cout << "0x";
+    for (int i = 0; i < result.size*result.num; i++)
+    {
+      cout << hex << uppercase << setw(2) << setfill('0')
+           << (int)result.data[i];
+    }
+    break;
+  }
+
+  return true;
 }
 
 TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)

@@ -429,8 +429,21 @@ void Device::list(vector<string> args)
 
 void Device::print(vector<string> args)
 {
-  // TODO: Implement
-  cout << "Unimplemented command 'print'" << endl;
+  if (args.size() < 2)
+  {
+    cout << "Variable name(s) required." << endl;
+    return;
+  }
+
+  for (int i = 1; i < args.size(); i++)
+  {
+    cout << args[i] << " = ";
+    if (!m_currentWorkItem->printVariable(args[i]))
+    {
+      cout << "not found";
+    }
+    cout << endl;
+  }
 }
 
 void Device::printglobal(vector<string> args)
