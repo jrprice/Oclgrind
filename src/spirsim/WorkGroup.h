@@ -77,8 +77,13 @@ namespace spirsim
     Memory& m_globalMemory;
     WorkItem **m_workItems;
 
-    std::set<WorkItem*> m_running;
-    std::set<WorkItem*> m_barrier;
+    // Comparator for ordering work-items
+    struct WorkItemCmp
+    {
+      bool operator()(const WorkItem *lhs, const WorkItem *rhs) const;
+    };
+    std::set<WorkItem*, WorkItemCmp> m_running;
+    std::set<WorkItem*, WorkItemCmp> m_barrier;
 
     uint64_t m_nextEvent;
     std::map< uint64_t, std::list<AsyncCopy> > m_pendingEvents;

@@ -38,12 +38,18 @@ namespace spirsim
   private:
     Memory *m_globalMemory;
 
+    // Comparator for ordering work-groups
+    struct WorkGroupCmp
+    {
+      bool operator()(const WorkGroup *lhs, const WorkGroup *rhs) const;
+    };
+
     // Current kernel invocation
     Kernel *m_kernel;
     WorkGroup **m_workGroups;
     WorkGroup *m_currentWorkGroup;
     WorkItem *m_currentWorkItem;
-    std::set<WorkGroup*> m_runningGroups;
+    std::set<WorkGroup*, WorkGroupCmp> m_runningGroups;
     size_t m_globalSize[3];
     size_t m_globalOffset[3];
     size_t m_localSize[3];

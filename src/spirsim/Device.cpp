@@ -429,3 +429,19 @@ void Device::workitem(vector<string> args)
   // TODO: Implement
   cout << "Unimplemented command 'workitem'" << endl;
 }
+
+bool Device::WorkGroupCmp::operator()(const WorkGroup *lhs,
+                                      const WorkGroup *rhs) const
+{
+  const size_t *lgid = lhs->getGroupID();
+  const size_t *rgid = rhs->getGroupID();
+  if (lgid[2] != rgid[2])
+  {
+    return lgid[2] < rgid[2];
+  }
+  if (lgid[1] != rgid[1])
+  {
+    return lgid[2] != rgid[2];
+  }
+  return lgid[0] < rgid[0];
+}

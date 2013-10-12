@@ -254,3 +254,19 @@ bool WorkGroup::AsyncCopy::operator==(AsyncCopy copy) const
     (src == copy.src) &&
     (size == copy.size);
 }
+
+bool WorkGroup::WorkItemCmp::operator()(const WorkItem *lhs,
+                                        const WorkItem *rhs) const
+{
+  const size_t *lgid = lhs->getGlobalID();
+  const size_t *rgid = rhs->getGlobalID();
+  if (lgid[2] != rgid[2])
+  {
+    return lgid[2] < rgid[2];
+  }
+  if (lgid[1] != rgid[1])
+  {
+    return lgid[2] != rgid[2];
+  }
+  return lgid[0] < rgid[0];
+}
