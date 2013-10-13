@@ -34,8 +34,7 @@ using namespace std;
 WorkItem::WorkItem(WorkGroup& workGroup,
                    const Kernel& kernel, Memory& globalMem,
                    size_t lid_x, size_t lid_y, size_t lid_z)
-  : m_workGroup(workGroup), m_kernel(kernel),
-    m_globalMemory(globalMem), m_debugOutput(false)
+  : m_workGroup(workGroup), m_kernel(kernel), m_globalMemory(globalMem)
 {
   m_localID[0] = lid_x;
   m_localID[1] = lid_y;
@@ -238,11 +237,6 @@ void WorkItem::dumpPrivateMemory()
   }
 }
 
-void WorkItem::enableDebugOutput(bool enable)
-{
-  m_debugOutput = enable;
-}
-
 void WorkItem::execute(const llvm::Instruction& instruction)
 {
   // Prepare private variable for instruction result
@@ -255,12 +249,6 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     resultSize.second,
     new unsigned char[resultSize.first*resultSize.second]
   };
-
-  // Dump instruction sequence
-  if (m_debugOutput)
-  {
-    dumpInstruction(cout, instruction, true);
-  }
 
   if (instruction.getOpcode() != llvm::Instruction::PHI &&
       m_phiTemps.size() > 0)

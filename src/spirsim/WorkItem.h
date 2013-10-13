@@ -63,7 +63,6 @@ namespace spirsim
     void clearBarrier();
     void dispatch(const llvm::Instruction& instruction, TypedValue& result);
     void dumpPrivateMemory();
-    void enableDebugOutput(bool enable);
     void execute(const llvm::Instruction& instruction);
     const llvm::Instruction* getCurrentInstruction() const;
     const size_t* getGlobalID() const;
@@ -153,7 +152,6 @@ namespace spirsim
     llvm::Function::const_iterator m_nextBlock;
     llvm::BasicBlock::const_iterator m_currInst;
     std::stack<ReturnAddress> m_callStack;
-    bool m_debugOutput;
 
     void printInterpretedValue(const llvm::Type *type,
                                const unsigned char *data);
