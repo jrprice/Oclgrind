@@ -76,6 +76,11 @@ Device::~Device()
 
 size_t Device::getCurrentLineNumber() const
 {
+  if (!m_currentWorkItem || m_currentWorkItem->getState() == WorkItem::FINISHED)
+  {
+    return 0;
+  }
+
   const llvm::Instruction *inst = m_currentWorkItem->getCurrentInstruction();
   llvm::MDNode *md = inst->getMetadata("dbg");
   if (md)
@@ -117,6 +122,13 @@ bool Device::nextWorkItem()
   }
   m_currentWorkGroup = *m_runningGroups.begin();
   m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
+
+  // If this work-group was already finished, try again
+  if (!m_currentWorkItem)
+  {
+    return nextWorkItem();
+  }
+
   return true;
 }
 
@@ -256,6 +268,11 @@ void Device::printCurrentLine() const
   {
     return;
   }
+  if (m_currentWorkItem->getState() == WorkItem::FINISHED)
+  {
+    cout << "Work-item has finished execution." << endl;
+    return;
+  }
 
   size_t lineNum = getCurrentLineNumber();
   if (!m_sourceLines.empty() && lineNum > 0)
@@ -330,8 +347,9 @@ void Device::cont(vector<string> args)
   while (m_currentWorkItem)
   {
     // Run current work-item as far as possible
-    while (m_currentWorkItem->step() == WorkItem::READY)
+    while (m_currentWorkItem->getState() == WorkItem::READY)
     {
+      m_currentWorkItem->step();
       if (m_interactive && !m_breakpoints.empty())
       {
         if (!canBreak)
@@ -429,7 +447,7 @@ void Device::help(vector<string> args)
 //    cout << "  printprivate (pp)" << endl;
     cout << "  quit         (q)" << endl;
     cout << "  step         (s)" << endl;
-//    cout << "  workitem     (wi)" << endl;
+    cout << "  workitem     (wi)" << endl;
     cout << "(type 'help command' for more information)" << endl;
     return;
   }
@@ -504,7 +522,9 @@ void Device::help(vector<string> args)
   }
   else if (args[1] == "workitem")
   {
-    // TODO: Help message
+    cout << "Switch to a different work-item." << endl
+         << "Up to three (space separated) arguments allowed,"
+         << " specifying the global ID of the work-item." << endl;
   }
   else
   {
@@ -683,6 +703,17 @@ void Device::step(vector<string> args)
     return;
   }
 
+  if (m_currentWorkItem->getState() == WorkItem::BARRIER)
+  {
+    cout << "Work-item is at a barrier." << endl;
+    return;
+  }
+  else if (m_currentWorkItem->getState() == WorkItem::FINISHED)
+  {
+    cout << "Work-item has finished execution." << endl;
+    return;
+  }
+
   // Step whole source lines, if available
   size_t prevLine = getCurrentLineNumber();
   size_t currLine = prevLine;
@@ -698,26 +729,58 @@ void Device::step(vector<string> args)
   }
   while (!m_sourceLines.empty() && (currLine == prevLine || currLine == 0));
 
-  if (state != WorkItem::READY)
-  {
-    // Switch to next work-item
-    if (nextWorkItem())
-    {
-      // Print new WI id
-      const size_t *gid = m_currentWorkItem->getGlobalID();
-      cout << "Now executing work-item: (" << gid[0] << ","
-                                           << gid[1] << ","
-                                           << gid[2] << ")" << endl;
-    }
-  }
   printCurrentLine();
   m_listPosition = 0;
 }
 
 void Device::workitem(vector<string> args)
 {
-  // TODO: Implement
-  cout << "Unimplemented command 'workitem'" << endl;
+  // TODO: Take offsets into account?
+  size_t gid[3] = {0,0,0};
+  for (int i = 1; i < args.size(); i++)
+  {
+    // Parse argument as a target line number
+    istringstream ss(args[i]);
+    ss >> gid[i-1];
+    if (!ss.eof() || gid[i-1] >= m_globalSize[i-1])
+    {
+      cout << "Invalid global ID." << endl;
+      return;
+    }
+  }
+
+  // Get work-group containing target work-item
+  size_t group[3] =
+  {
+    gid[0]/m_localSize[0],
+    gid[1]/m_localSize[1],
+    gid[2]/m_localSize[2]
+  };
+  m_currentWorkGroup = m_workGroups[INDEX(group, m_numGroups)];
+
+  // Get work-item
+  size_t lid[3] =
+  {
+    gid[0]%m_localSize[0],
+    gid[1]%m_localSize[1],
+    gid[2]%m_localSize[2]
+  };
+  m_currentWorkItem = m_currentWorkGroup->getWorkItem(lid);
+
+  // Print new WI id
+  cout << "Switched to work-item: (" << gid[0] << ","
+                                     << gid[1] << ","
+                                     << gid[2] << ")" << endl;
+  switch (m_currentWorkItem->getState())
+  {
+  case WorkItem::READY:
+  case WorkItem::BARRIER:
+    printCurrentLine();
+    break;
+  case WorkItem::FINISHED:
+    cout << "Work-item has finished execution." << endl;
+    break;
+  }
 }
 
 bool Device::WorkGroupCmp::operator()(const WorkGroup *lhs,

@@ -52,7 +52,7 @@ namespace spirsim
     friend class WorkItemBuiltins;
 
   public:
-    enum State {READY, BARRIER, WAIT_EVENT, FINISHED};
+    enum State {READY, BARRIER, FINISHED};
 
   public:
     WorkItem(WorkGroup& workGroup,

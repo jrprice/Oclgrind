@@ -222,6 +222,12 @@ unsigned int WorkGroup::getWorkDim() const
   return m_workDim;
 }
 
+WorkItem* WorkGroup::getWorkItem(size_t localID[3]) const
+{
+  return m_workItems[localID[0] +
+                    (localID[1] + localID[2]*m_groupSize[1])*m_groupSize[0]];
+}
+
 bool WorkGroup::hasBarrier() const
 {
   return !m_barrier.empty();

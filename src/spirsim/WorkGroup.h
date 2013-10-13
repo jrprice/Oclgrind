@@ -60,6 +60,7 @@ namespace spirsim
     Memory* getLocalMemory() const;
     WorkItem *getNextWorkItem() const;
     unsigned int getWorkDim() const;
+    WorkItem *getWorkItem(size_t localID[3]) const;
     bool hasBarrier() const;
     void notifyBarrier(WorkItem *workItem);
     void notifyFinished(WorkItem *workItem);

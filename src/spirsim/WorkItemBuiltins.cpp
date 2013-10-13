@@ -251,7 +251,7 @@ namespace spirsim
         workItem->m_workGroup.wait_event(event);
         address += sizeof(uint64_t);
       }
-      workItem->m_state = WorkItem::WAIT_EVENT;
+      workItem->m_state = WorkItem::BARRIER;
       workItem->m_workGroup.notifyBarrier(workItem);
     }
 

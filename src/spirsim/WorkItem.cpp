@@ -80,7 +80,7 @@ WorkItem::~WorkItem()
 
 void WorkItem::clearBarrier()
 {
-  if (m_state == BARRIER || m_state == WAIT_EVENT)
+  if (m_state == BARRIER)
   {
     m_state = READY;
   }
