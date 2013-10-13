@@ -332,7 +332,7 @@ void Device::clear(vector<string> args)
 void Device::cont(vector<string> args)
 {
   bool canBreak = false;
-  size_t lastBreakLine = getCurrentLineNumber();
+  static size_t lastBreakLine = 0;
   while (m_currentWorkItem)
   {
     // Run current work-item as far as possible
@@ -367,6 +367,7 @@ void Device::cont(vector<string> args)
                                       << gid[1] << ","
                                       << gid[2] << ")" << endl;
             printCurrentLine();
+            lastBreakLine = line;
             m_listPosition = 0;
             return;
           }
@@ -528,6 +529,11 @@ void Device::info(vector<string> args)
 
 void Device::list(vector<string> args)
 {
+  if (!m_currentWorkItem)
+  {
+    cout << "All work-items finished." << endl;
+    return;
+  }
   if (m_sourceLines.empty())
   {
     cout << "No source code available." << endl;
