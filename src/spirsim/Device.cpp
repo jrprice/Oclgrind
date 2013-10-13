@@ -55,8 +55,8 @@ Device::Device()
   m_commands[sname] = &Device::func;
   ADD_CMD("backtrace",    "bt", backtrace);
   ADD_CMD("break",        "b",  brk);
-  ADD_CMD("clear",        "cl", clear);
   ADD_CMD("continue",     "c",  cont);
+  ADD_CMD("delete",       "d",  del);
   ADD_CMD("help",         "h",  help);
   ADD_CMD("info",         "i",  info);
   ADD_CMD("list",         "l",  list);
@@ -323,12 +323,6 @@ void Device::brk(vector<string> args)
   }
 }
 
-void Device::clear(vector<string> args)
-{
-  // TODO: Implement
-  cout << "Unimplemented command 'clear'" << endl;
-}
-
 void Device::cont(vector<string> args)
 {
   bool canBreak = false;
@@ -380,6 +374,42 @@ void Device::cont(vector<string> args)
   m_running = false;
 }
 
+void Device::del(vector<string> args)
+{
+  if (args.size() > 1)
+  {
+    // Parse argument as a target breakpoint
+    size_t bpNum = 0;
+    istringstream ss(args[1]);
+    ss >> bpNum;
+    if (!ss.eof())
+    {
+      cout << "Invalid breakpoint number." << endl;
+      return;
+    }
+
+    // Ensure breakpoint exists
+    if (m_breakpoints.find(bpNum) == m_breakpoints.end())
+    {
+      cout << "Breakpoint not found." << endl;
+      return;
+    }
+    m_breakpoints.erase(bpNum);
+  }
+  else
+  {
+    // Prompt for confimation
+    string confirm;
+    cout << "Delete all breakpoints? (y/n) " << flush;
+    cin >> confirm;
+    cin.ignore();
+    if (confirm == "y")
+    {
+      m_breakpoints.clear();
+    }
+  }
+}
+
 void Device::help(vector<string> args)
 {
   if (args.size() < 2)
@@ -387,8 +417,8 @@ void Device::help(vector<string> args)
     cout << "Command list:" << endl;
 //    cout << "  backtrace    (bt)" << endl;
     cout << "  break        (b)" << endl;
-//    cout << "  clear        (cl)" << endl;
     cout << "  continue     (c)" << endl;
+    cout << "  delete       (d)" << endl;
     cout << "  help         (h)" << endl;
     cout << "  info         (i)" << endl;
     cout << "  list         (l)" << endl;
@@ -415,13 +445,14 @@ void Device::help(vector<string> args)
          << "Use a numeric argument to set a breakpoint at a specific line."
          << endl;
   }
-  else if (args[1] == "clear")
-  {
-    // TODO: Help message
-  }
   else if (args[1] == "continue")
   {
     cout << "Continue kernel execution until next breakpoint." << endl;
+  }
+  else if (args[1] == "delete")
+  {
+    cout << "Delete a breakpoint." << endl
+         << "With no arguments, deletes all breakpoints." << endl;
   }
   else if (args[1] == "help")
   {

@@ -74,8 +74,8 @@ namespace spirsim
 #define CMD(name) void name(std::vector<std::string> args);
     CMD(backtrace);
     CMD(brk);
-    CMD(clear);
     CMD(cont);
+    CMD(del);
     CMD(help);
     CMD(info);
     CMD(list);
