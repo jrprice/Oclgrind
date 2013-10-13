@@ -20,6 +20,7 @@ namespace spirsim
 {
   class Kernel;
   class Memory;
+  class Program;
   class WorkGroup;
   class WorkItem;
 
@@ -45,6 +46,7 @@ namespace spirsim
     };
 
     // Current kernel invocation
+    const Program *m_program;
     Kernel *m_kernel;
     WorkGroup **m_workGroups;
     WorkGroup *m_currentWorkGroup;
@@ -57,7 +59,7 @@ namespace spirsim
     std::vector<std::string> m_sourceLines;
     size_t m_listPosition;
     size_t m_nextBreakpoint;
-    std::map<size_t, size_t> m_breakpoints;
+    std::map<const Program*, std::map<size_t, size_t> > m_breakpoints;
 
     bool m_interactive;
     bool m_running;

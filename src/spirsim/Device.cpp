@@ -148,6 +148,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   kernel.allocateConstants(m_globalMemory);
 
   // Prepare kernel invocation
+  m_program = &kernel.getProgram();
   m_kernel = &kernel;
   m_numGroups[0] = m_globalSize[0]/m_localSize[0];
   m_numGroups[1] = m_globalSize[1]/m_localSize[1];
@@ -178,7 +179,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
     m_running = true;
 
     // Get source code (if available) and split into lines
-    string source = kernel.getProgram().getSource();
+    string source = m_program->getSource();
     m_sourceLines.clear();
     if (!source.empty())
     {
@@ -299,7 +300,6 @@ void Device::brk(vector<string> args)
     return;
   }
 
-  // TODO: Breakpoints need to be tied to a program
   size_t lineNum = getCurrentLineNumber();
   if (args.size() > 1)
   {
@@ -315,7 +315,7 @@ void Device::brk(vector<string> args)
 
   if (lineNum)
   {
-    m_breakpoints[m_nextBreakpoint++] = lineNum;
+    m_breakpoints[m_program][m_nextBreakpoint++] = lineNum;
   }
   else
   {
@@ -350,7 +350,8 @@ void Device::cont(vector<string> args)
         // Check if we're at a breakpoint
         size_t line = getCurrentLineNumber();
         map<size_t, size_t>::iterator itr;
-        for (itr = m_breakpoints.begin(); itr != m_breakpoints.end(); itr++)
+        for (itr = m_breakpoints[m_program].begin();
+             itr != m_breakpoints[m_program].end(); itr++)
         {
           if (itr->second == line)
           {
@@ -389,12 +390,12 @@ void Device::del(vector<string> args)
     }
 
     // Ensure breakpoint exists
-    if (m_breakpoints.find(bpNum) == m_breakpoints.end())
+    if (m_breakpoints[m_program].find(bpNum) == m_breakpoints[m_program].end())
     {
       cout << "Breakpoint not found." << endl;
       return;
     }
-    m_breakpoints.erase(bpNum);
+    m_breakpoints[m_program].erase(bpNum);
   }
   else
   {
@@ -519,7 +520,8 @@ void Device::info(vector<string> args)
     {
       // List breakpoints
       map<size_t, size_t>::iterator itr;
-      for (itr = m_breakpoints.begin(); itr != m_breakpoints.end(); itr++)
+      for (itr = m_breakpoints[m_program].begin();
+           itr != m_breakpoints[m_program].end(); itr++)
       {
         cout << "Breakpoint " << itr->first << ": Line " << itr->second << endl;
       }
