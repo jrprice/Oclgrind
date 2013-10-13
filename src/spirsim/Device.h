@@ -56,6 +56,8 @@ namespace spirsim
     size_t m_numGroups[3];
     std::vector<std::string> m_sourceLines;
     size_t m_listPosition;
+    size_t m_nextBreakpoint;
+    std::map<size_t, size_t> m_breakpoints;
 
     bool m_interactive;
     bool m_running;

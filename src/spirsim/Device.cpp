@@ -40,6 +40,7 @@ Device::Device()
 {
   m_globalMemory = new Memory();
   m_interactive = false;
+  m_nextBreakpoint = 1;
 
   // Check for interactive environment variable
   const char *env = getenv("OCLGRIND_INTERACTIVE");
@@ -292,8 +293,34 @@ void Device::backtrace(vector<string> args)
 
 void Device::brk(vector<string> args)
 {
-  // TODO: Implement
-  cout << "Unimplemented command 'brk'" << endl;
+  if (m_sourceLines.empty())
+  {
+    cout << "Breakpoints only valid when source is available." << endl;
+    return;
+  }
+
+  // TODO: Breakpoints need to be tied to a program
+  size_t lineNum = getCurrentLineNumber();
+  if (args.size() > 1)
+  {
+    // Parse argument as a target line number
+    istringstream ss(args[1]);
+    ss >> lineNum;
+    if (!ss.eof() || !lineNum || lineNum > m_sourceLines.size()+1)
+    {
+      cout << "Invalid line number." << endl;
+      return;
+    }
+  }
+
+  if (lineNum)
+  {
+    m_breakpoints[m_nextBreakpoint++] = lineNum;
+  }
+  else
+  {
+    cout << "Not currently on a line." << endl;
+  }
 }
 
 void Device::clear(vector<string> args)
@@ -304,14 +331,51 @@ void Device::clear(vector<string> args)
 
 void Device::cont(vector<string> args)
 {
+  bool canBreak = false;
+  size_t lastBreakLine = getCurrentLineNumber();
   while (m_currentWorkItem)
   {
     // Run current work-item as far as possible
-    while (m_currentWorkItem->step() == WorkItem::READY);
+    while (m_currentWorkItem->step() == WorkItem::READY)
+    {
+      if (m_interactive && !m_breakpoints.empty())
+      {
+        if (!canBreak)
+        {
+          // Check if we have passed over the previous breakpoint
+          if (getCurrentLineNumber() != lastBreakLine)
+          {
+            canBreak = true;
+          }
+          else
+          {
+            continue;
+          }
+        }
+
+        // Check if we're at a breakpoint
+        size_t line = getCurrentLineNumber();
+        map<size_t, size_t>::iterator itr;
+        for (itr = m_breakpoints.begin(); itr != m_breakpoints.end(); itr++)
+        {
+          if (itr->second == line)
+          {
+            const size_t *gid = m_currentWorkItem->getGlobalID();
+            cout << "Breakpoint " << itr->first
+                 << " hit at line " << itr->second
+                 << " by work-item (" << gid[0] << ","
+                                      << gid[1] << ","
+                                      << gid[2] << ")" << endl;
+            printCurrentLine();
+            m_listPosition = 0;
+            return;
+          }
+        }
+      }
+    }
 
     nextWorkItem();
   }
-  m_listPosition = 0;
   m_running = false;
 }
 
@@ -321,7 +385,7 @@ void Device::help(vector<string> args)
   {
     cout << "Command list:" << endl;
 //    cout << "  backtrace    (bt)" << endl;
-//    cout << "  break        (b)" << endl;
+    cout << "  break        (b)" << endl;
 //    cout << "  clear        (cl)" << endl;
     cout << "  continue     (c)" << endl;
     cout << "  help         (h)" << endl;
@@ -344,7 +408,11 @@ void Device::help(vector<string> args)
   }
   else if (args[1] == "break")
   {
-    // TODO: Help message
+    cout << "Set a breakpoint"
+         << " (only functional when source is available)." << endl
+         << "With no arguments, sets a breakpoint at the current line." << endl
+         << "Use a numeric argument to set a breakpoint at a specific line."
+         << endl;
   }
   else if (args[1] == "clear")
   {
@@ -360,7 +428,10 @@ void Device::help(vector<string> args)
   }
   else if (args[1] == "info")
   {
-    cout << "Display information about current debugging context." << endl;
+    cout << "Display information about current debugging context." << endl
+         << "With no arguments, displays general information." << endl
+         << "'info break' lists breakpoints."
+         << endl;
   }
   else if (args[1] == "list")
   {
@@ -410,6 +481,24 @@ void Device::help(vector<string> args)
 
 void Device::info(vector<string> args)
 {
+  if (args.size() > 1)
+  {
+    if (args[1] == "break")
+    {
+      // List breakpoints
+      map<size_t, size_t>::iterator itr;
+      for (itr = m_breakpoints.begin(); itr != m_breakpoints.end(); itr++)
+      {
+        cout << "Breakpoint " << itr->first << ": Line " << itr->second << endl;
+      }
+    }
+    else
+    {
+      cout << "Invalid info command: " << args[1] << endl;
+    }
+    return;
+  }
+
   // Kernel invocation information
   cout << "Running kernel '" << m_kernel->getName() << "'" << endl
        << "-> Global work size:   (" << m_globalSize[0] << ","
@@ -544,6 +633,7 @@ void Device::quit(vector<string> args)
   m_interactive = false;
   m_running = false;
   m_runningGroups.clear();
+  m_breakpoints.clear();
 }
 
 void Device::step(vector<string> args)
