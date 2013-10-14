@@ -26,6 +26,7 @@ namespace llvm
 
 namespace spirsim
 {
+  class Device;
   class Kernel;
   class Memory;
   class WorkGroup;
@@ -55,8 +56,7 @@ namespace spirsim
     enum State {READY, BARRIER, FINISHED};
 
   public:
-    WorkItem(WorkGroup& workGroup,
-             const Kernel& kernel, Memory &globalMem,
+    WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
              size_t lid_x, size_t lid_y, size_t lid_z);
     virtual ~WorkItem();
 
@@ -138,9 +138,9 @@ namespace spirsim
     TypedValueMap m_instResults;
     TypedValueMap m_phiTemps;
     std::map<std::string, const llvm::Value*> m_variables;
+    Device *m_device;
     const Kernel& m_kernel;
     Memory *m_privateMemory;
-    Memory& m_globalMemory;
     WorkGroup& m_workGroup;
 
     typedef std::pair<llvm::Function::const_iterator,
@@ -153,6 +153,7 @@ namespace spirsim
     llvm::BasicBlock::const_iterator m_currInst;
     std::stack<ReturnAddress> m_callStack;
 
+    Memory* getMemory(unsigned int addrSpace);
     void printInterpretedValue(const llvm::Type *type,
                                const unsigned char *data);
   };

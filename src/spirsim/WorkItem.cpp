@@ -23,6 +23,7 @@
 #include "llvm/Instructions.h"
 #include "llvm/IntrinsicInst.h"
 
+#include "Device.h"
 #include "Kernel.h"
 #include "Memory.h"
 #include "WorkGroup.h"
@@ -31,10 +32,9 @@
 using namespace spirsim;
 using namespace std;
 
-WorkItem::WorkItem(WorkGroup& workGroup,
-                   const Kernel& kernel, Memory& globalMem,
+WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
                    size_t lid_x, size_t lid_y, size_t lid_z)
-  : m_workGroup(workGroup), m_kernel(kernel), m_globalMemory(globalMem)
+  : m_device(device), m_workGroup(workGroup), m_kernel(kernel)
 {
   m_localID[0] = lid_x;
   m_localID[1] = lid_y;
@@ -379,6 +379,22 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     cerr << "Unhandled float operand type " << id << endl;
   }
   return val;
+}
+
+Memory* WorkItem::getMemory(unsigned int addrSpace)
+{
+  switch (addrSpace)
+  {
+    case AddrSpacePrivate:
+      return m_privateMemory;
+    case AddrSpaceGlobal:
+    case AddrSpaceConstant:
+      return m_device->getGlobalMemory();
+    case AddrSpaceLocal:
+      return m_workGroup.getLocalMemory();
+    default:
+      assert(false);
+  }
 }
 
 int64_t WorkItem::getSignedInt(const llvm::Value *operand,
@@ -1336,7 +1352,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
     break;
   case AddrSpaceGlobal:
   case AddrSpaceConstant:
-    memory = &m_globalMemory;
+    memory = m_device->getGlobalMemory();
     break;
   case AddrSpaceLocal:
     memory = m_workGroup.getLocalMemory();
@@ -1634,7 +1650,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
     memory = m_privateMemory;
     break;
   case AddrSpaceGlobal:
-    memory = &m_globalMemory;
+    memory = m_device->getGlobalMemory();
     break;
   case AddrSpaceLocal:
     memory = m_workGroup.getLocalMemory();

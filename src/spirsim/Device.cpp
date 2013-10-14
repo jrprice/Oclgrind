@@ -173,7 +173,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
       for (int i = 0; i < m_numGroups[0]; i++)
       {
         WorkGroup *workGroup =
-          new WorkGroup(kernel, *m_globalMemory, workDim, i, j, k,
+          new WorkGroup(this, kernel, *m_globalMemory, workDim, i, j, k,
                         m_globalOffset, m_globalSize, m_localSize);
         m_workGroups[i + (k*m_numGroups[1] + j)*m_numGroups[0]] = workGroup;
         m_runningGroups.insert(workGroup);

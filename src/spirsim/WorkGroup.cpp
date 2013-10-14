@@ -18,6 +18,7 @@
 
 #include "llvm/Module.h"
 
+#include "Device.h"
 #include "Kernel.h"
 #include "Memory.h"
 #include "WorkGroup.h"
@@ -26,13 +27,13 @@
 using namespace spirsim;
 using namespace std;
 
-WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
+WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,
                      unsigned int workDim,
                      size_t wgid_x, size_t wgid_y, size_t wgid_z,
                      const size_t globalOffset[3],
                      const size_t globalSize[3],
                      const size_t groupSize[3])
-  : m_kernel(kernel), m_globalMemory(globalMem)
+  : m_device(device), m_kernel(kernel)
 {
   m_workDim = workDim;
   m_groupID[0] = wgid_x;
@@ -60,7 +61,7 @@ WorkGroup::WorkGroup(const Kernel& kernel, Memory& globalMem,
     {
       for (size_t i = 0; i < groupSize[0]; i++)
       {
-        WorkItem *workItem = new WorkItem(*this, kernel, globalMem, i, j, k);
+        WorkItem *workItem = new WorkItem(m_device, *this, kernel, i, j, k);
         m_workItems[i + (j + k*groupSize[1])*groupSize[0]] = workItem;
         m_running.insert(workItem);
       }
@@ -138,11 +139,11 @@ void WorkGroup::clearBarrier()
         if (itr->type == GLOBAL_TO_LOCAL)
         {
           destMem = m_localMemory;
-          srcMem = &m_globalMemory;
+          srcMem = m_device->getGlobalMemory();
         }
         else
         {
-          destMem = &m_globalMemory;
+          destMem = m_device->getGlobalMemory();
           srcMem = m_localMemory;
         }
 

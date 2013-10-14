@@ -21,6 +21,7 @@
 #include "llvm/IntrinsicInst.h"
 #include "llvm/Metadata.h"
 
+#include "Device.h"
 #include "Memory.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
@@ -992,6 +993,9 @@ namespace spirsim
 
     DEFINE_BUILTIN(fract)
     {
+      Memory *memory =
+        workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
+
       size_t iptr = UARG(1);
       for (int i = 0; i < result.num; i++)
       {
@@ -1001,49 +1005,22 @@ namespace spirsim
 
         size_t offset = i*result.size;
         WorkItem::setFloatResult(result, fl, i);
-        switch (ARG(1)->getType()->getPointerAddressSpace())
-        {
-          case AddrSpacePrivate:
-            workItem->m_privateMemory->store(result.data + offset,
-                                     iptr + offset, result.size);
-            break;
-          case AddrSpaceGlobal:
-            workItem->m_globalMemory.store(result.data + offset,
-                                           iptr + offset, result.size);
-            break;
-          case AddrSpaceLocal:
-            workItem->m_workGroup.getLocalMemory()->store(
-              result.data + offset,iptr + offset, result.size);
-            break;
-        }
-
+        memory->store(result.data + offset, iptr + offset, result.size);
         WorkItem::setFloatResult(result, r, i);
       }
     }
 
     DEFINE_BUILTIN(frexp_builtin)
     {
+      Memory *memory =
+        workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
+
       size_t iptr = UARG(1);
       for (int i = 0; i < result.num; i++)
       {
         int32_t e;
         double r = frexp(FARGV(0, i), &e);
-        switch (ARG(1)->getType()->getPointerAddressSpace())
-        {
-          case AddrSpacePrivate:
-            workItem->m_privateMemory->store((const unsigned char*)&e,
-                                     iptr + i*4, 4);
-            break;
-          case AddrSpaceGlobal:
-            workItem->m_globalMemory.store((const unsigned char*)&e,
-                                           iptr + i*4, 4);
-            break;
-          case AddrSpaceLocal:
-            workItem->m_workGroup.getLocalMemory()->store(
-              (const unsigned char*)&e, iptr + i*4, 4);
-            break;
-        }
-
+        memory->store((const unsigned char*)&e, iptr + i*4, 4);
         WorkItem::setFloatResult(result, r, i);
       }
     }
@@ -1066,32 +1043,24 @@ namespace spirsim
 
     DEFINE_BUILTIN(lgamma_r)
     {
+      Memory *memory =
+        workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
+
       size_t signp = UARG(1);
       for (int i = 0; i < result.num; i++)
       {
         double r = lgamma(FARGV(0, i));
         int32_t s = (tgamma(FARGV(0, i)) < 0 ? -1 : 1);
-        switch (ARG(1)->getType()->getPointerAddressSpace())
-        {
-          case AddrSpacePrivate:
-            workItem->m_privateMemory->store((const unsigned char*)&s, signp + i*4, 4);
-            break;
-          case AddrSpaceGlobal:
-            workItem->m_globalMemory.store((const unsigned char*)&s,
-                                           signp + i*4, 4);
-            break;
-          case AddrSpaceLocal:
-            workItem->m_workGroup.getLocalMemory()->store(
-              (const unsigned char*)&s, signp + i*4, 4);
-            break;
-        }
-
+        memory->store((const unsigned char*)&s, signp + i*4, 4);
         WorkItem::setFloatResult(result, r, i);
       }
     }
 
     DEFINE_BUILTIN(modf_builtin)
     {
+      Memory *memory =
+        workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
+
       size_t iptr = UARG(1);
       for (int i = 0; i < result.num; i++)
       {
@@ -1101,22 +1070,7 @@ namespace spirsim
 
         size_t offset = i*result.size;
         WorkItem::setFloatResult(result, integral, i);
-        switch (ARG(1)->getType()->getPointerAddressSpace())
-        {
-          case AddrSpacePrivate:
-            workItem->m_privateMemory->store(result.data + offset,
-                                     iptr + offset, result.size);
-            break;
-          case AddrSpaceGlobal:
-            workItem->m_globalMemory.store(result.data + offset,
-                                           iptr + offset, result.size);
-            break;
-          case AddrSpaceLocal:
-            workItem->m_workGroup.getLocalMemory()->store(
-              result.data + offset, iptr + offset, result.size);
-            break;
-        }
-
+        memory->store(result.data + offset, iptr + offset, result.size);
         WorkItem::setFloatResult(result, fractional, i);
       }
     }
@@ -1142,6 +1096,9 @@ namespace spirsim
 
     DEFINE_BUILTIN(remquo_builtin)
     {
+      Memory *memory =
+        workItem->getMemory(ARG(2)->getType()->getPointerAddressSpace());
+
       size_t quop = UARG(2);
       for (int i = 0; i < result.num; i++)
       {
@@ -1150,23 +1107,7 @@ namespace spirsim
 
         int32_t quo;
         double rem = remquo(x, y, &quo);
-
-        switch (ARG(2)->getType()->getPointerAddressSpace())
-        {
-          case AddrSpacePrivate:
-            workItem->m_privateMemory->store((const unsigned char*)&quo,
-                                     quop + i*4, 4);
-            break;
-          case AddrSpaceGlobal:
-            workItem->m_globalMemory.store((const unsigned char*)&quo,
-                                           quop + i*4, 4);
-            break;
-          case AddrSpaceLocal:
-            workItem->m_workGroup.getLocalMemory()->store(
-              (const unsigned char*)&quo, quop + i*4, 4);
-            break;
-        }
-
+        memory->store((const unsigned char*)&quo, quop + i*4, 4);
         WorkItem::setFloatResult(result, rem, i);
       }
     }
@@ -1183,29 +1124,16 @@ namespace spirsim
 
     DEFINE_BUILTIN(sincos)
     {
+      Memory *memory =
+        workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
+
       size_t cv = UARG(1);
       for (int i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
-
         size_t offset = i*result.size;
         WorkItem::setFloatResult(result, cos(x), i);
-        switch (ARG(1)->getType()->getPointerAddressSpace())
-        {
-          case AddrSpacePrivate:
-            workItem->m_privateMemory->store(result.data + offset,
-                                     cv + offset, result.size);
-            break;
-          case AddrSpaceGlobal:
-            workItem->m_globalMemory.store(result.data + offset,
-                                           cv + offset, result.size);
-            break;
-          case AddrSpaceLocal:
-            workItem->m_workGroup.getLocalMemory()->store(
-              result.data + offset, cv + offset, result.size);
-            break;
-        }
-
+        memory->store(result.data + offset, cv + offset, result.size);
         WorkItem::setFloatResult(result, sin(x), i);
       }
     }
@@ -1396,26 +1324,9 @@ namespace spirsim
       uint64_t offset = UARG(0);
 
       string addrSpaceStr = overload.substr(overload.length()-2);
-      unsigned addressSpace = atoi(addrSpaceStr.c_str());
+      unsigned int addressSpace = atoi(addrSpaceStr.c_str());
 
-      Memory *memory = NULL;
-      switch (addressSpace)
-      {
-        case AddrSpacePrivate:
-          memory = workItem->m_privateMemory;
-          break;
-        case AddrSpaceGlobal:
-        case AddrSpaceConstant:
-          memory = &workItem->m_globalMemory;
-          break;
-        case AddrSpaceLocal:
-          memory = workItem->m_workGroup.getLocalMemory();
-          break;
-        default:
-          cerr << "Unhandled address space '" << addressSpace << "'" << endl;
-          break;
-      }
-
+      Memory *memory = workItem->getMemory(addressSpace);
       if (!memory->load(result.data,
           base + offset*result.size*result.num,
           result.size*result.num))
@@ -1452,26 +1363,9 @@ namespace spirsim
       size_t base = *(size_t*)(workItem->m_instResults[ptrOp].data);
 
       string addrSpaceStr = overload.substr(overload.length()-2);
-      unsigned addressSpace = atoi(addrSpaceStr.c_str());
+      unsigned int addressSpace = atoi(addrSpaceStr.c_str());
 
-      Memory *memory = NULL;
-      switch (addressSpace)
-      {
-        case AddrSpacePrivate:
-        memory = workItem->m_privateMemory;
-        break;
-        case AddrSpaceGlobal:
-        case AddrSpaceConstant:
-        memory = &workItem->m_globalMemory;
-        break;
-        case AddrSpaceLocal:
-        memory = workItem->m_workGroup.getLocalMemory();
-        break;
-        default:
-        cerr << "Unhandled address space '" << addressSpace << "'" << endl;
-        break;
-      }
-
+      Memory *memory = workItem->getMemory(addressSpace);
       if (!memory->store(data, base + offset*size, size))
       {
         workItem->outputMemoryError(*callInst, "Invalid write",
@@ -1638,12 +1532,13 @@ namespace spirsim
       const llvm::ConstantExpr *formatExpr = (llvm::ConstantExpr*)ARG(0);
       TypedValue formatPtrData = workItem->resolveConstExpr(formatExpr);
       size_t formatPtr = *(size_t*)formatPtrData.data;
+      Memory *memory = workItem->m_device->getGlobalMemory();
 
       int arg = 1;
       while (true)
       {
         char c;
-        workItem->m_globalMemory.load((unsigned char*)&c, formatPtr++);
+        memory->load((unsigned char*)&c, formatPtr++);
         if (c == '\0')
         {
           break;
@@ -1654,7 +1549,7 @@ namespace spirsim
           string format = "%";
           while (true)
           {
-            workItem->m_globalMemory.load((unsigned char*)&c, formatPtr++);
+            memory->load((unsigned char*)&c, formatPtr++);
             if (c == '\0')
             {
               cout << format;
@@ -1757,42 +1652,8 @@ namespace spirsim
       size_t size = workItem->getUnsignedInt(memcpyInst->getLength());
       unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
       unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
-
-      Memory *destMemory = NULL;
-      switch (destAddrSpace)
-      {
-        case AddrSpacePrivate:
-          destMemory = workItem->m_privateMemory;
-          break;
-        case AddrSpaceGlobal:
-        case AddrSpaceConstant:
-          destMemory = &workItem->m_globalMemory;
-          break;
-        case AddrSpaceLocal:
-          destMemory = workItem->m_workGroup.getLocalMemory();
-          break;
-        default:
-          cerr << "Unhandled address space '" << destAddrSpace << "'" << endl;
-          return;
-      }
-
-      Memory *srcMemory = NULL;
-      switch (srcAddrSpace)
-      {
-        case AddrSpacePrivate:
-          srcMemory = workItem->m_privateMemory;
-          break;
-        case AddrSpaceGlobal:
-        case AddrSpaceConstant:
-          srcMemory = &workItem->m_globalMemory;
-          break;
-        case AddrSpaceLocal:
-          srcMemory = workItem->m_workGroup.getLocalMemory();
-          break;
-        default:
-          cerr << "Unhandled address space '" << srcAddrSpace << "'" << endl;
-          break;
-      }
+      Memory *destMemory = workItem->getMemory(destAddrSpace);
+      Memory *srcMemory = workItem->getMemory(srcAddrSpace);
 
       unsigned char *buffer = new unsigned char[size];
       if (!srcMemory->load(buffer, src, size))
@@ -1815,29 +1676,12 @@ namespace spirsim
         *(size_t*)(workItem->m_instResults[memsetInst->getDest()].data);
       size_t size = workItem->getUnsignedInt(memsetInst->getLength());
       unsigned addressSpace = memsetInst->getDestAddressSpace();
-
-      Memory *mem = NULL;
-      switch (addressSpace)
-      {
-        case AddrSpacePrivate:
-          mem = workItem->m_privateMemory;
-          break;
-        case AddrSpaceGlobal:
-        case AddrSpaceConstant:
-          mem = &workItem->m_globalMemory;
-          break;
-        case AddrSpaceLocal:
-          mem = workItem->m_workGroup.getLocalMemory();
-          break;
-        default:
-          cerr << "Unhandled address space '" << addressSpace << "'" << endl;
-          return;
-      }
+      Memory *memory = workItem->getMemory(addressSpace);
 
       unsigned char *buffer = new unsigned char[size];
       unsigned char value = workItem->getUnsignedInt(ARG(1));
       memset(buffer, value, size);
-      if (!mem->store(buffer, dest, size))
+      if (!memory->store(buffer, dest, size))
       {
         workItem->outputMemoryError(*callInst, "Invalid write",
                                     addressSpace, dest, size);

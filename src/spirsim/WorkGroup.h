@@ -18,6 +18,7 @@
 
 namespace spirsim
 {
+  class Device;
   class Memory;
   class Kernel;
   class WorkItem;
@@ -41,7 +42,7 @@ namespace spirsim
     } AsyncCopy;
 
   public:
-    WorkGroup(const Kernel& kernel, Memory &globalMem,
+    WorkGroup(Device *device, const Kernel& kernel, Memory &globalMem,
               unsigned int workDim,
               size_t wgid_x, size_t wgid_y, size_t wgid_z,
               const size_t globalOffset[3],
@@ -73,9 +74,9 @@ namespace spirsim
     size_t m_groupID[3];
     size_t m_groupSize[3];
     size_t m_totalWorkItems;
+    Device *m_device;
     const Kernel& m_kernel;
     Memory *m_localMemory;
-    Memory& m_globalMemory;
     WorkItem **m_workItems;
 
     // Comparator for ordering work-items
