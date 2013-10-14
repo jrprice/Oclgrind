@@ -68,15 +68,12 @@ namespace spirsim
     const size_t* getGlobalID() const;
     double getFloatValue(const llvm::Value *operand,
                          unsigned int index = 0);
+    const size_t* getLocalID() const;
     int64_t getSignedInt(const llvm::Value *operand,
                          unsigned int index = 0);
     State getState() const;
     uint64_t getUnsignedInt(const llvm::Value *operand,
                             unsigned int index = 0);
-    void outputMemoryError(const llvm::Instruction& instruction,
-                           const std::string& msg,
-                           unsigned addressSpace,
-                           size_t address, size_t size) const;
     bool printVariable(std::string name);
     TypedValue resolveConstExpr(const llvm::ConstantExpr *expr);
     static void setFloatResult(TypedValue& result, double val,

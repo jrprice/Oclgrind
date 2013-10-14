@@ -132,6 +132,84 @@ bool Device::nextWorkItem()
   return true;
 }
 
+void Device::notifyMemoryError(bool read, unsigned int addrSpace,
+                               size_t address, size_t size)
+{
+  string memType;
+  switch (addrSpace)
+  {
+  case AddrSpacePrivate:
+    memType = "private";
+    break;
+  case AddrSpaceGlobal:
+    memType = "global";
+    break;
+  case AddrSpaceConstant:
+    memType = "constant";
+    break;
+  case AddrSpaceLocal:
+    memType = "local";
+    break;
+  default:
+    assert(false && "Memory error in unsupported address space.");
+    break;
+  }
+
+  // Basic error info
+  cerr << endl << "Invaild " << (read ? "read" : "write")
+       << " of size " << size
+       << " at " << memType
+       << " memory address " << hex << address << endl;
+
+  // Work item
+  const size_t *gid = m_currentWorkItem->getGlobalID();
+  const size_t *lid = m_currentWorkItem->getLocalID();
+  cerr << "\tWork-item:  Global(" << dec
+       << gid[0] << ","
+       << gid[1] << ","
+       << gid[2] << ")"
+       << " Local(" << dec
+       << lid[0] << ","
+       << lid[1] << ","
+       << lid[2] << ")"
+       << endl;
+
+  // Work group
+  const size_t *group = m_currentWorkGroup->getGroupID();
+  cerr << "\tWork-group: (" << dec
+       << group[0] << ","
+       << group[1] << ","
+       << group[2] << ")"
+       << endl;
+
+  // Kernel
+  cerr << "\tKernel:     " << m_kernel->getName() << endl;
+
+  // Instruction
+  cerr << "\t";
+  const llvm::Instruction *instruction =
+    m_currentWorkItem->getCurrentInstruction();
+  dumpInstruction(cerr, *instruction);
+
+  // Output debug information
+  cerr << "\t";
+  llvm::MDNode *md = instruction->getMetadata("dbg");
+  if (!md)
+  {
+    cerr << "Debugging information not available." << endl;
+  }
+  else
+  {
+    llvm::DILocation loc(md);
+    cerr << "At line " << dec << loc.getLineNumber()
+         << " of " << loc.getFilename().str() << endl;
+  }
+
+  cerr << endl;
+
+  m_forceBreak = true;
+}
+
 void Device::run(Kernel& kernel, unsigned int workDim,
                  const size_t *globalOffset,
                  const size_t *globalSize,
@@ -343,6 +421,7 @@ void Device::brk(vector<string> args)
 void Device::cont(vector<string> args)
 {
   bool canBreak = false;
+  m_forceBreak = false;
   static size_t lastBreakLine = 0;
   while (m_currentWorkItem)
   {
@@ -350,7 +429,20 @@ void Device::cont(vector<string> args)
     while (m_currentWorkItem->getState() == WorkItem::READY)
     {
       m_currentWorkItem->step();
-      if (m_interactive && !m_breakpoints.empty())
+
+      if (!m_interactive)
+      {
+        continue;
+      }
+
+      if (m_forceBreak)
+      {
+        m_listPosition = 0;
+        m_forceBreak = false;
+        return;
+      }
+
+      if (!m_breakpoints.empty())
       {
         if (!canBreak)
         {

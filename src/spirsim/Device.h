@@ -31,6 +31,8 @@ namespace spirsim
     virtual ~Device();
 
     Memory *getGlobalMemory() const;
+    void notifyMemoryError(bool read, unsigned int addrSpace,
+                           size_t address, size_t size);
     void run(Kernel& kernel, unsigned int workDim,
              const size_t *globalOffset,
              const size_t *globalSize,
@@ -63,7 +65,7 @@ namespace spirsim
 
     bool m_interactive;
     bool m_running;
-    bool m_break;
+    bool m_forceBreak;
     typedef void (Device::*Command)(std::vector<std::string>);
     std::map<std::string, Command> m_commands;
 

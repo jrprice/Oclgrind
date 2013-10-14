@@ -244,9 +244,8 @@ namespace spirsim
         if (!workItem->m_privateMemory->load((unsigned char*)&event,
          address, sizeof(uint64_t)))
         {
-          workItem->outputMemoryError(*callInst, "Invalid read",
-                                      AddrSpacePrivate, address,
-                                      sizeof(uint64_t));
+          workItem->m_device->notifyMemoryError(true, AddrSpacePrivate,
+                                                address, sizeof(uint64_t));
           return;
         }
         workItem->m_workGroup.wait_event(event);
@@ -1326,14 +1325,13 @@ namespace spirsim
       string addrSpaceStr = overload.substr(overload.length()-2);
       unsigned int addressSpace = atoi(addrSpaceStr.c_str());
 
+      size_t address = base + offset*result.size*result.num;
+      size_t size = result.size*result.num;
       Memory *memory = workItem->getMemory(addressSpace);
-      if (!memory->load(result.data,
-          base + offset*result.size*result.num,
-          result.size*result.num))
+      if (!memory->load(result.data, address, size))
       {
-        workItem->outputMemoryError(*callInst, "Invalid read", addressSpace,
-                                    base + offset*result.size*result.num,
-                                    result.size*result.num);
+        workItem->m_device->notifyMemoryError(true, addressSpace,
+                                              address, size);
       }
     }
 
@@ -1365,11 +1363,12 @@ namespace spirsim
       string addrSpaceStr = overload.substr(overload.length()-2);
       unsigned int addressSpace = atoi(addrSpaceStr.c_str());
 
+      size_t address = base + offset*size;
       Memory *memory = workItem->getMemory(addressSpace);
-      if (!memory->store(data, base + offset*size, size))
+      if (!memory->store(data, address, size))
       {
-        workItem->outputMemoryError(*callInst, "Invalid write",
-                                    addressSpace, base + offset*size, size);
+        workItem->m_device->notifyMemoryError(false, addressSpace,
+                                              address, size);
       }
       delete[] data;
     }
@@ -1658,13 +1657,11 @@ namespace spirsim
       unsigned char *buffer = new unsigned char[size];
       if (!srcMemory->load(buffer, src, size))
       {
-        workItem->outputMemoryError(*callInst, "Invalid read",
-                                    srcAddrSpace, src, size);
+        workItem->m_device->notifyMemoryError(true, srcAddrSpace, src, size);
       }
       else if (!destMemory->store(buffer, dest, size))
       {
-        workItem->outputMemoryError(*callInst, "Invalid write",
-                                    destAddrSpace, dest, size);
+        workItem->m_device->notifyMemoryError(false, destAddrSpace, dest, size);
       }
       delete[] buffer;
     }
@@ -1683,8 +1680,7 @@ namespace spirsim
       memset(buffer, value, size);
       if (!memory->store(buffer, dest, size))
       {
-        workItem->outputMemoryError(*callInst, "Invalid write",
-                                    addressSpace, dest, size);
+        workItem->m_device->notifyMemoryError(false, addressSpace, dest, size);
       }
       delete[] buffer;
     }

@@ -381,6 +381,11 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
   return val;
 }
 
+const size_t* WorkItem::getLocalID() const
+{
+  return m_localID;
+}
+
 Memory* WorkItem::getMemory(unsigned int addrSpace)
 {
   switch (addrSpace)
@@ -504,79 +509,6 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   }
 
   return val;
-}
-
-void WorkItem::outputMemoryError(const llvm::Instruction& instruction,
-                                 const std::string& msg,
-                                 unsigned addressSpace,
-                                 size_t address, size_t size) const
-{
-  std::string memType;
-  switch (addressSpace)
-  {
-  case AddrSpacePrivate:
-    memType = "private";
-    break;
-  case AddrSpaceGlobal:
-    memType = "global";
-    break;
-  case AddrSpaceConstant:
-    memType = "constant";
-    break;
-  case AddrSpaceLocal:
-    memType = "local";
-    break;
-  default:
-    assert(false && "Memory error in unsupported address space.");
-    break;
-  }
-
-  // Basic error info
-  cerr << endl << msg
-       << " of size " << size
-       << " at " << memType
-       << " memory address " << hex << address << endl;
-
-  // Work item
-  cerr << "\tWork-item:  Global(" << dec
-       << m_globalID[0] << ","
-       << m_globalID[1] << ","
-       << m_globalID[2] << ")"
-       << " Local(" << dec
-       << m_localID[0] << ","
-       << m_localID[1] << ","
-       << m_localID[2] << ")"
-       << endl;
-
-  // Work group
-  const size_t *group = m_workGroup.getGroupID();
-  cerr << "\tWork-group: (" << dec
-       << group[0] << ","
-       << group[1] << ","
-       << group[2] << ")"
-       << endl;
-
-  // Kernel
-  cerr << "\tKernel:     " << m_kernel.getName() << endl;
-
-  // Instruction
-  cerr << "\t";
-  dumpInstruction(cerr, instruction);
-
-  // Output debug information
-  cerr << "\t";
-  llvm::MDNode *md = instruction.getMetadata("dbg");
-  if (!md)
-  {
-    cerr << "Debugging information not available." << endl;
-  }
-  else
-  {
-    llvm::DILocation loc(md);
-    cerr << "At line " << dec << loc.getLineNumber()
-         << " of " << loc.getFilename().str() << endl;
-  }
-  cerr << endl;
 }
 
 void WorkItem::printInterpretedValue(const llvm::Type *type,
@@ -1343,33 +1275,11 @@ void WorkItem::load(const llvm::Instruction& instruction,
     address = *((size_t*)m_instResults[ptrOp].data);
   }
 
-  // Check address space
-  Memory *memory = NULL;
-  switch (addressSpace)
-  {
-  case AddrSpacePrivate:
-    memory = m_privateMemory;
-    break;
-  case AddrSpaceGlobal:
-  case AddrSpaceConstant:
-    memory = m_device->getGlobalMemory();
-    break;
-  case AddrSpaceLocal:
-    memory = m_workGroup.getLocalMemory();
-    break;
-  default:
-    cerr << "Unhandled address space '" << addressSpace << "'" << endl;
-    break;
-  }
-
   // Load data
-  if (memory)
+  size_t size = result.size*result.num;
+  if (!getMemory(addressSpace)->load(result.data, address, size))
   {
-    if (!memory->load(result.data, address, result.size*result.num))
-    {
-      outputMemoryError(instruction, "Invalid read",
-                        addressSpace, address, result.size*result.num);
-    }
+    m_device->notifyMemoryError(true, addressSpace, address, size);
   }
 }
 
@@ -1642,35 +1552,10 @@ void WorkItem::store(const llvm::Instruction& instruction)
     }
   }
 
-  Memory *memory = NULL;
-
-  switch (addressSpace)
-  {
-  case AddrSpacePrivate:
-    memory = m_privateMemory;
-    break;
-  case AddrSpaceGlobal:
-    memory = m_device->getGlobalMemory();
-    break;
-  case AddrSpaceLocal:
-    memory = m_workGroup.getLocalMemory();
-    break;
-  case AddrSpaceConstant:
-    assert(false && "Store to constant address space");
-    return;
-  default:
-    cerr << "Unhandled address space '" << addressSpace << "'" << endl;
-    break;
-  }
-
   // Store data
-  if (memory)
+  if (!getMemory(addressSpace)->store(data, address, size))
   {
-    if (!memory->store(data, address, size))
-    {
-      outputMemoryError(instruction, "Invalid write",
-                        addressSpace, address, size);
-    }
+    m_device->notifyMemoryError(false, addressSpace, address, size);
   }
 
   delete[] data;
