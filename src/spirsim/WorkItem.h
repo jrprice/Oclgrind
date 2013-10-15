@@ -66,7 +66,6 @@ namespace spirsim
 
     void clearBarrier();
     void dispatch(const llvm::Instruction& instruction, TypedValue& result);
-    void dumpPrivateMemory();
     void execute(const llvm::Instruction& instruction);
     const std::stack<ReturnAddress>& getCallStack() const;
     const llvm::Instruction* getCurrentInstruction() const;

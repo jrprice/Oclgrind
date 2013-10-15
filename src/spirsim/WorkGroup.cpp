@@ -166,24 +166,6 @@ void WorkGroup::clearBarrier()
   }
 }
 
-void WorkGroup::dumpLocalMemory() const
-{
-  if (m_localMemory->getTotalAllocated() > 0)
-  {
-    cout << SMALL_SEPARATOR << endl << "Local Memory:";
-    m_localMemory->dump();
-  }
-}
-
-void WorkGroup::dumpPrivateMemory() const
-{
-  for (int i = 0; i < m_totalWorkItems; i++)
-  {
-    cout << SMALL_SEPARATOR;
-    m_workItems[i]->dumpPrivateMemory();
-  }
-}
-
 const size_t* WorkGroup::getGlobalOffset() const
 {
   return m_globalOffset;

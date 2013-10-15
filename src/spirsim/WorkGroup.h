@@ -52,8 +52,6 @@ namespace spirsim
 
     uint64_t async_copy(AsyncCopy copy, uint64_t event);
     void clearBarrier();
-    void dumpLocalMemory() const;
-    void dumpPrivateMemory() const;
     const size_t* getGlobalOffset() const;
     const size_t* getGlobalSize() const;
     const size_t* getGroupID() const;

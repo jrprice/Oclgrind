@@ -222,21 +222,6 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   }
 }
 
-void WorkItem::dumpPrivateMemory()
-{
-  cout << endl << "Work-item ("
-       << m_globalID[0] << ","
-       << m_globalID[1] << ","
-       << m_globalID[2]
-       << ") Private Memory:" << endl;
-
-  if (m_privateMemory->getTotalAllocated() > 0)
-  {
-    cout << endl << "Stack:";
-    m_privateMemory->dump();
-  }
-}
-
 void WorkItem::execute(const llvm::Instruction& instruction)
 {
   // Prepare private variable for instruction result
