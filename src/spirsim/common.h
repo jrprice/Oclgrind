@@ -75,15 +75,19 @@ namespace spirsim
                               const llvm::Instruction& instruction,
                               bool align=false);
 
+  // Retrieve the raw data for a constant
+  extern void getConstantData(unsigned char *data,
+                              const llvm::Constant *constant);
+
   // Creates an instruction from a constant expression
   extern llvm::Instruction* getConstExprAsInstruction(
     const llvm::ConstantExpr *expr);
 
-  // Returns the size of a value
-  extern std::pair<size_t,size_t> getValueSize(const llvm::Value *value);
-
   // Returns the size of a type
   extern size_t getTypeSize(const llvm::Type *type);
+
+  // Returns the size of a value
+  extern std::pair<size_t,size_t> getValueSize(const llvm::Value *value);
 
   // Returns true if the operand is a constant value
   extern bool isConstantOperand(const llvm::Value *operand);
@@ -91,9 +95,8 @@ namespace spirsim
   // Returns true if the value is a 3-element vector
   extern bool isVector3(const llvm::Value *value);
 
-  // Retrieve the raw data for a constant
-  extern void getConstantData(unsigned char *data,
-                              const llvm::Constant *constant);
+  // Print data in a human readable format (according to its type)
+  extern void printTypedData(const llvm::Type *type, const unsigned char *data);
 }
 
 #endif // __common_h_

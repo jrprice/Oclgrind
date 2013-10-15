@@ -521,64 +521,25 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   return val;
 }
 
-void WorkItem::printInterpretedValue(const llvm::Type *type,
-                                     const unsigned char *data)
+const unsigned char* WorkItem::getValueData(const llvm::Value *value) const
 {
-  // TODO: Interpret other types (array, struct)
-  size_t size = getTypeSize(type);
-  switch (type->getTypeID())
+  TypedValueMap::const_iterator itr = m_instResults.find(value);
+  if (itr == m_instResults.end())
   {
-  case llvm::Type::FloatTyID:
-    cout << *(float*)data;
-    break;
-  case llvm::Type::DoubleTyID:
-    cout << *(double*)data;
-    break;
-  case llvm::Type::IntegerTyID:
-    switch (size)
-    {
-    case 1:
-      cout << (int)*(char*)data;
-      break;
-    case 2:
-      cout << *(short*)data;
-      break;
-    case 4:
-      cout << *(int*)data;
-      break;
-    case 8:
-      cout << *(long*)data;
-      break;
-    default:
-      cout << "(invalid integer size)";
-      break;
-    }
-    break;
-  case llvm::Type::VectorTyID:
+    return NULL;
+  }
+  return itr->second.data;
+}
+
+const llvm::Value* WorkItem::getVariable(std::string name) const
+{
+  map<string, const llvm::Value*>::const_iterator itr;
+  itr = m_variables.find(name);
+  if (itr == m_variables.end())
   {
-    const llvm::Type *elemType = type->getVectorElementType();
-    cout << "(";
-    for (int i = 0; i < type->getVectorNumElements(); i++)
-    {
-      if (i > 0)
-      {
-        cout << ",";
-      }
-      printInterpretedValue(elemType, data+i*getTypeSize(elemType));
-    }
-    cout << ")";
-    break;
+    return NULL;
   }
-  case llvm::Type::PointerTyID:
-    cout << "0x" << hex << *(size_t*)data;
-    break;
-  default:
-    cout << "(raw) 0x" << hex << uppercase << setw(2) << setfill('0');
-    for (int i = 0; i < size; i++)
-    {
-      cout << (int)data[i];
-    }
-  }
+  return itr->second;
 }
 
 bool WorkItem::printValue(const llvm::Value *value)
@@ -588,7 +549,7 @@ bool WorkItem::printValue(const llvm::Value *value)
     return false;
   }
 
-  printInterpretedValue(value->getType(), m_instResults[value].data);
+  printTypedData(value->getType(), m_instResults[value].data);
 
   return true;
 }
@@ -596,15 +557,13 @@ bool WorkItem::printValue(const llvm::Value *value)
 bool WorkItem::printVariable(string name)
 {
   // Find variable
-  map<string, const llvm::Value*>::const_iterator itr;
-  itr = m_variables.find(name);
-  if (itr == m_variables.end())
+  const llvm::Value *value = getVariable(name);
+  if (!value)
   {
     return false;
   }
 
   // Get variable value
-  const llvm::Value *value = itr->second;
   TypedValue result = m_instResults[value];
   const llvm::Type *type = value->getType();
 
@@ -618,13 +577,13 @@ bool WorkItem::printVariable(string name)
     unsigned char *data = new unsigned char[size];
     m_privateMemory->load(data, address, size);
 
-    printInterpretedValue(elemType, data);
+    printTypedData(elemType, data);
 
     delete[] data;
   }
   else
   {
-    printInterpretedValue(type, result.data);
+    printTypedData(type, result.data);
   }
 
   return true;

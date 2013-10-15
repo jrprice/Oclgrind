@@ -66,37 +66,62 @@ namespace spirsim
     out << right << endl;
   }
 
-  pair<size_t,size_t> getValueSize(const llvm::Value *value)
+
+  void getConstantData(unsigned char *data, const llvm::Constant *constant)
   {
-    size_t bits, numElements;
-    const llvm::Type *type = value->getType();
-
-    if (type->isVectorTy())
+    if (constant->getValueID() == llvm::Value::UndefValueVal)
     {
-      bits = type->getVectorElementType()->getPrimitiveSizeInBits();
-      numElements = type->getVectorNumElements();
-    }
-    else
-    {
-      bits = type->getPrimitiveSizeInBits();
-      numElements = 1;
+      memset(data, -1, getTypeSize(constant->getType()));
+      return;
     }
 
-    size_t elemSize = bits >> 3;
-
-    // Special case for pointer types
-    if (type->isPointerTy())
+    const llvm::Type *type = constant->getType();
+    size_t size = getTypeSize(type);
+    switch (type->getTypeID())
     {
-      elemSize = sizeof(size_t);
-    }
-
-    // Special case for boolean results
-    if (bits == 1)
+    case llvm::Type::IntegerTyID:
+      memcpy(data,
+             ((llvm::ConstantInt*)constant)->getValue().getRawData(),
+             size);
+      break;
+    case llvm::Type::FloatTyID:
     {
-      elemSize = sizeof(bool);
+      *(float*)data =
+        ((llvm::ConstantFP*)constant)->getValueAPF().convertToFloat();
+      break;
     }
-
-    return pair<size_t,size_t>(elemSize,numElements);
+    case llvm::Type::DoubleTyID:
+    {
+      *(double*)data =
+        ((llvm::ConstantFP*)constant)->getValueAPF().convertToDouble();
+      break;
+    }
+    case llvm::Type::VectorTyID:
+    {
+      int num = type->getVectorNumElements();
+      const llvm::Type *elemType = type->getVectorElementType();
+      size_t elemSize = getTypeSize(elemType);
+      for (int i = 0; i < num; i++)
+      {
+        getConstantData(data + i*elemSize, constant->getAggregateElement(i));
+      }
+      break;
+    }
+    case llvm::Type::ArrayTyID:
+    {
+      int num = type->getArrayNumElements();
+      const llvm::Type *elemType = type->getArrayElementType();
+      size_t elemSize = getTypeSize(elemType);
+      for (int i = 0; i < num; i++)
+      {
+        getConstantData(data + i*elemSize, constant->getAggregateElement(i));
+      }
+      break;
+    }
+    default:
+      cerr << "Unhandled constant type " << type->getTypeID() << endl;
+      break;
+    }
   }
 
   llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr *expr)
@@ -176,6 +201,39 @@ namespace spirsim
     }
   }
 
+  pair<size_t,size_t> getValueSize(const llvm::Value *value)
+  {
+    size_t bits, numElements;
+    const llvm::Type *type = value->getType();
+
+    if (type->isVectorTy())
+    {
+      bits = type->getVectorElementType()->getPrimitiveSizeInBits();
+      numElements = type->getVectorNumElements();
+    }
+    else
+    {
+      bits = type->getPrimitiveSizeInBits();
+      numElements = 1;
+    }
+
+    size_t elemSize = bits >> 3;
+
+    // Special case for pointer types
+    if (type->isPointerTy())
+    {
+      elemSize = sizeof(size_t);
+    }
+
+    // Special case for boolean results
+    if (bits == 1)
+    {
+      elemSize = sizeof(bool);
+    }
+
+    return pair<size_t,size_t>(elemSize,numElements);
+  }
+
   size_t getTypeSize(const llvm::Type *type)
   {
     if (type->isArrayTy())
@@ -223,60 +281,62 @@ namespace spirsim
             value->getType()->getVectorNumElements() == 3);
   }
 
-  void getConstantData(unsigned char *data, const llvm::Constant *constant)
+  void printTypedData(const llvm::Type *type, const unsigned char *data)
   {
-    if (constant->getValueID() == llvm::Value::UndefValueVal)
-    {
-      memset(data, -1, getTypeSize(constant->getType()));
-      return;
-    }
-
-    const llvm::Type *type = constant->getType();
+    // TODO: Interpret other types (array, struct)
     size_t size = getTypeSize(type);
     switch (type->getTypeID())
     {
-    case llvm::Type::IntegerTyID:
-      memcpy(data,
-             ((llvm::ConstantInt*)constant)->getValue().getRawData(),
-             size);
-      break;
     case llvm::Type::FloatTyID:
-    {
-      *(float*)data =
-        ((llvm::ConstantFP*)constant)->getValueAPF().convertToFloat();
+      cout << *(float*)data;
       break;
-    }
     case llvm::Type::DoubleTyID:
-    {
-      *(double*)data =
-        ((llvm::ConstantFP*)constant)->getValueAPF().convertToDouble();
+      cout << *(double*)data;
       break;
-    }
+    case llvm::Type::IntegerTyID:
+      switch (size)
+      {
+      case 1:
+        cout << (int)*(char*)data;
+        break;
+      case 2:
+        cout << *(short*)data;
+        break;
+      case 4:
+        cout << *(int*)data;
+        break;
+      case 8:
+        cout << *(long*)data;
+        break;
+      default:
+        cout << "(invalid integer size)";
+        break;
+      }
+      break;
     case llvm::Type::VectorTyID:
     {
-      int num = type->getVectorNumElements();
       const llvm::Type *elemType = type->getVectorElementType();
-      size_t elemSize = getTypeSize(elemType);
-      for (int i = 0; i < num; i++)
+      cout << "(";
+      for (int i = 0; i < type->getVectorNumElements(); i++)
       {
-        getConstantData(data + i*elemSize, constant->getAggregateElement(i));
+        if (i > 0)
+        {
+          cout << ",";
+        }
+        printTypedData(elemType, data+i*getTypeSize(elemType));
       }
+      cout << ")";
       break;
     }
-    case llvm::Type::ArrayTyID:
-    {
-      int num = type->getArrayNumElements();
-      const llvm::Type *elemType = type->getArrayElementType();
-      size_t elemSize = getTypeSize(elemType);
-      for (int i = 0; i < num; i++)
-      {
-        getConstantData(data + i*elemSize, constant->getAggregateElement(i));
-      }
+    case llvm::Type::PointerTyID:
+      cout << "0x" << hex << *(size_t*)data;
       break;
-    }
     default:
-      cerr << "Unhandled constant type " << type->getTypeID() << endl;
-      break;
+      cout << "(raw) 0x" << hex << uppercase << setw(2) << setfill('0');
+      for (int i = 0; i < size; i++)
+      {
+        cout << (int)data[i];
+      }
     }
   }
 }

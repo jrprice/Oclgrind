@@ -20,6 +20,7 @@
 #include <sstream>
 
 #include "llvm/DebugInfo.h"
+#include "llvm/Instructions.h"
 
 #include "Kernel.h"
 #include "Memory.h"
@@ -932,11 +933,114 @@ void Device::print(vector<string> args)
   for (int i = 1; i < args.size(); i++)
   {
     cout << args[i] << " = ";
-    if (!m_currentWorkItem->printVariable(args[i]))
+
+    // Check for subscript operator
+    size_t start = args[i].find("[");
+    if (start != -1)
     {
-      cout << "not found";
+      // Find end of subscript
+      size_t end = args[i].find(']');
+      if (end == -1)
+      {
+        cout << "missing ']'" << endl;
+        return;
+      }
+      if (end != args[i].length() - 1)
+      {
+        cout << "invalid variable" << endl;
+        return;
+      }
+
+      // Parse index value
+      size_t index = 0;
+      string var = args[i].substr(0, start);
+      stringstream ss(args[i].substr(start+1, end-start-1));
+      ss >> index;
+      if (!ss.eof())
+      {
+        cout << "invalid index" << endl;
+        return;
+      }
+
+      // Get variable value and type
+      const llvm::Value *ptr = m_currentWorkItem->getVariable(var);
+      if (!ptr)
+      {
+        cout << "not found" << endl;
+        return;
+      }
+      const llvm::Type *ptrType = ptr->getType();
+
+      // Check for alloca instruction, in which case look at allocated type
+      bool alloca = false;
+      if (ptr->getValueID() >= llvm::Value::InstructionVal &&
+          ((llvm::Instruction*)ptr)->getOpcode() == llvm::Instruction::Alloca)
+      {
+        ptrType = ((const llvm::AllocaInst*)ptr)->getAllocatedType();
+        alloca = true;
+      }
+
+      // Ensure type is a pointer
+      if (!ptrType->isPointerTy())
+      {
+        cout << "not a pointer" << endl;
+        return;
+      }
+
+      // Get base address
+      size_t base = *(size_t*)m_currentWorkItem->getValueData(ptr);
+      if (alloca)
+      {
+        // Load base address from private memory
+        m_currentWorkItem->getPrivateMemory()->load((unsigned char*)&base,
+                                                    base, sizeof(size_t));
+      }
+
+      // Get target memory object
+      Memory *memory = NULL;
+      switch (ptrType->getPointerAddressSpace())
+      {
+      case AddrSpacePrivate:
+        memory = m_currentWorkItem->getPrivateMemory();
+        break;
+      case AddrSpaceGlobal:
+      case AddrSpaceConstant:
+        memory = m_globalMemory;
+        break;
+      case AddrSpaceLocal:
+        memory = m_currentWorkGroup->getLocalMemory();
+        break;
+      default:
+        cout << "invalid address space" << endl;
+        return;
+      }
+
+      // Get element type
+      const llvm::Type *elemType = ptrType->getPointerElementType();
+      size_t elemSize = getTypeSize(elemType);
+
+      // Load data
+      unsigned char *data = new unsigned char[elemSize];
+      if (!memory->load(data, base + index*elemSize, elemSize))
+      {
+        cout << "failed to load data" << endl;
+      }
+      else
+      {
+        // Print data
+        printTypedData(elemType, data);
+        cout << endl;
+      }
+      delete[] data;
     }
-    cout << endl;
+    else
+    {
+      if (!m_currentWorkItem->printVariable(args[i]))
+      {
+        cout << "not found";
+      }
+      cout << endl;
+    }
   }
 }
 

@@ -80,6 +80,8 @@ namespace spirsim
     State getState() const;
     uint64_t getUnsignedInt(const llvm::Value *operand,
                             unsigned int index = 0);
+    const unsigned char* getValueData(const llvm::Value *value) const;
+    const llvm::Value* getVariable(std::string name) const;
     bool printValue(const llvm::Value *value);
     bool printVariable(std::string name);
     TypedValue resolveConstExpr(const llvm::ConstantExpr *expr);
@@ -155,7 +157,5 @@ namespace spirsim
     std::stack<ReturnAddress> m_callStack;
 
     Memory* getMemory(unsigned int addrSpace);
-    void printInterpretedValue(const llvm::Type *type,
-                               const unsigned char *data);
   };
 }
