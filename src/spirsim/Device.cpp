@@ -615,11 +615,11 @@ void Device::help(vector<string> args)
     return;
   }
 
-  if (args[1] == "backtrace")
+  if (args[1] == "backtrace" || args[1] == "bt")
   {
     cout << "Print function call stack." << endl;
   }
-  else if (args[1] == "break")
+  else if (args[1] == "break" || args[1] == "b")
   {
     cout << "Set a breakpoint"
          << " (only functional when source is available)." << endl
@@ -627,27 +627,27 @@ void Device::help(vector<string> args)
          << "Use a numeric argument to set a breakpoint at a specific line."
          << endl;
   }
-  else if (args[1] == "continue")
+  else if (args[1] == "continue" || args[1] == "c")
   {
     cout << "Continue kernel execution until next breakpoint." << endl;
   }
-  else if (args[1] == "delete")
+  else if (args[1] == "delete" || args[1] == "d")
   {
     cout << "Delete a breakpoint." << endl
          << "With no arguments, deletes all breakpoints." << endl;
   }
-  else if (args[1] == "help")
+  else if (args[1] == "help" || args[1] == "h")
   {
     cout << "Display usage information for a command." << endl;
   }
-  else if (args[1] == "info")
+  else if (args[1] == "info" || args[1] == "i")
   {
     cout << "Display information about current debugging context." << endl
          << "With no arguments, displays general information." << endl
          << "'info break' lists breakpoints."
          << endl;
   }
-  else if (args[1] == "list")
+  else if (args[1] == "list" || args[1] == "l")
   {
     cout << "List source lines." << endl
          << "With no argument, lists " << LIST_LENGTH
@@ -657,7 +657,8 @@ void Device::help(vector<string> args)
          << "Use a numeric argument to list around a specific line number."
          << endl;
   }
-  else if (args[1] == "gmem" || args[1] == "lmem" || args[1] == "pmem")
+  else if (args[1] == "gmem" || args[1] == "lmem" || args[1] == "pmem" ||
+           args[1] == "gm"   || args[1] == "lm"   || args[1] == "pm")
   {
     cout << "Examine contents of ";
     if (args[1] == "gmem") cout << "global";
@@ -668,26 +669,26 @@ void Device::help(vector<string> args)
          << "'" << args[1] << " address [size]'" << endl
          << "address is hexadecimal and 4-byte aligned." << endl;
   }
-  else if (args[1] == "next")
+  else if (args[1] == "next" || args[1] == "n")
   {
     cout << "Step forward,"
          << " treating function calls as single instruction." << endl;
   }
-  else if (args[1] == "print")
+  else if (args[1] == "print" || args[1] == "p")
   {
     cout << "Print the values of one or more variables." << endl;
   }
-  else if (args[1] == "quit")
+  else if (args[1] == "quit" || args[1] == "q")
   {
     cout << "Quit interactive debugger "
         << "(and terminate current kernel invocation)." << endl;
   }
-  else if (args[1] == "step")
+  else if (args[1] == "step" || args[1] == "s")
   {
     cout << "Step forward a single source line,"
          << " or an instruction if no source available." << endl;
   }
-  else if (args[1] == "workitem")
+  else if (args[1] == "workitem" || args[1] == "wi")
   {
     cout << "Switch to a different work-item." << endl
          << "Up to three (space separated) arguments allowed,"
