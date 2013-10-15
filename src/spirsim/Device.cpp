@@ -57,13 +57,13 @@ Device::Device()
   ADD_CMD("break",        "b",  brk);
   ADD_CMD("continue",     "c",  cont);
   ADD_CMD("delete",       "d",  del);
+  ADD_CMD("gmem",         "gm", mem);
   ADD_CMD("help",         "h",  help);
   ADD_CMD("info",         "i",  info);
   ADD_CMD("list",         "l",  list);
+  ADD_CMD("lmem",         "lm", mem);
+  ADD_CMD("pmem",         "pm", mem);
   ADD_CMD("print",        "p",  print);
-  ADD_CMD("printglobal",  "pg", printglobal);
-  ADD_CMD("printlocal",   "pl", printlocal);
-  ADD_CMD("printprivate", "pp", printprivate);
   ADD_CMD("quit",         "q",  quit);
   ADD_CMD("step",         "s",  step);
   ADD_CMD("workitem",     "wi", workitem);
@@ -530,13 +530,13 @@ void Device::help(vector<string> args)
     cout << "  break        (b)" << endl;
     cout << "  continue     (c)" << endl;
     cout << "  delete       (d)" << endl;
+    cout << "  gmem         (gm)" << endl;
     cout << "  help         (h)" << endl;
     cout << "  info         (i)" << endl;
     cout << "  list         (l)" << endl;
+    cout << "  lmem         (lm)" << endl;
+    cout << "  pmem         (pm)" << endl;
     cout << "  print        (p)" << endl;
-//    cout << "  printglobal  (pg)" << endl;
-//    cout << "  printlocal   (pl)" << endl;
-//    cout << "  printprivate (pp)" << endl;
     cout << "  quit         (q)" << endl;
     cout << "  step         (s)" << endl;
     cout << "  workitem     (wi)" << endl;
@@ -586,21 +586,20 @@ void Device::help(vector<string> args)
          << "Use a numeric argument to list around a specific line number."
          << endl;
   }
+  else if (args[1] == "gmem" || args[1] == "lmem" || args[1] == "pmem")
+  {
+    cout << "Examine contents of ";
+    if (args[1] == "gmem") cout << "global";
+    if (args[1] == "lmem") cout << "local";
+    if (args[1] == "pmem") cout << "private";
+    cout << " memory." << endl
+         << "With no arguments, dumps entire contents of memory." << endl
+         << "'" << args[1] << " address [size]'" << endl
+         << "address is hexadecimal and 4-byte aligned." << endl;
+  }
   else if (args[1] == "print")
   {
     cout << "Print the values of one or more variables." << endl;
-  }
-  else if (args[1] == "printglobal")
-  {
-    // TODO: Help message
-  }
-  else if (args[1] == "printlocal")
-  {
-    // TODO: Help message
-  }
-  else if (args[1] == "printprivate")
-  {
-    // TODO: Help message
   }
   else if (args[1] == "quit")
   {
@@ -742,6 +741,82 @@ void Device::list(vector<string> args)
   m_listPosition = start;
 }
 
+void Device::mem(vector<string> args)
+{
+  // Get target memory object
+  Memory *memory = NULL;
+  if (args[0][0] == 'g')
+  {
+    memory = m_globalMemory;
+  }
+  else if (args[0][0] == 'l')
+  {
+    memory = m_currentWorkGroup->getLocalMemory();
+  }
+  else if (args[0][0] == 'p')
+  {
+    memory = m_currentWorkItem->getPrivateMemory();
+  }
+
+  // If no arguments, dump memory
+  if (args.size() == 1)
+  {
+    memory->dump();
+    return;
+  }
+  else if (args.size() > 3)
+  {
+    cout << "Invalid number of arguments." << endl;
+    return;
+  }
+
+  // Get target address
+  size_t address;
+  stringstream ss(args[1]);
+  ss >> hex >> address;
+  if (!ss.eof() || address%4 != 0)
+  {
+    cout << "Invalid address." << endl;
+    return;
+  }
+
+  // Get optional size
+  size_t size = 8;
+  if (args.size() == 3)
+  {
+    stringstream ss(args[2]);
+    ss >> dec >> size;
+    if (!ss.eof() || !size)
+    {
+      cout << "Invalid size" << endl;
+      return;
+    }
+  }
+
+  // Read data from memory
+  unsigned char *data = new unsigned char[size];
+  if (!memory->load(data, address, size))
+  {
+    cout << "Failed to read data from memory." << endl;
+    return;
+  }
+
+  // Output data
+  for (int i = 0; i < size; i++)
+  {
+    if (i%4 == 0)
+    {
+      cout << endl << hex << uppercase
+           << setw(16) << setfill(' ') << right
+           << (address + i) << ":";
+    }
+    cout << " " << hex << uppercase << setw(2) << setfill('0') << (int)data[i];
+  }
+  cout << endl << endl;
+
+  delete[] data;
+}
+
 void Device::print(vector<string> args)
 {
   if (args.size() < 2)
@@ -759,24 +834,6 @@ void Device::print(vector<string> args)
     }
     cout << endl;
   }
-}
-
-void Device::printglobal(vector<string> args)
-{
-  // TODO: Implement
-  cout << "Unimplemented command 'printglobal'" << endl;
-}
-
-void Device::printlocal(vector<string> args)
-{
-  // TODO: Implement
-  cout << "Unimplemented command 'printlocal'" << endl;
-}
-
-void Device::printprivate(vector<string> args)
-{
-  // TODO: Implement
-  cout << "Unimplemented command 'printprivate'" << endl;
 }
 
 void Device::quit(vector<string> args)

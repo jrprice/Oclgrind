@@ -83,10 +83,8 @@ namespace spirsim
     CMD(help);
     CMD(info);
     CMD(list);
+    CMD(mem);
     CMD(print);
-    CMD(printglobal);
-    CMD(printlocal);
-    CMD(printprivate);
     CMD(quit);
     CMD(step);
     CMD(workitem);

@@ -402,6 +402,11 @@ Memory* WorkItem::getMemory(unsigned int addrSpace)
   }
 }
 
+Memory* WorkItem::getPrivateMemory() const
+{
+  return m_privateMemory;
+}
+
 int64_t WorkItem::getSignedInt(const llvm::Value *operand,
                                unsigned int index)
 {

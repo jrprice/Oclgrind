@@ -69,6 +69,7 @@ namespace spirsim
     double getFloatValue(const llvm::Value *operand,
                          unsigned int index = 0);
     const size_t* getLocalID() const;
+    Memory* getPrivateMemory() const;
     int64_t getSignedInt(const llvm::Value *operand,
                          unsigned int index = 0);
     State getState() const;
