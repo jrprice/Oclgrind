@@ -48,6 +48,10 @@ namespace spirsim
   extern std::list< std::pair<std::string,
                               BuiltinFunction> > workItemPrefixBuiltins;
 
+  // Return address for a function call
+  typedef std::pair<llvm::Function::const_iterator,
+                    llvm::BasicBlock::const_iterator> ReturnAddress;
+
   class WorkItem
   {
     friend class WorkItemBuiltins;
@@ -64,6 +68,7 @@ namespace spirsim
     void dispatch(const llvm::Instruction& instruction, TypedValue& result);
     void dumpPrivateMemory();
     void execute(const llvm::Instruction& instruction);
+    const std::stack<ReturnAddress>& getCallStack() const;
     const llvm::Instruction* getCurrentInstruction() const;
     const size_t* getGlobalID() const;
     double getFloatValue(const llvm::Value *operand,
@@ -75,6 +80,7 @@ namespace spirsim
     State getState() const;
     uint64_t getUnsignedInt(const llvm::Value *operand,
                             unsigned int index = 0);
+    bool printValue(const llvm::Value *value);
     bool printVariable(std::string name);
     TypedValue resolveConstExpr(const llvm::ConstantExpr *expr);
     static void setFloatResult(TypedValue& result, double val,
@@ -140,9 +146,6 @@ namespace spirsim
     const Kernel& m_kernel;
     Memory *m_privateMemory;
     WorkGroup& m_workGroup;
-
-    typedef std::pair<llvm::Function::const_iterator,
-              llvm::BasicBlock::const_iterator> ReturnAddress;
 
     State m_state;
     llvm::Function::const_iterator m_prevBlock;

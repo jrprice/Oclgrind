@@ -70,6 +70,7 @@ namespace spirsim
     std::map<std::string, Command> m_commands;
 
     size_t getCurrentLineNumber() const;
+    size_t getLineNumber(const llvm::Instruction *instruction) const;
     bool nextWorkItem();
     void printCurrentLine() const;
     void printSourceLine(size_t lineNum) const;

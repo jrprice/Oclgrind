@@ -291,6 +291,11 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   }
 }
 
+const stack<ReturnAddress>& WorkItem::getCallStack() const
+{
+  return m_callStack;
+}
+
 const llvm::Instruction* WorkItem::getCurrentInstruction() const
 {
   return m_currInst;
@@ -574,6 +579,18 @@ void WorkItem::printInterpretedValue(const llvm::Type *type,
       cout << (int)data[i];
     }
   }
+}
+
+bool WorkItem::printValue(const llvm::Value *value)
+{
+  if (m_instResults.find(value) == m_instResults.end())
+  {
+    return false;
+  }
+
+  printInterpretedValue(value->getType(), m_instResults[value].data);
+
+  return true;
 }
 
 bool WorkItem::printVariable(string name)

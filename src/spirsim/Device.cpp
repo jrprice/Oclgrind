@@ -80,20 +80,23 @@ size_t Device::getCurrentLineNumber() const
   {
     return 0;
   }
+  return getLineNumber(m_currentWorkItem->getCurrentInstruction());
+}
 
-  const llvm::Instruction *inst = m_currentWorkItem->getCurrentInstruction();
-  llvm::MDNode *md = inst->getMetadata("dbg");
+Memory* Device::getGlobalMemory() const
+{
+  return m_globalMemory;
+}
+
+size_t Device::getLineNumber(const llvm::Instruction *instruction) const
+{
+  llvm::MDNode *md = instruction->getMetadata("dbg");
   if (md)
   {
     llvm::DILocation loc(md);
     return loc.getLineNumber();
   }
   return 0;
-}
-
-Memory* Device::getGlobalMemory() const
-{
-  return m_globalMemory;
 }
 
 bool Device::nextWorkItem()
@@ -368,7 +371,7 @@ void Device::printSourceLine(size_t lineNum) const
 {
   if (lineNum && lineNum <= m_sourceLines.size())
   {
-    cout << lineNum << "\t" << m_sourceLines[lineNum-1] << endl;
+    cout << dec << lineNum << "\t" << m_sourceLines[lineNum-1] << endl;
   }
   else
   {
@@ -383,8 +386,45 @@ void Device::printSourceLine(size_t lineNum) const
 
 void Device::backtrace(vector<string> args)
 {
-  // TODO: Implement
-  cout << "Unimplemented command 'backtrace'" << endl;
+  if (!m_currentWorkItem || m_currentWorkItem->getState() == WorkItem::FINISHED)
+  {
+    return;
+  }
+
+  stack<ReturnAddress> callStack = m_currentWorkItem->getCallStack();
+  const llvm::Instruction *inst = m_currentWorkItem->getCurrentInstruction();
+
+  do
+  {
+    // Get function
+    const llvm::Function *function = inst->getParent()->getParent();
+    cout << "#" << callStack.size() <<  " "
+         << function->getName().str() << "(";
+
+    // Print arguments
+    llvm::Function::const_arg_iterator argItr;
+    for (argItr = function->arg_begin();
+         argItr != function->arg_end(); argItr++)
+    {
+      if (argItr != function->arg_begin())
+      {
+        cout << ", ";
+      }
+      cout << argItr->getName().str() << "=";
+      m_currentWorkItem->printValue(argItr);
+    }
+
+    cout << ") at line " << dec << getLineNumber(inst) << endl;
+
+    // Get next entry in call stack
+    if (callStack.empty())
+    {
+      break;
+    }
+    inst = callStack.top().second;
+    callStack.pop();
+  }
+  while (true);
 }
 
 void Device::brk(vector<string> args)
@@ -526,7 +566,7 @@ void Device::help(vector<string> args)
   if (args.size() < 2)
   {
     cout << "Command list:" << endl;
-//    cout << "  backtrace    (bt)" << endl;
+    cout << "  backtrace    (bt)" << endl;
     cout << "  break        (b)" << endl;
     cout << "  continue     (c)" << endl;
     cout << "  delete       (d)" << endl;
@@ -546,7 +586,7 @@ void Device::help(vector<string> args)
 
   if (args[1] == "backtrace")
   {
-    // TODO: Help message
+    cout << "Print function call stack." << endl;
   }
   else if (args[1] == "break")
   {
