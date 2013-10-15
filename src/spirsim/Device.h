@@ -73,7 +73,9 @@ namespace spirsim
     size_t getLineNumber(const llvm::Instruction *instruction) const;
     bool nextWorkItem();
     void printCurrentLine() const;
+    void printFunction(const llvm::Instruction *instruction) const;
     void printSourceLine(size_t lineNum) const;
+    void step();
 
     // Interactive commands
 #define CMD(name) void name(std::vector<std::string> args);
@@ -85,6 +87,7 @@ namespace spirsim
     CMD(info);
     CMD(list);
     CMD(mem);
+    CMD(next);
     CMD(print);
     CMD(quit);
     CMD(step);

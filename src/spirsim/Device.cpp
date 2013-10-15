@@ -62,6 +62,7 @@ Device::Device()
   ADD_CMD("info",         "i",  info);
   ADD_CMD("list",         "l",  list);
   ADD_CMD("lmem",         "lm", mem);
+  ADD_CMD("next",         "n", next);
   ADD_CMD("pmem",         "pm", mem);
   ADD_CMD("print",        "p",  print);
   ADD_CMD("quit",         "q",  quit);
@@ -351,7 +352,6 @@ void Device::printCurrentLine() const
   }
   if (m_currentWorkItem->getState() == WorkItem::FINISHED)
   {
-    cout << "Work-item has finished execution." << endl;
     return;
   }
 
@@ -367,6 +367,28 @@ void Device::printCurrentLine() const
   }
 }
 
+void Device::printFunction(const llvm::Instruction *instruction) const
+{
+  // Get function
+  const llvm::Function *function = instruction->getParent()->getParent();
+  cout << function->getName().str() << "(";
+
+  // Print arguments
+  llvm::Function::const_arg_iterator argItr;
+  for (argItr = function->arg_begin();
+       argItr != function->arg_end(); argItr++)
+  {
+    if (argItr != function->arg_begin())
+    {
+      cout << ", ";
+    }
+    cout << argItr->getName().str() << "=";
+    m_currentWorkItem->printValue(argItr);
+  }
+
+  cout << ") at line " << dec << getLineNumber(instruction) << endl;
+}
+
 void Device::printSourceLine(size_t lineNum) const
 {
   if (lineNum && lineNum <= m_sourceLines.size())
@@ -377,6 +399,35 @@ void Device::printSourceLine(size_t lineNum) const
   {
     cout << "Invalid line number: " << lineNum-1 << endl;
   }
+}
+
+void Device::step()
+{
+  if (m_currentWorkItem->getState() == WorkItem::BARRIER)
+  {
+    cout << "Work-item is at a barrier." << endl;
+    return;
+  }
+  else if (m_currentWorkItem->getState() == WorkItem::FINISHED)
+  {
+    cout << "Work-item has finished execution." << endl;
+    return;
+  }
+
+  // Step whole source lines, if available
+  size_t prevLine = getCurrentLineNumber();
+  size_t currLine = prevLine;
+  WorkItem::State state = m_currentWorkItem->getState();
+  do
+  {
+    state = m_currentWorkItem->step();
+    if (state != WorkItem::READY)
+    {
+      break;
+    }
+    currLine = getCurrentLineNumber();
+  }
+  while (!m_sourceLines.empty() && (currLine == prevLine || currLine == 0));
 }
 
 
@@ -392,39 +443,18 @@ void Device::backtrace(vector<string> args)
   }
 
   stack<ReturnAddress> callStack = m_currentWorkItem->getCallStack();
-  const llvm::Instruction *inst = m_currentWorkItem->getCurrentInstruction();
 
-  do
+  // Print current instruction
+  cout << "#" << callStack.size() <<  " ";
+  printFunction(m_currentWorkItem->getCurrentInstruction());
+
+  // Print call stack
+  while (!callStack.empty())
   {
-    // Get function
-    const llvm::Function *function = inst->getParent()->getParent();
-    cout << "#" << callStack.size() <<  " "
-         << function->getName().str() << "(";
-
-    // Print arguments
-    llvm::Function::const_arg_iterator argItr;
-    for (argItr = function->arg_begin();
-         argItr != function->arg_end(); argItr++)
-    {
-      if (argItr != function->arg_begin())
-      {
-        cout << ", ";
-      }
-      cout << argItr->getName().str() << "=";
-      m_currentWorkItem->printValue(argItr);
-    }
-
-    cout << ") at line " << dec << getLineNumber(inst) << endl;
-
-    // Get next entry in call stack
-    if (callStack.empty())
-    {
-      break;
-    }
-    inst = callStack.top().second;
+    cout << "#" << (callStack.size()-1) <<  " ";
+    printFunction(callStack.top().second);
     callStack.pop();
   }
-  while (true);
 }
 
 void Device::brk(vector<string> args)
@@ -574,6 +604,7 @@ void Device::help(vector<string> args)
     cout << "  help         (h)" << endl;
     cout << "  info         (i)" << endl;
     cout << "  list         (l)" << endl;
+    cout << "  next         (n)" << endl;
     cout << "  lmem         (lm)" << endl;
     cout << "  pmem         (pm)" << endl;
     cout << "  print        (p)" << endl;
@@ -636,6 +667,11 @@ void Device::help(vector<string> args)
          << "With no arguments, dumps entire contents of memory." << endl
          << "'" << args[1] << " address [size]'" << endl
          << "address is hexadecimal and 4-byte aligned." << endl;
+  }
+  else if (args[1] == "next")
+  {
+    cout << "Step forward,"
+         << " treating function calls as single instruction." << endl;
   }
   else if (args[1] == "print")
   {
@@ -857,6 +893,33 @@ void Device::mem(vector<string> args)
   delete[] data;
 }
 
+void Device::next(vector<string> args)
+{
+  if (!m_currentWorkItem)
+  {
+    cout << "All work-items finished." << endl;
+    return;
+  }
+
+  // Step until we return to the same depth
+  size_t prevDepth = m_currentWorkItem->getCallStack().size();
+  do
+  {
+    step();
+  }
+  while (m_currentWorkItem->getCallStack().size() > prevDepth);
+
+  // Print function if changed
+  if (prevDepth != m_currentWorkItem->getCallStack().size() &&
+      m_currentWorkItem->getState() != WorkItem::FINISHED)
+  {
+    printFunction(m_currentWorkItem->getCurrentInstruction());
+  }
+
+  printCurrentLine();
+  m_listPosition = 0;
+}
+
 void Device::print(vector<string> args)
 {
   if (args.size() < 2)
@@ -892,31 +955,17 @@ void Device::step(vector<string> args)
     return;
   }
 
-  if (m_currentWorkItem->getState() == WorkItem::BARRIER)
-  {
-    cout << "Work-item is at a barrier." << endl;
-    return;
-  }
-  else if (m_currentWorkItem->getState() == WorkItem::FINISHED)
-  {
-    cout << "Work-item has finished execution." << endl;
-    return;
-  }
+  // Get current call stack depth
+  size_t prevDepth = m_currentWorkItem->getCallStack().size();
 
-  // Step whole source lines, if available
-  size_t prevLine = getCurrentLineNumber();
-  size_t currLine = prevLine;
-  WorkItem::State state = m_currentWorkItem->getState();
-  do
+  step();
+
+  // Print function if changed
+  if (prevDepth != m_currentWorkItem->getCallStack().size() &&
+      m_currentWorkItem->getState() != WorkItem::FINISHED)
   {
-    state = m_currentWorkItem->step();
-    if (state != WorkItem::READY)
-    {
-      break;
-    }
-    currLine = getCurrentLineNumber();
+    printFunction(m_currentWorkItem->getCurrentInstruction());
   }
-  while (!m_sourceLines.empty() && (currLine == prevLine || currLine == 0));
 
   printCurrentLine();
   m_listPosition = 0;
@@ -960,15 +1009,13 @@ void Device::workitem(vector<string> args)
   cout << "Switched to work-item: (" << gid[0] << ","
                                      << gid[1] << ","
                                      << gid[2] << ")" << endl;
-  switch (m_currentWorkItem->getState())
+  if (m_currentWorkItem->getState() == WorkItem::FINISHED)
   {
-  case WorkItem::READY:
-  case WorkItem::BARRIER:
-    printCurrentLine();
-    break;
-  case WorkItem::FINISHED:
     cout << "Work-item has finished execution." << endl;
-    break;
+  }
+  else
+  {
+    printCurrentLine();
   }
 }
 
