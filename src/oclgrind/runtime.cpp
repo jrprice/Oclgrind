@@ -3080,8 +3080,18 @@ clEnqueueMigrateMemObjects(cl_command_queue        command_queue ,
                            const cl_event *        event_wait_list ,
                            cl_event *              event) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+
+  // Enqueue command
+  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  asyncEnqueue(command_queue, CL_COMMAND_MIGRATE_MEM_OBJECTS, cmd,
+               num_events_in_wait_list, event_wait_list, event);
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
