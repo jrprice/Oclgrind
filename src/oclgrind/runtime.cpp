@@ -1519,8 +1519,7 @@ clBuildProgram(cl_program            program ,
 CL_API_ENTRY cl_int CL_API_CALL
 clUnloadCompiler(void) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -1561,8 +1560,7 @@ clLinkProgram(cl_context            context ,
 CL_API_ENTRY cl_int CL_API_CALL
 clUnloadPlatformCompiler(cl_platform_id  platform) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
