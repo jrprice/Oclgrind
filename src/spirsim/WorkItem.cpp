@@ -132,6 +132,9 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   case llvm::Instruction::FPToSI:
     fptosi(instruction, result);
     break;
+  case llvm::Instruction::FPToUI:
+    fptoui(instruction, result);
+    break;
   case llvm::Instruction::FRem:
     frem(instruction, result);
     break;
@@ -1027,6 +1030,15 @@ void WorkItem::fptosi(const llvm::Instruction& instruction, TypedValue& result)
   for (int i = 0; i < result.num; i++)
   {
     int64_t r = (int64_t)getFloatValue(instruction.getOperand(0), i);
+    setIntResult(result, r, i);
+  }
+}
+
+void WorkItem::fptoui(const llvm::Instruction& instruction, TypedValue& result)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t r = (uint64_t)getFloatValue(instruction.getOperand(0), i);
     setIntResult(result, r, i);
   }
 }
