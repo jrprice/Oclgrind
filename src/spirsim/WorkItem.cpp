@@ -216,6 +216,9 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   case llvm::Instruction::URem:
     urem(instruction, result);
     break;
+  case llvm::Instruction::Unreachable:
+    assert(false);
+    break;
   case llvm::Instruction::Xor:
     bwxor(instruction, result);
     break;
