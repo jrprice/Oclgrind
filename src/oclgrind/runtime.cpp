@@ -1436,10 +1436,7 @@ clCreateProgramWithBuiltInKernels(cl_context             context ,
                                   const char *           kernel_names ,
                                   cl_int *               errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
-  //cl_program obj = (cl_program) malloc(sizeof(struct _cl_program));
-  //obj->dispatch = dispatchTable;
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
+  ERRCODE(CL_INVALID_VALUE);
   return NULL;
 }
 
