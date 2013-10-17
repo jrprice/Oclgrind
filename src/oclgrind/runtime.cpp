@@ -39,7 +39,7 @@ struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
-#define MAX_GLOBAL_MEM_SIZE 1048576 // 16 MB
+#define MAX_GLOBAL_MEM_SIZE 16 * 1048576 // 16 MB
 #define MAX_LOCAL_MEM_SIZE 1048576 // 1 MB
 #define MAX_WI_SIZE (unsigned short)-1
 
