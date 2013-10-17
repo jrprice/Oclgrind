@@ -255,7 +255,7 @@ bool WorkGroup::WorkItemCmp::operator()(const WorkItem *lhs,
   }
   if (lgid[1] != rgid[1])
   {
-    return lgid[2] != rgid[2];
+    return lgid[1] < rgid[1];
   }
   return lgid[0] < rgid[0];
 }
