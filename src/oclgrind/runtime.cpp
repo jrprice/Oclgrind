@@ -3234,8 +3234,8 @@ clSetPrintfCallback(cl_context           context ,
                                                      void *  user_data),
                     void *               user_data) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // This function doesn't appear in spec...
+  return CL_INVALID_VALUE;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
