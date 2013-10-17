@@ -110,6 +110,7 @@ bool Device::nextWorkItem()
     return true;
   }
 
+  // No work-items in READY state
   // Check if there are work-items at a barrier
   if (m_currentWorkGroup->hasBarrier())
   {
@@ -119,6 +120,7 @@ bool Device::nextWorkItem()
     return true;
   }
 
+  // All work-items must have finished
   // Switch to next work-group
   m_runningGroups.erase(m_currentWorkGroup);
   if (m_runningGroups.empty())
@@ -128,7 +130,7 @@ bool Device::nextWorkItem()
   m_currentWorkGroup = *m_runningGroups.begin();
   m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
 
-  // If this work-group was already finished, try again
+  // Check if this work-group has already finished
   if (!m_currentWorkItem)
   {
     return nextWorkItem();
@@ -398,7 +400,7 @@ void Device::printSourceLine(size_t lineNum) const
   }
   else
   {
-    cout << "Invalid line number: " << lineNum-1 << endl;
+    cout << "Invalid line number: " << lineNum << endl;
   }
 }
 
