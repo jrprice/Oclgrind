@@ -845,8 +845,7 @@ clSetCommandQueueProperty(cl_command_queue               command_queue ,
                           cl_bool                        enable ,
                           cl_command_queue_properties *  old_properties) //CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
