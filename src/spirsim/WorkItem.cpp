@@ -135,6 +135,9 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   case llvm::Instruction::FPToUI:
     fptoui(instruction, result);
     break;
+  case llvm::Instruction::FPTrunc:
+    fptrunc(instruction, result);
+    break;
   case llvm::Instruction::FRem:
     frem(instruction, result);
     break;
@@ -1050,6 +1053,15 @@ void WorkItem::frem(const llvm::Instruction& instruction, TypedValue& result)
     double a = getFloatValue(instruction.getOperand(0), i);
     double b = getFloatValue(instruction.getOperand(1), i);
     setFloatResult(result, fmod(a, b), i);
+  }
+}
+
+void WorkItem::fptrunc(const llvm::Instruction& instruction, TypedValue& result)
+{
+  for (int i = 0; i < result.num; i++)
+  {
+    double r = getFloatValue(instruction.getOperand(0), i);
+    setFloatResult(result, r, i);
   }
 }
 

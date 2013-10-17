@@ -111,6 +111,7 @@ namespace spirsim
     void fpext(const llvm::Instruction& instruction, TypedValue& result);
     void fptosi(const llvm::Instruction& instruction, TypedValue& result);
     void fptoui(const llvm::Instruction& instruction, TypedValue& result);
+    void fptrunc(const llvm::Instruction& instruction, TypedValue& result);
     void frem(const llvm::Instruction& instruction, TypedValue& result);
     void fsub(const llvm::Instruction& instruction, TypedValue& result);
     void gep(const llvm::Instruction& instruction, TypedValue& result);
