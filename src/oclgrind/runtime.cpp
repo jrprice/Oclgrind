@@ -1865,20 +1865,28 @@ clSetKernelArg(cl_kernel     kernel ,
 
   // Prepare argument value
   spirsim::TypedValue value;
+  value.data = new unsigned char[arg_size];
   value.size = arg_size;
   value.num = 1;
   switch (addr)
   {
   case CL_KERNEL_ARG_ADDRESS_PRIVATE:
-    value.data = (unsigned char*)arg_value;
+    memcpy(value.data, arg_value, arg_size);
     break;
   case CL_KERNEL_ARG_ADDRESS_LOCAL:
-    value.data = NULL;
+    *(size_t*)value.data = 0;
     break;
   case CL_KERNEL_ARG_ADDRESS_GLOBAL:
   case CL_KERNEL_ARG_ADDRESS_CONSTANT:
-    value.data = (unsigned char*)&(*(cl_mem*)arg_value)->address;
-    kernel->memArgs[arg_index] = (cl_mem*)arg_value;
+    if (arg_value && *(cl_mem*)arg_value)
+    {
+      memcpy(value.data, &(*(cl_mem*)arg_value)->address, arg_size);
+      kernel->memArgs[arg_index] = (cl_mem*)arg_value;
+    }
+    else
+    {
+      *(size_t*)value.data = 0;
+    }
     break;
   default:
     return CL_INVALID_ARG_VALUE;
@@ -1886,6 +1894,7 @@ clSetKernelArg(cl_kernel     kernel ,
 
   // Set argument
   kernel->kernel->setArgument(arg_index, value);
+  delete[] value.data;
 
   return CL_SUCCESS;
 }
