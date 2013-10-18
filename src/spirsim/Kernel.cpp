@@ -15,6 +15,7 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "common.h"
+#include <sstream>
 
 #include "llvm/Constants.h"
 #include "llvm/DerivedTypes.h"
@@ -81,6 +82,22 @@ Kernel::Kernel(const Program& program,
     else if (itr->isConstant())
     {
       m_constants.push_back(itr);
+    }
+  }
+
+  // Get metadata node containing kernel arg info
+  m_metadata = NULL;
+  llvm::NamedMDNode *md = module->getNamedMetadata("opencl.kernels");
+  if (md)
+  {
+    for (int i = 0; i < md->getNumOperands(); i++)
+    {
+      llvm::MDNode *node = md->getOperand(i);
+      if (node->getOperand(0)->getName().str() == m_name)
+      {
+        m_metadata = node;
+        break;
+      }
     }
   }
 }
@@ -152,6 +169,140 @@ const llvm::Argument* Kernel::getArgument(unsigned int index) const
   return argItr;
 }
 
+unsigned int Kernel::getArgumentAccessQualifier(unsigned int index) const
+{
+  assert(index < getNumArguments());
+
+  // Get metadata node
+  const llvm::MDNode *node = getArgumentMetadata("kernel_arg_access_qual");
+  if (!node)
+  {
+    return -1;
+  }
+
+  // Get qualifier string
+  string str = node->getOperand(index+1)->getName();
+  if (str == "read_only")
+  {
+    return CL_KERNEL_ARG_ACCESS_READ_ONLY;
+  }
+  else if (str == "write_only")
+  {
+    return CL_KERNEL_ARG_ACCESS_WRITE_ONLY;
+  }
+  else if (str == "read_write")
+  {
+    return CL_KERNEL_ARG_ACCESS_READ_WRITE;
+  }
+  return CL_KERNEL_ARG_ACCESS_NONE;
+}
+
+unsigned int Kernel::getArgumentAddressQualifier(unsigned int index) const
+{
+  assert(index < getNumArguments());
+
+  // Get metadata node
+  const llvm::MDNode *node = getArgumentMetadata("kernel_arg_addr_space");
+  if (!node)
+  {
+    return -1;
+  }
+
+  // Get address space
+  switch(((llvm::ConstantInt*)node->getOperand(index+1))->getZExtValue())
+  {
+    case AddrSpacePrivate:
+      return CL_KERNEL_ARG_ADDRESS_PRIVATE;
+    case AddrSpaceGlobal:
+      return CL_KERNEL_ARG_ADDRESS_GLOBAL;
+    case AddrSpaceConstant:
+      return CL_KERNEL_ARG_ADDRESS_CONSTANT;
+    case AddrSpaceLocal:
+      return CL_KERNEL_ARG_ADDRESS_LOCAL;
+    default:
+      return -1;
+  }
+}
+
+const llvm::MDNode* Kernel::getArgumentMetadata(string name) const
+{
+  if (!m_metadata)
+  {
+    return NULL;
+  }
+
+  // Loop over all metadata nodes for this kernel
+  for (int i = 0; i < m_metadata->getNumOperands(); i++)
+  {
+    if (m_metadata->getType()->getTypeID() == llvm::Type::MetadataTyID)
+    {
+      // Check if node matches target name
+      llvm::MDNode *node = (llvm::MDNode*)m_metadata->getOperand(i);
+      if (node->getNumOperands() > 0 && node->getOperand(0)->getName() == name)
+      {
+        return node;
+      }
+    }
+  }
+  return NULL;
+}
+
+char* Kernel::getArgumentName(unsigned int index) const
+{
+  return strdup(getArgument(index)->getName().str().c_str());
+}
+
+char* Kernel::getArgumentTypeName(unsigned int index) const
+{
+  assert(index < getNumArguments());
+
+  // Get metadata node
+  const llvm::MDNode *node = getArgumentMetadata("kernel_arg_type");
+  if (!node)
+  {
+    return NULL;
+  }
+
+  // Return copy of string
+  return strdup(node->getOperand(index+1)->getName().str().c_str());
+}
+
+unsigned int Kernel::getArgumentTypeQualifier(unsigned int index) const
+{
+  assert(index < getNumArguments());
+
+  // Get metadata node
+  const llvm::MDNode *node = getArgumentMetadata("kernel_arg_type_qual");
+  if (!node)
+  {
+    return -1;
+  }
+
+  // Get qualifiers
+  istringstream iss(node->getOperand(index+1)->getName().str());
+
+  unsigned int result = CL_KERNEL_ARG_TYPE_NONE;
+  while (!iss.eof())
+  {
+    string tok;
+    iss >> tok;
+    if (tok == "const")
+    {
+      result |= CL_KERNEL_ARG_TYPE_CONST;
+    }
+    else if (tok == "restrict")
+    {
+      result |= CL_KERNEL_ARG_TYPE_RESTRICT;
+    }
+    else if (tok == "volatile")
+    {
+      result |= CL_KERNEL_ARG_TYPE_VOLATILE;
+    }
+  }
+
+  return result;
+}
+
 size_t Kernel::getArgumentSize(unsigned int index) const
 {
   const llvm::Type *type = getArgument(index)->getType();
@@ -163,32 +314,6 @@ size_t Kernel::getArgumentSize(unsigned int index) const
   }
 
   return getTypeSize(type);
-}
-
-unsigned int Kernel::getArgumentType(unsigned int index) const
-{
-  const llvm::Type *type = getArgument(index)->getType();
-
-  // Check if scalar argument
-  if (!type->isPointerTy())
-  {
-    return CL_KERNEL_ARG_ADDRESS_PRIVATE;
-  }
-
-  // Check address space
-  unsigned addressSpace = type->getPointerAddressSpace();
-  switch (addressSpace)
-  {
-  case AddrSpaceGlobal:
-    return CL_KERNEL_ARG_ADDRESS_GLOBAL;
-  case AddrSpaceConstant:
-    return CL_KERNEL_ARG_ADDRESS_CONSTANT;
-  case AddrSpaceLocal:
-    return CL_KERNEL_ARG_ADDRESS_LOCAL;
-  default:
-    cerr << "Unrecognized address space " << addressSpace << endl;
-    return 0;
-  }
 }
 
 const llvm::Function* Kernel::getFunction() const
@@ -234,7 +359,7 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     return;
   }
 
-  unsigned int type = getArgumentType(index);
+  unsigned int type = getArgumentAddressQualifier(index);
   if (type == CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
     const llvm::Value *arg = getArgument(index);

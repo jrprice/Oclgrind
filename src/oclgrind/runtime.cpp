@@ -1855,10 +1855,10 @@ clSetKernelArg(cl_kernel     kernel ,
     return CL_INVALID_ARG_INDEX;
   }
 
-  unsigned int type = kernel->kernel->getArgumentType(arg_index);
+  unsigned int addr = kernel->kernel->getArgumentAddressQualifier(arg_index);
 
   if (kernel->kernel->getArgumentSize(arg_index) != arg_size
-      && type != CL_KERNEL_ARG_ADDRESS_LOCAL)
+      && addr != CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
     return CL_INVALID_ARG_SIZE;
   }
@@ -1867,7 +1867,7 @@ clSetKernelArg(cl_kernel     kernel ,
   spirsim::TypedValue value;
   value.size = arg_size;
   value.num = 1;
-  switch (type)
+  switch (addr)
   {
   case CL_KERNEL_ARG_ADDRESS_PRIVATE:
     value.data = (unsigned char*)arg_value;
@@ -1975,8 +1975,81 @@ clGetKernelArgInfo(cl_kernel        kernel ,
                    void *           param_value ,
                    size_t *         param_value_size_ret) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check parameters are valid
+  if (!kernel)
+  {
+    return CL_INVALID_KERNEL;
+  }
+  if (arg_indx >= kernel->kernel->getNumArguments())
+  {
+    return CL_INVALID_ARG_INDEX;
+  }
+
+  switch (param_name)
+  {
+  case CL_KERNEL_ARG_ADDRESS_QUALIFIER:
+    result_size = sizeof(cl_kernel_arg_address_qualifier);
+    result_data = malloc(result_size);
+    *(cl_kernel_arg_address_qualifier*)result_data =
+      kernel->kernel->getArgumentAddressQualifier(arg_indx);
+    break;
+  case CL_KERNEL_ARG_ACCESS_QUALIFIER:
+    result_size = sizeof(cl_kernel_arg_access_qualifier);
+    result_data = malloc(result_size);
+    *(cl_kernel_arg_access_qualifier*)result_data =
+      kernel->kernel->getArgumentAccessQualifier(arg_indx);
+    break;
+  case CL_KERNEL_ARG_TYPE_NAME:
+    result_data = kernel->kernel->getArgumentTypeName(arg_indx);
+    if (!result_data)
+    {
+      return CL_INVALID_VALUE;
+    }
+    result_size = strlen((char*)result_data) + 1;
+    break;
+  case CL_KERNEL_ARG_TYPE_QUALIFIER:
+    result_size = sizeof(cl_kernel_arg_type_qualifier);
+    result_data = malloc(result_size);
+    *(cl_kernel_arg_type_qualifier*)result_data =
+      kernel->kernel->getArgumentTypeQualifier(arg_indx);
+    break;
+  case CL_KERNEL_ARG_NAME:
+    result_data = kernel->kernel->getArgumentName(arg_indx);
+    if (!result_data)
+    {
+      return CL_INVALID_VALUE;
+    }
+    result_size = strlen((char*)result_data) + 1;
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -1990,7 +2063,7 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
   size_t result_size = 0;
   void *result_data = NULL;
 
-  // Check parameters is valid
+  // Check parameters are valid
   if (!kernel)
   {
     return CL_INVALID_KERNEL;

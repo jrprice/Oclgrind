@@ -22,6 +22,7 @@ namespace llvm
   class Constant;
   class Function;
   class GlobalVariable;
+  class MDNode;
   class Module;
 }
 
@@ -43,7 +44,11 @@ namespace spirsim
     void allocateConstants(Memory *memory);
     void deallocateConstants(Memory *memory);
     size_t getArgumentSize(unsigned int index) const;
-    unsigned int getArgumentType(unsigned int index) const;
+    unsigned int getArgumentAccessQualifier(unsigned int index) const;
+    unsigned int getArgumentAddressQualifier(unsigned int index) const;
+    char* getArgumentName(unsigned int index) const;
+    char* getArgumentTypeName(unsigned int index) const;
+    unsigned int getArgumentTypeQualifier(unsigned int index) const;
     const llvm::Function* getFunction() const;
     const Memory* getLocalMemory() const;
     size_t getLocalMemorySize() const;
@@ -61,8 +66,10 @@ namespace spirsim
     std::list<size_t> m_constantBuffers;
     Memory *m_localMemory;
     std::string m_name;
+    const llvm::MDNode *m_metadata;
     size_t m_requiredWorkGroupSize[3];
 
     const llvm::Argument* getArgument(unsigned int index) const;
+    const llvm::MDNode* getArgumentMetadata(std::string name) const;
   };
 }
