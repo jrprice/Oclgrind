@@ -103,10 +103,11 @@ bool Program::build(const char *options)
 
   // Set compiler arguments
   vector<const char*> args;
-  args.push_back("-g");
+  args.push_back("-D cl_khr_fp64");
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-triple");
   args.push_back("-spir64-unknown-unknown");
+  args.push_back("-g");
   args.push_back("-O0");
 
   // Add OpenCL build options
