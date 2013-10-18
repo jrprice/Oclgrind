@@ -3264,8 +3264,7 @@ clCreateFromGLBuffer(cl_context      context ,
                      cl_GLuint       bufret_mem ,
                      int *           errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
+  ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
@@ -3277,8 +3276,7 @@ clCreateFromGLTexture(cl_context       context ,
                       cl_GLuint        texture ,
                       cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_2
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
+  ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
@@ -3290,8 +3288,7 @@ clCreateFromGLTexture2D(cl_context       context,
                         cl_GLuint        texture,
                         cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
+  ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
@@ -3304,8 +3301,7 @@ clCreateFromGLTexture3D(cl_context       context,
                         cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
+  ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
@@ -3315,8 +3311,7 @@ clCreateFromGLRenderbuffer(cl_context    context,
                            cl_GLuint     renderbuffer,
                            cl_int *      errcode_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
+  ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
@@ -3325,8 +3320,7 @@ clGetGLObjectInfo(cl_mem                 memobj,
                   cl_gl_object_type *    gl_object_type,
                   cl_GLuint *            gl_object_name ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return CL_INVALID_MEM_OBJECT;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -3336,8 +3330,7 @@ clGetGLTextureInfo(cl_mem                memobj,
                    void *                param_value,
                    size_t *              param_value_size_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return CL_INVALID_MEM_OBJECT;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -3348,8 +3341,7 @@ clEnqueueAcquireGLObjects(cl_command_queue       command_queue,
                           const cl_event *       event_wait_list,
                           cl_event *             event ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return CL_INVALID_CONTEXT;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -3361,8 +3353,7 @@ clEnqueueReleaseGLObjects(cl_command_queue       command_queue,
                           cl_event *             event ) CL_API_SUFFIX__VERSION_1_0
 
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return CL_INVALID_CONTEXT;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -3372,8 +3363,7 @@ clGetGLContextInfoKHR(const cl_context_properties *  properties,
                       void *                         param_value,
                       size_t *                       param_value_size_ret ) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  return CL_INVALID_OPERATION;
 }
 
 CL_API_ENTRY cl_event CL_API_CALL
@@ -3382,7 +3372,6 @@ clCreateEventFromGLsyncKHR(cl_context            context ,
                            cl_int *              errcode_ret ) //CL_EXT_SUFFIX__VERSION_1_1
 
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
+  ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
