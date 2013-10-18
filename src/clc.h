@@ -741,6 +741,10 @@ int printf(__constant char * restrict, ...);
 #define as_double4( _x )  __builtin_astype( _x, double4 )
 #define as_double8( _x )  __builtin_astype( _x, double8 )
 #define as_double16( _x )  __builtin_astype( _x, double16 )
+#define as_size_t( _x ) __builtin_astype( _x, size_t )
+#define as_ptrdiff_t( _x ) __builtin_astype( _x, ptrdiff_t )
+#define as_uintptr_t( _x ) __builtin_astype( _x, uintptr_t )
+#define as_intptr_t( _x ) __builtin_astype( _x, intptr_t )
 
 #define CONVERT_TYPE_SIZE(out, in) \
   out __OVERLOAD__ convert_##out(in);
