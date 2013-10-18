@@ -990,16 +990,19 @@ clCreateBuffer(cl_context    context ,
   mem->context = context;
   mem->parent = NULL;
   mem->size = size;
+  mem->offset = 0;
   mem->flags = flags;
   mem->refCount = 1;
   if (flags & CL_MEM_USE_HOST_PTR)
   {
     mem->address = context->device->getGlobalMemory()->createHostBuffer(
       size, host_ptr);
+    mem->hostPtr = host_ptr;
   }
   else
   {
     mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
+    mem->hostPtr = NULL;
   }
   if (!mem->address)
   {
@@ -1047,13 +1050,41 @@ clCreateSubBuffer(cl_mem                    buffer ,
     return NULL;
   }
 
+  // Inherit flags from parent where appropriate
+  cl_mem_flags memFlags = 0;
+  cl_mem_flags rwFlags = CL_MEM_READ_ONLY | CL_MEM_READ_WRITE |
+                         CL_MEM_WRITE_ONLY;
+  cl_mem_flags hostAccess = CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY |
+                            CL_MEM_HOST_WRITE_ONLY;
+  cl_mem_flags hostPtr = CL_MEM_USE_HOST_PTR | CL_MEM_ALLOC_HOST_PTR |
+                         CL_MEM_COPY_HOST_PTR;
+  if ((flags & rwFlags) == 0)
+  {
+    memFlags |= buffer->flags & rwFlags;
+  }
+  else
+  {
+    memFlags |= flags & rwFlags;
+  }
+  if ((flags & hostAccess) == 0)
+  {
+    memFlags |= buffer->flags & hostAccess;
+  }
+  else
+  {
+    memFlags |= flags & hostAccess;
+  }
+  memFlags |= buffer->flags & hostPtr;
+
   // Create memory object
   cl_mem mem = new _cl_mem;
   mem->dispatch = m_dispatchTable;
   mem->context = buffer->context;
   mem->parent = buffer;
   mem->size = region.size;
-  mem->flags = buffer->flags;
+  mem->offset = region.origin;
+  mem->flags = memFlags;
+  mem->hostPtr = (unsigned char*)buffer->hostPtr + region.origin;
   mem->refCount = 1;
   mem->address = buffer->address + region.origin;
   clRetainMemObject(buffer);
@@ -1202,7 +1233,8 @@ clGetMemObjectInfo(cl_mem            memobj ,
   case CL_MEM_HOST_PTR:
     result_size = sizeof(void*);
     result_data = malloc(result_size);
-    memset(result_data, 0, result_size);
+    memcpy(result_data, &(memobj->hostPtr), result_size);
+    break;
   case CL_MEM_MAP_COUNT:
     result_size = sizeof(cl_uint);
     result_data = malloc(result_size);
@@ -1221,12 +1253,12 @@ clGetMemObjectInfo(cl_mem            memobj ,
   case CL_MEM_ASSOCIATED_MEMOBJECT:
     result_size = sizeof(cl_mem);
     result_data = malloc(result_size);
-    *(cl_mem*)result_data = NULL;
+    *(cl_mem*)result_data = memobj->parent;
     break;
   case CL_MEM_OFFSET:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(size_t*)result_data = 0;
+    *(size_t*)result_data = memobj->offset;
     break;
   default:
     return CL_INVALID_VALUE;
@@ -1886,6 +1918,7 @@ clSetKernelArg(cl_kernel     kernel ,
     else
     {
       *(size_t*)value.data = 0;
+      kernel->memArgs.erase(arg_index);
     }
     break;
   default:
