@@ -89,10 +89,10 @@ void asyncQueueRetain(Queue::Command *cmd, cl_kernel kernel)
   kernelMap[cmd] = kernel;
 
   // Retain memory objects arguments
-  map<cl_uint,cl_mem*>::const_iterator itr;
+  map<cl_uint,cl_mem>::const_iterator itr;
   for (itr = kernel->memArgs.begin(); itr != kernel->memArgs.end(); itr++)
   {
-    asyncQueueRetain(cmd, *itr->second);
+    asyncQueueRetain(cmd, itr->second);
   }
 }
 

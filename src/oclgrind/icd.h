@@ -114,7 +114,7 @@ struct _cl_kernel
   CLIicdDispatchTable* dispatch;
   spirsim::Kernel *kernel;
   cl_program program;
-  std::map<cl_uint, cl_mem*> memArgs;
+  std::map<cl_uint, cl_mem> memArgs;
   unsigned int refCount;
 };
 

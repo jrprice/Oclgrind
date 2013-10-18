@@ -1913,7 +1913,7 @@ clSetKernelArg(cl_kernel     kernel ,
     if (arg_value && *(cl_mem*)arg_value)
     {
       memcpy(value.data, &(*(cl_mem*)arg_value)->address, arg_size);
-      kernel->memArgs[arg_index] = (cl_mem*)arg_value;
+      kernel->memArgs[arg_index] = *(cl_mem*)arg_value;
     }
     else
     {
