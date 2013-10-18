@@ -234,10 +234,11 @@ const llvm::MDNode* Kernel::getArgumentMetadata(string name) const
   // Loop over all metadata nodes for this kernel
   for (int i = 0; i < m_metadata->getNumOperands(); i++)
   {
-    if (m_metadata->getType()->getTypeID() == llvm::Type::MetadataTyID)
+    const llvm::Value *value = m_metadata->getOperand(i);
+    if (value->getType()->getTypeID() == llvm::Type::MetadataTyID)
     {
       // Check if node matches target name
-      llvm::MDNode *node = (llvm::MDNode*)m_metadata->getOperand(i);
+      const llvm::MDNode *node = (llvm::MDNode*)value;
       if (node->getNumOperands() > 0 && node->getOperand(0)->getName() == name)
       {
         return node;
