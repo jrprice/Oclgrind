@@ -1004,7 +1004,7 @@ clCreateBuffer(cl_context    context ,
   if (!mem->address)
   {
     ERRCODE(CL_MEM_OBJECT_ALLOCATION_FAILURE);
-    free(mem);
+    delete mem;
     return NULL;
   }
   clRetainContext(context);
@@ -1357,7 +1357,7 @@ clCreateProgramWithSource(cl_context         context ,
   if (!prog->program)
   {
     ERRCODE(CL_OUT_OF_HOST_MEMORY);
-    free(prog);
+    delete prog;
     return NULL;
   }
 
@@ -1404,7 +1404,7 @@ clCreateProgramWithBinary(cl_context                      context ,
     {
       binary_status[0] = CL_INVALID_BINARY;
     }
-    free(prog);
+    delete prog;
     return NULL;
   }
   if (binary_status)
@@ -1756,7 +1756,7 @@ clCreateKernel(cl_program       program ,
   if (!kernel->kernel)
   {
     ERRCODE(CL_INVALID_KERNEL_NAME);
-    free(kernel);
+    delete kernel;
     return NULL;
   }
 
