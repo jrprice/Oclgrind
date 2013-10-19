@@ -1520,6 +1520,8 @@ clBuildProgram(cl_program            program ,
   {
     return CL_BUILD_PROGRAM_FAILURE;
   }
+
+  // Fire callback
   if (pfn_notify)
   {
     pfn_notify(program, user_data);
@@ -1545,9 +1547,51 @@ clCompileProgram(cl_program            program ,
                  void (CL_CALLBACK *   pfn_notify)(cl_program  program , void *  user_data),
                  void *                user_data) CL_API_SUFFIX__VERSION_1_2
 {
-  //pfn_notify(program, NULL);
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!program)
+  {
+    return CL_INVALID_PROGRAM;
+  }
+  if ((num_devices > 0 && !device_list) ||
+      (num_devices == 0 && device_list))
+  {
+    return CL_INVALID_VALUE;
+  }
+  if ((num_input_headers && (!input_headers || !header_include_names)) ||
+      (!num_input_headers && (input_headers || header_include_names)))
+  {
+    return CL_INVALID_VALUE;
+  }
+  if (!pfn_notify && user_data)
+  {
+    return CL_INVALID_VALUE;
+  }
+  if (device_list && !device_list[0])
+  {
+    return CL_INVALID_DEVICE;
+  }
+
+  // Prepare headers
+  list<spirsim::Program::Header> headers;
+  for (int i = 0; i < num_input_headers; i++)
+  {
+    headers.push_back(make_pair(header_include_names[i],
+                                input_headers[i]->program));
+  }
+
+  // Build program
+  if (!program->program->build(options, headers))
+  {
+    return CL_BUILD_PROGRAM_FAILURE;
+  }
+
+  // Fire callback
+  if (pfn_notify)
+  {
+    pfn_notify(program, user_data);
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_program CL_API_CALL

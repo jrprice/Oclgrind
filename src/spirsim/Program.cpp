@@ -35,6 +35,8 @@
 #define TEMP_CL_FILE "/tmp/oclgrind_%lX.cl"
 #define TEMP_BC_FILE "/tmp/oclgrind_%lX.bc"
 
+#define REMAP_DIR "/remapped/"
+
 using namespace spirsim;
 using namespace std;
 
@@ -70,7 +72,7 @@ Program::~Program()
   }
 }
 
-bool Program::build(const char *options)
+bool Program::build(const char *options, list<Header> headers)
 {
   m_buildStatus = CL_BUILD_IN_PROGRESS;
   m_buildOptions = options ? options : "";
@@ -171,6 +173,18 @@ bool Program::build(const char *options)
     path = strtok(NULL, ":");
   }
   free(includes);
+
+  // Remap include files
+  compiler.getHeaderSearchOpts().AddPath(REMAP_DIR, clang::frontend::Quoted,
+                                         false, false, false);
+  list<Header>::iterator itr;
+  for (itr = headers.begin(); itr != headers.end(); itr++)
+  {
+    llvm::MemoryBuffer *buffer =
+      llvm::MemoryBuffer::getMemBuffer(itr->second->m_source, "", false);
+    compiler.getPreprocessorOpts().addRemappedFile(REMAP_DIR + itr->first,
+                                                   buffer);
+  }
 
   // Prepare diagnostics
   compiler.createDiagnostics(args.size(), &args[0], &diagConsumer, false);

@@ -34,6 +34,9 @@ namespace spirsim
   class Program
   {
   public:
+    typedef std::pair<std::string, const Program*> Header;
+
+  public:
     Program(const std::string& source);
     virtual ~Program();
 
@@ -41,7 +44,8 @@ namespace spirsim
                                       size_t length);
     static Program* createFromBitcodeFile(const std::string filename);
 
-    bool build(const char *options);
+    bool build(const char *options,
+               std::list<Header> headers = std::list<Header>());
     Kernel* createKernel(const std::string name);
     const std::string& getBuildLog() const;
     const std::string& getBuildOptions() const;
