@@ -134,8 +134,9 @@ bool Program::build(const char *options, list<Header> headers)
     char *opt = strtok(_options, " ");
     while (opt)
     {
-      // Ignore -cl-fast-relaxed-math
-      if (strcmp(opt, "-cl-fast-relaxed-math") != 0)
+      // Ignore options that break PCH
+      if (strcmp(opt, "-cl-fast-relaxed-math") != 0 &&
+          strcmp(opt, "-cl-single-precision-constant") != 0)
       {
         args.push_back(opt);
       }
