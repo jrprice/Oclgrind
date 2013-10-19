@@ -1634,9 +1634,9 @@ clGetProgramInfo(cl_program          program ,
     result_data = program->program->getBinary();
     break;
   case CL_PROGRAM_NUM_KERNELS:
-    result_size = sizeof(cl_uint);
+    result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(cl_uint*)result_data = program->program->getNumKernels();
+    *(size_t*)result_data = program->program->getNumKernels();
     break;
   case CL_PROGRAM_KERNEL_NAMES:
   {
