@@ -49,7 +49,7 @@ static struct _cl_device_id *m_device = NULL;
 #define DEVICE_VERSION "OpenCL 1.2"
 #define DRIVER_VERSION "0.1"
 #define DEVICE_PROFILE "FULL_PROFILE"
-#define DEVICE_EXTENSIONS "cl_khr_fp64"
+#define DEVICE_EXTENSIONS "cl_khr_spir cl_khr_fp64"
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformIDs(cl_uint           num_entries ,
