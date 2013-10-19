@@ -78,11 +78,11 @@ int main(int argc, char *argv[])
 
 bool init(istream& input)
 {
-  string spir;
+  string progFileName;
   string kernelName;
 
   // Read simulation parameters
-  input >> spir
+  input >> progFileName
         >> kernelName
         >> ndrange[0] >> ndrange[1] >> ndrange[2]
         >> wgsize[0] >> wgsize[1] >> wgsize[2];
@@ -96,13 +96,56 @@ bool init(istream& input)
     return false;
   }
 
-  program = Program::createFromBitcodeFile(spir);
-  if (!program)
+  // Open program file
+  ifstream progFile;
+  progFile.open(progFileName.c_str(), ios_base::in | ios_base::binary);
+  if (!progFile.good())
   {
+    cout << "Unable to open " << progFileName << endl;
     return false;
   }
 
+  // Check for LLVM bitcode magic numbers
+  char magic[2] = {0,0};
+  progFile.read(magic, 2);
+  if (magic[0] == 0x42 && magic[1] == 0x43)
+  {
+    // Load bitcode
+    progFile.close();
+    program = Program::createFromBitcodeFile(progFileName);
+    if (!program)
+    {
+      return false;
+    }
+  }
+  else
+  {
+    // Get size of file
+    progFile.seekg(0, ios_base::end);
+    size_t sz = progFile.tellg();
+    progFile.seekg(0, ios_base::beg);
+
+    // Load source
+    char *data = new char[sz + 1];
+    progFile.read(data, sz+1);
+    progFile.close();
+    program = new Program(data);
+    delete[] data;
+
+    // Build program
+    if (!program->build(""))
+    {
+      cout << "Build failure:" << endl << program->getBuildLog() << endl;
+      return false;
+    }
+  }
+
+  // Get kernel
   kernel = program->createKernel(kernelName);
+  if (!kernel)
+  {
+    return false;
+  }
 
   // Clear global memory
   Memory *globalMemory = device->getGlobalMemory();
