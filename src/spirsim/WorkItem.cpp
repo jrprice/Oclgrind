@@ -801,22 +801,19 @@ void WorkItem::bwxor(const llvm::Instruction& instruction, TypedValue& result)
 void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 {
   const llvm::CallInst *callInst = (const llvm::CallInst*)&instruction;
+  const llvm::Function *function = callInst->getCalledFunction();
 
-  // TODO: Handle indirect function calls
+  // Check for indirect function calls
   if (!callInst->getCalledFunction())
   {
     // Resolve indirect function pointer
     const llvm::Value *func = callInst->getCalledValue();
     const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
-    const llvm::Function *function = (const llvm::Function*)funcPtr;
-    cerr << "Unhandled indirect function call: "
-         << function->getName().str() << endl;
-    return;
+    function = (const llvm::Function*)funcPtr;
   }
 
-  const llvm::Function *function = callInst->getCalledFunction();
-  const string fullname = function->getName().str();
   string name, overload;
+  const string fullname = function->getName().str();
 
   // Demangle if necessary
   if (fullname.compare(0,2, "_Z") == 0)
@@ -908,7 +905,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
 
   // Function didn't match any builtins
-  cerr << "Unhandled direct function call: " << name << endl;
+  cerr << "Undefined function: " << name << endl;
 }
 
 void WorkItem::extract(const llvm::Instruction& instruction,
