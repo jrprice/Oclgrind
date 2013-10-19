@@ -106,9 +106,22 @@ bool Program::build(const char *options)
   args.push_back("-D cl_khr_fp64");
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-triple");
-  args.push_back("-spir64-unknown-unknown");
+  args.push_back("spir64-unknown-unknown");
   args.push_back("-g");
   args.push_back("-O0");
+
+  // Auto-include OpenCL C header (precompiled if available)
+  const char *pch = getenv("OCLGRIND_PCH");
+  if (pch && strlen(pch) > 0)
+  {
+    args.push_back("-include-pch");
+    args.push_back(pch);
+  }
+  else
+  {
+    args.push_back("-include");
+    args.push_back("clc.h");
+  }
 
   // Add OpenCL build options
   if (options)
@@ -117,7 +130,11 @@ bool Program::build(const char *options)
     char *opt = strtok(_options, " ");
     while (opt)
     {
-      args.push_back(opt);
+      // Ignore -cl-fast-relaxed-math
+      if (strcmp(opt, "-cl-fast-relaxed-math") != 0)
+      {
+        args.push_back(opt);
+      }
       opt = strtok(NULL, " ");
     }
   }
@@ -144,7 +161,7 @@ bool Program::build(const char *options)
   clang::CompilerInstance compiler;
   compiler.setInvocation(invocation.take());
 
-  // Auto-include OpenCL header
+  // Add header directories from C_INCLUDE_PATH
   char *includes = strdup(getenv("C_INCLUDE_PATH"));
   char *path = strtok(includes, ":");
   while (path)
@@ -153,7 +170,6 @@ bool Program::build(const char *options)
                                            false, false, false);
     path = strtok(NULL, ":");
   }
-  compiler.getPreprocessorOpts().Includes.push_back("clc.h");
   free(includes);
 
   // Prepare diagnostics
