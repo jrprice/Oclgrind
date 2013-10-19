@@ -19,10 +19,12 @@
 #include <sys/time.h>
 
 #include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/Linker.h"
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/system_error.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Scalar.h"
 #include <clang/CodeGen/CodeGenAction.h>
 #include <clang/Frontend/CompilerInstance.h>
@@ -46,7 +48,7 @@ Program::Program(llvm::Module *module)
   m_action = NULL;
   m_buildLog = "";
   m_buildOptions = "";
-  m_buildStatus = CL_BUILD_NONE;
+  m_buildStatus = CL_BUILD_SUCCESS;
 }
 
 Program::Program(const string& source)
@@ -195,7 +197,8 @@ bool Program::build(const char *options, list<Header> headers)
   }
 
   // Compile
-  clang::CodeGenAction *action = new clang::EmitLLVMOnlyAction();
+  llvm::LLVMContext& context = llvm::getGlobalContext();
+  clang::CodeGenAction *action = new clang::EmitLLVMOnlyAction(&context);
   if (!compiler.ExecuteAction(*action))
   {
     m_buildStatus = CL_BUILD_ERROR;
@@ -272,6 +275,25 @@ Program* Program::createFromBitcodeFile(const string filename)
   }
 
   return new Program(module);
+}
+
+Program* Program::createFromPrograms(list<const Program*> programs)
+{
+  llvm::LLVMContext& context = llvm::getGlobalContext();
+  llvm::Module *module = new llvm::Module("oclgrind_linked", context);
+  llvm::Linker linker("oclgrind", module);
+
+  // Link modules
+  list<const Program*>::iterator itr;
+  for (itr = programs.begin(); itr != programs.end(); itr++)
+  {
+    if (linker.LinkInModule(CloneModule((*itr)->m_module)))
+    {
+      return NULL;
+    }
+  }
+
+  return new Program(linker.releaseModule());
 }
 
 Kernel* Program::createKernel(const string name)

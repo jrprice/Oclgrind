@@ -1605,12 +1605,62 @@ clLinkProgram(cl_context            context ,
               void *                user_data ,
               cl_int *              errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
-  //cl_program obj = (cl_program) malloc(sizeof(cl_program));
-  //obj->dispatch = dispatchTable;
-  ////pfn_notify(obj, NULL);
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  ERRCODE(CL_INVALID_PLATFORM);
-  return NULL;
+  // Check parameters
+  if (!context)
+  {
+    ERRCODE(CL_INVALID_CONTEXT);
+    return NULL;
+  }
+  if ((num_devices > 0 && !device_list) ||
+      (num_devices == 0 && device_list))
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+  if (!num_input_programs || !input_programs)
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+  if (!pfn_notify && user_data)
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+  if (device_list && !device_list[0])
+  {
+    ERRCODE(CL_INVALID_DEVICE);
+    return NULL;
+  }
+
+  // Prepare programs
+  list<const spirsim::Program*> programs;
+  for (int i = 0; i < num_input_programs; i++)
+  {
+    programs.push_back(input_programs[i]->program);
+  }
+
+  // Create program object
+  cl_program prog = new _cl_program;
+  prog->dispatch = m_dispatchTable;
+  prog->program = spirsim::Program::createFromPrograms(programs);
+  prog->context = context;
+  prog->refCount = 1;
+  if (!prog->program)
+  {
+    ERRCODE(CL_INVALID_BINARY);
+    delete prog;
+    return NULL;
+  }
+
+  // Fire callback
+  if (pfn_notify)
+  {
+    pfn_notify(prog, user_data);
+  }
+
+  ERRCODE(CL_SUCCESS);
+  return prog;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

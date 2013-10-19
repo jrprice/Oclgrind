@@ -43,6 +43,7 @@ namespace spirsim
     static Program* createFromBitcode(const unsigned char *bitcode,
                                       size_t length);
     static Program* createFromBitcodeFile(const std::string filename);
+    static Program* createFromPrograms(std::list<const Program*>);
 
     bool build(const char *options,
                std::list<Header> headers = std::list<Header>());
