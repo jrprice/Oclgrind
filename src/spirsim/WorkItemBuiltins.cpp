@@ -16,6 +16,9 @@
 
 #include "common.h"
 #include <algorithm>
+#include <fenv.h>
+
+#pragma STDC FENV_ACCESS ON
 
 #include "llvm/Instructions.h"
 #include "llvm/IntrinsicInst.h"
@@ -1470,60 +1473,171 @@ namespace spirsim
       }
     }
 
+    static void setConvertRoundingMode(string name)
+    {
+      size_t rpos = name.find("_rt");
+      if (rpos != string::npos)
+      {
+        switch (name[rpos+3])
+        {
+        case 'e':
+          fesetround(FE_TONEAREST);
+          break;
+        case 'z':
+          fesetround(FE_TOWARDZERO);
+          break;
+        case 'p':
+          fesetround(FE_UPWARD);
+          break;
+        case 'n':
+          fesetround(FE_DOWNWARD);
+          break;
+        default:
+          assert(false);
+        }
+      }
+      else
+      {
+        fesetround(FE_TOWARDZERO);
+      }
+    }
+
     DEFINE_BUILTIN(convert_uint)
     {
+      // Check for saturation modifier
+      bool sat = fnName.find("_sat") != string::npos;
+      uint64_t max = (1UL<<(result.size*8)) - 1;
+
+      // Use rounding mode
+      const int origRnd = fegetround();
+      setConvertRoundingMode(fnName);
+
       for (int i = 0; i < result.num; i++)
       {
+        uint64_t r;
         switch (getOverloadArgType(overload))
         {
           case 'h':
           case 't':
           case 'j':
           case 'm':
-            WorkItem::setIntResult(result, UARGV(0, i), i);
+            r = UARGV(0, i);
+            if (sat)
+            {
+              r = _min_(r, max);
+            }
             break;
           case 'c':
           case 's':
           case 'i':
           case 'l':
-            WorkItem::setIntResult(result, (uint64_t)SARGV(0, i), i);
+          {
+            int64_t si = SARGV(0, i);
+            r = si;
+            if (sat)
+            {
+              if (si < 0)
+              {
+                r = 0;
+              }
+              else if (si > max)
+              {
+                r = max;
+              }
+            }
             break;
+          }
           case 'f':
           case 'd':
-            WorkItem::setIntResult(result, (uint64_t)FARGV(0, i), i);
+            if (sat)
+            {
+              r = rint(_clamp_(FARGV(0, i), 0.0, (double)max));
+            }
+            else
+            {
+              r = rint(FARGV(0, i));
+            }
             break;
           default:
             assert(false);
         }
+
+        WorkItem::setIntResult(result, r, i);
       }
     }
 
     DEFINE_BUILTIN(convert_sint)
     {
+      // Check for saturation modifier
+      bool sat = fnName.find("_sat") != string::npos;
+      int64_t min, max;
+      switch (result.size)
+      {
+      case 1:
+        min = INT8_MIN;
+        max = INT8_MAX;
+        break;
+      case 2:
+        min = INT16_MIN;
+        max = INT16_MAX;
+        break;
+      case 4:
+        min = INT32_MIN;
+        max = INT32_MAX;
+        break;
+      case 8:
+        min = INT64_MIN;
+        max = INT64_MAX;
+        break;
+      }
+
+      // Use rounding mode
+      const int origRnd = fegetround();
+      setConvertRoundingMode(fnName);
+
       for (int i = 0; i < result.num; i++)
       {
+        int64_t r;
         switch (getOverloadArgType(overload))
         {
           case 'h':
           case 't':
           case 'j':
           case 'm':
-            WorkItem::setIntResult(result, (int64_t)UARGV(0, i), i);
+            r = UARGV(0, i);
+            if (sat)
+            {
+              r = _min_((uint64_t)r, (uint64_t)max);
+            }
             break;
           case 'c':
           case 's':
           case 'i':
           case 'l':
-            WorkItem::setIntResult(result, SARGV(0, i), i);
+            r = SARGV(0, i);
+            if (sat)
+            {
+              r = _clamp_(r, min, max);
+            }
             break;
           case 'f':
           case 'd':
-            WorkItem::setIntResult(result, (int64_t)FARGV(0, i), i);
+            if (sat)
+            {
+              r = rint(_clamp_(FARGV(0, i), (double)min, (double)max));
+            }
+            else
+            {
+              r = rint(FARGV(0, i));
+            }
             break;
           default:
             assert(false);
         }
+
+        WorkItem::setIntResult(result, r, i);
       }
+      fesetround(origRnd);
     }
 
     DEFINE_BUILTIN(printf_builtin)

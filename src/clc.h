@@ -746,14 +746,23 @@ int printf(__constant char * restrict, ...);
 #define as_uintptr_t( _x ) __builtin_astype( _x, uintptr_t )
 #define as_intptr_t( _x ) __builtin_astype( _x, intptr_t )
 
-#define CONVERT_TYPE_SIZE(out, in) \
-  out __OVERLOAD__ convert_##out(in);
+#define CONVERT_TYPE_SIZE(out, in)              \
+  out __OVERLOAD__ convert_##out(in);           \
+  out __OVERLOAD__ convert_##out##_rte(in);     \
+  out __OVERLOAD__ convert_##out##_rtz(in);     \
+  out __OVERLOAD__ convert_##out##_rtp(in);     \
+  out __OVERLOAD__ convert_##out##_rtn(in);     \
+  out __OVERLOAD__ convert_##out##_sat(in);     \
+  out __OVERLOAD__ convert_##out##_sat_rte(in); \
+  out __OVERLOAD__ convert_##out##_sat_rtz(in); \
+  out __OVERLOAD__ convert_##out##_sat_rtp(in); \
+  out __OVERLOAD__ convert_##out##_sat_rtn(in);
 #define CONVERT_TYPE(out, in) \
   CONVERT_TYPE_SIZE(out, in); \
   CONVERT_TYPE_SIZE(out##2, in##2);       \
   CONVERT_TYPE_SIZE(out##3, in##3);       \
   CONVERT_TYPE_SIZE(out##4, in##4);       \
-  CONVERT_TYPE_SIZE(out##8, in##8);             \
+  CONVERT_TYPE_SIZE(out##8, in##8);       \
   CONVERT_TYPE_SIZE(out##16, in##16);
 #define CONVERT(out)         \
   CONVERT_TYPE(out, char);   \
