@@ -131,6 +131,7 @@ Kernel::Kernel(const Kernel& kernel)
   m_constants = kernel.m_constants;
   m_constantBuffers = kernel.m_constantBuffers;
   m_localMemory = kernel.m_localMemory->clone();
+  m_privateMemory = kernel.m_privateMemory->clone();
   m_name = kernel.m_name;
   memcpy(m_requiredWorkGroupSize,
          kernel.m_requiredWorkGroupSize,
