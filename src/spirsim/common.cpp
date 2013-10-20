@@ -345,10 +345,10 @@ namespace spirsim
       cout << "0x" << hex << *(size_t*)data;
       break;
     default:
-      cout << "(raw) 0x" << hex << uppercase << setw(2) << setfill('0');
+      cout << "(raw) 0x" << hex << uppercase << setfill('0');
       for (int i = 0; i < size; i++)
       {
-        cout << (int)data[i];
+        cout << setw(2) << (int)data[i];
       }
     }
   }
