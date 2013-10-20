@@ -118,6 +118,19 @@ namespace spirsim
       }
       break;
     }
+    case llvm::Type::StructTyID:
+    {
+      int num = type->getStructNumElements();
+      size_t offset = 0;
+      for (int i = 0; i < num; i++)
+      {
+        getConstantData(data + offset, constant->getAggregateElement(i));
+
+        const llvm::Type *elemType = type->getStructElementType(i);
+        offset += getTypeSize(elemType);
+      }
+      break;
+    }
     default:
       cerr << "Unhandled constant type " << type->getTypeID() << endl;
       break;
