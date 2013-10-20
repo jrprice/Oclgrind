@@ -263,39 +263,6 @@ namespace spirsim
     assert(false);
   }
 
-  pair<size_t,size_t> getValueSize(const llvm::Value *value)
-  {
-    size_t bits, numElements;
-    const llvm::Type *type = value->getType();
-
-    if (type->isVectorTy())
-    {
-      bits = type->getVectorElementType()->getPrimitiveSizeInBits();
-      numElements = type->getVectorNumElements();
-    }
-    else
-    {
-      bits = type->getPrimitiveSizeInBits();
-      numElements = 1;
-    }
-
-    size_t elemSize = bits >> 3;
-
-    // Special case for pointer types
-    if (type->isPointerTy())
-    {
-      elemSize = sizeof(size_t);
-    }
-
-    // Special case for boolean results
-    if (bits == 1)
-    {
-      elemSize = sizeof(bool);
-    }
-
-    return pair<size_t,size_t>(elemSize,numElements);
-  }
-
   size_t getTypeSize(const llvm::Type *type)
   {
     if (type->isArrayTy())
@@ -357,6 +324,39 @@ namespace spirsim
     {
       return ((llvm::Type*)type)->getScalarSizeInBits()>>3;
     }
+  }
+
+  pair<size_t,size_t> getValueSize(const llvm::Value *value)
+  {
+    size_t bits, numElements;
+    const llvm::Type *type = value->getType();
+
+    if (type->isVectorTy())
+    {
+      bits = type->getVectorElementType()->getPrimitiveSizeInBits();
+      numElements = type->getVectorNumElements();
+    }
+    else
+    {
+      bits = type->getPrimitiveSizeInBits();
+      numElements = 1;
+    }
+
+    size_t elemSize = bits >> 3;
+
+    // Special case for pointer types
+    if (type->isPointerTy())
+    {
+      elemSize = sizeof(size_t);
+    }
+
+    // Special case for boolean results
+    if (bits == 1)
+    {
+      elemSize = sizeof(bool);
+    }
+
+    return pair<size_t,size_t>(elemSize,numElements);
   }
 
   bool isConstantOperand(const llvm::Value *operand)
