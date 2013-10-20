@@ -55,7 +55,7 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
     m_instResults[argItr->first] = clone(argItr->second);
   }
 
-  m_privateMemory = new Memory();
+  m_privateMemory = kernel.getPrivateMemory()->clone();
 
   m_prevBlock = NULL;
   m_nextBlock = NULL;

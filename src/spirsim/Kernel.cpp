@@ -34,6 +34,7 @@ Kernel::Kernel(const Program& program,
 {
   m_function = function;
   m_localMemory = new Memory();
+  m_privateMemory = new Memory();
 
   // Get name
   m_name = function->getName().str();
@@ -70,6 +71,7 @@ Kernel::Kernel(const Program& program,
     llvm::PointerType *type = itr->getType();
     if (type->getPointerAddressSpace() == AddrSpaceLocal)
     {
+      // Allocate buffer
       size_t size = getTypeSize(itr->getInitializer()->getType());
       TypedValue v = {
         sizeof(size_t),
@@ -78,6 +80,25 @@ Kernel::Kernel(const Program& program,
       };
       *((size_t*)v.data) = m_localMemory->allocateBuffer(size);
       m_arguments[itr] = v;
+    }
+    else if (itr->hasUnnamedAddr() && itr->getName().str()[0] != '.')
+    {
+      // Allocate buffer
+      size_t size = getTypeSize(itr->getInitializer()->getType());
+      TypedValue v = {
+        sizeof(size_t),
+        1,
+        new unsigned char[sizeof(size_t)]
+      };
+      size_t address = m_privateMemory->allocateBuffer(size);
+      *((size_t*)v.data) = address;
+      m_arguments[itr] = v;
+
+      // Initialise buffer contents
+      unsigned char *data = new unsigned char[size];
+      getConstantData(data, (const llvm::Constant*)itr->getInitializer());
+      m_privateMemory->store(data, address, size);
+      delete[] data;
     }
     else if (itr->isConstant())
     {
@@ -111,12 +132,15 @@ Kernel::Kernel(const Kernel& kernel)
   m_constantBuffers = kernel.m_constantBuffers;
   m_localMemory = kernel.m_localMemory->clone();
   m_name = kernel.m_name;
-  memcpy(m_requiredWorkGroupSize, kernel.m_requiredWorkGroupSize, 3*sizeof(size_t));
+  memcpy(m_requiredWorkGroupSize,
+         kernel.m_requiredWorkGroupSize,
+         3*sizeof(size_t));
 }
 
 Kernel::~Kernel()
 {
   delete m_localMemory;
+  delete m_privateMemory;
 }
 
 void Kernel::allocateConstants(Memory *memory)
@@ -140,7 +164,7 @@ void Kernel::allocateConstants(Memory *memory)
     m_arguments[*itr] = v;
 
     // Initialise buffer contents
-    unsigned char *data = new unsigned char[getTypeSize(type)];
+    unsigned char *data = new unsigned char[size];
     getConstantData(data, (const llvm::Constant*)initializer);
     memory->store(data, address, size);
     delete[] data;
@@ -322,7 +346,7 @@ const llvm::Function* Kernel::getFunction() const
   return m_function;
 }
 
-const Memory *Kernel::getLocalMemory() const
+const Memory* Kernel::getLocalMemory() const
 {
   return m_localMemory;
 }
@@ -340,6 +364,11 @@ const std::string& Kernel::getName() const
 unsigned int Kernel::getNumArguments() const
 {
   return m_function->arg_size();
+}
+
+const Memory* Kernel::getPrivateMemory() const
+{
+  return m_privateMemory;
 }
 
 const Program& Kernel::getProgram() const

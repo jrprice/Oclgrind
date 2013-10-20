@@ -54,6 +54,7 @@ namespace spirsim
     size_t getLocalMemorySize() const;
     const std::string& getName() const;
     unsigned int getNumArguments() const;
+    const Memory* getPrivateMemory() const;
     const Program& getProgram() const;
     const size_t* getRequiredWorkGroupSize() const;
     void setArgument(unsigned int index, TypedValue value);
@@ -65,6 +66,7 @@ namespace spirsim
     std::list<const llvm::GlobalVariable*> m_constants;
     std::list<size_t> m_constantBuffers;
     Memory *m_localMemory;
+    Memory *m_privateMemory;
     std::string m_name;
     const llvm::MDNode *m_metadata;
     size_t m_requiredWorkGroupSize[3];
