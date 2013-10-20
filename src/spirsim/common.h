@@ -42,6 +42,7 @@ namespace llvm
   class Constant;
   class ConstantExpr;
   class Instruction;
+  class StructType;
   class Type;
   class Value;
 }
@@ -82,6 +83,10 @@ namespace spirsim
   // Creates an instruction from a constant expression
   extern llvm::Instruction* getConstExprAsInstruction(
     const llvm::ConstantExpr *expr);
+
+  // Get the byte offset of a struct member
+  extern size_t getStructMemberOffset(const llvm::StructType *type,
+                                      size_t index);
 
   // Returns the size of a type
   extern size_t getTypeSize(const llvm::Type *type);

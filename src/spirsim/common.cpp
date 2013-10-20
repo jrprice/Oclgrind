@@ -121,13 +121,10 @@ namespace spirsim
     case llvm::Type::StructTyID:
     {
       int num = type->getStructNumElements();
-      size_t offset = 0;
       for (int i = 0; i < num; i++)
       {
+        size_t offset = getStructMemberOffset((const llvm::StructType*)type, i);
         getConstantData(data + offset, constant->getAggregateElement(i));
-
-        const llvm::Type *elemType = type->getStructElementType(i);
-        offset += getTypeSize(elemType);
       }
       break;
     }
@@ -231,6 +228,41 @@ namespace spirsim
     }
   }
 
+  size_t getStructMemberOffset(const llvm::StructType *type, size_t index)
+  {
+    bool packed = ((llvm::StructType*)type)->isPacked();
+
+    size_t offset = 0;
+    for (int i = 0; i <= index; i++)
+    {
+      size_t size = getTypeSize(type->getStructElementType(i));
+
+      // Get member alignment
+      size_t align = size;
+      if (type->getStructElementType(i)->isArrayTy())
+      {
+        // Use element type for arrays
+        align =
+          getTypeSize(type->getStructElementType(i)->getArrayElementType());
+      }
+
+      // Add padding if necessary
+      if (!packed && offset % align)
+      {
+        offset += (align - (offset%align));
+      }
+
+      if (i == index)
+      {
+        return offset;
+      }
+      offset += size;
+    }
+
+    // Unreachable
+    assert(false);
+  }
+
   pair<size_t,size_t> getValueSize(const llvm::Value *value)
   {
     size_t bits, numElements;
@@ -274,11 +306,40 @@ namespace spirsim
     }
     else if (type->isStructTy())
     {
+      bool packed = ((llvm::StructType*)type)->isPacked();
+
       size_t size = 0;
+      size_t alignment = 1;
       for (int i = 0; i < type->getStructNumElements(); i++)
       {
-        size += getTypeSize(type->getStructElementType(i));
+        size_t sz = getTypeSize(type->getStructElementType(i));
+
+        // Get member alignment
+        size_t align = sz;
+        if (type->getStructElementType(i)->isArrayTy())
+        {
+          // Use element type for arrays
+          align =
+            getTypeSize(type->getStructElementType(i)->getArrayElementType());
+        }
+
+        // Add padding if necessary
+        if (!packed && size % align)
+        {
+          size += (align - (size%align));
+        }
+
+        size += sz;
+
+        alignment = max(alignment, align);
       }
+
+      // Aligment of struct should match member with largest aligment
+      if (!packed && size % alignment)
+      {
+        size += (alignment - (size%alignment));
+      }
+
       return size;
     }
     else if (type->isVectorTy())

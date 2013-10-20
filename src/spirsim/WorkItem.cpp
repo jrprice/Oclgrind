@@ -1125,11 +1125,8 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
     }
     else if (ptrType->isStructTy())
     {
-      // Get structure member offset
-      for (int i = 0; i < offset; i++)
-      {
-        address += getTypeSize(ptrType->getStructElementType(i));
-      }
+      address +=
+        getStructMemberOffset((const llvm::StructType*)ptrType, offset);
       ptrType = ptrType->getStructElementType(offset);
     }
     else
