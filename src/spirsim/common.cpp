@@ -198,19 +198,36 @@ namespace spirsim
                                    operands[0], operands[1]);
     default:
       assert(expr->getNumOperands() == 2 && "Must be binary operator?");
-      assert(false && "Unhandled binary operator in constant expression.");
-      //llvm::BinaryOperator *BO =
-      //  llvm::BinaryOperator::Create((llvm::Instruction::Binaryoperands)opcode,
-      //                               operands[0], operands[1]);
-      //if (isa<OverflowingBinaryOperator>(BO)) {
-      //  BO->setHasNoUnsignedWrap(SubclassOptionalData &
-      //                           OverflowingBinaryOperator::NoUnsignedWrap);
-      //  BO->setHasNoSignedWrap(SubclassOptionalData &
-      //                         OverflowingBinaryOperator::NoSignedWrap);
-      //}
-      //if (isa<PossiblyExactOperator>(BO))
-      //  BO->setIsExact(SubclassOptionalData & PossiblyExactOperator::IsExact);
-      //return BO;
+
+      llvm::BinaryOperator *binaryOp =
+        llvm::BinaryOperator::Create((llvm::Instruction::BinaryOps)opcode,
+                                     operands[0], operands[1]);
+
+      // Check for overflowing operator
+      if (opcode == llvm::Instruction::Add ||
+          opcode == llvm::Instruction::Mul ||
+          opcode == llvm::Instruction::Shl ||
+          opcode == llvm::Instruction::Sub)
+      {
+        binaryOp->setHasNoUnsignedWrap(
+          expr->getRawSubclassOptionalData() &
+          llvm::OverflowingBinaryOperator::NoUnsignedWrap);
+        binaryOp->setHasNoSignedWrap(
+          expr->getRawSubclassOptionalData() &
+          llvm::OverflowingBinaryOperator::NoSignedWrap);
+      }
+
+      // Check for possibly exact operator
+      if (opcode == llvm::Instruction::AShr ||
+          opcode == llvm::Instruction::LShr ||
+          opcode == llvm::Instruction::SDiv ||
+          opcode == llvm::Instruction::UDiv)
+      {
+        binaryOp->setIsExact(expr->getRawSubclassOptionalData() &
+                             llvm::PossiblyExactOperator::IsExact);
+      }
+
+      return binaryOp;
     }
   }
 
