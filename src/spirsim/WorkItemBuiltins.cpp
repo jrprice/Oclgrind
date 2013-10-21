@@ -265,6 +265,225 @@ namespace spirsim
 
 
     //////////////////////
+    // Atomic Functions //
+    //////////////////////
+
+    DEFINE_BUILTIN(atomic_add)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      old += UARG(1);
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_and)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      old &= UARG(1);
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_cmpxchg)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      if (old == UARG(1))
+      {
+        old = UARG(2);
+      }
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_dec)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      old--;
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_inc)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      old++;
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_max)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      uint32_t val = UARG(1);
+      old = old > val ? old : val;
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_min)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      uint32_t val = UARG(1);
+      old = old < val ? old : val;
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_or)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      old |= UARG(1);
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_sub)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      old -= UARG(1);
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_xchg)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      old = UARG(1);
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+    DEFINE_BUILTIN(atomic_xor)
+    {
+      // Get address
+      Memory *memory =
+        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      size_t ptr = UARG(0);
+
+      // Load old value
+      uint32_t old;
+      memory->load((unsigned char*)&old, ptr, 4);
+
+      // Store old value in result
+      workItem->setIntResult(result, (uint64_t)old);
+
+      // Compute and store new value
+      old ^= UARG(1);
+      memory->store((unsigned char*)&old, ptr, 4);
+    }
+
+
+    //////////////////////
     // Common Functions //
     //////////////////////
 
@@ -1833,6 +2052,30 @@ namespace spirsim
     ADD_BUILTIN("async_work_group_strided_copy", async_work_group_copy, NULL);
     ADD_BUILTIN("wait_group_events", wait_group_events, NULL);
     ADD_BUILTIN("prefetch", prefetch, NULL);
+
+    // Atomic Functions
+    ADD_BUILTIN("atom_add", atomic_add, NULL);
+    ADD_BUILTIN("atomic_add", atomic_add, NULL);
+    ADD_BUILTIN("atom_and", atomic_and, NULL);
+    ADD_BUILTIN("atomic_and", atomic_and, NULL);
+    ADD_BUILTIN("atom_cmpxchg", atomic_cmpxchg, NULL);
+    ADD_BUILTIN("atomic_cmpxchg", atomic_cmpxchg, NULL);
+    ADD_BUILTIN("atom_dec", atomic_dec, NULL);
+    ADD_BUILTIN("atomic_dec", atomic_dec, NULL);
+    ADD_BUILTIN("atom_inc", atomic_inc, NULL);
+    ADD_BUILTIN("atomic_inc", atomic_inc, NULL);
+    ADD_BUILTIN("atom_max", atomic_max, NULL);
+    ADD_BUILTIN("atomic_max", atomic_max, NULL);
+    ADD_BUILTIN("atom_min", atomic_min, NULL);
+    ADD_BUILTIN("atomic_min", atomic_min, NULL);
+    ADD_BUILTIN("atom_or", atomic_or, NULL);
+    ADD_BUILTIN("atomic_or", atomic_or, NULL);
+    ADD_BUILTIN("atom_sub", atomic_sub, NULL);
+    ADD_BUILTIN("atomic_sub", atomic_sub, NULL);
+    ADD_BUILTIN("atom_xchg", atomic_xchg, NULL);
+    ADD_BUILTIN("atomic_xchg", atomic_xchg, NULL);
+    ADD_BUILTIN("atom_xor", atomic_xor, NULL);
+    ADD_BUILTIN("atomic_xor", atomic_xor, NULL);
 
     // Common Functions
     ADD_BUILTIN("clamp", clamp, NULL);

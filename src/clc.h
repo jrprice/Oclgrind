@@ -236,6 +236,51 @@ PREFETCH(double);
 
 
 //////////////////////
+// Atomic Functions //
+//////////////////////
+
+#define ATOMIC_0ARG_DEF(name, type)                  \
+	type __OVERLOAD__ name(volatile __global type *p); \
+	type __OVERLOAD__ name(volatile __local type *p);
+#define ATOMIC_0ARG(name)               \
+	ATOMIC_0ARG_DEF(atom_##name, int);    \
+	ATOMIC_0ARG_DEF(atom_##name, uint);   \
+	ATOMIC_0ARG_DEF(atomic_##name, int);  \
+	ATOMIC_0ARG_DEF(atomic_##name, uint);
+
+#define ATOMIC_1ARG_DEF(name, type)                            \
+	type __OVERLOAD__ name(volatile __global type *p, type val); \
+	type __OVERLOAD__ name(volatile __local type *p, type val);
+#define ATOMIC_1ARG(name)               \
+	ATOMIC_1ARG_DEF(atom_##name, int);    \
+	ATOMIC_1ARG_DEF(atom_##name, uint);   \
+	ATOMIC_1ARG_DEF(atomic_##name, int);  \
+	ATOMIC_1ARG_DEF(atomic_##name, uint);
+
+ATOMIC_1ARG(add);
+ATOMIC_1ARG(and);
+ATOMIC_0ARG(dec);
+ATOMIC_0ARG(inc);
+ATOMIC_1ARG(max);
+ATOMIC_1ARG(min);
+ATOMIC_1ARG(or);
+ATOMIC_1ARG(sub);
+ATOMIC_1ARG(xchg);
+ATOMIC_1ARG_DEF(atom_xchg, float);
+ATOMIC_1ARG_DEF(atomic_xchg, float);
+ATOMIC_1ARG(xor);
+
+int __OVERLOAD__ atom_cmpxchg(volatile __global int *p, int cmp, int val);
+int __OVERLOAD__ atom_cmpxchg(volatile __local int *p, int cmp, int val);
+uint __OVERLOAD__ atom_cmpxchg(volatile __global uint *p, uint cmp, uint val);
+uint __OVERLOAD__ atom_cmpxchg(volatile __local uint *p, uint cmp, uint val);
+int __OVERLOAD__ atomic_cmpxchg(volatile __global int *p, int cmp, int val);
+int __OVERLOAD__ atomic_cmpxchg(volatile __local int *p, int cmp, int val);
+uint __OVERLOAD__ atomic_cmpxchg(volatile __global uint *p, uint cmp, uint val);
+uint __OVERLOAD__ atomic_cmpxchg(volatile __local uint *p, uint cmp, uint val);
+
+
+//////////////////////
 // Common Functions //
 //////////////////////
 
