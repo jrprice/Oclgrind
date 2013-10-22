@@ -336,6 +336,11 @@ namespace spirsim
       bits = type->getVectorElementType()->getPrimitiveSizeInBits();
       numElements = type->getVectorNumElements();
     }
+    else if (type->isAggregateType())
+    {
+      bits = getTypeSize(type)<<3;
+      numElements = 1;
+    }
     else
     {
       bits = type->getPrimitiveSizeInBits();

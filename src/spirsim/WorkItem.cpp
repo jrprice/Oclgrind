@@ -112,7 +112,10 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     call(instruction, result);
     break;
   case llvm::Instruction::ExtractElement:
-    extract(instruction, result);
+    extractelem(instruction, result);
+    break;
+  case llvm::Instruction::ExtractValue:
+    extractval(instruction, result);
     break;
   case llvm::Instruction::FAdd:
     fadd(instruction, result);
@@ -151,7 +154,10 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     icmp(instruction, result);
     break;
   case llvm::Instruction::InsertElement:
-    insert(instruction, result);
+    insertelem(instruction, result);
+    break;
+  case llvm::Instruction::InsertValue:
+    insertval(instruction, result);
     break;
   case llvm::Instruction::Load:
     load(instruction, result);
@@ -908,8 +914,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   cerr << "Undefined function: " << name << endl;
 }
 
-void WorkItem::extract(const llvm::Instruction& instruction,
-                       TypedValue& result)
+void WorkItem::extractelem(const llvm::Instruction& instruction,
+                           TypedValue& result)
 {
   llvm::ExtractElementInst *extract = (llvm::ExtractElementInst*)&instruction;
 
@@ -928,6 +934,54 @@ void WorkItem::extract(const llvm::Instruction& instruction,
   default:
     cerr << "Unhandled vector type " << type->getTypeID() << endl;
     return;
+  }
+}
+
+void WorkItem::extractval(const llvm::Instruction& instruction,
+                          TypedValue& result)
+{
+  llvm::ExtractValueInst *extract = (llvm::ExtractValueInst*)&instruction;
+  const llvm::Value *agg = extract->getAggregateOperand();
+  llvm::ArrayRef<unsigned int> indices = extract->getIndices();
+
+  if (isConstantOperand(agg))
+  {
+    // Find constant value
+    const llvm::Value *value = agg;
+    for (int i = 0; i < indices.size(); i++)
+    {
+      value = ((llvm::Constant*)value)->getAggregateElement(indices[i]);
+    }
+
+    // Copy constant data to result
+    getConstantData(result.data, (llvm::Constant*)value);
+  }
+  else
+  {
+    // Compute offset for target value
+    int offset = 0;
+    const llvm::Type *type = agg->getType();
+    for (int i = 0; i < indices.size(); i++)
+    {
+      if (type->isArrayTy())
+      {
+        type = type->getArrayElementType();
+        offset += getTypeSize(type) * indices[i];
+      }
+      else if (type->isStructTy())
+      {
+        offset += getStructMemberOffset((const llvm::StructType*)type,
+                                        indices[i]);
+        type = type->getStructElementType(indices[i]);
+      }
+      else
+      {
+        assert(false);
+      }
+    }
+
+    // Copy target value to result
+    memcpy(result.data, m_instResults[agg].data + offset, result.size);
   }
 }
 
@@ -1194,8 +1248,8 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::insert(const llvm::Instruction& instruction,
-                      TypedValue& result)
+void WorkItem::insertelem(const llvm::Instruction& instruction,
+                          TypedValue& result)
 {
   llvm::InsertElementInst *insert = (llvm::InsertElementInst*)&instruction;
   llvm::Value *vector = insert->getOperand(0);
@@ -1230,6 +1284,58 @@ void WorkItem::insert(const llvm::Instruction& instruction,
       cerr << "Unhandled vector type " << type->getTypeID() << endl;
       return;
     }
+  }
+}
+
+void WorkItem::insertval(const llvm::Instruction& instruction,
+                         TypedValue& result)
+{
+  llvm::InsertValueInst *insert = (llvm::InsertValueInst*)&instruction;
+
+  // Load original aggregate data
+  const llvm::Value *agg = insert->getAggregateOperand();
+  if (isConstantOperand(agg))
+  {
+    getConstantData(result.data, (llvm::Constant*)agg);
+  }
+  else
+  {
+    memcpy(result.data, m_instResults[agg].data, result.size);
+  }
+
+  // Compute offset for inserted value
+  int offset = 0;
+  llvm::ArrayRef<unsigned int> indices = insert->getIndices();
+  const llvm::Type *type = agg->getType();
+  for (int i = 0; i < indices.size(); i++)
+  {
+    if (type->isArrayTy())
+    {
+      type = type->getArrayElementType();
+      offset += getTypeSize(type) * indices[i];
+    }
+    else if (type->isStructTy())
+    {
+      offset += getStructMemberOffset((const llvm::StructType*)type,
+                                      indices[i]);
+      type = type->getStructElementType(indices[i]);
+    }
+    else
+    {
+      assert(false);
+    }
+  }
+
+  // Copy inserted value into result
+  const llvm::Value *value = insert->getInsertedValueOperand();
+  if (isConstantOperand(value))
+  {
+    getConstantData(result.data + offset, (const llvm::Constant*)value);
+  }
+  else
+  {
+    memcpy(result.data + offset, m_instResults[value].data,
+           getTypeSize(value->getType()));
   }
 }
 

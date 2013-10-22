@@ -103,7 +103,8 @@ namespace spirsim
     void bwor(const llvm::Instruction& instruction, TypedValue& result);
     void bwxor(const llvm::Instruction& instruction, TypedValue& result);
     void call(const llvm::Instruction& instruction, TypedValue& result);
-    void extract(const llvm::Instruction& instruction, TypedValue& result);
+    void extractelem(const llvm::Instruction& instruction, TypedValue& result);
+    void extractval(const llvm::Instruction& instruction, TypedValue& result);
     void fadd(const llvm::Instruction& instruction, TypedValue& result);
     void fcmp(const llvm::Instruction& instruction, TypedValue& result);
     void fdiv(const llvm::Instruction& instruction, TypedValue& result);
@@ -116,7 +117,8 @@ namespace spirsim
     void fsub(const llvm::Instruction& instruction, TypedValue& result);
     void gep(const llvm::Instruction& instruction, TypedValue& result);
     void icmp(const llvm::Instruction& instruction, TypedValue& result);
-    void insert(const llvm::Instruction& instruction, TypedValue& result);
+    void insertelem(const llvm::Instruction& instruction, TypedValue& result);
+    void insertval(const llvm::Instruction& instruction, TypedValue& result);
     void itrunc(const llvm::Instruction& instruction, TypedValue& result);
     void load(const llvm::Instruction& instruction, TypedValue& result);
     void lshr(const llvm::Instruction& instruction, TypedValue& result);
