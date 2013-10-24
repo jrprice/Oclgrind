@@ -2033,6 +2033,7 @@ namespace spirsim
   std::string, std::string, TypedValue& result, void*)
 #define F1ARG(name) (double(*)(double))name
 #define F2ARG(name) (double(*)(double,double))name
+#define F3ARG(name) (double(*)(double,double,double))name
 #define ADD_BUILTIN(name, func, op)         \
   workItemBuiltins[name] = BuiltinFunction((CAST)func, (void*)op);
 #define ADD_PREFIX_BUILTIN(name, func, op)  \
@@ -2117,61 +2118,61 @@ namespace spirsim
 
     // Math Functions
     ADD_BUILTIN("acos", f1arg, F1ARG(acos));
-    ADD_BUILTIN("acosh", f1arg, acosh);
+    ADD_BUILTIN("acosh", f1arg, F1ARG(acosh));
     ADD_BUILTIN("acospi", f1arg, _acospi_);
     ADD_BUILTIN("asin", f1arg, F1ARG(asin));
-    ADD_BUILTIN("asinh", f1arg, asinh);
+    ADD_BUILTIN("asinh", f1arg, F1ARG(asinh));
     ADD_BUILTIN("asinpi", f1arg, _asinpi_);
     ADD_BUILTIN("atan", f1arg, F1ARG(atan));
     ADD_BUILTIN("atan2", f2arg, F2ARG(atan2));
-    ADD_BUILTIN("atanh", f1arg, atanh);
+    ADD_BUILTIN("atanh", f1arg, F1ARG(atanh));
     ADD_BUILTIN("atanpi", f1arg, _atanpi_);
     ADD_BUILTIN("atan2pi", f2arg, _atan2pi_);
-    ADD_BUILTIN("cbrt", f1arg, cbrt);
+    ADD_BUILTIN("cbrt", f1arg, F1ARG(cbrt));
     ADD_BUILTIN("ceil", f1arg, F1ARG(ceil));
-    ADD_BUILTIN("copysign", f2arg, copysign);
+    ADD_BUILTIN("copysign", f2arg, F2ARG(copysign));
     ADD_BUILTIN("cos", f1arg, F1ARG(cos));
     ADD_BUILTIN("cosh", f1arg, F1ARG(cosh));
     ADD_BUILTIN("cospi", f1arg, _cospi_);
-    ADD_BUILTIN("erfc", f1arg, erfc);
-    ADD_BUILTIN("erf", f1arg, erf);
+    ADD_BUILTIN("erfc", f1arg, F1ARG(erfc));
+    ADD_BUILTIN("erf", f1arg, F1ARG(erf));
     ADD_BUILTIN("exp", f1arg, F1ARG(exp));
-    ADD_BUILTIN("exp2", f1arg, exp2);
+    ADD_BUILTIN("exp2", f1arg, F1ARG(exp2));
     ADD_BUILTIN("exp10", f1arg, _exp10_);
-    ADD_BUILTIN("expm1", f1arg, expm1);
+    ADD_BUILTIN("expm1", f1arg, F1ARG(expm1));
     ADD_BUILTIN("fabs", f1arg, F1ARG(fabs));
-    ADD_BUILTIN("fdim", f2arg, fdim);
+    ADD_BUILTIN("fdim", f2arg, F2ARG(fdim));
     ADD_BUILTIN("floor", f1arg, F1ARG(floor));
-    ADD_BUILTIN("fma", f3arg, fma);
-    ADD_BUILTIN("fmax", f2arg, fmax);
-    ADD_BUILTIN("fmin", f2arg, fmin);
+    ADD_BUILTIN("fma", f3arg, F3ARG(fma));
+    ADD_BUILTIN("fmax", f2arg, F2ARG(fmax));
+    ADD_BUILTIN("fmin", f2arg, F2ARG(fmin));
     ADD_BUILTIN("fmod", f2arg, F2ARG(fmod));
     ADD_BUILTIN("fract", fract, NULL);
     ADD_BUILTIN("frexp", frexp_builtin, NULL);
-    ADD_BUILTIN("hypot", f2arg, hypot);
+    ADD_BUILTIN("hypot", f2arg, F2ARG(hypot));
     ADD_BUILTIN("ilogb", ilogb_builtin, NULL);
     ADD_BUILTIN("ldexp", ldexp_builtin, NULL);
-    ADD_BUILTIN("lgamma", f1arg, lgamma);
+    ADD_BUILTIN("lgamma", f1arg, F1ARG(lgamma));
     ADD_BUILTIN("lgamma_r", lgamma_r, NULL);
     ADD_BUILTIN("log", f1arg, F1ARG(log));
     ADD_BUILTIN("log2", f1arg, F1ARG(log2));
     ADD_BUILTIN("log10", f1arg, F1ARG(log10));
-    ADD_BUILTIN("log1p", f1arg, log1p);
-    ADD_BUILTIN("logb", f1arg, logb);
-    ADD_BUILTIN("mad", f3arg, fma);
+    ADD_BUILTIN("log1p", f1arg, F1ARG(log1p));
+    ADD_BUILTIN("logb", f1arg, F1ARG(logb));
+    ADD_BUILTIN("mad", f3arg, F3ARG(fma));
     ADD_BUILTIN("maxmag", f2arg, _maxmag_);
     ADD_BUILTIN("minmag", f2arg, _minmag_);
     ADD_BUILTIN("modf", modf_builtin, NULL);
     ADD_BUILTIN("nan", nan_builtin, NULL);
-    ADD_BUILTIN("nextafter", f2arg, nextafter);
+    ADD_BUILTIN("nextafter", f2arg, F2ARG(nextafter));
     ADD_BUILTIN("pow", f2arg, F2ARG(pow));
     ADD_BUILTIN("pown", pown, NULL);
     ADD_BUILTIN("powr", f2arg, F2ARG(pow));
-    ADD_BUILTIN("remainder", f2arg, remainder);
+    ADD_BUILTIN("remainder", f2arg, F2ARG(remainder));
     ADD_BUILTIN("remquo", remquo_builtin, NULL);
-    ADD_BUILTIN("rint", f1arg, rint);
+    ADD_BUILTIN("rint", f1arg, F1ARG(rint));
     ADD_BUILTIN("rootn", rootn, NULL);
-    ADD_BUILTIN("round", f1arg, round);
+    ADD_BUILTIN("round", f1arg, F1ARG(round));
     ADD_BUILTIN("rsqrt", f1arg, _rsqrt_);
     ADD_BUILTIN("sin", f1arg, F1ARG(sin));
     ADD_BUILTIN("sinh", f1arg, F1ARG(sinh));
@@ -2181,8 +2182,8 @@ namespace spirsim
     ADD_BUILTIN("tan", f1arg, F1ARG(tan));
     ADD_BUILTIN("tanh", f1arg, F1ARG(tanh));
     ADD_BUILTIN("tanpi", f1arg, _tanpi_);
-    ADD_BUILTIN("tgamma", f1arg, tgamma);
-    ADD_BUILTIN("trunc", f1arg, trunc);
+    ADD_BUILTIN("tgamma", f1arg, F1ARG(tgamma));
+    ADD_BUILTIN("trunc", f1arg, F1ARG(trunc));
 
     // Native Math Functions
     ADD_BUILTIN("half_cos", f1arg, F1ARG(cos));
@@ -2191,14 +2192,14 @@ namespace spirsim
     ADD_BUILTIN("native_divide", f2arg, _fdivide_);
     ADD_BUILTIN("half_exp", f1arg, F1ARG(exp));
     ADD_BUILTIN("native_exp", f1arg, F1ARG(exp));
-    ADD_BUILTIN("half_exp2", f1arg, exp2);
-    ADD_BUILTIN("native_exp2", f1arg, exp2);
+    ADD_BUILTIN("half_exp2", f1arg, F1ARG(exp2));
+    ADD_BUILTIN("native_exp2", f1arg, F1ARG(exp2));
     ADD_BUILTIN("half_exp10", f1arg, _exp10_);
     ADD_BUILTIN("native_exp10", f1arg, _exp10_);
     ADD_BUILTIN("half_log", f1arg, F1ARG(log));
     ADD_BUILTIN("native_log", f1arg, F1ARG(log));
-    ADD_BUILTIN("half_log2", f1arg, log2);
-    ADD_BUILTIN("native_log2", f1arg, log2);
+    ADD_BUILTIN("half_log2", f1arg, F1ARG(log2));
+    ADD_BUILTIN("native_log2", f1arg, F1ARG(log2));
     ADD_BUILTIN("half_log10", f1arg, F1ARG(log10));
     ADD_BUILTIN("native_log10", f1arg, F1ARG(log10));
     ADD_BUILTIN("half_powr", f2arg, F2ARG(pow));
