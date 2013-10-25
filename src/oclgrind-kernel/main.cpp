@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
   input.open(simfile);
   if (input.fail())
   {
-    cout << "Unable to open simulator file." << endl;
+    cerr << "Unable to open simulator file." << endl;
     return 1;
   }
 
@@ -92,7 +92,7 @@ bool init(istream& input)
       ndrange[1] % wgsize[1] ||
       ndrange[2] % wgsize[2])
   {
-    cout << "Work group size must divide NDRange exactly." << endl;
+    cerr << "Work group size must divide NDRange exactly." << endl;
     return false;
   }
 
@@ -101,7 +101,7 @@ bool init(istream& input)
   progFile.open(progFileName.c_str(), ios_base::in | ios_base::binary);
   if (!progFile.good())
   {
-    cout << "Unable to open " << progFileName << endl;
+    cerr << "Unable to open " << progFileName << endl;
     return false;
   }
 
@@ -115,6 +115,7 @@ bool init(istream& input)
     program = Program::createFromBitcodeFile(progFileName);
     if (!program)
     {
+      cerr << "Failed to load bitcode from " << progFileName << endl;
       return false;
     }
   }
@@ -135,7 +136,7 @@ bool init(istream& input)
     // Build program
     if (!program->build(""))
     {
-      cout << "Build failure:" << endl << program->getBuildLog() << endl;
+      cerr << "Build failure:" << endl << program->getBuildLog() << endl;
       return false;
     }
   }
@@ -144,6 +145,7 @@ bool init(istream& input)
   kernel = program->createKernel(kernelName);
   if (!kernel)
   {
+    cerr << "Failed to create kernel " << kernelName << endl;
     return false;
   }
 
@@ -164,7 +166,7 @@ bool init(istream& input)
     input >> type >> dec >> size;
     if (input.fail())
     {
-      cout << "Error reading kernel arguments." << endl;
+      cerr << "Error reading kernel arguments." << endl;
       return false;
     }
 
@@ -175,7 +177,7 @@ bool init(istream& input)
       address = globalMemory->allocateBuffer(size);
       if (!address)
       {
-        cout << "Failed to allocate buffer" << endl;
+        cerr << "Failed to allocate buffer" << endl;
         return false;
       }
 
@@ -213,7 +215,7 @@ bool init(istream& input)
 
       break;
     default:
-      cout << "Unrecognised argument type '" << type << "'" << endl;
+      cerr << "Unrecognised argument type '" << type << "'" << endl;
       return false;
     }
 
@@ -229,7 +231,7 @@ bool init(istream& input)
   input >> next;
   if (input.good() || !input.eof())
   {
-    cout << "Unexpected token '" << next << "' (expected EOF)" << endl;
+    cerr << "Unexpected token '" << next << "' (expected EOF)" << endl;
     return false;
   }
 
@@ -251,7 +253,7 @@ static bool parseArguments(int argc, char *argv[])
           outputGlobalMemory = true;
           break;
         default:
-          cout << "Unrecognised option '" << argv[i] << "'" << endl;
+          cerr << "Unrecognised option '" << argv[i] << "'" << endl;
           return false;
         }
         opt++;
@@ -265,7 +267,7 @@ static bool parseArguments(int argc, char *argv[])
       }
       else
       {
-        cout << "Unexpected positional argument '" << argv[i] << "'" << endl;
+        cerr << "Unexpected positional argument '" << argv[i] << "'" << endl;
         return false;
       }
     }
