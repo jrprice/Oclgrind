@@ -99,7 +99,7 @@ bool Program::build(const char *options, list<Header> headers)
   sprintf(tempBC, TEMP_BC_FILE, tag);
 
   // Dump source to temporary file
-  // TODO: Build from memory? File remapping not working at present.
+  // TODO: Build from memory (remap file)?
   ofstream temp;
   temp.open(tempCL);
   temp << m_source;

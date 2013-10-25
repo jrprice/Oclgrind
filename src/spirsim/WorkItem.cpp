@@ -242,7 +242,6 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Prepare private variable for instruction result
   pair<size_t,size_t> resultSize = getValueSize(&instruction);
 
-  // TODO: Bitcasting should happen somewhere...
   // Prepare result
   TypedValue result = {
     resultSize.first,
@@ -1004,7 +1003,6 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
     double a = getFloatValue(instruction.getOperand(0), i);
     double b = getFloatValue(instruction.getOperand(1), i);
 
-    // TODO: Consider nans in comparisons?
     uint64_t r;
     switch (pred)
     {
@@ -1610,10 +1608,9 @@ void WorkItem::store(const llvm::Instruction& instruction)
   // Get address
   size_t address = *((size_t*)m_instResults[ptrOp].data);
 
-  // TODO: Genericise operand handling
+  // Get store operand
   size_t size = getTypeSize(valOp->getType());
   unsigned char *data = new unsigned char[size];
-
   if (isConstantOperand(valOp))
   {
     if (valOp->getValueID() == llvm::Value::ConstantExprVal)
@@ -1631,7 +1628,6 @@ void WorkItem::store(const llvm::Instruction& instruction)
   {
     if (m_instResults.find(valOp) != m_instResults.end())
     {
-      // TODO: Cleaner solution for this
       memcpy(data, m_instResults[valOp].data, size);
     }
     else if (valOp->getValueID() >= llvm::Value::InstructionVal)
