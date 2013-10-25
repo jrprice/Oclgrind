@@ -18,6 +18,7 @@
 #include <fstream>
 #include <sys/time.h>
 
+#include "llvm/Assembly/AssemblyAnnotationWriter.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Linker.h"
 #include "llvm/LLVMContext.h"
@@ -34,10 +35,13 @@
 #include "Kernel.h"
 #include "Program.h"
 
-#define TEMP_CL_FILE "/tmp/oclgrind_%lX.cl"
-#define TEMP_BC_FILE "/tmp/oclgrind_%lX.bc"
+#define ENV_DUMP "OCLGRIND_DUMP_TEMPS"
+#define CL_DUMP_NAME "/tmp/oclgrind_%lX.cl"
+#define IR_DUMP_NAME "/tmp/oclgrind_%lX.s"
+#define BC_DUMP_NAME "/tmp/oclgrind_%lX.bc"
 
 #define REMAP_DIR "/remapped/"
+#define REMAP_INPUT "input.cl"
 
 using namespace spirsim;
 using namespace std;
@@ -86,25 +90,6 @@ bool Program::build(const char *options, list<Header> headers)
     return true;
   }
 
-  // Generate unique tag for temporary files
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  srand(tv.tv_usec + tv.tv_sec*1e6);
-  unsigned long tag = rand();
-
-  // Construct unique filenames
-  char *tempCL = new char[strlen(TEMP_CL_FILE) + 17];
-  char *tempBC = new char[strlen(TEMP_BC_FILE) + 17];
-  sprintf(tempCL, TEMP_CL_FILE, tag);
-  sprintf(tempBC, TEMP_BC_FILE, tag);
-
-  // Dump source to temporary file
-  // TODO: Build from memory (remap file)?
-  ofstream temp;
-  temp.open(tempCL);
-  temp << m_source;
-  temp.close();
-
   // Set compiler arguments
   vector<const char*> args;
   args.push_back("-D cl_khr_fp64");
@@ -144,7 +129,8 @@ bool Program::build(const char *options, list<Header> headers)
     }
   }
 
-  args.push_back(tempCL);
+  // Append input file to arguments (remapped later)
+  args.push_back(REMAP_INPUT);
 
   // Create diagnostics engine
   m_buildLog = "";
@@ -189,6 +175,11 @@ bool Program::build(const char *options, list<Header> headers)
                                                    buffer);
   }
 
+  // Remap input file
+  llvm::MemoryBuffer *buffer =
+      llvm::MemoryBuffer::getMemBuffer(m_source, "", false);
+    compiler.getPreprocessorOpts().addRemappedFile(REMAP_INPUT, buffer);
+
   // Prepare diagnostics
   compiler.createDiagnostics(args.size(), &args[0], &diagConsumer, false);
   if (!compiler.hasDiagnostics())
@@ -210,22 +201,46 @@ bool Program::build(const char *options, list<Header> headers)
   m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
   m_module = action->takeModule();
 
-  const char *keepTempsEnv = getenv("OCLGRIND_KEEP_TEMPS");
+  // Dump temps if required
+  const char *keepTempsEnv = getenv(ENV_DUMP);
   if (keepTempsEnv && strcmp(keepTempsEnv, "1") == 0)
   {
-    // Dump bitcode for debugging
-    string err;
-    llvm::raw_fd_ostream output(tempBC, err);
-    llvm::WriteBitcodeToFile(m_module, output);
-    output.close();
-  }
-  else
-  {
-    remove(tempCL);
-  }
+    // Generate unique tag for temporary files
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    srand(tv.tv_usec + tv.tv_sec*1e6);
+    unsigned long tag = rand();
 
-  delete[] tempCL;
-  delete[] tempBC;
+    // Construct unique filenames
+    char *tempCL = new char[strlen(CL_DUMP_NAME) + 17];
+    char *tempIR = new char[strlen(IR_DUMP_NAME) + 17];
+    char *tempBC = new char[strlen(BC_DUMP_NAME) + 17];
+    sprintf(tempCL, CL_DUMP_NAME, tag);
+    sprintf(tempIR, IR_DUMP_NAME, tag);
+    sprintf(tempBC, BC_DUMP_NAME, tag);
+
+    // Dump source
+    ofstream cl;
+    cl.open(tempCL);
+    cl << m_source;
+    cl.close();
+
+    // Dump IR
+    string err;
+    llvm::raw_fd_ostream ir(tempIR, err);
+    llvm::AssemblyAnnotationWriter asmWriter;
+    m_module->print(ir, &asmWriter);
+    ir.close();
+
+    // Dump bitcode
+    llvm::raw_fd_ostream bc(tempBC, err);
+    llvm::WriteBitcodeToFile(m_module, bc);
+    bc.close();
+
+    delete[] tempCL;
+    delete[] tempIR;
+    delete[] tempBC;
+  }
 
   m_buildStatus = CL_BUILD_SUCCESS;
   return true;
