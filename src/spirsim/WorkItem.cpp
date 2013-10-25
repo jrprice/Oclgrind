@@ -223,7 +223,8 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     urem(instruction, result);
     break;
   case llvm::Instruction::Unreachable:
-    assert(false);
+    m_device->notifyFatalError("Encountered unreachable instruction",
+                               __FILE__, __LINE__);
     break;
   case llvm::Instruction::Xor:
     bwxor(instruction, result);
@@ -232,7 +233,9 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     zext(instruction, result);
     break;
   default:
-    cerr << "Unhandled instruction: " << instruction.getOpcodeName() << endl;
+    string msg = "Unsupported instruction: ";
+    msg += instruction.getOpcodeName();
+    m_device->notifyFatalError(msg, __FILE__, __LINE__);
     break;
   }
 }
@@ -325,7 +328,9 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     }
     else
     {
-      cerr << "Unhandled float size: " << op.size << endl;
+      string msg = "Unsupported float size: ";
+      msg += op.size;
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       return 0;
     }
   }
@@ -356,7 +361,9 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     }
     else
     {
-      cerr << "Unhandled float size: " << result.size << endl;
+      string msg = "Unsupported float size: ";
+      msg += result.size;
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       return 0;
     }
     delete[] result.data;
@@ -374,13 +381,17 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     }
     else
     {
-      cerr << "Unhandled float semantics " << operand->getValueID() << endl;
+      string msg = "Unsupported float semantics: ";
+      msg += operand->getValueID();
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       return 0;
     }
   }
   else
   {
-    cerr << "Unhandled float operand type " << id << endl;
+    string msg = "Unsupported float operand type: ";
+    msg += id;
+    m_device->notifyFatalError(msg, __FILE__, __LINE__);
   }
   return val;
 }
@@ -436,7 +447,9 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
       val = ((long*)op.data)[index];
       break;
     default:
-      cerr << "Unhandled signed int size " << op.size << endl;
+      string msg = "Unsupported signed int size: ";
+      msg += op.size;
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       break;
     }
   }
@@ -466,7 +479,9 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
   }
   else
   {
-    cerr << "Unhandled signed operand type " << id << endl;
+    string msg = "Unsupported signed operand type: ";
+    msg += id;
+    m_device->notifyFatalError(msg, __FILE__, __LINE__);
   }
   return val;
 }
@@ -514,7 +529,9 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   }
   else
   {
-    cerr << "Unhandled unsigned operand type " << id << endl;
+    string msg = "Unsupported unsigned operand type: ";
+    msg += id;
+    m_device->notifyFatalError(msg, __FILE__, __LINE__);
   }
 
   return val;
@@ -619,7 +636,7 @@ void WorkItem::setFloatResult(TypedValue& result, double val,
   }
   else
   {
-    cerr << "Unhandled float size: " << dec << result.size << endl;
+    assert(false && "Unsupported float size in WorkItem::setFloatResult()");
   }
 }
 
@@ -660,10 +677,8 @@ WorkItem::State WorkItem::step()
 
 void WorkItem::trap()
 {
-  cerr << "Work-item (" << dec
-       << m_globalID[0] << ","
-       << m_globalID[1] << ","
-       << m_globalID[2] << ") terminated unexpectedly." << endl;
+  m_device->notifyFatalError("Encountered trap instruction",
+                             __FILE__, __LINE__);
   m_state = FINISHED;
   m_workGroup.notifyFinished(this);
 }
@@ -749,8 +764,9 @@ void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
     }
     else
     {
-      cerr << "Unsupported bitcast operand type ("
-           << operand->getValueID() << ")" << endl;
+      string msg = "Unsupported operand type: ";
+      msg += operand->getValueID();
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
     }
     break;
   }
@@ -875,7 +891,9 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       }
       else
       {
-        cerr << "Unhandled function argument type " << id << endl;
+        string msg = "Unsupported function argument type: ";
+        msg += id;
+        m_device->notifyFatalError(msg, __FILE__, __LINE__);
       }
 
       if (m_instResults.find(argItr) != m_instResults.end())
@@ -910,7 +928,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
 
   // Function didn't match any builtins
-  cerr << "Undefined function: " << name << endl;
+  string msg = "Undefined function: " + name;
+  m_device->notifyFatalError(msg, __FILE__, __LINE__);
 }
 
 void WorkItem::extractelem(const llvm::Instruction& instruction,
@@ -931,7 +950,9 @@ void WorkItem::extractelem(const llvm::Instruction& instruction,
     setIntResult(result, getUnsignedInt(vector, index));
     break;
   default:
-    cerr << "Unhandled vector type " << type->getTypeID() << endl;
+    string msg = "Unsupported operand type: ";
+    msg += type->getTypeID();
+    m_device->notifyFatalError(msg, __FILE__, __LINE__);
     return;
   }
 }
@@ -1043,7 +1064,9 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
       r = a <= b;
       break;
     default:
-      cerr << "Unhandled FCmp predicate " << pred << endl;
+      string msg = "Unsupported FCmp predicate: ";
+      msg += pred;
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       break;
     }
 
@@ -1183,7 +1206,9 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
     }
     else
     {
-      cerr << "Unhandled GEP base type." << endl;
+      string msg = "Unsupported GEP base type: ";
+      msg += ptrType->getTypeID();
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
     }
   }
 
@@ -1238,7 +1263,9 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
       r = sa <= sb;
       break;
     default:
-      cerr << "Unhandled ICmp predicate." << endl;
+      string msg = "Unsupported ICmp predicate: ";
+      msg += pred;
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       break;
     }
 
@@ -1279,7 +1306,9 @@ void WorkItem::insertelem(const llvm::Instruction& instruction,
       }
       break;
     default:
-      cerr << "Unhandled vector type " << type->getTypeID() << endl;
+      string msg = "Unsupported operand type: ";
+      msg += type->getTypeID();
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       return;
     }
   }
@@ -1421,7 +1450,9 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
       memcpy(result.data, m_instResults[value].data, result.size);
       break;
     default:
-      cerr << "Unhandled type in phi instruction: " << type << endl;
+      string msg = "Unsupported operand type: ";
+      msg += type;
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       break;
     }
   }
@@ -1509,7 +1540,9 @@ void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
       setFloatResult(result, f, i);
       break;
     default:
-      cerr << "Unhandled type in select instruction: " << type << endl;
+      string msg = "Unsupported operand type: ";
+      msg += type;
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       break;
     }
   }
@@ -1571,7 +1604,9 @@ void WorkItem::shuffle(const llvm::Instruction& instruction,
       setIntResult(result, getUnsignedInt(src, index), i);
       break;
     default:
-      cerr << "Unhandled vector type " << type->getTypeID() << endl;
+      string msg = "Unsupported operand type: ";
+      msg += type->getTypeID();
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
       return;
     }
   }
@@ -1637,7 +1672,8 @@ void WorkItem::store(const llvm::Instruction& instruction)
     }
     else
     {
-      cerr << "Store operand not found." << endl;
+      string msg = "Unable to find store operand";
+      m_device->notifyFatalError(msg, __FILE__, __LINE__);
     }
   }
 

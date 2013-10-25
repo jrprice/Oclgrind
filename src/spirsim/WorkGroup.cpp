@@ -111,8 +111,9 @@ void WorkGroup::clearBarrier()
   // Check for divergence
   if (m_barrier.size() != m_totalWorkItems)
   {
-    cerr << "Barrier divergence detected." << endl;
-    // TODO: Do something? Break?
+    m_device->notifyFatalError("Barrier divergence detected",
+                               __FILE__, __LINE__);
+    return;
   }
 
   // Move work-items to running state

@@ -139,6 +139,73 @@ bool Device::nextWorkItem()
   return true;
 }
 
+void Device::printErrorContext() const
+{
+  // Work item
+  if (m_currentWorkItem)
+  {
+    const size_t *gid = m_currentWorkItem->getGlobalID();
+    const size_t *lid = m_currentWorkItem->getLocalID();
+    cerr << "\tWork-item:  Global(" << dec
+         << gid[0] << ","
+         << gid[1] << ","
+         << gid[2] << ")"
+         << " Local(" << dec
+         << lid[0] << ","
+         << lid[1] << ","
+         << lid[2] << ")"
+         << endl;
+  }
+
+  // Work group
+  if (m_currentWorkGroup)
+  {
+    const size_t *group = m_currentWorkGroup->getGroupID();
+    cerr << "\tWork-group: (" << dec
+         << group[0] << ","
+         << group[1] << ","
+         << group[2] << ")"
+         << endl;
+  }
+
+  // Kernel
+  cerr << "\tKernel:     " << m_kernel->getName() << endl;
+
+  // Instruction
+  if (m_currentWorkItem)
+  {
+    cerr << "\t";
+    const llvm::Instruction *instruction =
+      m_currentWorkItem->getCurrentInstruction();
+    dumpInstruction(cerr, *instruction);
+
+    // Output debug information
+    cerr << "\t";
+    llvm::MDNode *md = instruction->getMetadata("dbg");
+    if (!md)
+    {
+      cerr << "Debugging information not available." << endl;
+    }
+    else
+    {
+      llvm::DILocation loc(md);
+      cerr << "At line " << dec << loc.getLineNumber()
+           << " of " << loc.getFilename().str() << endl;
+    }
+  }
+
+  cerr << endl;
+}
+
+void Device::notifyFatalError(string message, string file, size_t line)
+{
+  cerr << endl << "OCLGRIND FATAL ERROR " << "(" << file << ":" << line << ")"
+       << endl << message << endl;
+  printErrorContext();
+
+  quit(vector<string>());
+}
+
 void Device::notifyMemoryError(bool read, unsigned int addrSpace,
                                size_t address, size_t size)
 {
@@ -162,57 +229,13 @@ void Device::notifyMemoryError(bool read, unsigned int addrSpace,
     break;
   }
 
-  // Basic error info
-  cerr << endl << "Invaild " << (read ? "read" : "write")
+  // Error info
+  cerr << endl << "Invalid " << (read ? "read" : "write")
        << " of size " << size
        << " at " << memType
        << " memory address " << hex << address << endl;
 
-  // Work item
-  const size_t *gid = m_currentWorkItem->getGlobalID();
-  const size_t *lid = m_currentWorkItem->getLocalID();
-  cerr << "\tWork-item:  Global(" << dec
-       << gid[0] << ","
-       << gid[1] << ","
-       << gid[2] << ")"
-       << " Local(" << dec
-       << lid[0] << ","
-       << lid[1] << ","
-       << lid[2] << ")"
-       << endl;
-
-  // Work group
-  const size_t *group = m_currentWorkGroup->getGroupID();
-  cerr << "\tWork-group: (" << dec
-       << group[0] << ","
-       << group[1] << ","
-       << group[2] << ")"
-       << endl;
-
-  // Kernel
-  cerr << "\tKernel:     " << m_kernel->getName() << endl;
-
-  // Instruction
-  cerr << "\t";
-  const llvm::Instruction *instruction =
-    m_currentWorkItem->getCurrentInstruction();
-  dumpInstruction(cerr, *instruction);
-
-  // Output debug information
-  cerr << "\t";
-  llvm::MDNode *md = instruction->getMetadata("dbg");
-  if (!md)
-  {
-    cerr << "Debugging information not available." << endl;
-  }
-  else
-  {
-    llvm::DILocation loc(md);
-    cerr << "At line " << dec << loc.getLineNumber()
-         << " of " << loc.getFilename().str() << endl;
-  }
-
-  cerr << endl;
+  printErrorContext();
 
   m_forceBreak = true;
 }
@@ -495,11 +518,12 @@ void Device::cont(vector<string> args)
 {
   bool canBreak = false;
   m_forceBreak = false;
+  m_running = true;
   static size_t lastBreakLine = 0;
-  while (m_currentWorkItem)
+  while (m_currentWorkItem && m_running)
   {
     // Run current work-item as far as possible
-    while (m_currentWorkItem->getState() == WorkItem::READY)
+    while (m_currentWorkItem->getState() == WorkItem::READY && m_running)
     {
       m_currentWorkItem->step();
 

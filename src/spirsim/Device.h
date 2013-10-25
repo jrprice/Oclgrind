@@ -31,6 +31,7 @@ namespace spirsim
     virtual ~Device();
 
     Memory *getGlobalMemory() const;
+    void notifyFatalError(std::string message, std::string file, size_t line);
     void notifyMemoryError(bool read, unsigned int addrSpace,
                            size_t address, size_t size);
     void run(Kernel& kernel, unsigned int workDim,
@@ -73,6 +74,7 @@ namespace spirsim
     size_t getLineNumber(const llvm::Instruction *instruction) const;
     bool nextWorkItem();
     void printCurrentLine() const;
+    void printErrorContext() const;
     void printFunction(const llvm::Instruction *instruction) const;
     void printSourceLine(size_t lineNum) const;
     void step();
