@@ -384,11 +384,7 @@ const size_t* Kernel::getRequiredWorkGroupSize() const
 
 void Kernel::setArgument(unsigned int index, TypedValue value)
 {
-  if (index >= m_function->arg_size())
-  {
-    cerr << "Argument index out of range." << endl;
-    return;
-  }
+  assert(index < m_function->arg_size());
 
   unsigned int type = getArgumentAddressQualifier(index);
   if (type == CL_KERNEL_ARG_ADDRESS_LOCAL)

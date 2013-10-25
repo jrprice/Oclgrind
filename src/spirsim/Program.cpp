@@ -255,7 +255,6 @@ Program* Program::createFromBitcode(const unsigned char *bitcode,
   buffer = llvm::MemoryBuffer::getMemBuffer(data, "", false);
   if (!buffer)
   {
-    cerr << "Invalid bitcode buffer" << endl;
     return NULL;
   }
 
@@ -264,7 +263,6 @@ Program* Program::createFromBitcode(const unsigned char *bitcode,
   llvm::Module *module = ParseBitcodeFile(buffer, context);
   if (!module)
   {
-    cerr << "Failed to load SPIR bitcode." << endl;
     return NULL;
   }
 
@@ -277,7 +275,6 @@ Program* Program::createFromBitcodeFile(const string filename)
   llvm::OwningPtr<llvm::MemoryBuffer> buffer;
   if (llvm::MemoryBuffer::getFile(filename, buffer))
   {
-    cerr << "Failed to open bitcode file '" << filename << "'" << endl;
     return NULL;
   }
 
@@ -286,7 +283,6 @@ Program* Program::createFromBitcodeFile(const string filename)
   llvm::Module *module = ParseBitcodeFile(buffer.get(), context);
   if (!module)
   {
-    cerr << "Failed to load SPIR bitcode." << endl;
     return NULL;
   }
 
@@ -328,7 +324,6 @@ Kernel* Program::createKernel(const string name)
   }
   if (function == NULL)
   {
-    cerr << "Failed to locate kernel." << endl;
     return NULL;
   }
 
