@@ -668,11 +668,6 @@ WorkItem::State WorkItem::step()
   return m_state;
 }
 
-void WorkItem::trap()
-{
-  throw FatalError("Encountered trap instruction", __FILE__, __LINE__);
-}
-
 
 ////////////////////////////////
 //// Instruction execution  ////

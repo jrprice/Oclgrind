@@ -2020,7 +2020,7 @@ namespace spirsim
 
     DEFINE_BUILTIN(llvm_trap)
     {
-      workItem->trap();
+      throw FatalError("Encountered trap instruction", __FILE__, __LINE__);
     }
 
   public:

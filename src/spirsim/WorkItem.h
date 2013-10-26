@@ -91,7 +91,6 @@ namespace spirsim
     static void setIntResult(TypedValue& result, uint64_t val,
                              unsigned int index = 0);
     State step();
-    void trap();
 
     // SPIR instructions
     void add(const llvm::Instruction& instruction, TypedValue& result);
