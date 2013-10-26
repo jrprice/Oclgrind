@@ -18,6 +18,7 @@
 
 #include "llvm/Instructions.h"
 #include "llvm/Operator.h"
+#include "llvm/Support/raw_os_ostream.h"
 
 using namespace spirsim;
 using namespace std;
@@ -34,38 +35,11 @@ namespace spirsim
     return dest;
   }
 
-  void dumpInstruction(ostream& out,
-                       const llvm::Instruction& instruction,
-                       bool align)
+  void dumpInstruction(ostream& out, const llvm::Instruction& instruction)
   {
-    out << setfill(' ');
-
-    pair<size_t,size_t> resultSize = getValueSize(&instruction);
-    if (resultSize.first > 0)
-    {
-      out << "%" << setw(12) <<  left
-          << instruction.getName().str()
-          << "(" << resultSize.second
-          << "x" << resultSize.first
-          << ") = ";
-    }
-    else if (align)
-    {
-      out << setw(21) << " ";
-    }
-
-    out << left << setw(align?14:0) << instruction.getOpcodeName();
-
-    llvm::User::const_op_iterator opItr;
-    for (opItr = instruction.op_begin(); opItr != instruction.op_end(); opItr++)
-    {
-      // TODO: Constant values
-      out << " %" << opItr->get()->getName().str();
-    }
-
-    out << right << endl;
+    llvm::raw_os_ostream stream(out);
+    instruction.print(stream);
   }
-
 
   void getConstantData(unsigned char *data, const llvm::Constant *constant)
   {

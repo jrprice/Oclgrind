@@ -74,8 +74,7 @@ namespace spirsim
 
   // Output an instruction in human-readable format
   extern void dumpInstruction(std::ostream& out,
-                              const llvm::Instruction& instruction,
-                              bool align=false);
+                              const llvm::Instruction& instruction);
 
   // Retrieve the raw data for a constant
   extern void getConstantData(unsigned char *data,

@@ -178,6 +178,7 @@ void Device::printErrorContext() const
     const llvm::Instruction *instruction =
       m_currentWorkItem->getCurrentInstruction();
     dumpInstruction(cerr, *instruction);
+    cerr << endl;
 
     // Output debug information
     cerr << "\t";
@@ -405,6 +406,7 @@ void Device::printCurrentLine() const
   {
     cout << "Source line not available." << endl;
     dumpInstruction(cout, *m_currentWorkItem->getCurrentInstruction());
+    cout << endl;
   }
 }
 
