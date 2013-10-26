@@ -362,7 +362,6 @@ clGetDeviceInfo(cl_device_id    device,
     result_data = malloc(result_size);
     *(cl_ulong*)result_data = MAX_LOCAL_MEM_SIZE;
     break;
-    return CL_INVALID_VALUE;
   case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
     result_size = sizeof(cl_bool);
     result_data = malloc(result_size);
