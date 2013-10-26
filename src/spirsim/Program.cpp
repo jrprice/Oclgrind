@@ -332,7 +332,19 @@ Kernel* Program::createKernel(const string name)
   instNamer->runOnFunction(*((llvm::Function*)function));
   delete instNamer;
 
-  return new Kernel(*this, function, m_module);
+  try
+  {
+    return new Kernel(*this, function, m_module);
+  }
+  catch (FatalError& err)
+  {
+    cerr << endl << "OCLGRIND FATAL ERROR "
+         << "(" << err.getFile() << ":" << err.getLine() << ")"
+         << endl << err.what()
+         << endl << "When creating kernel '" << name << "'"
+         << endl;
+    return NULL;
+  }
 }
 
 unsigned char* Program::getBinary() const

@@ -223,9 +223,7 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     urem(instruction, result);
     break;
   case llvm::Instruction::Unreachable:
-    m_device->notifyFatalError("Encountered unreachable instruction",
-                               __FILE__, __LINE__);
-    break;
+    throw FatalError("Encountered unreachable instruction", __FILE__, __LINE__);
   case llvm::Instruction::Xor:
     bwxor(instruction, result);
     break;
@@ -235,8 +233,7 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   default:
     string msg = "Unsupported instruction: ";
     msg += instruction.getOpcodeName();
-    m_device->notifyFatalError(msg, __FILE__, __LINE__);
-    break;
+    throw FatalError(msg, __FILE__, __LINE__);
   }
 }
 
@@ -330,8 +327,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     {
       string msg = "Unsupported float size: ";
       msg += op.size;
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      return 0;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
   }
   else if (operand->getValueID() == llvm::Value::ConstantVectorVal ||
@@ -363,8 +359,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     {
       string msg = "Unsupported float size: ";
       msg += result.size;
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      return 0;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
     delete[] result.data;
   }
@@ -383,15 +378,14 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     {
       string msg = "Unsupported float semantics: ";
       msg += operand->getValueID();
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      return 0;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
   }
   else
   {
     string msg = "Unsupported float operand type: ";
     msg += id;
-    m_device->notifyFatalError(msg, __FILE__, __LINE__);
+    throw FatalError(msg, __FILE__, __LINE__);
   }
   return val;
 }
@@ -449,8 +443,7 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
     default:
       string msg = "Unsupported signed int size: ";
       msg += op.size;
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      break;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
   }
   else if (id == llvm::Value::ConstantVectorVal ||
@@ -481,7 +474,7 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
   {
     string msg = "Unsupported signed operand type: ";
     msg += id;
-    m_device->notifyFatalError(msg, __FILE__, __LINE__);
+    throw FatalError(msg, __FILE__, __LINE__);
   }
   return val;
 }
@@ -531,7 +524,7 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   {
     string msg = "Unsupported unsigned operand type: ";
     msg += id;
-    m_device->notifyFatalError(msg, __FILE__, __LINE__);
+    throw FatalError(msg, __FILE__, __LINE__);
   }
 
   return val;
@@ -677,10 +670,7 @@ WorkItem::State WorkItem::step()
 
 void WorkItem::trap()
 {
-  m_device->notifyFatalError("Encountered trap instruction",
-                             __FILE__, __LINE__);
-  m_state = FINISHED;
-  m_workGroup.notifyFinished(this);
+  throw FatalError("Encountered trap instruction", __FILE__, __LINE__);
 }
 
 
@@ -766,7 +756,7 @@ void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
     {
       string msg = "Unsupported operand type: ";
       msg += operand->getValueID();
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
+      throw FatalError(msg, __FILE__, __LINE__);
     }
     break;
   }
@@ -893,7 +883,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       {
         string msg = "Unsupported function argument type: ";
         msg += id;
-        m_device->notifyFatalError(msg, __FILE__, __LINE__);
+        throw FatalError(msg, __FILE__, __LINE__);
       }
 
       if (m_instResults.find(argItr) != m_instResults.end())
@@ -929,7 +919,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
 
   // Function didn't match any builtins
   string msg = "Undefined function: " + name;
-  m_device->notifyFatalError(msg, __FILE__, __LINE__);
+  throw FatalError(msg, __FILE__, __LINE__);
 }
 
 void WorkItem::extractelem(const llvm::Instruction& instruction,
@@ -952,8 +942,7 @@ void WorkItem::extractelem(const llvm::Instruction& instruction,
   default:
     string msg = "Unsupported operand type: ";
     msg += type->getTypeID();
-    m_device->notifyFatalError(msg, __FILE__, __LINE__);
-    return;
+    throw FatalError(msg, __FILE__, __LINE__);
   }
 }
 
@@ -1066,8 +1055,7 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
     default:
       string msg = "Unsupported FCmp predicate: ";
       msg += pred;
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      break;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
 
     setIntResult(result, r ? t : 0, i);
@@ -1208,7 +1196,7 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
     {
       string msg = "Unsupported GEP base type: ";
       msg += ptrType->getTypeID();
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
+      throw FatalError(msg, __FILE__, __LINE__);
     }
   }
 
@@ -1265,8 +1253,7 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
     default:
       string msg = "Unsupported ICmp predicate: ";
       msg += pred;
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      break;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
 
     setIntResult(result, r ? t : 0, i);
@@ -1308,8 +1295,7 @@ void WorkItem::insertelem(const llvm::Instruction& instruction,
     default:
       string msg = "Unsupported operand type: ";
       msg += type->getTypeID();
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      return;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
   }
 }
@@ -1452,8 +1438,7 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
     default:
       string msg = "Unsupported operand type: ";
       msg += type;
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      break;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
   }
 }
@@ -1542,8 +1527,7 @@ void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
     default:
       string msg = "Unsupported operand type: ";
       msg += type;
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      break;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
   }
 }
@@ -1606,8 +1590,7 @@ void WorkItem::shuffle(const llvm::Instruction& instruction,
     default:
       string msg = "Unsupported operand type: ";
       msg += type->getTypeID();
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
-      return;
+      throw FatalError(msg, __FILE__, __LINE__);
     }
   }
 }
@@ -1673,7 +1656,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
     else
     {
       string msg = "Unable to find store operand";
-      m_device->notifyFatalError(msg, __FILE__, __LINE__);
+      throw FatalError(msg, __FILE__, __LINE__);
     }
   }
 

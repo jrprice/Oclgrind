@@ -31,7 +31,6 @@ namespace spirsim
     virtual ~Device();
 
     Memory *getGlobalMemory() const;
-    void notifyFatalError(std::string message, std::string file, size_t line);
     void notifyMemoryError(bool read, unsigned int addrSpace,
                            size_t address, size_t size);
     void run(Kernel& kernel, unsigned int workDim,

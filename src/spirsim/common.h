@@ -31,6 +31,7 @@
 #include <queue>
 #include <set>
 #include <stack>
+#include <stdexcept>
 #include <stdint.h>
 #include <vector>
 
@@ -102,6 +103,20 @@ namespace spirsim
 
   // Print data in a human readable format (according to its type)
   extern void printTypedData(const llvm::Type *type, const unsigned char *data);
+
+  // Exception class for raising fatal errors
+  class FatalError : std::runtime_error
+  {
+  public:
+    FatalError(const std::string& msg, const std::string& file, size_t line);
+    ~FatalError() throw();
+    virtual const std::string& getFile() const;
+    virtual size_t getLine() const;
+    virtual const char* what() const throw();
+  protected:
+    std::string m_file;
+    size_t m_line;
+  };
 }
 
 #endif // __common_h_

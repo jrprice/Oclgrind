@@ -129,8 +129,9 @@ namespace spirsim
       break;
     }
     default:
-      cerr << "Unhandled constant type " << type->getTypeID() << endl;
-      break;
+      string msg = "Unsupported constant type: ";
+      msg += type->getTypeID();
+      throw FatalError(msg.c_str(), __FILE__, __LINE__);
     }
   }
 
@@ -434,5 +435,31 @@ namespace spirsim
         cout << setw(2) << (int)data[i];
       }
     }
+  }
+
+  FatalError::FatalError(const string& msg, const string& file, size_t line)
+    : std::runtime_error(msg)
+  {
+    m_file = file;
+    m_line = line;
+  }
+
+  FatalError::~FatalError() throw()
+  {
+  }
+
+  const string& FatalError::getFile() const
+  {
+    return m_file;
+  }
+
+  size_t FatalError::getLine() const
+  {
+    return m_line;
+  }
+
+  const char* FatalError::what() const throw()
+  {
+    return runtime_error::what();
   }
 }

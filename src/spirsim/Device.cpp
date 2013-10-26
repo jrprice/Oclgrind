@@ -197,15 +197,6 @@ void Device::printErrorContext() const
   cerr << endl;
 }
 
-void Device::notifyFatalError(string message, string file, size_t line)
-{
-  cerr << endl << "OCLGRIND FATAL ERROR " << "(" << file << ":" << line << ")"
-       << endl << message << endl;
-  printErrorContext();
-
-  quit(vector<string>());
-}
-
 void Device::notifyMemoryError(bool read, unsigned int addrSpace,
                                size_t address, size_t size)
 {
@@ -264,8 +255,21 @@ void Device::run(Kernel& kernel, unsigned int workDim,
     }
   }
 
-  // Allocate and initialise constant memory
-  kernel.allocateConstants(m_globalMemory);
+  try
+  {
+    // Allocate and initialise constant memory
+    kernel.allocateConstants(m_globalMemory);
+  }
+  catch (FatalError& err)
+  {
+    cerr << endl << "OCLGRIND FATAL ERROR "
+         << "(" << err.getFile() << ":" << err.getLine() << ")"
+         << endl << err.what()
+         << endl << "When allocating kernel constants for '"
+         << kernel.getName() << "'"
+         << endl;
+    return;
+ }
 
   // Prepare kernel invocation
   m_program = &kernel.getProgram();
@@ -293,70 +297,81 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   m_currentWorkGroup = m_workGroups[0];
   m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
 
-  // Check if we're in interactive mode
-  if (m_interactive)
+  try
   {
-    m_running = true;
-
-    // Get source code (if available) and split into lines
-    string source = m_program->getSource();
-    m_sourceLines.clear();
-    if (!source.empty())
+    // Check if we're in interactive mode
+    if (m_interactive)
     {
-      std::stringstream ss(source);
-      std::string line;
-      while(std::getline(ss, line, '\n'))
+      m_running = true;
+
+      // Get source code (if available) and split into lines
+      string source = m_program->getSource();
+      m_sourceLines.clear();
+      if (!source.empty())
       {
-        m_sourceLines.push_back(line);
+        std::stringstream ss(source);
+        std::string line;
+        while(std::getline(ss, line, '\n'))
+        {
+          m_sourceLines.push_back(line);
+        }
       }
-    }
 
-    cout << endl;
-    info(vector<string>());
-  }
-  else
-  {
-    // If not, just run kernel
-    cont(vector<string>());
-    m_running = false;
-  }
-
-  // Interactive debugging loop
-  while (m_running)
-  {
-    // Prompt for command
-    string cmd;
-    cout << "(oclgrind) " << std::flush;
-    getline(cin, cmd);
-
-    // Split command into tokens
-    vector<string> tokens;
-    istringstream iss(cmd);
-    copy(istream_iterator<string>(iss),
-         istream_iterator<string>(),
-         back_inserter< vector<string> >(tokens));
-
-    // Check for end of stream or empty command
-    if (cin.eof())
-    {
-      cout << "(quit)" << endl;
-      quit(tokens);
-    }
-    if (tokens.size() == 0)
-    {
-      continue;
-    }
-
-    // Find command in map and execute
-    map<string,Command>::iterator itr = m_commands.find(tokens[0]);
-    if (itr != m_commands.end())
-    {
-      (this->*itr->second)(tokens);
+      cout << endl;
+      info(vector<string>());
     }
     else
     {
-      cout << "Unrecognized command '" << tokens[0] << "'" << endl;
+      // If not, just run kernel
+      cont(vector<string>());
+      m_running = false;
     }
+
+    // Interactive debugging loop
+    while (m_running)
+    {
+      // Prompt for command
+      string cmd;
+      cout << "(oclgrind) " << std::flush;
+      getline(cin, cmd);
+
+      // Split command into tokens
+      vector<string> tokens;
+      istringstream iss(cmd);
+      copy(istream_iterator<string>(iss),
+           istream_iterator<string>(),
+           back_inserter< vector<string> >(tokens));
+
+      // Check for end of stream or empty command
+      if (cin.eof())
+      {
+        cout << "(quit)" << endl;
+        quit(tokens);
+      }
+      if (tokens.size() == 0)
+      {
+        continue;
+      }
+
+      // Find command in map and execute
+      map<string,Command>::iterator itr = m_commands.find(tokens[0]);
+      if (itr != m_commands.end())
+      {
+        (this->*itr->second)(tokens);
+      }
+      else
+      {
+        cout << "Unrecognized command '" << tokens[0] << "'" << endl;
+      }
+    }
+  }
+  catch (FatalError& err)
+  {
+    cerr << endl << "OCLGRIND FATAL ERROR "
+         << "(" << err.getFile() << ":" << err.getLine() << ")"
+         << endl << err.what() << endl;
+    printErrorContext();
+    m_runningGroups.clear();
   }
 
   // Destroy work-groups
