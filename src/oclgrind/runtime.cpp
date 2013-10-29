@@ -254,12 +254,12 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_MAX_READ_IMAGE_ARGS:
     result_size = sizeof(cl_uint);
     result_data = malloc(result_size);
-    *(cl_uint*)result_data = 0;
+    *(cl_uint*)result_data = 128;
     break;
   case CL_DEVICE_MAX_WRITE_IMAGE_ARGS:
     result_size = sizeof(cl_uint);
     result_data = malloc(result_size);
-    *(cl_uint*)result_data = 0;
+    *(cl_uint*)result_data = 8;
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
     result_size = sizeof(size_t);
@@ -269,32 +269,32 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_IMAGE2D_MAX_WIDTH:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(size_t*)result_data = 0;
+    *(size_t*)result_data = 8192;
     break;
   case CL_DEVICE_IMAGE2D_MAX_HEIGHT:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(size_t*)result_data = 0;
+    *(size_t*)result_data = 8192;
     break;
   case CL_DEVICE_IMAGE3D_MAX_WIDTH:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(size_t*)result_data = 0;
+    *(size_t*)result_data = 2048;
     break;
   case CL_DEVICE_IMAGE3D_MAX_HEIGHT:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(size_t*)result_data = 0;
+    *(size_t*)result_data = 2048;
     break;
   case CL_DEVICE_IMAGE3D_MAX_DEPTH:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(size_t*)result_data = 0;
+    *(size_t*)result_data = 2048;
     break;
   case CL_DEVICE_IMAGE_SUPPORT:
     result_size = sizeof(cl_bool);
     result_data = malloc(result_size);
-    *(cl_bool*)result_data = CL_FALSE;
+    *(cl_bool*)result_data = CL_TRUE;
     break;
   case CL_DEVICE_MAX_PARAMETER_SIZE:
     result_size = sizeof(size_t);
@@ -304,7 +304,7 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_MAX_SAMPLERS:
     result_size = sizeof(cl_uint);
     result_data = malloc(result_size);
-    *(cl_uint*)result_data = 0;
+    *(cl_uint*)result_data = 16;
     break;
   case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
     result_size = sizeof(cl_uint);
@@ -503,12 +503,12 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(size_t*)result_data = 0;
+    *(size_t*)result_data = 65536;
     break;
   case CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-    *(size_t*)result_data = 0;
+    *(size_t*)result_data = 2048;
     break;
   case CL_DEVICE_PARENT_DEVICE:
     result_size = sizeof(cl_device_id);
@@ -1092,6 +1092,66 @@ clCreateSubBuffer(cl_mem                    buffer ,
   return mem;
 }
 
+// Convenience function for computing an image format's pixel size (in bytes)
+size_t getPixelSize(const cl_image_format *format)
+{
+    // Get number of channels
+  size_t numChannels;
+  switch (format->image_channel_order)
+  {
+  case CL_R:
+  case CL_Rx:
+  case CL_A:
+  case CL_INTENSITY:
+  case CL_LUMINANCE:
+    numChannels = 1;
+    break;
+  case CL_RG:
+  case CL_RGx:
+  case CL_RA:
+    numChannels = 1;
+    break;
+  case CL_RGB:
+  case CL_RGBx:
+    numChannels = 3;
+    break;
+  case CL_RGBA:
+  case CL_ARGB:
+  case CL_BGRA:
+    numChannels = 4;
+    break;
+  default:
+    return 0;
+  }
+
+  // Get size of each pixel (in bytes)
+  switch (format->image_channel_data_type)
+  {
+  case CL_SNORM_INT8:
+  case CL_UNORM_INT8:
+  case CL_SIGNED_INT8:
+  case CL_UNSIGNED_INT8:
+    return numChannels;
+  case CL_SNORM_INT16:
+  case CL_UNORM_INT16:
+  case CL_SIGNED_INT16:
+  case CL_UNSIGNED_INT16:
+  case CL_HALF_FLOAT:
+    return 2*numChannels;
+  case CL_SIGNED_INT32:
+  case CL_UNSIGNED_INT32:
+  case CL_FLOAT:
+    return 4*numChannels;
+  case CL_UNORM_SHORT_565:
+  case CL_UNORM_SHORT_555:
+    return 2;
+  case CL_UNORM_INT_101010:
+    return 4;
+  default:
+    return 0;
+  }
+}
+
 CL_API_ENTRY cl_mem CL_API_CALL
 clCreateImage(cl_context              context,
               cl_mem_flags            flags,
@@ -1100,8 +1160,75 @@ clCreateImage(cl_context              context,
               void *                  host_ptr,
               cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
-  ERRCODE(CL_INVALID_OPERATION);
-  return NULL;
+  // Check parameters
+  if (!context)
+  {
+    ERRCODE(CL_INVALID_CONTEXT);
+    return NULL;
+  }
+  if (!image_format)
+  {
+    ERRCODE(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
+    return NULL;
+  }
+  if (!image_desc)
+  {
+    ERRCODE(CL_INVALID_IMAGE_DESCRIPTOR);
+    return NULL;
+  }
+
+  // Get size of each pixel (in bytes)
+  size_t pixelSize = getPixelSize(image_format);
+  if (!pixelSize)
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+
+  // Calculate total size of image
+  size_t size = image_desc->image_width *
+                image_desc->image_height *
+                image_desc->image_depth *
+                pixelSize;
+  switch (image_desc->image_type)
+  {
+    case CL_MEM_OBJECT_IMAGE1D:
+      size = image_desc->image_width *
+             pixelSize;
+      break;
+    case CL_MEM_OBJECT_IMAGE2D:
+      size = image_desc->image_width *
+             image_desc->image_height *
+             pixelSize;
+      break;
+    case CL_MEM_OBJECT_IMAGE3D:
+      size = image_desc->image_width *
+             image_desc->image_height *
+             image_desc->image_depth *
+             pixelSize;
+      break;
+    default:
+      ERRCODE(CL_INVALID_VALUE);
+      return NULL;
+  }
+
+  // Create buffer
+  // TODO: Use pitches
+  cl_mem mem = clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
+  if (!mem)
+  {
+    return NULL;
+  }
+
+  // Create image object wrapper
+  cl_image *image = new cl_image;
+  *(cl_mem)image = *mem;
+  image->format = *image_format;
+  image->desc = *image_desc;
+  delete mem;
+
+  ERRCODE(CL_SUCCESS);
+  return image;
 }
 
 
@@ -1115,8 +1242,22 @@ clCreateImage2D(cl_context              context ,
                 void *                  host_ptr ,
                 cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
-  return NULL;
+  cl_image_desc desc =
+  {
+    CL_MEM_OBJECT_IMAGE2D,
+    image_width,
+    image_height,
+    1,
+    1,
+    image_row_pitch,
+    0,
+    0,
+    0,
+    NULL
+  };
+  return clCreateImage(context, flags,
+                       image_format, &desc,
+                       host_ptr, errcode_ret);
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL
@@ -1131,8 +1272,22 @@ clCreateImage3D(cl_context              context,
                 void *                  host_ptr ,
                 cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
-  return NULL;
+  cl_image_desc desc =
+  {
+    CL_MEM_OBJECT_IMAGE3D,
+    image_width,
+    image_height,
+    image_depth,
+    1,
+    image_row_pitch,
+    image_slice_pitch,
+    0,
+    0,
+    NULL
+  };
+  return clCreateImage(context, flags,
+                       image_format, &desc,
+                       host_ptr, errcode_ret);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -1189,10 +1344,79 @@ clGetSupportedImageFormats(cl_context           context,
                            cl_image_format *    image_formats ,
                            cl_uint *            num_image_formats) CL_API_SUFFIX__VERSION_1_0
 {
+  // Check parameters
+  if (!context)
+  {
+    return CL_INVALID_CONTEXT;
+  }
+  if (num_entries == 0 && image_formats)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  const cl_channel_order orders[] =
+  {
+    CL_R, CL_Rx, CL_A,
+    CL_INTENSITY,
+    CL_LUMINANCE,
+    CL_RG, CL_RGx, CL_RA,
+    CL_RGB, CL_RGBx,
+    CL_RGBA,
+    CL_ARGB, CL_BGRA,
+  };
+  const cl_channel_type types[] =
+  {
+    CL_SNORM_INT8,
+    CL_SNORM_INT16,
+    CL_UNORM_INT8,
+    CL_UNORM_INT16,
+    CL_SIGNED_INT8,
+    CL_SIGNED_INT16,
+    CL_SIGNED_INT32,
+    CL_UNSIGNED_INT8,
+    CL_UNSIGNED_INT16,
+    CL_UNSIGNED_INT32,
+//    CL_HALF_FLOAT, // TODO: Add support for this
+    CL_FLOAT,
+  };
+
+  // Calculate number of formats
+  size_t numOrders = sizeof(orders)/sizeof(cl_channel_order);
+  size_t numTypes = sizeof(types)/sizeof(cl_channel_type);
+  size_t numFormats = numOrders * numTypes;
   if (num_image_formats)
   {
-    *num_image_formats = 0;
+    *num_image_formats = numFormats;
   }
+
+  // TODO: Implement image arrays and CL_MEM_OBJECT_IMAGE1D_BUFFER
+  if (image_type == CL_MEM_OBJECT_IMAGE1D_BUFFER ||
+      image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY ||
+      image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
+  {
+    numOrders = numTypes = numFormats = 0;
+  }
+
+  // Generate list of all order/type combinations
+  // TODO: Add support for packed image types
+  if (image_formats)
+  {
+    for (int o = 0; o < numOrders; o++)
+    {
+      for (int t = 0; t < sizeof(types)/sizeof(cl_channel_type); t++)
+      {
+        int i = t + o*numTypes;
+        if (i >= num_entries)
+        {
+          return CL_SUCCESS;
+        }
+
+        cl_image_format format = {orders[o], types[t]};
+        image_formats[i] = format;
+      }
+    }
+  }
+
   return CL_SUCCESS;
 }
 
@@ -3105,7 +3329,40 @@ clEnqueueReadImage(cl_command_queue      command_queue ,
                    const cl_event *      event_wait_list ,
                    cl_event *            event) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_MEM_OBJECT;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!image)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+
+  cl_image *img = (cl_image*)image;
+
+  size_t pixelSize = getPixelSize(&img->format);
+  size_t buffer_origin[3] = {origin[0]*pixelSize, origin[1], origin[2]};
+  size_t pixel_region[3] = {region[0]*pixelSize, region[1], region[2]};
+  size_t host_origin[3] = {0, 0, 0};
+
+  size_t img_row_pitch = img->desc.image_width * pixelSize;
+  size_t img_slice_pitch = img->desc.image_height * img_row_pitch;
+  if (row_pitch == 0)
+  {
+    row_pitch = pixel_region[0];
+  }
+  if (slice_pitch == 0)
+  {
+    slice_pitch = pixel_region[1] * row_pitch;
+  }
+
+  return clEnqueueReadBufferRect(command_queue, image, blocking_read,
+                                 buffer_origin, host_origin, pixel_region,
+                                 img_row_pitch, img_slice_pitch,
+                                 row_pitch, slice_pitch,
+                                 ptr, num_events_in_wait_list,
+                                 event_wait_list, event);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -3121,7 +3378,40 @@ clEnqueueWriteImage(cl_command_queue     command_queue ,
                     const cl_event *     event_wait_list ,
                     cl_event *           event) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_MEM_OBJECT;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!image)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+
+  cl_image *img = (cl_image*)image;
+
+  size_t pixelSize = getPixelSize(&img->format);
+  size_t buffer_origin[3] = {origin[0]*pixelSize, origin[1], origin[2]};
+  size_t pixel_region[3] = {region[0]*pixelSize, region[1], region[2]};
+  size_t host_origin[3] = {0, 0, 0};
+
+  size_t img_row_pitch = img->desc.image_width * pixelSize;
+  size_t img_slice_pitch = img->desc.image_height * img_row_pitch;
+  if (input_row_pitch == 0)
+  {
+    input_row_pitch = pixel_region[0];
+  }
+  if (input_slice_pitch == 0)
+  {
+    input_slice_pitch = pixel_region[1] * input_row_pitch;
+  }
+
+  return clEnqueueWriteBufferRect(command_queue, image, blocking_write,
+                                  buffer_origin, host_origin, pixel_region,
+                                  img_row_pitch, img_slice_pitch,
+                                  input_row_pitch, input_slice_pitch,
+                                  ptr, num_events_in_wait_list,
+                                  event_wait_list, event);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -3135,7 +3425,45 @@ clEnqueueCopyImage(cl_command_queue      command_queue ,
                    const cl_event *      event_wait_list ,
                    cl_event *            event) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_MEM_OBJECT;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!src_image || !dst_image)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+
+  cl_image *src = (cl_image*)src_image;
+  cl_image *dst = (cl_image*)dst_image;
+  if (src->format.image_channel_order != dst->format.image_channel_order ||
+    src->format.image_channel_data_type != dst->format.image_channel_data_type)
+  {
+    return CL_IMAGE_FORMAT_MISMATCH;
+  }
+
+  size_t srcPixelSize = getPixelSize(&src->format);
+  size_t dstPixelSize = getPixelSize(&dst->format);
+
+  size_t src_pixel_origin[3] = {src_origin[0]*srcPixelSize,
+                                src_origin[1], src_origin[2]};
+  size_t dst_pixel_origin[3] = {dst_origin[0]*dstPixelSize,
+                                dst_origin[1], dst_origin[2]};
+  size_t pixel_region[3] = {region[0]*srcPixelSize, region[1], region[2]};
+
+  size_t src_row_pitch = src->desc.image_width * srcPixelSize;
+  size_t src_slice_pitch = src->desc.image_height * src_row_pitch;
+  size_t dst_row_pitch = dst->desc.image_width * dstPixelSize;
+  size_t dst_slice_pitch = dst->desc.image_height * dst_row_pitch;
+
+  return clEnqueueCopyBufferRect(command_queue, src_image, dst_image,
+                                 src_pixel_origin, dst_pixel_origin,
+                                 pixel_region,
+                                 src_row_pitch, src_slice_pitch,
+                                 dst_row_pitch, dst_slice_pitch,
+                                 num_events_in_wait_list,
+                                 event_wait_list, event);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

@@ -101,6 +101,12 @@ struct _cl_mem
   unsigned int refCount;
 };
 
+struct cl_image : _cl_mem
+{
+  cl_image_format format;
+  cl_image_desc desc;
+};
+
 struct _cl_program
 {
   CLIicdDispatchTable* dispatch;
