@@ -422,6 +422,12 @@ int __OVERLOAD__ get_image_width(image3d_t image);
 void __OVERLOAD__ write_imagef(image1d_t, int, float4);
 void __OVERLOAD__ write_imagef(image2d_t, int2, float4);
 void __OVERLOAD__ write_imagef(image3d_t, int4, float4);
+void __OVERLOAD__ write_imagei(image1d_t, int, int4);
+void __OVERLOAD__ write_imagei(image2d_t, int2, int4);
+void __OVERLOAD__ write_imagei(image3d_t, int4, int4);
+void __OVERLOAD__ write_imageui(image1d_t, int, uint4);
+void __OVERLOAD__ write_imageui(image2d_t, int2, uint4);
+void __OVERLOAD__ write_imageui(image3d_t, int4, uint4);
 
 
 ///////////////////////

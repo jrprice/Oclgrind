@@ -897,6 +897,206 @@ namespace spirsim
       }
     }
 
+    DEFINE_BUILTIN(write_imagei)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+
+      // Get pixel coordinates
+      int x, y = 0, z = 0 ;
+      x = SARGV(1, 0);
+      if (ARG(1)->getType()->isVectorTy())
+      {
+        y = SARGV(1, 1);
+        if (ARG(1)->getType()->getVectorNumElements() > 2)
+        {
+          z = SARGV(1, 2);
+        }
+      }
+
+      // Get color data
+      int32_t values[4] =
+      {
+        SARGV(2, 0),
+        SARGV(2, 1),
+        SARGV(2, 2),
+        SARGV(2, 3),
+      };
+
+      // Re-order color values
+      switch (image->format.image_channel_order)
+      {
+      case CL_R:
+      case CL_Rx:
+      case CL_RG:
+      case CL_RGx:
+      case CL_RGB:
+      case CL_RGBx:
+      case CL_RGBA:
+      case CL_INTENSITY:
+      case CL_LUMINANCE:
+        break;
+      case CL_A:
+        values[0] = values[3];
+        break;
+      case CL_RA:
+        values[1] = values[3];
+        break;
+      case CL_ARGB:
+        swap(values[2], values[3]);
+        swap(values[1], values[2]);
+        swap(values[0], values[1]);
+        break;
+      case CL_BGRA:
+        swap(values[0], values[2]);
+        break;
+      default:
+        // TODO: Fix error message
+        string msg = "Unsupported image channel order: ";
+        msg += image->format.image_channel_order;
+        throw FatalError(msg, __FILE__, __LINE__);
+      }
+
+      size_t channelSize = getChannelSize(image->format);
+      size_t numChannels = getNumChannels(image->format);
+      size_t pixelSize = channelSize*numChannels;
+      size_t pixelAddress = image->address
+                            + (x + (y + z*image->desc.image_height)
+                            * image->desc.image_width) * pixelSize;
+
+      // Write channel values
+      Memory *memory = workItem->m_device->getGlobalMemory();
+      for (int i = 0; i < numChannels; i++)
+      {
+        // Compute normalized color value
+        unsigned char *data = new unsigned char[channelSize];
+        switch (image->format.image_channel_data_type)
+        {
+          case CL_SIGNED_INT8:
+            *(int8_t*)data = _clamp_(values[i], -128, 127);
+            break;
+          case CL_SIGNED_INT16:
+            *(int16_t*)data = _clamp_(values[i], -32768, 32767);
+            break;
+          case CL_SIGNED_INT32:
+            *(int32_t*)data = values[i];
+            break;
+          default:
+            // TODO: Fix error message
+            string msg = "Unsupported image channel data type: ";
+            msg += image->format.image_channel_data_type;
+            throw FatalError(msg, __FILE__, __LINE__);
+        }
+
+        // Write data
+        if (!memory->store(data, pixelAddress + i*channelSize, channelSize))
+        {
+          workItem->m_device->notifyMemoryError(false, AddrSpaceGlobal,
+                                                pixelAddress + i*channelSize,
+                                                channelSize);
+        }
+      }
+    }
+
+    DEFINE_BUILTIN(write_imageui)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+
+      // Get pixel coordinates
+      int x, y = 0, z = 0 ;
+      x = SARGV(1, 0);
+      if (ARG(1)->getType()->isVectorTy())
+      {
+        y = SARGV(1, 1);
+        if (ARG(1)->getType()->getVectorNumElements() > 2)
+        {
+          z = SARGV(1, 2);
+        }
+      }
+
+      // Get color data
+      uint32_t values[4] =
+      {
+        SARGV(2, 0),
+        SARGV(2, 1),
+        SARGV(2, 2),
+        SARGV(2, 3),
+      };
+
+      // Re-order color values
+      switch (image->format.image_channel_order)
+      {
+      case CL_R:
+      case CL_Rx:
+      case CL_RG:
+      case CL_RGx:
+      case CL_RGB:
+      case CL_RGBx:
+      case CL_RGBA:
+      case CL_INTENSITY:
+      case CL_LUMINANCE:
+        break;
+      case CL_A:
+        values[0] = values[3];
+        break;
+      case CL_RA:
+        values[1] = values[3];
+        break;
+      case CL_ARGB:
+        swap(values[2], values[3]);
+        swap(values[1], values[2]);
+        swap(values[0], values[1]);
+        break;
+      case CL_BGRA:
+        swap(values[0], values[2]);
+        break;
+      default:
+        // TODO: Fix error message
+        string msg = "Unsupported image channel order: ";
+        msg += image->format.image_channel_order;
+        throw FatalError(msg, __FILE__, __LINE__);
+      }
+
+      size_t channelSize = getChannelSize(image->format);
+      size_t numChannels = getNumChannels(image->format);
+      size_t pixelSize = channelSize*numChannels;
+      size_t pixelAddress = image->address
+                            + (x + (y + z*image->desc.image_height)
+                            * image->desc.image_width) * pixelSize;
+
+      // Write channel values
+      Memory *memory = workItem->m_device->getGlobalMemory();
+      for (int i = 0; i < numChannels; i++)
+      {
+        // Compute normalized color value
+        unsigned char *data = new unsigned char[channelSize];
+        switch (image->format.image_channel_data_type)
+        {
+          case CL_UNSIGNED_INT8:
+            *(uint8_t*)data = _min_<uint32_t>(values[i], UINT8_MAX);
+            break;
+          case CL_UNSIGNED_INT16:
+            *(uint16_t*)data = _min_<uint32_t>(values[i], UINT16_MAX);
+            break;
+          case CL_UNSIGNED_INT32:
+            *(uint32_t*)data = values[i];
+            break;
+          default:
+            // TODO: Fix error message
+            string msg = "Unsupported image channel data type: ";
+            msg += image->format.image_channel_data_type;
+            throw FatalError(msg, __FILE__, __LINE__);
+        }
+
+        // Write data
+        if (!memory->store(data, pixelAddress + i*channelSize, channelSize))
+        {
+          workItem->m_device->notifyMemoryError(false, AddrSpaceGlobal,
+                                                pixelAddress + i*channelSize,
+                                                channelSize);
+        }
+      }
+    }
+
 
     ///////////////////////
     // Integer Functions //
@@ -2316,6 +2516,8 @@ namespace spirsim
     ADD_BUILTIN("get_image_height", get_image_height, NULL);
     ADD_BUILTIN("get_image_width", get_image_width, NULL);
     ADD_BUILTIN("write_imagef", write_imagef, NULL);
+    ADD_BUILTIN("write_imagei", write_imagei, NULL);
+    ADD_BUILTIN("write_imageui", write_imageui, NULL);
 
     // Integer Functions
     ADD_BUILTIN("abs", abs_builtin, NULL);
