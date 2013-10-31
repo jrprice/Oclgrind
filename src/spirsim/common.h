@@ -21,6 +21,7 @@
 #define __STDC_CONSTANT_MACROS
 
 #include "config.h"
+#include "CL/cl.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

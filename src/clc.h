@@ -124,6 +124,39 @@ TYPEDEF_VECTOR(double);
 #define INFINITY __builtin_inff()
 #define NAN __builtin_nanf((const char*)"")
 
+#define CLK_SNORM_INT8 0x10D0
+#define CLK_SNORM_INT16 0x10D1
+#define CLK_UNORM_INT8 0x10D2
+#define CLK_UNORM_INT16 0x10D3
+#define CLK_UNORM_SHORT_565 0x10D4
+#define CLK_UNORM_SHORT_555 0x10D5
+#define CLK_UNORM_INT_101010 0x10D6
+#define CLK_SIGNED_INT8 0x10D7
+#define CLK_SIGNED_INT16 0x10D8
+#define CLK_SIGNED_INT32 0x10D9
+#define CLK_UNSIGNED_INT8 0x10DA
+#define CLK_UNSIGNED_INT16 0x10DB
+#define CLK_UNSIGNED_INT32 0x10DC
+#define CLK_HALF_FLOAT 0x10DD
+#define CLK_FLOAT 0x10DE
+#define CLK_UNORM_INT24 0x10DF
+
+#define CLK_R 0x10B0
+#define CLK_A 0x10B1
+#define CLK_RG 0x10B2
+#define CLK_RA 0x10B3
+#define CLK_RGB 0x10B4
+#define CLK_RGBA 0x10B5
+#define CLK_BGRA 0x10B6
+#define CLK_ARGB 0x10B7
+#define CLK_INTENSITY 0x10B8
+#define CLK_LUMINANCE 0x10B9
+#define CLK_Rx 0x10BA
+#define CLK_RGx 0x10BB
+#define CLK_RGBx 0x10BC
+#define CLK_DEPTH 0x10BD
+#define CLK_DEPTH_STENCIL 0x10BE
+
 #define __OVERLOAD__ __attribute__((__overloadable__))
 
 #define BUILTIN_1ARG(rtype, type0, name)  \
@@ -351,6 +384,44 @@ GEOM_2ARG(double, fast_distance);
 GEOM_1ARG(float, fast_length);
 GEOM_1ARG(double, fast_length);
 BUILTIN_1ARG_FLOATS(fast_normalize);
+
+
+/////////////////////
+// Image Functions //
+/////////////////////
+
+int __OVERLOAD__ get_image_channel_data_type(image1d_t image);
+int __OVERLOAD__ get_image_channel_data_type(image1d_buffer_t image);
+int __OVERLOAD__ get_image_channel_data_type(image1d_array_t image);
+int __OVERLOAD__ get_image_channel_data_type(image2d_t image);
+int __OVERLOAD__ get_image_channel_data_type(image2d_array_t image);
+int __OVERLOAD__ get_image_channel_data_type(image3d_t image);
+
+int __OVERLOAD__ get_image_channel_order(image1d_t image);
+int __OVERLOAD__ get_image_channel_order(image1d_buffer_t image);
+int __OVERLOAD__ get_image_channel_order(image1d_array_t image);
+int __OVERLOAD__ get_image_channel_order(image2d_t image);
+int __OVERLOAD__ get_image_channel_order(image2d_array_t image);
+int __OVERLOAD__ get_image_channel_order(image3d_t image);
+
+int2 __OVERLOAD__ get_image_dim(image2d_t image);
+int2 __OVERLOAD__ get_image_dim(image2d_array_t image);
+int4 __OVERLOAD__ get_image_dim(image3d_t image);
+
+int __OVERLOAD__ get_image_depth(image3d_t image);
+int __OVERLOAD__ get_image_height(image2d_t image);
+int __OVERLOAD__ get_image_height(image2d_array_t image);
+int __OVERLOAD__ get_image_height(image3d_t image);
+int __OVERLOAD__ get_image_width(image1d_t image);
+int __OVERLOAD__ get_image_width(image1d_buffer_t image);
+int __OVERLOAD__ get_image_width(image1d_array_t image);
+int __OVERLOAD__ get_image_width(image2d_t image);
+int __OVERLOAD__ get_image_width(image2d_array_t image);
+int __OVERLOAD__ get_image_width(image3d_t image);
+
+void __OVERLOAD__ write_imagef(image1d_t, int, float4);
+void __OVERLOAD__ write_imagef(image2d_t, int2, float4);
+void __OVERLOAD__ write_imagef(image3d_t, int4, float4);
 
 
 ///////////////////////

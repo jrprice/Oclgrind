@@ -21,7 +21,6 @@
 #include "llvm/DerivedTypes.h"
 #include "llvm/Module.h"
 
-#include "CL/cl.h"
 #include "Kernel.h"
 #include "Memory.h"
 
@@ -231,6 +230,12 @@ unsigned int Kernel::getArgumentAddressQualifier(unsigned int index) const
   if (!node)
   {
     return -1;
+  }
+
+  // TODO: Remove this when kernel arg info metadata fixed in compiler
+  if (strncmp(getArgumentTypeName(index), "image", 5) == 0)
+  {
+    return CL_KERNEL_ARG_ADDRESS_GLOBAL;
   }
 
   // Get address space

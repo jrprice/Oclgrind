@@ -96,6 +96,7 @@ struct _cl_mem
   size_t size;
   size_t offset;
   cl_mem_flags flags;
+  bool isImage;
   void *hostPtr;
   std::stack< std::pair<void (CL_CALLBACK *)(cl_mem, void *), void*> > callbacks;
   unsigned int refCount;

@@ -49,7 +49,7 @@ static struct _cl_device_id *m_device = NULL;
 #define DEVICE_VERSION "OpenCL 1.2"
 #define DRIVER_VERSION "0.1"
 #define DEVICE_PROFILE "FULL_PROFILE"
-#define DEVICE_EXTENSIONS "cl_khr_spir cl_khr_fp64"
+#define DEVICE_EXTENSIONS "cl_khr_spir cl_khr_fp64 cl_khr_3d_image_writes"
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformIDs(cl_uint           num_entries ,
@@ -991,6 +991,7 @@ clCreateBuffer(cl_context    context ,
   mem->size = size;
   mem->offset = 0;
   mem->flags = flags;
+  mem->isImage = false;
   mem->refCount = 1;
   if (flags & CL_MEM_USE_HOST_PTR)
   {
@@ -1082,6 +1083,7 @@ clCreateSubBuffer(cl_mem                    buffer ,
   mem->parent = buffer;
   mem->size = region.size;
   mem->offset = region.origin;
+  mem->isImage = false;
   mem->flags = memFlags;
   mem->hostPtr = (unsigned char*)buffer->hostPtr + region.origin;
   mem->refCount = 1;
@@ -1109,7 +1111,7 @@ size_t getPixelSize(const cl_image_format *format)
   case CL_RG:
   case CL_RGx:
   case CL_RA:
-    numChannels = 1;
+    numChannels = 2;
     break;
   case CL_RGB:
   case CL_RGBx:
@@ -1223,6 +1225,7 @@ clCreateImage(cl_context              context,
   // Create image object wrapper
   cl_image *image = new cl_image;
   *(cl_mem)image = *mem;
+  image->isImage = true;
   image->format = *image_format;
   image->desc = *image_desc;
   delete mem;
@@ -2229,8 +2232,23 @@ clSetKernelArg(cl_kernel     kernel ,
   case CL_KERNEL_ARG_ADDRESS_CONSTANT:
     if (arg_value && *(cl_mem*)arg_value)
     {
-      memcpy(value.data, &(*(cl_mem*)arg_value)->address, arg_size);
-      kernel->memArgs[arg_index] = *(cl_mem*)arg_value;
+      cl_mem mem = *(cl_mem*)arg_value;
+
+      if (mem->isImage)
+      {
+        // Create Image struct
+        spirsim::Image *image = new spirsim::Image;
+        image->address = mem->address;
+        image->format = ((cl_image*)mem)->format;
+        image->desc = ((cl_image*)mem)->desc;
+        *(spirsim::Image**)value.data = image;
+      }
+      else
+      {
+        memcpy(value.data, &mem->address, arg_size);
+      }
+
+      kernel->memArgs[arg_index] = mem;
     }
     else
     {

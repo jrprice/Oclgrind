@@ -24,6 +24,7 @@
 #include "llvm/IntrinsicInst.h"
 #include "llvm/Metadata.h"
 
+#include "CL/cl.h"
 #include "Device.h"
 #include "Memory.h"
 #include "WorkGroup.h"
@@ -686,6 +687,213 @@ namespace spirsim
       for (int i = 0; i < result.num; i++)
       {
         WorkItem::setFloatResult(result, FARGV(0, i)/length, i);
+      }
+    }
+
+
+    /////////////////////
+    // Image Functions //
+    /////////////////////
+
+    static size_t getChannelSize(cl_image_format& format)
+    {
+      switch (format.image_channel_data_type)
+      {
+      case CL_SNORM_INT8:
+      case CL_UNORM_INT8:
+      case CL_SIGNED_INT8:
+      case CL_UNSIGNED_INT8:
+        return 1;
+      case CL_SNORM_INT16:
+      case CL_UNORM_INT16:
+      case CL_SIGNED_INT16:
+      case CL_UNSIGNED_INT16:
+      case CL_HALF_FLOAT:
+        return 2;
+      case CL_SIGNED_INT32:
+      case CL_UNSIGNED_INT32:
+      case CL_FLOAT:
+        return 4;
+      default:
+        return 0;
+      }
+    }
+
+    static size_t getNumChannels(cl_image_format& format)
+    {
+      switch (format.image_channel_order)
+      {
+      case CL_R:
+      case CL_Rx:
+      case CL_A:
+      case CL_INTENSITY:
+      case CL_LUMINANCE:
+        return 1;
+      case CL_RG:
+      case CL_RGx:
+      case CL_RA:
+        return 2;
+      case CL_RGB:
+      case CL_RGBx:
+        return 3;
+      case CL_RGBA:
+      case CL_ARGB:
+      case CL_BGRA:
+        return 4;
+      default:
+        return 0;
+      }
+    }
+
+    DEFINE_BUILTIN(get_image_channel_data_type)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      workItem->setIntResult(result,
+                             (int64_t)image->format.image_channel_data_type);
+    }
+
+    DEFINE_BUILTIN(get_image_channel_order)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      workItem->setIntResult(result,
+                             (int64_t)image->format.image_channel_order);
+    }
+
+    DEFINE_BUILTIN(get_image_dim)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+
+      workItem->setIntResult(result, (int64_t)image->desc.image_width, 0);
+      workItem->setIntResult(result, (int64_t)image->desc.image_height, 1);
+      if (result.num > 2)
+      {
+        workItem->setIntResult(result, (int64_t)image->desc.image_depth, 2);
+        workItem->setIntResult(result, (int64_t)0, 3);
+      }
+    }
+
+    DEFINE_BUILTIN(get_image_depth)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      workItem->setIntResult(result, (int64_t)image->desc.image_depth);
+    }
+
+    DEFINE_BUILTIN(get_image_height)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      workItem->setIntResult(result, (int64_t)image->desc.image_height);
+    }
+
+    DEFINE_BUILTIN(get_image_width)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      workItem->setIntResult(result, (int64_t)image->desc.image_width);
+    }
+
+    DEFINE_BUILTIN(write_imagef)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+
+      // Get pixel coordinates
+      int x, y = 0, z = 0 ;
+      x = SARGV(1, 0);
+      if (ARG(1)->getType()->isVectorTy())
+      {
+        y = SARGV(1, 1);
+        if (ARG(1)->getType()->getVectorNumElements() > 2)
+        {
+          z = SARGV(1, 2);
+        }
+      }
+
+      // Get color data
+      float values[4] =
+      {
+        FARGV(2, 0),
+        FARGV(2, 1),
+        FARGV(2, 2),
+        FARGV(2, 3),
+      };
+
+      // Re-order color values
+      switch (image->format.image_channel_order)
+      {
+      case CL_R:
+      case CL_Rx:
+      case CL_RG:
+      case CL_RGx:
+      case CL_RGB:
+      case CL_RGBx:
+      case CL_RGBA:
+      case CL_INTENSITY:
+      case CL_LUMINANCE:
+        break;
+      case CL_A:
+        values[0] = values[3];
+        break;
+      case CL_RA:
+        values[1] = values[3];
+        break;
+      case CL_ARGB:
+        swap(values[2], values[3]);
+        swap(values[1], values[2]);
+        swap(values[0], values[1]);
+        break;
+      case CL_BGRA:
+        swap(values[0], values[2]);
+        break;
+      default:
+        // TODO: Fix error message
+        string msg = "Unsupported image channel order: ";
+        msg += image->format.image_channel_order;
+        throw FatalError(msg, __FILE__, __LINE__);
+      }
+
+      size_t channelSize = getChannelSize(image->format);
+      size_t numChannels = getNumChannels(image->format);
+      size_t pixelSize = channelSize*numChannels;
+      size_t pixelAddress = image->address
+                            + (x + (y + z*image->desc.image_height)
+                            * image->desc.image_width) * pixelSize;
+
+      // Write channel values
+      Memory *memory = workItem->m_device->getGlobalMemory();
+      for (int i = 0; i < numChannels; i++)
+      {
+        // Compute normalized color value
+        unsigned char *data = new unsigned char[channelSize];
+        switch (image->format.image_channel_data_type)
+        {
+          case CL_SNORM_INT8:
+            *data = rint(_clamp_(values[i] * 127.f, -128.f, 127.f));
+            break;
+          case CL_UNORM_INT8:
+            *data = rint(_clamp_(values[i] * 255.f, 0.f, 255.f));
+            break;
+          case CL_SNORM_INT16:
+            *(int16_t*)data = rint(_clamp_(values[i] * 32767.f,
+                                           -32768.f, 32767.f));
+            break;
+          case CL_UNORM_INT16:
+            *(uint16_t*)data = rint(_clamp_(values[i] * 65535.f, 0.f, 65535.f));
+            break;
+          case CL_FLOAT:
+            *(float*)data = values[i];
+            break;
+          default:
+            // TODO: Fix error message
+            string msg = "Unsupported image channel data type: ";
+            msg += image->format.image_channel_data_type;
+            throw FatalError(msg, __FILE__, __LINE__);
+        }
+
+        // Write data
+        if (!memory->store(data, pixelAddress + i*channelSize, channelSize))
+        {
+          workItem->m_device->notifyMemoryError(false, AddrSpaceGlobal,
+                                                pixelAddress + i*channelSize,
+                                                channelSize);
+        }
       }
     }
 
@@ -2098,6 +2306,16 @@ namespace spirsim
     ADD_BUILTIN("fast_distance", distance, NULL);
     ADD_BUILTIN("fast_length", length, NULL);
     ADD_BUILTIN("fast_normalize", normalize, NULL);
+
+    // Image Functions
+    ADD_BUILTIN("get_image_channel_data_type",
+                get_image_channel_data_type, NULL);
+    ADD_BUILTIN("get_image_channel_order", get_image_channel_order, NULL);
+    ADD_BUILTIN("get_image_dim", get_image_dim, NULL);
+    ADD_BUILTIN("get_image_depth", get_image_depth, NULL);
+    ADD_BUILTIN("get_image_height", get_image_height, NULL);
+    ADD_BUILTIN("get_image_width", get_image_width, NULL);
+    ADD_BUILTIN("write_imagef", write_imagef, NULL);
 
     // Integer Functions
     ADD_BUILTIN("abs", abs_builtin, NULL);
