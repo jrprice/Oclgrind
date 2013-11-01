@@ -419,6 +419,28 @@ int __OVERLOAD__ get_image_width(image2d_t image);
 int __OVERLOAD__ get_image_width(image2d_array_t image);
 int __OVERLOAD__ get_image_width(image3d_t image);
 
+float4 __OVERLOAD__ read_imagef(image1d_t, int);
+float4 __OVERLOAD__ read_imagef(image1d_t, float);
+float4 __OVERLOAD__ read_imagef(image1d_array_t, int2);
+float4 __OVERLOAD__ read_imagef(image1d_array_t, float2);
+float4 __OVERLOAD__ read_imagef(image2d_t, int2);
+float4 __OVERLOAD__ read_imagef(image2d_t, float2);
+float4 __OVERLOAD__ read_imagef(image2d_array_t, int4);
+float4 __OVERLOAD__ read_imagef(image2d_array_t, float4);
+float4 __OVERLOAD__ read_imagef(image3d_t, int4);
+float4 __OVERLOAD__ read_imagef(image3d_t, float4);
+
+float4 __OVERLOAD__ read_imagef(image1d_t, sampler_t, int);
+float4 __OVERLOAD__ read_imagef(image1d_t, sampler_t, float);
+float4 __OVERLOAD__ read_imagef(image1d_array_t, sampler_t, int2);
+float4 __OVERLOAD__ read_imagef(image1d_array_t, sampler_t, float2);
+float4 __OVERLOAD__ read_imagef(image2d_t, sampler_t, int2);
+float4 __OVERLOAD__ read_imagef(image2d_t, sampler_t, float2);
+float4 __OVERLOAD__ read_imagef(image2d_array_t, sampler_t, int4);
+float4 __OVERLOAD__ read_imagef(image2d_array_t, sampler_t, float4);
+float4 __OVERLOAD__ read_imagef(image3d_t, sampler_t, int4);
+float4 __OVERLOAD__ read_imagef(image3d_t, sampler_t, float4);
+
 void __OVERLOAD__ write_imagef(image1d_t, int, float4);
 void __OVERLOAD__ write_imagef(image2d_t, int2, float4);
 void __OVERLOAD__ write_imagef(image3d_t, int4, float4);

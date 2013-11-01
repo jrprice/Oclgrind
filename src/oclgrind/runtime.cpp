@@ -1187,27 +1187,32 @@ clCreateImage(cl_context              context,
     return NULL;
   }
 
+  size_t size;
+  size_t width = 1, height = 1, depth = 1;
+
   // Calculate total size of image
-  size_t size = image_desc->image_width *
-                image_desc->image_height *
-                image_desc->image_depth *
-                pixelSize;
   switch (image_desc->image_type)
   {
     case CL_MEM_OBJECT_IMAGE1D:
       size = image_desc->image_width *
              pixelSize;
+      width = image_desc->image_width;
       break;
     case CL_MEM_OBJECT_IMAGE2D:
       size = image_desc->image_width *
              image_desc->image_height *
              pixelSize;
+      width = image_desc->image_width;
+      height = image_desc->image_height;
       break;
     case CL_MEM_OBJECT_IMAGE3D:
       size = image_desc->image_width *
              image_desc->image_height *
              image_desc->image_depth *
              pixelSize;
+      width = image_desc->image_width;
+      height = image_desc->image_height;
+      depth = image_desc->image_depth;
       break;
     default:
       ERRCODE(CL_INVALID_VALUE);
@@ -1228,6 +1233,9 @@ clCreateImage(cl_context              context,
   image->isImage = true;
   image->format = *image_format;
   image->desc = *image_desc;
+  image->desc.image_width = width;
+  image->desc.image_height = height;
+  image->desc.image_depth = depth;
   delete mem;
 
   ERRCODE(CL_SUCCESS);
@@ -1552,20 +1560,91 @@ clCreateSampler(cl_context           context ,
                 cl_filter_mode       filter_mode ,
                 cl_int *             errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
-  return NULL;
+  // Check parameters
+  if (!context)
+  {
+    ERRCODE(CL_INVALID_CONTEXT);
+    return NULL;
+  }
+
+  // Create sampler bitfield
+  uint32_t bitfield = 0;
+
+  if (normalized_coords)
+  {
+    bitfield |= 0x0001;
+  }
+
+  switch (addressing_mode)
+  {
+    case CL_ADDRESS_NONE:
+      break;
+    case CL_ADDRESS_CLAMP_TO_EDGE:
+      bitfield |= 0x0002;
+      break;
+    case CL_ADDRESS_CLAMP:
+      bitfield |= 0x0004;
+      break;
+    case CL_ADDRESS_REPEAT:
+      bitfield |= 0x0006;
+      break;
+    case CL_ADDRESS_MIRRORED_REPEAT:
+      bitfield |= 0x0008;
+      break;
+    default:
+      ERRCODE(CL_INVALID_VALUE);
+      return NULL;
+  }
+
+  switch (filter_mode)
+  {
+    case CL_FILTER_NEAREST:
+      bitfield |= 0x0010;
+      break;
+    case CL_FILTER_LINEAR:
+      bitfield |= 0x0020;
+      break;
+    default:
+      ERRCODE(CL_INVALID_VALUE);
+      return NULL;
+  }
+
+  // Create sampler
+  cl_sampler sampler = new _cl_sampler;
+  sampler->dispatch = m_dispatchTable;
+  sampler->sampler = bitfield;
+
+  ERRCODE(CL_SUCCESS);
+  return sampler;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainSampler(cl_sampler  sampler) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_SAMPLER;
+  if (!sampler)
+  {
+    return CL_INVALID_SAMPLER;
+  }
+
+  sampler->refCount++;
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseSampler(cl_sampler  sampler) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_SAMPLER;
+  if (!sampler)
+  {
+    return CL_INVALID_SAMPLER;
+  }
+
+  if (--sampler->refCount == 0)
+  {
+    delete sampler;
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -2208,8 +2287,11 @@ clSetKernelArg(cl_kernel     kernel ,
   }
 
   unsigned int addr = kernel->kernel->getArgumentAddressQualifier(arg_index);
+  bool isSampler = strcmp(kernel->kernel->getArgumentTypeName(arg_index),
+                          "sampler_t") == 0;
 
   if (kernel->kernel->getArgumentSize(arg_index) != arg_size
+      && !isSampler
       && addr != CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
     return CL_INVALID_ARG_SIZE;
@@ -2223,7 +2305,14 @@ clSetKernelArg(cl_kernel     kernel ,
   switch (addr)
   {
   case CL_KERNEL_ARG_ADDRESS_PRIVATE:
-    memcpy(value.data, arg_value, arg_size);
+    if (isSampler)
+    {
+      memcpy(value.data, &(*(cl_sampler*)arg_value)->sampler, 4);
+    }
+    else
+    {
+      memcpy(value.data, arg_value, arg_size);
+    }
     break;
   case CL_KERNEL_ARG_ADDRESS_LOCAL:
     *(size_t*)value.data = 0;

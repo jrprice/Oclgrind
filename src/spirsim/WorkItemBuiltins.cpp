@@ -33,6 +33,18 @@
 using namespace spirsim;
 using namespace std;
 
+#define CLK_NORMALIZED_COORDS_TRUE 0x0001
+
+#define CLK_ADDRESS_NONE 0x0000
+#define CLK_ADDRESS_CLAMP_TO_EDGE 0x0002
+#define CLK_ADDRESS_CLAMP 0x0004
+#define CLK_ADDRESS_REPEAT 0x0006
+#define CLK_ADDRESS_MIRRORED_REPEAT 0x0008
+#define CLK_ADDRESS_MASK 0x000E
+
+#define CLK_FILTER_NEAREST 0x0010
+#define CLK_FILTER_LINEAR 0x0020
+
 namespace spirsim
 {
   class WorkItemBuiltins
@@ -695,7 +707,7 @@ namespace spirsim
     // Image Functions //
     /////////////////////
 
-    static size_t getChannelSize(cl_image_format& format)
+    static size_t getChannelSize(const cl_image_format& format)
     {
       switch (format.image_channel_data_type)
       {
@@ -719,7 +731,7 @@ namespace spirsim
       }
     }
 
-    static size_t getNumChannels(cl_image_format& format)
+    static size_t getNumChannels(const cl_image_format& format)
     {
       switch (format.image_channel_order)
       {
@@ -742,6 +754,25 @@ namespace spirsim
         return 4;
       default:
         return 0;
+      }
+    }
+
+    static bool hasZeroAlphaBorder(const cl_image_format& format)
+    {
+      switch (format.image_channel_order)
+      {
+      case CL_A:
+      case CL_INTENSITY:
+      case CL_Rx:
+      case CL_RA:
+      case CL_RGx:
+      case CL_RGBx:
+      case CL_ARGB:
+      case CL_BGRA:
+      case CL_RGBA:
+        return true;
+      default:
+        return false;
       }
     }
 
@@ -788,6 +819,226 @@ namespace spirsim
     {
       Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
       workItem->setIntResult(result, (int64_t)image->desc.image_width);
+    }
+
+    static inline float getCoordinate(const llvm::Value *value, int index,
+                                      char type, WorkItem *workItem)
+    {
+      switch (type)
+      {
+        case 'i':
+          return workItem->getSignedInt(value, index);
+        case 'f':
+          return workItem->getFloatValue(value, index);
+        default:
+          string msg = "Unsupported coordinate type: ";
+          msg += type;
+          throw FatalError(msg, __FILE__, __LINE__);
+      }
+    }
+
+    static inline int getNearestCoordinate(uint32_t sampler,
+                                           float u, // Unnormalized coordinate
+                                           float n, // Normalized coordinate
+                                           size_t size)
+    {
+      switch (sampler & CLK_ADDRESS_MASK)
+      {
+        case CLK_ADDRESS_NONE:
+          return n;
+        case CLK_ADDRESS_CLAMP_TO_EDGE:
+          return _clamp_<int>(floor(n), 0, size - 1);
+        case CLK_ADDRESS_CLAMP:
+          return _clamp_<int>(floor(n), -1, size);
+        case CLK_ADDRESS_REPEAT:
+          return (int)floor((u - floor(u))*size) % size;
+        case CLK_ADDRESS_MIRRORED_REPEAT:
+          return _min_<int>((int)floor(fabs(u - 2.f * rint(0.5f * u)) * size),
+                            size - 1);
+        default:
+          // TODO: Fix error message
+          string msg = "Unsupported sampler addressing mode: ";
+          msg += sampler & CLK_ADDRESS_MASK;
+          throw FatalError(msg, __FILE__, __LINE__);
+      }
+    }
+
+    static inline float readNormalizedColor(const Image *image,
+                                            const WorkItem *workItem,
+                                            int i, int j, int k, int c)
+    {
+      // Check for out-of-range coordinages
+      if (i < 0 || i >= image->desc.image_width ||
+          j < 0 || j >= image->desc.image_height ||
+          k < 0 || k >= image->desc.image_depth)
+      {
+        // Return border color
+        if (c == 3 && !hasZeroAlphaBorder(image->format))
+        {
+          return 1.f;
+        }
+        return 0.f;
+      }
+
+      // Remap channels
+      int channel = c;
+      switch (image->format.image_channel_order)
+      {
+        case CL_R:
+        case CL_Rx:
+          if (c == 1) return 0.f;
+        case CL_RG:
+        case CL_RGx:
+          if (c == 2) return 0.f;
+        case CL_RGB:
+        case CL_RGBx:
+          if (c == 3) return 1.f;
+          break;
+        case CL_RGBA:
+          break;
+        case CL_BGRA:
+          if (c == 0) channel = 2;
+          if (c == 2) channel = 0;
+          break;
+        case CL_ARGB:
+          if (c == 0) channel = 1;
+          if (c == 1) channel = 2;
+          if (c == 2) channel = 3;
+          if (c == 3) channel = 0;
+          break;
+        case CL_A:
+          if (c == 3) channel = 0;
+          else return 0.f;
+          break;
+        case CL_RA:
+          if (c == 3) channel = 1;
+          else if (c != 0) return 0.f;
+          break;
+        case CL_INTENSITY:
+          channel = 0;
+          break;
+        case CL_LUMINANCE:
+          if (c == 3) return 1.f;
+          channel = 0;
+          break;
+        default:
+          // TODO: Fix error message
+          string msg = "Unsupported image channel order: ";
+          msg += image->format.image_channel_order;
+          throw FatalError(msg, __FILE__, __LINE__);
+      }
+
+      // Calculate pixel address
+      size_t channelSize = getChannelSize(image->format);
+      size_t numChannels = getNumChannels(image->format);
+      size_t pixelSize = channelSize*numChannels;
+      size_t address = image->address
+                        + (i + (j + k*image->desc.image_height)
+                        * image->desc.image_width) * pixelSize
+                        + channel*channelSize;
+
+      // Load channel data
+      unsigned char *data = new unsigned char[channelSize];
+      if (!workItem->m_device->getGlobalMemory()->load(data, address,
+                                                       channelSize))
+      {
+        workItem->m_device->notifyMemoryError(true, AddrSpaceGlobal,
+                                              address,
+                                              channelSize);
+        return 0.f;
+      }
+
+      // Compute normalized color value
+      float color;
+      switch (image->format.image_channel_data_type)
+      {
+        case CL_SNORM_INT8:
+          color = _clamp_(*(int8_t*)data / 127.f, -1.f, 1.f);
+          break;
+        case CL_UNORM_INT8:
+          color = _clamp_(*(uint8_t*)data / 255.f, 0.f, 1.f);
+          break;
+        case CL_SNORM_INT16:
+          color = _clamp_(*(int16_t*)data / 32767.f, -1.f, 1.f);
+          break;
+        case CL_UNORM_INT16:
+          color = _clamp_(*(uint16_t*)data / 65535.f, 0.f, 1.f);
+          break;
+        case CL_FLOAT:
+          color = *(float*)data;
+          break;
+        default:
+          // TODO: Fix error message
+          string msg = "Unsupported image channel data type: ";
+          msg += image->format.image_channel_data_type;
+          throw FatalError(msg, __FILE__, __LINE__);
+      }
+      delete[] data;
+
+      return color;
+    }
+
+    DEFINE_BUILTIN(read_imagef)
+    {
+      const Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+
+      // Get sampler
+      // TODO: Check for samplerless reads
+      uint32_t sampler = UARG(1);
+
+      // Get coordinates
+      float s = 0.f, t = 0.f, r = 0.f;
+      char coordType = *overload.rbegin();
+      s = getCoordinate(ARG(2), 0, coordType, workItem);
+      if (ARG(2)->getType()->isVectorTy())
+      {
+        t = getCoordinate(ARG(2), 1, coordType, workItem);
+        if (ARG(2)->getType()->getVectorNumElements() > 2)
+        {
+          r = getCoordinate(ARG(2), 2, coordType, workItem);
+        }
+      }
+
+      // Get unnormalized coordinates
+      float u = 0.f, v = 0.f, w = 0.f;
+      if (sampler & CLK_NORMALIZED_COORDS_TRUE)
+      {
+        u = s * image->desc.image_width;
+        v = t * image->desc.image_height;
+        w = r * image->desc.image_depth;
+      }
+      else
+      {
+        u = s;
+        v = t;
+        w = r;
+      }
+
+      float values[4];
+      if (sampler & CLK_FILTER_LINEAR)
+      {
+        // TODO: Implement
+        values[0] = 0.f;
+        values[1] = 0.f;
+        values[2] = 0.f;
+        values[3] = 0.f;
+      }
+      else
+      {
+        int i = getNearestCoordinate(sampler, s, u, image->desc.image_width);
+        int j = getNearestCoordinate(sampler, t, v, image->desc.image_height);
+        int k = getNearestCoordinate(sampler, r, w, image->desc.image_depth);
+        values[0] = readNormalizedColor(image, workItem, i, j, k, 0);
+        values[1] = readNormalizedColor(image, workItem, i, j, k, 1);
+        values[2] = readNormalizedColor(image, workItem, i, j, k, 2);
+        values[3] = readNormalizedColor(image, workItem, i, j, k, 3);
+      }
+
+      // Store values in result
+      for (int i = 0; i < 4; i++)
+      {
+        workItem->setFloatResult(result, values[i], i);
+      }
     }
 
     DEFINE_BUILTIN(write_imagef)
@@ -865,7 +1116,7 @@ namespace spirsim
         switch (image->format.image_channel_data_type)
         {
           case CL_SNORM_INT8:
-            *data = rint(_clamp_(values[i] * 127.f, -128.f, 127.f));
+            *(int8_t*)data = rint(_clamp_(values[i] * 127.f, -128.f, 127.f));
             break;
           case CL_UNORM_INT8:
             *data = rint(_clamp_(values[i] * 255.f, 0.f, 255.f));
@@ -894,6 +1145,7 @@ namespace spirsim
                                                 pixelAddress + i*channelSize,
                                                 channelSize);
         }
+        delete[] data;
       }
     }
 
@@ -2515,6 +2767,7 @@ namespace spirsim
     ADD_BUILTIN("get_image_depth", get_image_depth, NULL);
     ADD_BUILTIN("get_image_height", get_image_height, NULL);
     ADD_BUILTIN("get_image_width", get_image_width, NULL);
+    ADD_BUILTIN("read_imagef", read_imagef, NULL);
     ADD_BUILTIN("write_imagef", write_imagef, NULL);
     ADD_BUILTIN("write_imagei", write_imagei, NULL);
     ADD_BUILTIN("write_imageui", write_imageui, NULL);

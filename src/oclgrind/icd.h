@@ -139,6 +139,8 @@ struct _cl_event
 struct _cl_sampler
 {
   CLIicdDispatchTable* dispatch;
+  uint32_t sampler;
+  unsigned int refCount;
 };
 
 cl_int cliIcdDispatchTableCreate(CLIicdDispatchTable **outDispatchTable);
