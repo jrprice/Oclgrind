@@ -838,23 +838,69 @@ namespace spirsim
     }
 
     static inline int getNearestCoordinate(uint32_t sampler,
-                                           float u, // Unnormalized coordinate
-                                           float n, // Normalized coordinate
+                                           float n, // Normalized
+                                           float u, // Unormalized
                                            size_t size)
     {
       switch (sampler & CLK_ADDRESS_MASK)
       {
         case CLK_ADDRESS_NONE:
-          return n;
+          return u;
         case CLK_ADDRESS_CLAMP_TO_EDGE:
-          return _clamp_<int>(floor(n), 0, size - 1);
+          return _clamp_<int>(floor(u), 0, size - 1);
         case CLK_ADDRESS_CLAMP:
-          return _clamp_<int>(floor(n), -1, size);
+          return _clamp_<int>(floor(u), -1, size);
         case CLK_ADDRESS_REPEAT:
-          return (int)floor((u - floor(u))*size) % size;
+          return (int)floorf((n - floorf(n))*size) % size;
         case CLK_ADDRESS_MIRRORED_REPEAT:
-          return _min_<int>((int)floor(fabs(u - 2.f * rint(0.5f * u)) * size),
+          return _min_<int>((int)floorf(fabsf(n - 2.f * rintf(0.5f*n)) * size),
                             size - 1);
+        default:
+          // TODO: Fix error message
+          string msg = "Unsupported sampler addressing mode: ";
+          msg += sampler & CLK_ADDRESS_MASK;
+          throw FatalError(msg, __FILE__, __LINE__);
+      }
+    }
+
+    static inline float getAdjacentCoordinates(uint32_t sampler,
+                                               float n, // Normalized
+                                               float u, // Unnormalized
+                                               size_t size,
+                                               int *c0, int *c1)
+    {
+      switch (sampler & CLK_ADDRESS_MASK)
+      {
+        case CLK_ADDRESS_NONE:
+          *c0 = u;
+          *c1 = u + 1;
+          return u;
+        case CLK_ADDRESS_CLAMP_TO_EDGE:
+          *c0 = _clamp_<int>(floorf(u - 0.5f), 0, size - 1);
+          *c1 = _clamp_<int>(floorf(u - 0.5f) + 1, 0, size - 1);
+          return u;
+        case CLK_ADDRESS_CLAMP:
+          *c0 = _clamp_<int>((floorf(u - 0.5f)), -1, size);
+          *c1 = _clamp_<int>((floorf(u - 0.5f)) + 1, -1, size);
+          return u;
+        case CLK_ADDRESS_REPEAT:
+        {
+          u = (n - floorf(n)) * size;
+          *c0 = (int)floorf(u - 0.5f);
+          *c1 = *c0 + 1;
+          if (*c0 < 0) *c0 += size;
+          if (*c1 >= size) *c1 -= size;
+          return u;
+        }
+        case CLK_ADDRESS_MIRRORED_REPEAT:
+        {
+          u = fabsf(n - 2.0f * rintf(0.5f * n)) * size;
+          *c0 = (int)floorf(u - 0.5f);
+          *c1 = *c0 + 1;
+          *c0 = _max_(*c0, 0);
+          *c1 = _min_(*c1, (int)size-1);
+          return u;
+        }
         default:
           // TODO: Fix error message
           string msg = "Unsupported sampler addressing mode: ";
@@ -978,6 +1024,27 @@ namespace spirsim
       return color;
     }
 
+    static inline float frac(float x)
+    {
+      return x - floorf(x);
+    }
+
+    static inline float interpolate(float v000, float v010,
+                                    float v100, float v110,
+                                    float v001, float v011,
+                                    float v101, float v111,
+                                    float a, float b, float c)
+    {
+      return  (1-a) * (1-b) * (1-c) * v000
+            +   a   * (1-b) * (1-c) * v100
+            + (1-a) *    b  * (1-c) * v010
+            +    a  *    b  * (1-c) * v110
+            + (1-a) * (1-b) *    c  * v001
+            +    a  * (1-b) *    c  * v101
+            + (1-a) *    b  *    c  * v011
+            +    a  *    b  *    c  * v111;
+    }
+
     DEFINE_BUILTIN(read_imagef)
     {
       const Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
@@ -1017,14 +1084,47 @@ namespace spirsim
       float values[4];
       if (sampler & CLK_FILTER_LINEAR)
       {
-        // TODO: Implement
-        values[0] = 0.f;
-        values[1] = 0.f;
-        values[2] = 0.f;
-        values[3] = 0.f;
+        // Get coordinates of adjacent pixels
+        int i0 = 0, i1 = 0, j0 = 0, j1 = 0, k0 = 0, k1 = 0;
+        u = getAdjacentCoordinates(sampler, s, u, image->desc.image_width,
+                                   &i0, &i1);
+        v = getAdjacentCoordinates(sampler, t, v, image->desc.image_height,
+                                   &j0, &j1);
+        w = getAdjacentCoordinates(sampler, r, w, image->desc.image_depth,
+                                   &k0, &k1);
+
+        // Make sure y and z coordinates are equal for 1 and 2D images
+        if (image->desc.image_type == CL_MEM_OBJECT_IMAGE1D)
+        {
+          j0 = j1;
+          k0 = k1;
+        }
+        else if (image->desc.image_type == CL_MEM_OBJECT_IMAGE2D)
+        {
+          k0 = k1;
+        }
+
+        // Perform linear interpolation
+        float a = frac(u - 0.5f);
+        float b = frac(v - 0.5f);
+        float c = frac(w - 0.5f);
+        for (int i = 0; i < 4; i++)
+        {
+          values[i] = interpolate(
+            readNormalizedColor(image, workItem, i0, j0, k0, i),
+            readNormalizedColor(image, workItem, i0, j1, k0, i),
+            readNormalizedColor(image, workItem, i1, j0, k0, i),
+            readNormalizedColor(image, workItem, i1, j1, k0, i),
+            readNormalizedColor(image, workItem, i0, j0, k1, i),
+            readNormalizedColor(image, workItem, i0, j1, k1, i),
+            readNormalizedColor(image, workItem, i1, j0, k1, i),
+            readNormalizedColor(image, workItem, i1, j1, k1, i),
+            a, b, c);
+        }
       }
       else
       {
+        // Read values from nearest pixel
         int i = getNearestCoordinate(sampler, s, u, image->desc.image_width);
         int j = getNearestCoordinate(sampler, t, v, image->desc.image_height);
         int k = getNearestCoordinate(sampler, r, w, image->desc.image_depth);
