@@ -1355,6 +1355,18 @@ clGetSupportedImageFormats(cl_context           context,
                            cl_image_format *    image_formats ,
                            cl_uint *            num_image_formats) CL_API_SUFFIX__VERSION_1_0
 {
+  // TODO: Implement image arrays and CL_MEM_OBJECT_IMAGE1D_BUFFER
+  if (image_type == CL_MEM_OBJECT_IMAGE1D_BUFFER ||
+      image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY ||
+      image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
+  {
+    if (num_image_formats)
+    {
+      *num_image_formats = 0;
+    }
+    return CL_SUCCESS;
+  }
+
   // Check parameters
   if (!context)
   {
@@ -1398,14 +1410,6 @@ clGetSupportedImageFormats(cl_context           context,
   if (num_image_formats)
   {
     *num_image_formats = numFormats;
-  }
-
-  // TODO: Implement image arrays and CL_MEM_OBJECT_IMAGE1D_BUFFER
-  if (image_type == CL_MEM_OBJECT_IMAGE1D_BUFFER ||
-      image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY ||
-      image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
-  {
-    numOrders = numTypes = numFormats = 0;
   }
 
   // Generate list of all order/type combinations
