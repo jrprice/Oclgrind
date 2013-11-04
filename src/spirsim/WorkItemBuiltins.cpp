@@ -845,7 +845,7 @@ namespace spirsim
       switch (sampler & CLK_ADDRESS_MASK)
       {
         case CLK_ADDRESS_NONE:
-          return u;
+          return floor(u);
         case CLK_ADDRESS_CLAMP_TO_EDGE:
           return _clamp_<int>(floor(u), 0, size - 1);
         case CLK_ADDRESS_CLAMP:
@@ -872,8 +872,8 @@ namespace spirsim
       switch (sampler & CLK_ADDRESS_MASK)
       {
         case CLK_ADDRESS_NONE:
-          *c0 = u;
-          *c1 = u + 1;
+          *c0 = floor(u);
+          *c1 = floor(u) + 1;
           return u;
         case CLK_ADDRESS_CLAMP_TO_EDGE:
           *c0 = _clamp_<int>(floorf(u - 0.5f), 0, size - 1);
@@ -1223,20 +1223,26 @@ namespace spirsim
     {
       const Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
 
-      // Get sampler
-      // TODO: Check for samplerless reads
-      uint32_t sampler = UARG(1);
+      uint32_t sampler = CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
+      int coordIndex = 1;
+
+      // Check for sampler version
+      if (callInst->getNumArgOperands() > 2)
+      {
+        sampler = UARG(1);
+        coordIndex = 2;
+      }
 
       // Get coordinates
       float s = 0.f, t = 0.f, r = 0.f;
       char coordType = *overload.rbegin();
-      s = getCoordinate(ARG(2), 0, coordType, workItem);
-      if (ARG(2)->getType()->isVectorTy())
+      s = getCoordinate(ARG(coordIndex), 0, coordType, workItem);
+      if (ARG(coordIndex)->getType()->isVectorTy())
       {
-        t = getCoordinate(ARG(2), 1, coordType, workItem);
-        if (ARG(2)->getType()->getVectorNumElements() > 2)
+        t = getCoordinate(ARG(coordIndex), 1, coordType, workItem);
+        if (ARG(coordIndex)->getType()->getVectorNumElements() > 2)
         {
-          r = getCoordinate(ARG(2), 2, coordType, workItem);
+          r = getCoordinate(ARG(coordIndex), 2, coordType, workItem);
         }
       }
 
@@ -1319,20 +1325,26 @@ namespace spirsim
     {
       const Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
 
-      // Get sampler
-      // TODO: Check for samplerless reads
-      uint32_t sampler = UARG(1);
+      uint32_t sampler = CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
+      int coordIndex = 1;
+
+      // Check for sampler version
+      if (callInst->getNumArgOperands() > 2)
+      {
+        sampler = UARG(1);
+        coordIndex = 2;
+      }
 
       // Get coordinates
       float s = 0.f, t = 0.f, r = 0.f;
       char coordType = *overload.rbegin();
-      s = getCoordinate(ARG(2), 0, coordType, workItem);
-      if (ARG(2)->getType()->isVectorTy())
+      s = getCoordinate(ARG(coordIndex), 0, coordType, workItem);
+      if (ARG(coordIndex)->getType()->isVectorTy())
       {
-        t = getCoordinate(ARG(2), 1, coordType, workItem);
-        if (ARG(2)->getType()->getVectorNumElements() > 2)
+        t = getCoordinate(ARG(coordIndex), 1, coordType, workItem);
+        if (ARG(coordIndex)->getType()->getVectorNumElements() > 2)
         {
-          r = getCoordinate(ARG(2), 2, coordType, workItem);
+          r = getCoordinate(ARG(coordIndex), 2, coordType, workItem);
         }
       }
 
@@ -1372,20 +1384,26 @@ namespace spirsim
     {
       const Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
 
-      // Get sampler
-      // TODO: Check for samplerless reads
-      uint32_t sampler = UARG(1);
+      uint32_t sampler = CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
+      int coordIndex = 1;
+
+      // Check for sampler version
+      if (callInst->getNumArgOperands() > 2)
+      {
+        sampler = UARG(1);
+        coordIndex = 2;
+      }
 
       // Get coordinates
       float s = 0.f, t = 0.f, r = 0.f;
       char coordType = *overload.rbegin();
-      s = getCoordinate(ARG(2), 0, coordType, workItem);
-      if (ARG(2)->getType()->isVectorTy())
+      s = getCoordinate(ARG(coordIndex), 0, coordType, workItem);
+      if (ARG(coordIndex)->getType()->isVectorTy())
       {
-        t = getCoordinate(ARG(2), 1, coordType, workItem);
-        if (ARG(2)->getType()->getVectorNumElements() > 2)
+        t = getCoordinate(ARG(coordIndex), 1, coordType, workItem);
+        if (ARG(coordIndex)->getType()->getVectorNumElements() > 2)
         {
-          r = getCoordinate(ARG(2), 2, coordType, workItem);
+          r = getCoordinate(ARG(coordIndex), 2, coordType, workItem);
         }
       }
 
