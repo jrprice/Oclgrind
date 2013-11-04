@@ -1094,7 +1094,23 @@ clCreateSubBuffer(cl_mem                    buffer ,
   return mem;
 }
 
-// Convenience function for computing an image format's pixel size (in bytes)
+// Utility function for getting number of dimensions in image
+size_t getNumDimensions(cl_mem_object_type type)
+{
+  switch (type)
+  {
+  case CL_MEM_OBJECT_IMAGE1D:
+    return 1;
+  case CL_MEM_OBJECT_IMAGE2D:
+    return 2;
+  case CL_MEM_OBJECT_IMAGE3D:
+    return 3;
+  default:
+    return 0;
+  }
+}
+
+// Utility function for computing an image format's pixel size (in bytes)
 size_t getPixelSize(const cl_image_format *format)
 {
     // Get number of channels
@@ -1187,37 +1203,21 @@ clCreateImage(cl_context              context,
     return NULL;
   }
 
-  size_t size;
-  size_t width = 1, height = 1, depth = 1;
-
-  // Calculate total size of image
-  switch (image_desc->image_type)
+  // Get image dimensions
+  size_t dims = getNumDimensions(image_desc->image_type);
+  size_t width = image_desc->image_width;
+  size_t height = 1, depth = 1;
+  if (dims > 1)
   {
-    case CL_MEM_OBJECT_IMAGE1D:
-      size = image_desc->image_width *
-             pixelSize;
-      width = image_desc->image_width;
-      break;
-    case CL_MEM_OBJECT_IMAGE2D:
-      size = image_desc->image_width *
-             image_desc->image_height *
-             pixelSize;
-      width = image_desc->image_width;
-      height = image_desc->image_height;
-      break;
-    case CL_MEM_OBJECT_IMAGE3D:
-      size = image_desc->image_width *
-             image_desc->image_height *
-             image_desc->image_depth *
-             pixelSize;
-      width = image_desc->image_width;
-      height = image_desc->image_height;
-      depth = image_desc->image_depth;
-      break;
-    default:
-      ERRCODE(CL_INVALID_VALUE);
-      return NULL;
+    height = image_desc->image_height;
   }
+  if (dims > 2)
+  {
+    depth = image_desc->image_depth;
+  }
+
+  // Calculate total size of iamge
+  size_t size = width * height * depth * pixelSize;
 
   // Create buffer
   // TODO: Use pitches
@@ -1533,7 +1533,101 @@ clGetImageInfo(cl_mem            image ,
                void *            param_value ,
                size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_MEM_OBJECT;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check mem object is valid
+  if (!image)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+  cl_image *img = (cl_image*)image;
+
+  switch (param_name)
+  {
+  case CL_IMAGE_FORMAT:
+    result_size = sizeof(cl_image_format);
+    result_data = malloc(result_size);
+    *(cl_image_format*)result_data = img->format;
+    break;
+  case CL_IMAGE_ELEMENT_SIZE:
+    result_size = sizeof(size_t);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = getPixelSize(&img->format);
+    break;
+  case CL_IMAGE_ROW_PITCH:
+    result_size = sizeof(size_t);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = img->desc.image_row_pitch;
+    break;
+  case CL_IMAGE_SLICE_PITCH:
+    result_size = sizeof(size_t);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = img->desc.image_slice_pitch;
+    break;
+  case CL_IMAGE_WIDTH:
+    result_size = sizeof(size_t);
+    result_data = malloc(result_size);
+    *(size_t*)result_data = img->desc.image_width;
+    break;
+  case CL_IMAGE_HEIGHT:
+    result_size = sizeof(size_t);
+    result_data = malloc(result_size);
+    *(size_t*)result_data =
+      getNumDimensions(img->desc.image_type) > 1 ? img->desc.image_height : 0;
+    break;
+  case CL_IMAGE_DEPTH:
+    result_size = sizeof(size_t);
+    result_data = malloc(result_size);
+    *(size_t*)result_data =
+      getNumDimensions(img->desc.image_type) > 2 ? img->desc.image_depth : 0;
+    break;
+  case CL_IMAGE_ARRAY_SIZE:
+    result_size = sizeof(size_t);
+    result_data = malloc(result_size);
+     *(size_t*)result_data = img->desc.image_array_size;
+    break;
+  case CL_IMAGE_BUFFER:
+    result_size = sizeof(cl_mem);
+    result_data = malloc(result_size);
+    *(cl_mem*)result_data = img->desc.buffer;
+    break;
+  case CL_IMAGE_NUM_MIP_LEVELS:
+    result_size = sizeof(cl_uint);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
+    break;
+  case CL_IMAGE_NUM_SAMPLES:
+    result_size = sizeof(cl_uint);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = 0;
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
