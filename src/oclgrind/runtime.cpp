@@ -1110,11 +1110,9 @@ size_t getNumDimensions(cl_mem_object_type type)
   }
 }
 
-// Utility function for computing an image format's pixel size (in bytes)
-size_t getPixelSize(const cl_image_format *format)
+// Utility function for getting number of channels in an image
+size_t getNumChannels(const cl_image_format *format)
 {
-    // Get number of channels
-  size_t numChannels;
   switch (format->image_channel_order)
   {
   case CL_R:
@@ -1122,25 +1120,28 @@ size_t getPixelSize(const cl_image_format *format)
   case CL_A:
   case CL_INTENSITY:
   case CL_LUMINANCE:
-    numChannels = 1;
-    break;
+    return 1;
   case CL_RG:
   case CL_RGx:
   case CL_RA:
-    numChannels = 2;
-    break;
+    return 2;
   case CL_RGB:
   case CL_RGBx:
-    numChannels = 3;
-    break;
+    return 3;
   case CL_RGBA:
   case CL_ARGB:
   case CL_BGRA:
-    numChannels = 4;
-    break;
+    return 4;
   default:
     return 0;
   }
+}
+
+// Utility function for computing an image format's pixel size (in bytes)
+size_t getPixelSize(const cl_image_format *format)
+{
+  // Get number of channels
+  size_t numChannels = getNumChannels(format);
 
   // Get size of each pixel (in bytes)
   switch (format->image_channel_data_type)
@@ -3473,7 +3474,7 @@ clEnqueueFillBuffer(cl_command_queue    command_queue ,
                     const cl_event *    event_wait_list ,
                     cl_event *          event) CL_API_SUFFIX__VERSION_1_2
 {
-   // Check parameters
+  // Check parameters
   if (!command_queue)
   {
     return CL_INVALID_COMMAND_QUEUE;
@@ -3496,9 +3497,9 @@ clEnqueueFillBuffer(cl_command_queue    command_queue ,
   }
 
   // Enqueue command
-  spirsim::Queue::FillCommand *cmd =
-    new spirsim::Queue::FillCommand((const unsigned char*)pattern,
-                                    pattern_size);
+  spirsim::Queue::FillBufferCommand *cmd =
+    new spirsim::Queue::FillBufferCommand((const unsigned char*)pattern,
+                                          pattern_size);
   cmd->address = buffer->address + offset;
   cmd->size = cb;
   asyncQueueRetain(cmd, buffer);
@@ -3518,7 +3519,137 @@ clEnqueueFillImage(cl_command_queue    command_queue ,
                    const cl_event *    event_wait_list ,
                    cl_event *          event) CL_API_SUFFIX__VERSION_1_2
 {
-  return CL_INVALID_MEM_OBJECT;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!image)
+  {
+    return CL_INVALID_MEM_OBJECT;
+  }
+  if (!fill_color)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  // Get image dimensions
+  cl_image *img = (cl_image*)image;
+  size_t width = img->desc.image_width;
+  size_t height = img->desc.image_height;
+  size_t depth = img->desc.image_depth;
+  size_t pixelSize = getPixelSize(&img->format);
+  size_t row_pitch = width * pixelSize;
+  size_t slice_pitch = height * row_pitch;
+
+  // Compute byte offset and size
+  size_t offset = origin[0] * pixelSize
+                + origin[1] * row_pitch
+                + origin[2] * slice_pitch;
+  size_t size = region[0] * pixelSize
+              + (region[1]-1) * row_pitch
+              + (region[2]-1) * slice_pitch;
+  if (offset + size > image->size)
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  // Generate color data with correct order and data type
+  unsigned char *color = new unsigned char[pixelSize];
+  for (int output = 0; output < getNumChannels(&img->format); output++)
+  {
+    // Get input channel index
+    int input = output;
+    switch (img->format.image_channel_order)
+    {
+      case CL_R:
+      case CL_Rx:
+      case CL_RG:
+      case CL_RGx:
+      case CL_RGB:
+      case CL_RGBx:
+      case CL_RGBA:
+        break;
+      case CL_BGRA:
+        if (output == 0) input = 2;
+        if (output == 2) input = 0;
+        break;
+      case CL_ARGB:
+        if (output == 0) input = 3;
+        if (output == 1) input = 0;
+        if (output == 2) input = 1;
+        if (output == 3) input = 2;
+        break;
+      case CL_A:
+        if (output == 0) input = 3;
+        break;
+      case CL_RA:
+        if (output == 1) input = 3;
+        break;
+      case CL_INTENSITY:
+      case CL_LUMINANCE:
+        input = 0;
+        break;
+      default:
+        return CL_INVALID_IMAGE_FORMAT_DESCRIPTOR;
+    }
+
+    // Interpret data
+    switch (img->format.image_channel_data_type)
+    {
+    case CL_SNORM_INT8:
+      ((int8_t*)color)[output] =
+        rint(min(max(((float*)fill_color)[input]*127.f, -127.f), 128.f));
+      break;
+    case CL_UNORM_INT8:
+      ((uint8_t*)color)[output] =
+        rint(min(max(((float*)fill_color)[input]*255.f, 0.f), 255.f));
+      break;
+    case CL_SNORM_INT16:
+      ((int16_t*)color)[output] =
+        rint(min(max(((float*)fill_color)[input]*32767.f, -32768.f), 32767.f));
+      break;
+    case CL_UNORM_INT16:
+      ((uint16_t*)color)[output] =
+        rint(min(max(((float*)fill_color)[input]*65535.f, 0.f), 65535.f));
+      break;
+    case CL_FLOAT:
+      ((float*)color)[output] = ((float*)fill_color)[input];
+      break;
+    case CL_SIGNED_INT8:
+      ((int8_t*)color)[output] = ((int32_t*)fill_color)[input];
+      break;
+    case CL_SIGNED_INT16:
+      ((int16_t*)color)[output] = ((int32_t*)fill_color)[input];
+      break;
+    case CL_SIGNED_INT32:
+      ((int32_t*)color)[output] = ((int32_t*)fill_color)[input];
+      break;
+    case CL_UNSIGNED_INT8:
+      ((uint8_t*)color)[output] = ((uint32_t*)fill_color)[input];
+      break;
+    case CL_UNSIGNED_INT16:
+      ((uint16_t*)color)[output] = ((uint32_t*)fill_color)[input];
+      break;
+    case CL_UNSIGNED_INT32:
+      ((uint32_t*)color)[output] = ((uint32_t*)fill_color)[input];
+      break;
+    default:
+      return CL_INVALID_IMAGE_FORMAT_DESCRIPTOR;
+    }
+  }
+
+  // Enqueue command
+  spirsim::Queue::FillImageCommand *cmd =
+    new spirsim::Queue::FillImageCommand(image->address, origin, region,
+                                         row_pitch, slice_pitch,
+                                         pixelSize, color);
+  asyncQueueRetain(cmd, image);
+  asyncEnqueue(command_queue, CL_COMMAND_FILL_IMAGE, cmd,
+               num_events_in_wait_list, event_wait_list, event);
+  delete[] color;
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

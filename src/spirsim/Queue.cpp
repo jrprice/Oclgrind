@@ -83,7 +83,7 @@ void Queue::executeCopyBufferRect(CopyRectCommand *cmd)
   }
 }
 
-void Queue::executeFillBuffer(FillCommand *cmd)
+void Queue::executeFillBuffer(FillBufferCommand *cmd)
 {
   Memory *memory = m_device.getGlobalMemory();
   for (int i = 0; i < cmd->size/cmd->pattern_size; i++)
@@ -91,6 +91,26 @@ void Queue::executeFillBuffer(FillCommand *cmd)
     memory->store(cmd->pattern,
                   cmd->address + i*cmd->pattern_size,
                   cmd->pattern_size);
+  }
+}
+
+void Queue::executeFillImage(FillImageCommand *cmd)
+{
+  Memory *memory = m_device.getGlobalMemory();
+
+  for (int z = 0; z < cmd->region[2]; z++)
+  {
+    for (int y = 0; y < cmd->region[1]; y++)
+    {
+      for (int x = 0; x < cmd->region[0]; x++)
+      {
+        size_t address = cmd->base
+                       + (cmd->origin[0] + x) * cmd->pixelSize
+                       + (cmd->origin[1] + y) * cmd->rowPitch
+                       + (cmd->origin[2] + z) * cmd->slicePitch;
+        memory->store(cmd->color, address, cmd->pixelSize);
+      }
+    }
   }
 }
 
@@ -214,8 +234,11 @@ Queue::Command* Queue::update()
     break;
   case EMPTY:
     break;
-  case FILL:
-    executeFillBuffer((FillCommand*)cmd);
+  case FILL_BUFFER:
+    executeFillBuffer((FillBufferCommand*)cmd);
+    break;
+  case FILL_IMAGE:
+    executeFillImage((FillImageCommand*)cmd);
     break;
   case READ:
     executeReadBuffer((BufferCommand*)cmd);

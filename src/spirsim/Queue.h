@@ -32,8 +32,8 @@ namespace spirsim
   class Queue
   {
   public:
-    enum CommandType {EMPTY, COPY, COPY_RECT, FILL, KERNEL,
-                      READ, READ_RECT, WRITE, WRITE_RECT};
+    enum CommandType {EMPTY, COPY, COPY_RECT, FILL_BUFFER, FILL_IMAGE,
+                      KERNEL, READ, READ_RECT, WRITE, WRITE_RECT};
     struct Command
     {
       CommandType type;
@@ -98,21 +98,42 @@ namespace spirsim
         type = COPY_RECT;
       }
     };
-    struct FillCommand : Command
+    struct FillBufferCommand : Command
     {
       size_t address, size;
       size_t pattern_size;
       unsigned char *pattern;
-      FillCommand(const unsigned char *p, size_t sz)
+      FillBufferCommand(const unsigned char *p, size_t sz)
       {
-        type = FILL;
+        type = FILL_BUFFER;
         pattern = new unsigned char[sz];
         pattern_size = sz;
         memcpy(pattern, p, sz);
       }
-      ~FillCommand()
+      ~FillBufferCommand()
       {
         delete[] pattern;
+      }
+    };
+    struct FillImageCommand : Command
+    {
+      size_t base;
+      size_t origin[3], region[3];
+      size_t rowPitch, slicePitch;
+      size_t pixelSize;
+      unsigned char color[16];
+      FillImageCommand(size_t b, const size_t o[3], const size_t r[3],
+                       size_t rp, size_t sp,
+                       size_t ps, const unsigned char *col)
+      {
+        type = FILL_IMAGE;
+        base = b;
+        memcpy(origin, o, sizeof(size_t)*3);
+        memcpy(region, r, sizeof(size_t)*3);
+        rowPitch = rp;
+        slicePitch = sp;
+        pixelSize = ps;
+        memcpy(color, col, 16);
       }
     };
 
@@ -124,7 +145,8 @@ namespace spirsim
 
     void executeCopyBuffer(CopyCommand *cmd);
     void executeCopyBufferRect(CopyRectCommand *cmd);
-    void executeFillBuffer(FillCommand *cmd);
+    void executeFillBuffer(FillBufferCommand *cmd);
+    void executeFillImage(FillImageCommand *cmd);
     void executeKernel(KernelCommand *cmd);
     void executeReadBuffer(BufferCommand *cmd);
     void executeReadBufferRect(BufferRectCommand *cmd);
