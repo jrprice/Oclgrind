@@ -46,6 +46,7 @@ TYPEDEF_VECTOR(double);
 #define __ENDIAN_LITTLE__ 1
 #define __OPENCL_VERSION__ 120
 #define __OPENCL_C_VERSION__ 120
+#define __IMAGE_SUPPORT__ 1
 #define __kernel_exec(X, typen) __kernel                        \
   __attribute__((work_group_size_hint(X, 1, 1)))                \
   __attribute__((vec_type_hint(typen)))
