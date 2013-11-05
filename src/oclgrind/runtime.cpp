@@ -3761,8 +3761,68 @@ clEnqueueMapImage(cl_command_queue   command_queue ,
                   cl_event *         event ,
                   cl_int *           errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_MEM_OBJECT);
-  return NULL;
+  // Check parameters
+  if (!command_queue)
+  {
+    ERRCODE(CL_INVALID_COMMAND_QUEUE);
+    return NULL;
+  }
+  if (!image)
+  {
+    ERRCODE(CL_INVALID_MEM_OBJECT);
+    return NULL;
+  }
+  if (!image_row_pitch)
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+
+  // Get image dimensions
+  cl_image *img = (cl_image*)image;
+  size_t width = img->desc.image_width;
+  size_t height = img->desc.image_height;
+  size_t depth = img->desc.image_depth;
+  size_t pixelSize = getPixelSize(&img->format);
+  size_t row_pitch = width * pixelSize;
+  size_t slice_pitch = height * row_pitch;
+
+  // Compute byte offset and size
+  size_t offset = origin[0] * pixelSize
+                + origin[1] * row_pitch
+                + origin[2] * slice_pitch;
+  size_t size = region[0] * pixelSize
+              + (region[1]-1) * row_pitch
+              + (region[2]-1) * slice_pitch;
+
+  // Map image
+  void *ptr = image->context->device->getGlobalMemory()->mapBuffer(
+        image->address, offset, size);
+  if (ptr == NULL)
+  {
+    ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+
+  *image_row_pitch = row_pitch;
+  if (image_slice_pitch)
+  {
+    *image_slice_pitch = slice_pitch;
+  }
+
+  // Enqueue command
+  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  asyncQueueRetain(cmd, image);
+  asyncEnqueue(command_queue, CL_COMMAND_MAP_IMAGE, cmd,
+               num_events_in_wait_list, event_wait_list, event);
+
+  ERRCODE(CL_SUCCESS);
+  if (blocking_map)
+  {
+    ERRCODE(clFinish(command_queue));
+  }
+
+  return ptr;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
