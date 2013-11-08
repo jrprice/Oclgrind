@@ -1100,8 +1100,11 @@ size_t getNumDimensions(cl_mem_object_type type)
   switch (type)
   {
   case CL_MEM_OBJECT_IMAGE1D:
+  case CL_MEM_OBJECT_IMAGE1D_ARRAY:
+  case CL_MEM_OBJECT_IMAGE1D_BUFFER:
     return 1;
   case CL_MEM_OBJECT_IMAGE2D:
+  case CL_MEM_OBJECT_IMAGE2D_ARRAY:
     return 2;
   case CL_MEM_OBJECT_IMAGE3D:
     return 3;
@@ -1171,6 +1174,16 @@ size_t getPixelSize(const cl_image_format *format)
   }
 }
 
+bool isImageArray(cl_mem_object_type type)
+{
+  if (type == CL_MEM_OBJECT_IMAGE1D_ARRAY ||
+      type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
+  {
+    return true;
+  }
+  return false;
+}
+
 CL_API_ENTRY cl_mem CL_API_CALL
 clCreateImage(cl_context              context,
               cl_mem_flags            flags,
@@ -1208,6 +1221,7 @@ clCreateImage(cl_context              context,
   size_t dims = getNumDimensions(image_desc->image_type);
   size_t width = image_desc->image_width;
   size_t height = 1, depth = 1;
+  size_t arraySize = 1;
   if (dims > 1)
   {
     height = image_desc->image_height;
@@ -1216,9 +1230,13 @@ clCreateImage(cl_context              context,
   {
     depth = image_desc->image_depth;
   }
+  if (isImageArray(image_desc->image_type))
+  {
+    arraySize = image_desc->image_array_size;
+  }
 
   // Calculate total size of iamge
-  size_t size = width * height * depth * pixelSize;
+  size_t size = width * height * depth * arraySize * pixelSize;
 
   // Create buffer
   // TODO: Use pitches
@@ -1237,6 +1255,7 @@ clCreateImage(cl_context              context,
   image->desc.image_width = width;
   image->desc.image_height = height;
   image->desc.image_depth = depth;
+  image->desc.image_array_size = arraySize;
   delete mem;
 
   ERRCODE(CL_SUCCESS);
@@ -1356,10 +1375,8 @@ clGetSupportedImageFormats(cl_context           context,
                            cl_image_format *    image_formats ,
                            cl_uint *            num_image_formats) CL_API_SUFFIX__VERSION_1_0
 {
-  // TODO: Implement image arrays and CL_MEM_OBJECT_IMAGE1D_BUFFER
-  if (image_type == CL_MEM_OBJECT_IMAGE1D_BUFFER ||
-      image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY ||
-      image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
+  // TODO: Implement CL_MEM_OBJECT_IMAGE1D_BUFFER
+  if (image_type == CL_MEM_OBJECT_IMAGE1D_BUFFER)
   {
     if (num_image_formats)
     {
@@ -1586,7 +1603,8 @@ clGetImageInfo(cl_mem            image ,
   case CL_IMAGE_ARRAY_SIZE:
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
-     *(size_t*)result_data = img->desc.image_array_size;
+    *(size_t*)result_data =
+      isImageArray(img->desc.image_type) ? img->desc.image_array_size : 0;
     break;
   case CL_IMAGE_BUFFER:
     result_size = sizeof(cl_mem);
