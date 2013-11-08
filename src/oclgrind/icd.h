@@ -139,6 +139,10 @@ struct _cl_event
 struct _cl_sampler
 {
   CLIicdDispatchTable* dispatch;
+  cl_context context;
+  cl_bool normCoords;
+  cl_addressing_mode addressMode;
+  cl_filter_mode filterMode;
   uint32_t sampler;
   unsigned int refCount;
 };

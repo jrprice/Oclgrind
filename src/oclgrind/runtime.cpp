@@ -1711,6 +1711,10 @@ clCreateSampler(cl_context           context ,
   // Create sampler
   cl_sampler sampler = new _cl_sampler;
   sampler->dispatch = m_dispatchTable;
+  sampler->context = context;
+  sampler->normCoords = normalized_coords;
+  sampler->addressMode = addressing_mode;
+  sampler->filterMode = filter_mode;
   sampler->sampler = bitfield;
 
   ERRCODE(CL_SUCCESS);
@@ -1753,7 +1757,68 @@ clGetSamplerInfo(cl_sampler          sampler ,
                  void *              param_value ,
                  size_t *            param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_SAMPLER;
+  size_t result_size = 0;
+  void *result_data = NULL;
+
+  // Check sampler is valid
+  if (!sampler)
+  {
+    return CL_INVALID_SAMPLER;
+  }
+
+  switch (param_name)
+  {
+  case CL_SAMPLER_REFERENCE_COUNT:
+    result_size = sizeof(cl_uint);
+    result_data = malloc(result_size);
+    *(cl_uint*)result_data = sampler->refCount;
+    break;
+  case CL_SAMPLER_CONTEXT:
+    result_size = sizeof(cl_context);
+    result_data = malloc(result_size);
+    *(cl_context*)result_data = sampler->context;
+    break;
+  case CL_SAMPLER_NORMALIZED_COORDS:
+    result_size = sizeof(cl_bool);
+    result_data = malloc(result_size);
+    *(cl_bool*)result_data = sampler->normCoords;
+    break;
+  case CL_SAMPLER_ADDRESSING_MODE:
+    result_size = sizeof(cl_addressing_mode);
+    result_data = malloc(result_size);
+    *(cl_addressing_mode*)result_data = sampler->addressMode;
+    break;
+  case CL_SAMPLER_FILTER_MODE:
+    result_size = sizeof(cl_filter_mode);
+    result_data = malloc(result_size);
+    *(cl_filter_mode*)result_data = sampler->filterMode;
+    break;
+  default:
+    return CL_INVALID_VALUE;
+  }
+
+  cl_int return_value = CL_SUCCESS;
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return_value = CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result_data, result_size);
+    }
+  }
+
+  if (param_value_size_ret)
+  {
+    *param_value_size_ret = result_size;
+  }
+
+  free(result_data);
+
+  return return_value;
 }
 
 /* Program Object APIs  */
@@ -2529,7 +2594,6 @@ clGetKernelInfo(cl_kernel        kernel ,
   free(result_data);
 
   return return_value;
-
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
