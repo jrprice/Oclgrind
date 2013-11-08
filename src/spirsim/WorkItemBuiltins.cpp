@@ -776,6 +776,13 @@ namespace spirsim
       }
     }
 
+    DEFINE_BUILTIN(get_image_array_size)
+    {
+      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      workItem->setIntResult(result,
+                             (int64_t)image->desc.image_array_size);
+    }
+
     DEFINE_BUILTIN(get_image_channel_data_type)
     {
       Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
@@ -3158,6 +3165,7 @@ namespace spirsim
     ADD_BUILTIN("fast_normalize", normalize, NULL);
 
     // Image Functions
+    ADD_BUILTIN("get_image_array_size", get_image_array_size, NULL);
     ADD_BUILTIN("get_image_channel_data_type",
                 get_image_channel_data_type, NULL);
     ADD_BUILTIN("get_image_channel_order", get_image_channel_order, NULL);

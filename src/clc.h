@@ -391,6 +391,9 @@ BUILTIN_1ARG_FLOATS(fast_normalize);
 // Image Functions //
 /////////////////////
 
+size_t __OVERLOAD__ get_image_array_size(image1d_array_t image);
+size_t __OVERLOAD__ get_image_array_size(image2d_array_t image);
+
 int __OVERLOAD__ get_image_channel_data_type(image1d_t image);
 int __OVERLOAD__ get_image_channel_data_type(image1d_buffer_t image);
 int __OVERLOAD__ get_image_channel_data_type(image1d_array_t image);
