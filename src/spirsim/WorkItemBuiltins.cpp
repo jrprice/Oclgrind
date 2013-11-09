@@ -994,7 +994,8 @@ namespace spirsim
 
     static inline float readNormalizedColor(const Image *image,
                                             const WorkItem *workItem,
-                                            int i, int j, int k, int c)
+                                            int i, int j, int k,
+                                            int layer, int c)
     {
       // Check for out-of-range coordinages
       if (i < 0 || i >= image->desc.image_width ||
@@ -1022,7 +1023,8 @@ namespace spirsim
       size_t numChannels = getNumChannels(image->format);
       size_t pixelSize = channelSize*numChannels;
       size_t address = image->address
-                        + (i + (j + k*image->desc.image_height)
+                        + (i + (j + (k + layer*image->desc.image_depth)
+                        * image->desc.image_height)
                         * image->desc.image_width) * pixelSize
                         + channel*channelSize;
 
@@ -1069,7 +1071,8 @@ namespace spirsim
 
     static inline int32_t readSignedColor(const Image *image,
                                           const WorkItem *workItem,
-                                          int i, int j, int k, int c)
+                                          int i, int j, int k,
+                                          int layer, int c)
     {
       // Check for out-of-range coordinages
       if (i < 0 || i >= image->desc.image_width ||
@@ -1097,7 +1100,8 @@ namespace spirsim
       size_t numChannels = getNumChannels(image->format);
       size_t pixelSize = channelSize*numChannels;
       size_t address = image->address
-                        + (i + (j + k*image->desc.image_height)
+                        + (i + (j + (k + layer*image->desc.image_depth)
+                        * image->desc.image_height)
                         * image->desc.image_width) * pixelSize
                         + channel*channelSize;
 
@@ -1138,7 +1142,8 @@ namespace spirsim
 
     static inline uint32_t readUnsignedColor(const Image *image,
                                              const WorkItem *workItem,
-                                             int i, int j, int k, int c)
+                                             int i, int j, int k,
+                                             int layer, int c)
     {
       // Check for out-of-range coordinages
       if (i < 0 || i >= image->desc.image_width ||
@@ -1166,7 +1171,8 @@ namespace spirsim
       size_t numChannels = getNumChannels(image->format);
       size_t pixelSize = channelSize*numChannels;
       size_t address = image->address
-                        + (i + (j + k*image->desc.image_height)
+                        + (i + (j + (k + layer*image->desc.image_depth)
+                        * image->desc.image_height)
                         * image->desc.image_width) * pixelSize
                         + channel*channelSize;
 
@@ -1255,7 +1261,8 @@ namespace spirsim
 
       // Get unnormalized coordinates
       float u = 0.f, v = 0.f, w = 0.f;
-      if (sampler & CLK_NORMALIZED_COORDS_TRUE)
+      bool noormCoords = sampler & CLK_NORMALIZED_COORDS_TRUE;
+      if (noormCoords)
       {
         u = s * image->desc.image_width;
         v = t * image->desc.image_height;
@@ -1266,6 +1273,23 @@ namespace spirsim
         u = s;
         v = t;
         w = r;
+      }
+
+      // Get array layer index
+      int layer = 0;
+      if (image->desc.image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY)
+      {
+        float l = noormCoords ? t * image->desc.image_array_size : t;
+        layer = _clamp_<int>(floorf(l + 0.5f),
+                             0, image->desc.image_array_size - 1);
+        v = t = 0.f;
+      }
+      else if (image->desc.image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
+      {
+        float l = noormCoords ? r * image->desc.image_array_size : r;
+        layer = _clamp_<int>(floorf(l + 0.5f),
+                             0, image->desc.image_array_size - 1);
+        w = r = 0.f;
       }
 
       float values[4];
@@ -1281,12 +1305,14 @@ namespace spirsim
                                    &k0, &k1);
 
         // Make sure y and z coordinates are equal for 1 and 2D images
-        if (image->desc.image_type == CL_MEM_OBJECT_IMAGE1D)
+        if (image->desc.image_type == CL_MEM_OBJECT_IMAGE1D ||
+            image->desc.image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY)
         {
           j0 = j1;
           k0 = k1;
         }
-        else if (image->desc.image_type == CL_MEM_OBJECT_IMAGE2D)
+        else if (image->desc.image_type == CL_MEM_OBJECT_IMAGE2D ||
+                 image->desc.image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
         {
           k0 = k1;
         }
@@ -1298,14 +1324,14 @@ namespace spirsim
         for (int i = 0; i < 4; i++)
         {
           values[i] = interpolate(
-            readNormalizedColor(image, workItem, i0, j0, k0, i),
-            readNormalizedColor(image, workItem, i0, j1, k0, i),
-            readNormalizedColor(image, workItem, i1, j0, k0, i),
-            readNormalizedColor(image, workItem, i1, j1, k0, i),
-            readNormalizedColor(image, workItem, i0, j0, k1, i),
-            readNormalizedColor(image, workItem, i0, j1, k1, i),
-            readNormalizedColor(image, workItem, i1, j0, k1, i),
-            readNormalizedColor(image, workItem, i1, j1, k1, i),
+            readNormalizedColor(image, workItem, i0, j0, k0, layer, i),
+            readNormalizedColor(image, workItem, i0, j1, k0, layer, i),
+            readNormalizedColor(image, workItem, i1, j0, k0, layer, i),
+            readNormalizedColor(image, workItem, i1, j1, k0, layer, i),
+            readNormalizedColor(image, workItem, i0, j0, k1, layer, i),
+            readNormalizedColor(image, workItem, i0, j1, k1, layer, i),
+            readNormalizedColor(image, workItem, i1, j0, k1, layer, i),
+            readNormalizedColor(image, workItem, i1, j1, k1, layer, i),
             a, b, c);
         }
       }
@@ -1315,10 +1341,10 @@ namespace spirsim
         int i = getNearestCoordinate(sampler, s, u, image->desc.image_width);
         int j = getNearestCoordinate(sampler, t, v, image->desc.image_height);
         int k = getNearestCoordinate(sampler, r, w, image->desc.image_depth);
-        values[0] = readNormalizedColor(image, workItem, i, j, k, 0);
-        values[1] = readNormalizedColor(image, workItem, i, j, k, 1);
-        values[2] = readNormalizedColor(image, workItem, i, j, k, 2);
-        values[3] = readNormalizedColor(image, workItem, i, j, k, 3);
+        values[0] = readNormalizedColor(image, workItem, i, j, k, layer, 0);
+        values[1] = readNormalizedColor(image, workItem, i, j, k, layer, 1);
+        values[2] = readNormalizedColor(image, workItem, i, j, k, layer, 2);
+        values[3] = readNormalizedColor(image, workItem, i, j, k, layer, 3);
       }
 
       // Store values in result
@@ -1357,7 +1383,8 @@ namespace spirsim
 
       // Get unnormalized coordinates
       float u = 0.f, v = 0.f, w = 0.f;
-      if (sampler & CLK_NORMALIZED_COORDS_TRUE)
+      bool noormCoords = sampler & CLK_NORMALIZED_COORDS_TRUE;
+      if (noormCoords)
       {
         u = s * image->desc.image_width;
         v = t * image->desc.image_height;
@@ -1370,15 +1397,32 @@ namespace spirsim
         w = r;
       }
 
+      // Get array layer index
+      int layer = 0;
+      if (image->desc.image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY)
+      {
+        float l = noormCoords ? t * image->desc.image_array_size : t;
+        layer = _clamp_<int>(floorf(l + 0.5f),
+                             0, image->desc.image_array_size - 1);
+        v = t = 0.f;
+      }
+      else if (image->desc.image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
+      {
+        float l = noormCoords ? r * image->desc.image_array_size : r;
+        layer = _clamp_<int>(floorf(l + 0.5f),
+                             0, image->desc.image_array_size - 1);
+        w = r = 0.f;
+      }
+
       // Read values from nearest pixel
       int32_t values[4];
       int i = getNearestCoordinate(sampler, s, u, image->desc.image_width);
       int j = getNearestCoordinate(sampler, t, v, image->desc.image_height);
       int k = getNearestCoordinate(sampler, r, w, image->desc.image_depth);
-      values[0] = readSignedColor(image, workItem, i, j, k, 0);
-      values[1] = readSignedColor(image, workItem, i, j, k, 1);
-      values[2] = readSignedColor(image, workItem, i, j, k, 2);
-      values[3] = readSignedColor(image, workItem, i, j, k, 3);
+      values[0] = readSignedColor(image, workItem, i, j, k, layer, 0);
+      values[1] = readSignedColor(image, workItem, i, j, k, layer, 1);
+      values[2] = readSignedColor(image, workItem, i, j, k, layer, 2);
+      values[3] = readSignedColor(image, workItem, i, j, k, layer, 3);
 
       // Store values in result
       for (int i = 0; i < 4; i++)
@@ -1416,7 +1460,8 @@ namespace spirsim
 
       // Get unnormalized coordinates
       float u = 0.f, v = 0.f, w = 0.f;
-      if (sampler & CLK_NORMALIZED_COORDS_TRUE)
+      bool noormCoords = sampler & CLK_NORMALIZED_COORDS_TRUE;
+      if (noormCoords)
       {
         u = s * image->desc.image_width;
         v = t * image->desc.image_height;
@@ -1429,15 +1474,32 @@ namespace spirsim
         w = r;
       }
 
+      // Get array layer index
+      int layer = 0;
+      if (image->desc.image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY)
+      {
+        float l = noormCoords ? t * image->desc.image_array_size : t;
+        layer = _clamp_<int>(floorf(l + 0.5f),
+                             0, image->desc.image_array_size - 1);
+        v = t = 0.f;
+      }
+      else if (image->desc.image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
+      {
+        float l = noormCoords ? r * image->desc.image_array_size : r;
+        layer = _clamp_<int>(floorf(l + 0.5f),
+                             0, image->desc.image_array_size - 1);
+        w = r = 0.f;
+      }
+
       // Read values from nearest pixel
       uint32_t values[4];
       int i = getNearestCoordinate(sampler, s, u, image->desc.image_width);
       int j = getNearestCoordinate(sampler, t, v, image->desc.image_height);
       int k = getNearestCoordinate(sampler, r, w, image->desc.image_depth);
-      values[0] = readUnsignedColor(image, workItem, i, j, k, 0);
-      values[1] = readUnsignedColor(image, workItem, i, j, k, 1);
-      values[2] = readUnsignedColor(image, workItem, i, j, k, 2);
-      values[3] = readUnsignedColor(image, workItem, i, j, k, 3);
+      values[0] = readUnsignedColor(image, workItem, i, j, k, layer, 0);
+      values[1] = readUnsignedColor(image, workItem, i, j, k, layer, 1);
+      values[2] = readUnsignedColor(image, workItem, i, j, k, layer, 2);
+      values[3] = readUnsignedColor(image, workItem, i, j, k, layer, 3);
 
       // Store values in result
       for (int i = 0; i < 4; i++)
