@@ -1238,12 +1238,28 @@ clCreateImage(cl_context              context,
   // Calculate total size of iamge
   size_t size = width * height * depth * arraySize * pixelSize;
 
-  // Create buffer
-  // TODO: Use pitches
-  cl_mem mem = clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
-  if (!mem)
+  cl_mem mem;
+
+  if (image_desc->image_type == CL_MEM_OBJECT_IMAGE1D_BUFFER)
   {
-    return NULL;
+    // Use existing buffer
+    if (!image_desc->buffer)
+    {
+      ERRCODE(CL_INVALID_VALUE);
+      return NULL;
+    }
+    mem = image_desc->buffer;
+    clRetainMemObject(image_desc->buffer);
+  }
+  else
+  {
+    // Create buffer
+    // TODO: Use pitches
+    mem = clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
+    if (!mem)
+    {
+      return NULL;
+    }
   }
 
   // Create image object wrapper
@@ -1256,7 +1272,11 @@ clCreateImage(cl_context              context,
   image->desc.image_height = height;
   image->desc.image_depth = depth;
   image->desc.image_array_size = arraySize;
-  delete mem;
+  image->refCount = 1;
+  if (image_desc->image_type != CL_MEM_OBJECT_IMAGE1D_BUFFER)
+  {
+    delete mem;
+  }
 
   ERRCODE(CL_SUCCESS);
   return image;
@@ -1343,24 +1363,33 @@ clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
 
   if (--memobj->refCount == 0)
   {
-    if (memobj->parent)
+    if (memobj->isImage &&
+        ((cl_image*)memobj)->desc.image_type == CL_MEM_OBJECT_IMAGE1D_BUFFER)
     {
-      clReleaseMemObject(memobj->parent);
+      clReleaseMemObject(((cl_image*)memobj)->desc.buffer);
     }
     else
     {
-      memobj->context->device->getGlobalMemory()->deallocateBuffer(
-        memobj->address);
-      clReleaseContext(memobj->context);
+      if (memobj->parent)
+      {
+        clReleaseMemObject(memobj->parent);
+      }
+      else
+      {
+        memobj->context->device->getGlobalMemory()->deallocateBuffer(
+          memobj->address);
+        clReleaseContext(memobj->context);
+      }
+
+      while (!memobj->callbacks.empty())
+      {
+        pair<void (CL_CALLBACK *)(cl_mem, void *), void*> callback =
+          memobj->callbacks.top();
+        callback.first(memobj, callback.second);
+        memobj->callbacks.pop();
+      }
     }
 
-    while (!memobj->callbacks.empty())
-    {
-      pair<void (CL_CALLBACK *)(cl_mem, void *), void*> callback =
-        memobj->callbacks.top();
-      callback.first(memobj, callback.second);
-      memobj->callbacks.pop();
-    }
     delete memobj;
   }
 
@@ -1375,16 +1404,6 @@ clGetSupportedImageFormats(cl_context           context,
                            cl_image_format *    image_formats ,
                            cl_uint *            num_image_formats) CL_API_SUFFIX__VERSION_1_0
 {
-  // TODO: Implement CL_MEM_OBJECT_IMAGE1D_BUFFER
-  if (image_type == CL_MEM_OBJECT_IMAGE1D_BUFFER)
-  {
-    if (num_image_formats)
-    {
-      *num_image_formats = 0;
-    }
-    return CL_SUCCESS;
-  }
-
   // Check parameters
   if (!context)
   {
