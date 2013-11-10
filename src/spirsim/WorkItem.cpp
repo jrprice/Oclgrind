@@ -458,6 +458,10 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
     memcpy(&val, result.data + index*result.size, result.size);
     delete[] result.data;
   }
+  else if (id == llvm::Value::ConstantPointerNullVal)
+  {
+    return 0;
+  }
   else
   {
     FATAL_ERROR("Unsupported signed operand type: %d", id);
@@ -505,6 +509,10 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
     TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
     memcpy(&val, result.data + index*result.size, result.size);
     delete[] result.data;
+  }
+  else if (id == llvm::Value::ConstantPointerNullVal)
+  {
+    return 0;
   }
   else
   {
