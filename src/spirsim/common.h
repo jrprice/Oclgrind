@@ -117,6 +117,16 @@ namespace spirsim
     std::string m_file;
     size_t m_line;
   };
+
+  // Utility macro for raising an exception with a sprintf-based message
+  #define FATAL_ERROR(format, ...)               \
+    {                                            \
+      char *str = new char[strlen(format)-1];    \
+      sprintf(str, format, ##__VA_ARGS__);       \
+      string msg = str;                          \
+      delete str;                                \
+      throw FatalError(msg, __FILE__, __LINE__); \
+    }
 }
 
 #endif // __common_h_

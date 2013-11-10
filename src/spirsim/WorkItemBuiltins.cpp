@@ -838,9 +838,7 @@ namespace spirsim
         case 'f':
           return workItem->getFloatValue(value, index);
         default:
-          string msg = "Unsupported coordinate type: ";
-          msg += type;
-          throw FatalError(msg, __FILE__, __LINE__);
+          FATAL_ERROR("Unsupported coordinate type: '%c'", type);
       }
     }
 
@@ -863,10 +861,8 @@ namespace spirsim
           return _min_<int>((int)floorf(fabsf(n - 2.f * rintf(0.5f*n)) * size),
                             size - 1);
         default:
-          // TODO: Fix error message
-          string msg = "Unsupported sampler addressing mode: ";
-          msg += sampler & CLK_ADDRESS_MASK;
-          throw FatalError(msg, __FILE__, __LINE__);
+          FATAL_ERROR("Unsupported sampler addressing mode: %X",
+                      sampler & CLK_ADDRESS_MASK);
       }
     }
 
@@ -909,10 +905,8 @@ namespace spirsim
           return u;
         }
         default:
-          // TODO: Fix error message
-          string msg = "Unsupported sampler addressing mode: ";
-          msg += sampler & CLK_ADDRESS_MASK;
-          throw FatalError(msg, __FILE__, __LINE__);
+          FATAL_ERROR("Unsupported sampler addressing mode: %X",
+                      sampler & CLK_ADDRESS_MASK);
       }
     }
 
@@ -984,10 +978,8 @@ namespace spirsim
           input = 0;
           break;
         default:
-          // TODO: Fix error message
-          string msg = "Unsupported image channel order: ";
-          msg += format.image_channel_order;
-          throw FatalError(msg, __FILE__, __LINE__);
+          FATAL_ERROR("Unsupported image channel order: %X",
+                      format.image_channel_order);
       }
       return input;
     }
@@ -1059,10 +1051,8 @@ namespace spirsim
           color = *(float*)data;
           break;
         default:
-          // TODO: Fix error message
-          string msg = "Unsupported image channel data type: ";
-          msg += image->format.image_channel_data_type;
-          throw FatalError(msg, __FILE__, __LINE__);
+          FATAL_ERROR("Unsupported image channel data type: %X",
+                      image->format.image_channel_data_type);
       }
       delete[] data;
 
@@ -1130,10 +1120,8 @@ namespace spirsim
           color = *(int32_t*)data;
           break;
         default:
-          // TODO: Fix error message
-          string msg = "Unsupported image channel data type: ";
-          msg += image->format.image_channel_data_type;
-          throw FatalError(msg, __FILE__, __LINE__);
+          FATAL_ERROR("Unsupported image channel data type: %X",
+                      image->format.image_channel_data_type);
       }
       delete[] data;
 
@@ -1201,10 +1189,8 @@ namespace spirsim
           color = *(uint32_t*)data;
           break;
         default:
-          // TODO: Fix error message
-          string msg = "Unsupported image channel data type: ";
-          msg += image->format.image_channel_data_type;
-          throw FatalError(msg, __FILE__, __LINE__);
+          FATAL_ERROR("Unsupported image channel data type: %X",
+                      image->format.image_channel_data_type);
       }
       delete[] data;
 
@@ -1561,10 +1547,8 @@ namespace spirsim
         swap(values[0], values[2]);
         break;
       default:
-        // TODO: Fix error message
-        string msg = "Unsupported image channel order: ";
-        msg += image->format.image_channel_order;
-        throw FatalError(msg, __FILE__, __LINE__);
+        FATAL_ERROR("Unsupported image channel order: %X",
+                    image->format.image_channel_order);
       }
 
       size_t channelSize = getChannelSize(image->format);
@@ -1599,10 +1583,8 @@ namespace spirsim
             *(float*)data = values[i];
             break;
           default:
-            // TODO: Fix error message
-            string msg = "Unsupported image channel data type: ";
-            msg += image->format.image_channel_data_type;
-            throw FatalError(msg, __FILE__, __LINE__);
+            FATAL_ERROR("Unsupported image channel data type: %X",
+                        image->format.image_channel_data_type);
         }
 
         // Write data
@@ -1669,10 +1651,8 @@ namespace spirsim
         swap(values[0], values[2]);
         break;
       default:
-        // TODO: Fix error message
-        string msg = "Unsupported image channel order: ";
-        msg += image->format.image_channel_order;
-        throw FatalError(msg, __FILE__, __LINE__);
+        FATAL_ERROR("Unsupported image channel order: %X",
+                    image->format.image_channel_order);
       }
 
       size_t channelSize = getChannelSize(image->format);
@@ -1700,10 +1680,8 @@ namespace spirsim
             *(int32_t*)data = values[i];
             break;
           default:
-            // TODO: Fix error message
-            string msg = "Unsupported image channel data type: ";
-            msg += image->format.image_channel_data_type;
-            throw FatalError(msg, __FILE__, __LINE__);
+            FATAL_ERROR("Unsupported image channel data type: %X",
+                        image->format.image_channel_data_type);
         }
 
         // Write data
@@ -1769,10 +1747,8 @@ namespace spirsim
         swap(values[0], values[2]);
         break;
       default:
-        // TODO: Fix error message
-        string msg = "Unsupported image channel order: ";
-        msg += image->format.image_channel_order;
-        throw FatalError(msg, __FILE__, __LINE__);
+        FATAL_ERROR("Unsupported image channel order: %X",
+                    image->format.image_channel_order);
       }
 
       size_t channelSize = getChannelSize(image->format);
@@ -1800,10 +1776,8 @@ namespace spirsim
             *(uint32_t*)data = values[i];
             break;
           default:
-            // TODO: Fix error message
-            string msg = "Unsupported image channel data type: ";
-            msg += image->format.image_channel_data_type;
-            throw FatalError(msg, __FILE__, __LINE__);
+            FATAL_ERROR("Unsupported image channel data type: %X",
+                        image->format.image_channel_data_type);
         }
 
         // Write data
@@ -3147,7 +3121,7 @@ namespace spirsim
 
     DEFINE_BUILTIN(llvm_trap)
     {
-      throw FatalError("Encountered trap instruction", __FILE__, __LINE__);
+      FATAL_ERROR("Encountered trap instruction");
     }
 
   public:

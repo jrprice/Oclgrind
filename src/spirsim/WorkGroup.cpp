@@ -111,7 +111,7 @@ void WorkGroup::clearBarrier()
   // Check for divergence
   if (m_barrier.size() != m_totalWorkItems)
   {
-    throw FatalError("Barrier divergence detected", __FILE__, __LINE__);
+    FATAL_ERROR("Barrier divergence detected");
   }
 
   // Move work-items to running state

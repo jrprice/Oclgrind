@@ -103,9 +103,7 @@ namespace spirsim
       break;
     }
     default:
-      string msg = "Unsupported constant type: ";
-      msg += type->getTypeID();
-      throw FatalError(msg.c_str(), __FILE__, __LINE__);
+      FATAL_ERROR("Unsupported constant type: %d", type->getTypeID());
     }
   }
 
