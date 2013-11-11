@@ -1507,6 +1507,10 @@ void WorkItem::sext(const llvm::Instruction& instruction, TypedValue& result)
   for (int i = 0; i < result.num; i++)
   {
     int64_t val = getSignedInt(instruction.getOperand(0), i);
+    if (instruction.getOperand(0)->getType()->getPrimitiveSizeInBits() == 1)
+    {
+      val = val ? -1 : 0;
+    }
     setIntResult(result, val, i);
   }
 }
