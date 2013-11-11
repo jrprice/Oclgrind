@@ -397,7 +397,7 @@ Memory* WorkItem::getMemory(unsigned int addrSpace)
     case AddrSpaceLocal:
       return m_workGroup.getLocalMemory();
     default:
-      assert(false);
+      FATAL_ERROR("Unsupported address space: %d", addrSpace);
   }
 }
 
@@ -621,7 +621,7 @@ void WorkItem::setFloatResult(TypedValue& result, double val,
   }
   else
   {
-    assert(false && "Unsupported float size in WorkItem::setFloatResult()");
+    FATAL_ERROR("Unsupported float size: %lu bytes", result.size);
   }
 }
 
@@ -639,7 +639,10 @@ void WorkItem::setIntResult(TypedValue& result, uint64_t val,
 
 WorkItem::State WorkItem::step()
 {
-  assert(m_state == READY);
+  if (m_state != READY)
+  {
+    FATAL_ERROR("Attempting to step a work-item in state %d", m_state);
+  }
 
   // Execute the next instruction
   execute(*m_currInst);
@@ -965,7 +968,7 @@ void WorkItem::extractval(const llvm::Instruction& instruction,
       }
       else
       {
-        assert(false);
+        FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
       }
     }
 
@@ -1135,7 +1138,6 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
     address = *((size_t*)m_instResults[base].data);
   }
   llvm::Type *ptrType = gepInst->getPointerOperandType();
-  assert(ptrType->isPointerTy());
 
   // Iterate over indices
   llvm::User::const_op_iterator opItr;
@@ -1307,7 +1309,7 @@ void WorkItem::insertval(const llvm::Instruction& instruction,
     }
     else
     {
-      assert(false);
+      FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
     }
   }
 

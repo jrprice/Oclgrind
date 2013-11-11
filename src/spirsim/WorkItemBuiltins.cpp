@@ -561,7 +561,8 @@ namespace spirsim
           s3arg(workItem, callInst, fnName, overload, result, _clamp_);
           break;
         default:
-          assert(false);
+          FATAL_ERROR("Unsupported argument type: %c",
+                      getOverloadArgType(overload));
       }
     }
 
@@ -598,7 +599,8 @@ namespace spirsim
           s2arg(workItem, callInst, fnName, overload, result, _max_);
           break;
         default:
-          assert(false);
+          FATAL_ERROR("Unsupported argument type: %c",
+                      getOverloadArgType(overload));
       }
     }
 
@@ -635,7 +637,8 @@ namespace spirsim
           s2arg(workItem, callInst, fnName, overload, result, _min_);
           break;
         default:
-          assert(false);
+          FATAL_ERROR("Unsupported argument type: %c",
+                      getOverloadArgType(overload));
       }
     }
 
@@ -1872,7 +1875,8 @@ namespace spirsim
             WorkItem::setIntResult(result, abs(SARGV(0,i)), i);
             break;
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -1904,7 +1908,8 @@ namespace spirsim
             break;
           }
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -1954,7 +1959,8 @@ namespace spirsim
             WorkItem::setIntResult(result, sresult, i);
             break;
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -2005,7 +2011,8 @@ namespace spirsim
             break;
           }
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -2097,7 +2104,8 @@ namespace spirsim
             break;
           }
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -2162,7 +2170,8 @@ namespace spirsim
             WorkItem::setIntResult(result, sresult, i);
             break;
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -2197,7 +2206,8 @@ namespace spirsim
             break;
           }
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -2242,7 +2252,8 @@ namespace spirsim
             break;
           }
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -2304,7 +2315,8 @@ namespace spirsim
             WorkItem::setIntResult(result, sresult, i);
             break;
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -2643,7 +2655,8 @@ namespace spirsim
           u3arg(workItem, callInst, fnName, overload, result, _ibitselect_);
           break;
         default:
-          assert(false);
+          FATAL_ERROR("Unsupported argument type: %c",
+                      getOverloadArgType(overload));
       }
     }
 
@@ -2671,7 +2684,8 @@ namespace spirsim
             WorkItem::setIntResult(result, _c ? SARGV(1, i) : SARGV(0, i), i);
             break;
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -2846,7 +2860,8 @@ namespace spirsim
             WorkItem::setFloatResult(result, FARGV(0, i), i);
             break;
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
       }
     }
@@ -2871,7 +2886,7 @@ namespace spirsim
           fesetround(FE_DOWNWARD);
           break;
         default:
-          assert(false);
+          FATAL_ERROR("Unsupported rounding mode: %c", name[rpos=3]);
         }
       }
       else
@@ -2937,7 +2952,8 @@ namespace spirsim
             }
             break;
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
 
         WorkItem::setIntResult(result, r, i);
@@ -3010,7 +3026,8 @@ namespace spirsim
             }
             break;
           default:
-            assert(false);
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
         }
 
         WorkItem::setIntResult(result, r, i);
