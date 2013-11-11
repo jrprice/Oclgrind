@@ -361,6 +361,24 @@ BUILTIN_1ARG_FLOATS(sign);
 BUILTIN_3ARG_FLOATS(smoothstep);
 BUILTIN_2ARG_FLOATS(step);
 
+#define COMMON_SCALAR(type, n)                          \
+	type##n __OVERLOAD__ clamp(type##n, type, type);      \
+	type##n __OVERLOAD__ max(type##n, type);              \
+	type##n __OVERLOAD__ min(type##n, type);              \
+	type##n __OVERLOAD__ mix(type##n, type##n, type);     \
+	type##n __OVERLOAD__ smoothstep(type, type, type##n); \
+	type##n __OVERLOAD__ step(type, type##n);
+COMMON_SCALAR(float, 2);
+COMMON_SCALAR(float, 3);
+COMMON_SCALAR(float, 4);
+COMMON_SCALAR(float, 8);
+COMMON_SCALAR(float, 16);
+COMMON_SCALAR(double, 2);
+COMMON_SCALAR(double, 3);
+COMMON_SCALAR(double, 4);
+COMMON_SCALAR(double, 8);
+COMMON_SCALAR(double, 16);
+
 
 /////////////////////////
 // Geometric Functions //

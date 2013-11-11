@@ -512,11 +512,6 @@ namespace spirsim
       return x * (180 / M_PI);
     }
 
-    static double _mix_(double x, double y, double a)
-    {
-      return x + (y - x) * a;
-    }
-
     static double _radians_(double x)
     {
       return x * (M_PI / 180);
@@ -532,23 +527,26 @@ namespace spirsim
       return 0.0;
     }
 
-    static double _smoothstep_(double edge0, double edge1, double x)
-    {
-      double t = _clamp_<double>((x - edge0) / (edge1 - edge0), 0, 1);
-      return t * t * (3 - 2*t);
-    }
-    static double _step_(double edge, double x)
-    {
-      return (x < edge) ? 0.0 : 1.0;
-    }
-
     DEFINE_BUILTIN(clamp)
     {
       switch (getOverloadArgType(overload))
       {
         case 'f':
         case 'd':
-          f3arg(workItem, callInst, fnName, overload, result, _clamp_);
+          if (ARG(1)->getType()->isVectorTy())
+          {
+            f3arg(workItem, callInst, fnName, overload, result, _clamp_);
+          }
+          else
+          {
+            for (int i = 0; i < result.num; i++)
+            {
+              double x = FARGV(0, i);
+              double minval = FARG(1);
+              double maxval = FARG(2);
+              workItem->setFloatResult(result, _clamp_(x, minval, maxval), i);
+            }
+          }
           break;
         case 'h':
         case 't':
@@ -573,7 +571,19 @@ namespace spirsim
       {
         case 'f':
         case 'd':
-          f2arg(workItem, callInst, fnName, overload, result, fmax);
+          if (ARG(1)->getType()->isVectorTy())
+          {
+            f2arg(workItem, callInst, fnName, overload, result, fmax);
+          }
+          else
+          {
+            for (int i = 0; i < result.num; i++)
+            {
+              double x = FARGV(0, i);
+              double y = FARG(1);
+              workItem->setFloatResult(result, _max_(x, y), i);
+            }
+          }
           break;
         case 'h':
         case 't':
@@ -598,7 +608,19 @@ namespace spirsim
       {
         case 'f':
         case 'd':
-          f2arg(workItem, callInst, fnName, overload, result, fmin);
+          if (ARG(1)->getType()->isVectorTy())
+          {
+            f2arg(workItem, callInst, fnName, overload, result, fmin);
+          }
+          else
+          {
+            for (int i = 0; i < result.num; i++)
+            {
+              double x = FARGV(0, i);
+              double y = FARG(1);
+              workItem->setFloatResult(result, _min_(x, y), i);
+            }
+          }
           break;
         case 'h':
         case 't':
@@ -614,6 +636,42 @@ namespace spirsim
           break;
         default:
           assert(false);
+      }
+    }
+
+    DEFINE_BUILTIN(mix)
+    {
+      for (int i = 0; i < result.num; i++)
+      {
+        double x = FARGV(0, i);
+        double y = FARGV(1, i);
+        double a = ARG(2)->getType()->isVectorTy() ? FARGV(2, i) : FARG(2);
+        double r = x + (y - x) * a;
+        workItem->setFloatResult(result, r, i);
+      }
+    }
+
+    DEFINE_BUILTIN(smoothstep)
+    {
+      for (int i = 0; i < result.num; i++)
+      {
+        double edge0 = ARG(0)->getType()->isVectorTy() ? FARGV(0, i) : FARG(0);
+        double edge1 = ARG(1)->getType()->isVectorTy() ? FARGV(1, i) : FARG(1);
+        double x = FARGV(2, i);
+        double t = _clamp_<double>((x - edge0) / (edge1 - edge0), 0, 1);
+        double r = t * t * (3 - 2*t);
+        workItem->setFloatResult(result, r, i);
+      }
+    }
+
+    DEFINE_BUILTIN(step)
+    {
+      for (int i = 0; i < result.num; i++)
+      {
+        double edge = ARG(0)->getType()->isVectorTy() ? FARGV(0, i) : FARG(0);
+        double x = FARGV(1, i);
+        double r = (x < edge) ? 0.0 : 1.0;
+        workItem->setFloatResult(result, r, i);
       }
     }
 
@@ -3184,11 +3242,11 @@ namespace spirsim
     ADD_BUILTIN("degrees", f1arg, _degrees_);
     ADD_BUILTIN("max", max, NULL);
     ADD_BUILTIN("min", min, NULL);
-    ADD_BUILTIN("mix", f3arg, _mix_);
+    ADD_BUILTIN("mix", mix, NULL);
     ADD_BUILTIN("radians", f1arg, _radians_);
     ADD_BUILTIN("sign", f1arg, _sign_);
-    ADD_BUILTIN("smoothstep", f3arg, _smoothstep_);
-    ADD_BUILTIN("step", f2arg, _step_);
+    ADD_BUILTIN("smoothstep", smoothstep, NULL);
+    ADD_BUILTIN("step", step, NULL);
 
     // Geometric Functions
     ADD_BUILTIN("cross", cross, NULL);
