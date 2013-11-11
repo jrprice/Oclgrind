@@ -38,31 +38,6 @@ Kernel::Kernel(const Program& program,
   // Get name
   m_name = function->getName().str();
 
-  // Get required work-group size from metadata
-  memset(m_requiredWorkGroupSize, 0, sizeof(size_t[3]));
-  llvm::NamedMDNode *mdKernels = module->getNamedMetadata("opencl.kernels");
-  if (mdKernels)
-  {
-    llvm::MDNode *md = mdKernels->getOperand(0);
-    for (int i = 0; i < md->getNumOperands(); i++)
-    {
-      llvm::Value *op = md->getOperand(i);
-      if (op->getValueID() == llvm::Value::MDNodeVal)
-      {
-        llvm::MDNode *val = ((llvm::MDNode*)op);
-        string name = val->getOperand(0)->getName().str();
-        if (name == "reqd_work_group_size")
-        {
-          for (int j = 0; j < 3; j++)
-          {
-            m_requiredWorkGroupSize[j] =
-              ((const llvm::ConstantInt*)val->getOperand(j+1))->getZExtValue();
-          }
-        }
-      }
-    }
-  }
-
   // Set-up global variables
   llvm::Module::const_global_iterator itr;
   for (itr = module->global_begin(); itr != module->global_end(); itr++)
@@ -132,9 +107,7 @@ Kernel::Kernel(const Kernel& kernel)
   m_localMemory = kernel.m_localMemory->clone();
   m_privateMemory = kernel.m_privateMemory->clone();
   m_name = kernel.m_name;
-  memcpy(m_requiredWorkGroupSize,
-         kernel.m_requiredWorkGroupSize,
-         3*sizeof(size_t));
+  m_metadata = kernel.m_metadata;
 }
 
 Kernel::~Kernel()
@@ -382,9 +355,26 @@ const Program& Kernel::getProgram() const
   return m_program;
 }
 
-const size_t* Kernel::getRequiredWorkGroupSize() const
+void Kernel::getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const
 {
-  return m_requiredWorkGroupSize;
+  memset(reqdWorkGroupSize, 0, 3*sizeof(size_t));
+  for (int i = 0; i < m_metadata->getNumOperands(); i++)
+  {
+    llvm::Value *op = m_metadata->getOperand(i);
+    if (op->getValueID() == llvm::Value::MDNodeVal)
+    {
+      llvm::MDNode *val = ((llvm::MDNode*)op);
+      string name = val->getOperand(0)->getName().str();
+      if (name == "reqd_work_group_size")
+      {
+        for (int j = 0; j < 3; j++)
+        {
+          reqdWorkGroupSize[j] =
+            ((const llvm::ConstantInt*)val->getOperand(j+1))->getZExtValue();
+        }
+      }
+    }
+  }
 }
 
 void Kernel::setArgument(unsigned int index, TypedValue value)

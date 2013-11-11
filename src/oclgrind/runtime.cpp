@@ -2751,8 +2751,7 @@ clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
     result_size = sizeof(size_t[3]);
     result_data = malloc(result_size);
-    memcpy(result_data, kernel->kernel->getRequiredWorkGroupSize(),
-           result_size);
+    kernel->kernel->getRequiredWorkGroupSize((size_t*)result_data);
     break;
   case CL_KERNEL_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);

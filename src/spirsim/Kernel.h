@@ -56,7 +56,7 @@ namespace spirsim
     unsigned int getNumArguments() const;
     const Memory* getPrivateMemory() const;
     const Program& getProgram() const;
-    const size_t* getRequiredWorkGroupSize() const;
+    void getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const;
     void setArgument(unsigned int index, TypedValue value);
 
   private:
@@ -69,7 +69,6 @@ namespace spirsim
     Memory *m_privateMemory;
     std::string m_name;
     const llvm::MDNode *m_metadata;
-    size_t m_requiredWorkGroupSize[3];
 
     const llvm::Argument* getArgument(unsigned int index) const;
     const llvm::MDNode* getArgumentMetadata(std::string name) const;
