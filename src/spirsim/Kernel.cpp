@@ -20,6 +20,7 @@
 #include "llvm/Constants.h"
 #include "llvm/DerivedTypes.h"
 #include "llvm/Module.h"
+#include "llvm/Support/raw_os_ostream.h"
 
 #include "Kernel.h"
 #include "Memory.h"
@@ -318,6 +319,52 @@ size_t Kernel::getArgumentSize(unsigned int index) const
   }
 
   return getTypeSize(type);
+}
+
+string Kernel::getAttributes() const
+{
+  ostringstream attributes("");
+  for (int i = 0; i < m_metadata->getNumOperands(); i++)
+  {
+    llvm::Value *op = m_metadata->getOperand(i);
+    if (op->getValueID() == llvm::Value::MDNodeVal)
+    {
+      llvm::MDNode *val = ((llvm::MDNode*)op);
+      string name = val->getOperand(0)->getName().str();
+
+      if (name == "reqd_work_group_size" ||
+          name == "work_group_size_hint")
+      {
+        attributes << name << "("
+                   <<
+          ((const llvm::ConstantInt*)val->getOperand(1))->getZExtValue()
+                   << "," <<
+          ((const llvm::ConstantInt*)val->getOperand(2))->getZExtValue()
+                   << "," <<
+          ((const llvm::ConstantInt*)val->getOperand(3))->getZExtValue()
+                   << ") ";
+      }
+      else if (name == "vec_type_hint")
+      {
+        // Get type hint
+        size_t n = 1;
+        const llvm::Type *type = val->getOperand(1)->getType();
+        if (type->isVectorTy())
+        {
+          n = type->getVectorNumElements();
+          type = type->getVectorElementType();
+        }
+
+        // Generate attribute string
+        attributes << name << "(" << flush;
+        llvm::raw_os_ostream out(attributes);
+        type->print(out);
+        out.flush();
+        attributes << n << ") ";
+      }
+    }
+  }
+  return attributes.str();
 }
 
 const llvm::Function* Kernel::getFunction() const

@@ -49,6 +49,7 @@ namespace spirsim
     char* getArgumentName(unsigned int index) const;
     char* getArgumentTypeName(unsigned int index) const;
     unsigned int getArgumentTypeQualifier(unsigned int index) const;
+    std::string getAttributes() const;
     const llvm::Function* getFunction() const;
     const Memory* getLocalMemory() const;
     size_t getLocalMemorySize() const;

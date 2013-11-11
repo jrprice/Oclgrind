@@ -2601,9 +2601,9 @@ clGetKernelInfo(cl_kernel        kernel ,
     *(cl_program*)result_data = kernel->program;
     break;
   case CL_KERNEL_ATTRIBUTES:
-    result_size = strlen("") + 1;
+    result_size = strlen(kernel->kernel->getAttributes().c_str()) + 1;
     result_data = malloc(result_size);
-    strcpy((char*)result_data, "");
+    strcpy((char*)result_data, kernel->kernel->getAttributes().c_str());
     break;
   default:
     return CL_INVALID_VALUE;
