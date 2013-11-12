@@ -577,11 +577,11 @@ UPSAMPLE(long, int);
  BUILTIN_2TYPE_PTR(type1##16, type2##16, name);
 #define REMQUO(type, addrspace) \
   type __OVERLOAD__ remquo(type, type, addrspace int*);          \
-	type##2 __OVERLOAD__ remquo(type##2, type##2, __global int2*); \
-	type##3 __OVERLOAD__ remquo(type##3, type##3, __global int3*); \
-	type##4 __OVERLOAD__ remquo(type##4, type##4, __global int4*); \
-	type##8 __OVERLOAD__ remquo(type##8, type##8, __global int8*); \
-	type##16 __OVERLOAD__ remquo(type##16, type##16, __global int16*);
+	type##2 __OVERLOAD__ remquo(type##2, type##2, addrspace int2*); \
+	type##3 __OVERLOAD__ remquo(type##3, type##3, addrspace int3*); \
+	type##4 __OVERLOAD__ remquo(type##4, type##4, addrspace int4*); \
+	type##8 __OVERLOAD__ remquo(type##8, type##8, addrspace int8*); \
+	type##16 __OVERLOAD__ remquo(type##16, type##16, addrspace int16*);
 
 BUILTIN_1ARG_FLOATS(acos);
 BUILTIN_1ARG_FLOATS(acosh);
