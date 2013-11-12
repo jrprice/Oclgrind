@@ -310,12 +310,13 @@ unsigned int Kernel::getArgumentTypeQualifier(unsigned int index) const
 
 size_t Kernel::getArgumentSize(unsigned int index) const
 {
-  const llvm::Type *type = getArgument(index)->getType();
+  const llvm::Argument *argument = getArgument(index);
+  const llvm::Type *type = argument->getType();
 
   // Check if pointer argument
-  if (type->isPointerTy())
+  if (type->isPointerTy() && argument->hasByValAttr())
   {
-    return sizeof(size_t);
+    return getTypeSize(type->getPointerElementType());
   }
 
   return getTypeSize(type);
