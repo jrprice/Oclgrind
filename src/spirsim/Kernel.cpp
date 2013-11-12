@@ -454,7 +454,7 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     if (type->isVectorTy())
     {
       value.num = type->getVectorNumElements();
-      value.size /= value.num;
+      value.size = getTypeSize(type->getVectorElementType());
     }
     m_arguments[getArgument(index)] = clone(value);
   }
