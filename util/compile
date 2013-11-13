@@ -3,7 +3,7 @@
 SRC=$1
 NAME=`echo $SRC | awk -F '/' '{print $NF}' | awk -F '.' '{print $1}'`
 
-clang -cc1 -emit-llvm \
+clang -cc1 -O3 -emit-llvm -include clc.h \
     -cl-kernel-arg-info -triple spir64-unknown-unknown \
     -o $NAME.s \
     $SRC
@@ -13,7 +13,7 @@ then
     exit
 fi
 
-clang -cc1 -emit-llvm-bc \
+clang -cc1 -O3 -emit-llvm-bc -include clc.h \
     -cl-kernel-arg-info -triple spir64-unknown-unknown \
     -o $NAME.bc \
     $SRC
