@@ -118,6 +118,15 @@ typedef CL_API_ENTRY cl_int (CL_API_CALL *clIcdGetPlatformIDsKHR_fn)(
     cl_uint *        /* num_platforms */);
 
 
+/*
+ * Extension: cl_khr_spir
+ *
+ * This extension adds support to create an OpenCL program object from a 
+ * Standard Portable Intermediate Representation (SPIR) instance
+ */
+#define CL_DEVICE_SPIR_VERSIONS 0x2020
+
+
 /******************************************
 * cl_nv_device_attribute_query extension *
 ******************************************/

@@ -23,6 +23,7 @@
 #include "icd.h"
 
 #include <CL/cl.h>
+#include <CL/cl_ext.h>
 #include <CL/cl_gl.h>
 #include <CL/cl_gl_ext.h>
 
@@ -50,6 +51,7 @@ static struct _cl_device_id *m_device = NULL;
 #define DRIVER_VERSION "0.1"
 #define DEVICE_PROFILE "FULL_PROFILE"
 #define DEVICE_EXTENSIONS "cl_khr_spir cl_khr_fp64 cl_khr_3d_image_writes"
+#define DEVICE_SPIR_VERSIONS "1.2"
 
 CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformIDs(cl_uint           num_entries ,
@@ -549,6 +551,11 @@ clGetDeviceInfo(cl_device_id    device,
     result_size = sizeof(size_t);
     result_data = malloc(result_size);
     *(size_t*)result_data = 1024;
+    break;
+  case CL_DEVICE_SPIR_VERSIONS:
+    result_size = sizeof(DEVICE_SPIR_VERSIONS);
+    result_data = malloc(result_size);
+    strcpy((char*)result_data, DEVICE_SPIR_VERSIONS);
     break;
   default:
     return CL_INVALID_VALUE;

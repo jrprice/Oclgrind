@@ -147,11 +147,19 @@ struct _cl_sampler
   unsigned int refCount;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 cl_int cliIcdDispatchTableCreate(CLIicdDispatchTable **outDispatchTable);
 
 CL_API_ENTRY cl_int CL_API_CALL
 clIcdGetPlatformIDsKHR(cl_uint num_entries,
                        cl_platform_id *platforms,
                        cl_uint *num_platforms);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ICD_STRUCTS_H_ */
