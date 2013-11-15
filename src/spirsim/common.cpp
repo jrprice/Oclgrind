@@ -92,6 +92,16 @@ namespace spirsim
       }
       break;
     }
+    case llvm::Type::PointerTyID:
+    {
+      if (constant->getValueID() != llvm::Value::ConstantPointerNullVal)
+      {
+        FATAL_ERROR("Unsupported constant pointer value: %d",
+                    constant->getValueID());
+      }
+      *(size_t*)data = 0;
+      break;
+    }
     case llvm::Type::StructTyID:
     {
       int num = type->getStructNumElements();
