@@ -34,7 +34,6 @@ Kernel::Kernel(const Program& program,
 {
   m_function = function;
   m_localMemory = new Memory();
-  m_privateMemory = new Memory();
 
   // Get name
   m_name = function->getName().str();
@@ -56,28 +55,20 @@ Kernel::Kernel(const Program& program,
       *((size_t*)v.data) = m_localMemory->allocateBuffer(size);
       m_arguments[itr] = v;
     }
-    else if (itr->hasUnnamedAddr() && itr->getName().str()[0] != '.')
-    {
-      // Allocate buffer
-      size_t size = getTypeSize(itr->getInitializer()->getType());
-      TypedValue v = {
-        sizeof(size_t),
-        1,
-        new unsigned char[sizeof(size_t)]
-      };
-      size_t address = m_privateMemory->allocateBuffer(size);
-      *((size_t*)v.data) = address;
-      m_arguments[itr] = v;
-
-      // Initialise buffer contents
-      unsigned char *data = new unsigned char[size];
-      getConstantData(data, (const llvm::Constant*)itr->getInitializer());
-      m_privateMemory->store(data, address, size);
-      delete[] data;
-    }
-    else if (itr->isConstant())
+    // TODO: Check for constant address space when generator fixed
+    else if (itr->isConstant() ||
+             (itr->hasUnnamedAddr() && itr->getName().str()[0] == '.'))
     {
       m_constants.push_back(itr);
+    }
+    else if (type->getPointerAddressSpace() == AddrSpacePrivate)
+    {
+      m_globalVariables.push_back(itr);
+    }
+    else
+    {
+      FATAL_ERROR("Unsupported GlobalVariable: value=%d, type=%d",
+                  itr->getValueID(), itr->getType()->getTypeID());
     }
   }
 
@@ -104,9 +95,9 @@ Kernel::Kernel(const Kernel& kernel)
   m_function = kernel.m_function;
   m_arguments = kernel.m_arguments;
   m_constants = kernel.m_constants;
+  m_globalVariables = kernel.m_globalVariables;
   m_constantBuffers = kernel.m_constantBuffers;
   m_localMemory = kernel.m_localMemory->clone();
-  m_privateMemory = kernel.m_privateMemory->clone();
   m_name = kernel.m_name;
   m_metadata = kernel.m_metadata;
 }
@@ -114,7 +105,6 @@ Kernel::Kernel(const Kernel& kernel)
 Kernel::~Kernel()
 {
   delete m_localMemory;
-  delete m_privateMemory;
 }
 
 void Kernel::allocateConstants(Memory *memory)
@@ -393,11 +383,6 @@ unsigned int Kernel::getNumArguments() const
   return m_function->arg_size();
 }
 
-const Memory* Kernel::getPrivateMemory() const
-{
-  return m_privateMemory;
-}
-
 const Program& Kernel::getProgram() const
 {
   return m_program;
@@ -469,4 +454,14 @@ TypedValueMap::const_iterator Kernel::args_begin() const
 TypedValueMap::const_iterator Kernel::args_end() const
 {
   return m_arguments.end();
+}
+
+list<const llvm::GlobalVariable*>::const_iterator Kernel::vars_begin() const
+{
+  return m_globalVariables.begin();
+}
+
+list<const llvm::GlobalVariable*>::const_iterator Kernel::vars_end() const
+{
+  return m_globalVariables.end();
 }

@@ -41,6 +41,8 @@ namespace spirsim
 
     TypedValueMap::const_iterator args_begin() const;
     TypedValueMap::const_iterator args_end() const;
+    std::list<const llvm::GlobalVariable*>::const_iterator vars_begin() const;
+    std::list<const llvm::GlobalVariable*>::const_iterator vars_end() const;
     void allocateConstants(Memory *memory);
     void deallocateConstants(Memory *memory);
     size_t getArgumentSize(unsigned int index) const;
@@ -55,7 +57,6 @@ namespace spirsim
     size_t getLocalMemorySize() const;
     const std::string& getName() const;
     unsigned int getNumArguments() const;
-    const Memory* getPrivateMemory() const;
     const Program& getProgram() const;
     void getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const;
     void setArgument(unsigned int index, TypedValue value);
@@ -65,9 +66,9 @@ namespace spirsim
     const llvm::Function *m_function;
     TypedValueMap m_arguments;
     std::list<const llvm::GlobalVariable*> m_constants;
+    std::list<const llvm::GlobalVariable*> m_globalVariables;
     std::list<size_t> m_constantBuffers;
     Memory *m_localMemory;
-    Memory *m_privateMemory;
     std::string m_name;
     const llvm::MDNode *m_metadata;
 

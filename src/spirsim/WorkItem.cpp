@@ -18,6 +18,7 @@
 #include <cxxabi.h>
 
 #include "llvm/DebugInfo.h"
+#include "llvm/GlobalVariable.h"
 #include "llvm/InstrTypes.h"
 #include "llvm/Instruction.h"
 #include "llvm/Instructions.h"
@@ -55,7 +56,43 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
     m_instResults[argItr->first] = clone(argItr->second);
   }
 
-  m_privateMemory = kernel.getPrivateMemory()->clone();
+  m_privateMemory = new Memory();
+
+  list<const llvm::GlobalVariable*>::const_iterator varItr;
+  for (varItr = kernel.vars_begin(); varItr != kernel.vars_end(); varItr++)
+  {
+    const llvm::Constant *init = (*varItr)->getInitializer();
+    size_t size = getTypeSize(init->getType());
+    size_t address = m_privateMemory->allocateBuffer(size);
+
+    if (init->getValueID() == llvm::Value::ConstantExprVal)
+    {
+      TypedValue value = resolveConstExpr((const llvm::ConstantExpr*)init);
+      m_privateMemory->store(value.data, address, size);
+      delete[] value.data;
+    }
+    else if (isConstantOperand(init))
+    {
+      unsigned char *data = new unsigned char[size];
+      getConstantData(data, init);
+      m_privateMemory->store(data, address, size);
+      delete[] data;
+    }
+    else
+    {
+      FATAL_ERROR("Unsupported global variable initializer: %d",
+                  init->getValueID());
+    }
+
+    TypedValue var =
+    {
+      sizeof(size_t),
+      1,
+      new unsigned char[sizeof(size_t)]
+    };
+    *(size_t*)var.data = address;
+    m_instResults[*varItr] = var;
+  }
 
   m_prevBlock = NULL;
   m_nextBlock = NULL;
