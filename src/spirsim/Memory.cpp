@@ -223,6 +223,22 @@ int Memory::getNextBuffer()
   }
 }
 
+void* Memory::getPointer(size_t address) const
+{
+  size_t buffer = EXTRACT_BUFFER(address);
+  size_t offset = EXTRACT_OFFSET(address);
+
+  // Bounds check
+  if (buffer == 0 ||
+      buffer >= MAX_NUM_BUFFERS ||
+      m_memory.find(buffer) == m_memory.end())
+  {
+    return NULL;
+  }
+
+  return m_memory.at(buffer).data;
+}
+
 size_t Memory::getTotalAllocated() const
 {
   return m_totalAllocated;

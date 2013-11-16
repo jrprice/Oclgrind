@@ -392,7 +392,8 @@ clGetDeviceInfo(cl_device_id    device,
   case CL_DEVICE_EXECUTION_CAPABILITIES:
     result_size = sizeof(cl_device_exec_capabilities);
     result_data = malloc(result_size);
-    *(cl_device_exec_capabilities*)result_data = CL_EXEC_KERNEL;
+    *(cl_device_exec_capabilities*)result_data =
+      CL_EXEC_KERNEL | CL_EXEC_NATIVE_KERNEL;
     break;
   case CL_DEVICE_QUEUE_PROPERTIES:
     result_size = sizeof(cl_command_queue_properties);
@@ -4257,8 +4258,56 @@ clEnqueueNativeKernel(cl_command_queue   command_queue ,
                       const cl_event *   event_wait_list ,
                       cl_event *         event) CL_API_SUFFIX__VERSION_1_0
 {
-  cerr << endl << "OCLGRIND: Unimplemented OpenCL API call " << __func__ << endl;
-  return CL_INVALID_PLATFORM;
+  // Check parameters
+  if (!command_queue)
+  {
+    return CL_INVALID_COMMAND_QUEUE;
+  }
+  if (!user_func)
+  {
+    return CL_INVALID_VALUE;
+  }
+  if (!args && (cb_args > 0 || num_mem_objects > 0))
+  {
+    return CL_INVALID_VALUE;
+  }
+  if (args && cb_args == 0)
+  {
+    return CL_INVALID_VALUE;
+  }
+  if ((num_mem_objects > 0 && (!mem_list || !args_mem_loc)) ||
+      (num_mem_objects == 0 && (mem_list || !args_mem_loc)))
+  {
+    return CL_INVALID_VALUE;
+  }
+
+  // Replace mem objects with real pointers
+  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
+  for (int i = 0; i < num_mem_objects; i++)
+  {
+    void *addr = memory->getPointer(mem_list[i]->address);
+    if (addr == NULL)
+    {
+      return CL_INVALID_VALUE;
+    }
+    memcpy((void*)args_mem_loc[i], &addr, sizeof(void*));
+  }
+
+  // Create command
+  spirsim::Queue::NativeKernelCommand *cmd =
+    new spirsim::Queue::NativeKernelCommand(user_func, args, cb_args);
+
+  // Retain memory objects
+  for (int i = 0; i < num_mem_objects; i++)
+  {
+    asyncQueueRetain(cmd, mem_list[i]);
+  }
+
+  // Enqueue commands
+  asyncEnqueue(command_queue, CL_COMMAND_NATIVE_KERNEL, cmd,
+               num_events_in_wait_list, event_wait_list, event);
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY void * CL_API_CALL

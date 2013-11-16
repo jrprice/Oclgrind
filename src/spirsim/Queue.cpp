@@ -124,6 +124,12 @@ void Queue::executeKernel(KernelCommand *cmd)
                cmd->local_size);
 }
 
+void Queue::executeNativeKernel(NativeKernelCommand *cmd)
+{
+  // Run kernel
+  cmd->func(cmd->args);
+}
+
 void Queue::executeReadBuffer(BufferCommand *cmd)
 {
   m_device.getGlobalMemory()->load(cmd->ptr, cmd->address, cmd->size);
@@ -248,6 +254,9 @@ Queue::Command* Queue::update()
     break;
   case KERNEL:
     executeKernel((KernelCommand*)cmd);
+    break;
+  case NATIVE_KERNEL:
+    executeNativeKernel((NativeKernelCommand*)cmd);
     break;
   case WRITE:
     executeWriteBuffer((BufferCommand*)cmd);
