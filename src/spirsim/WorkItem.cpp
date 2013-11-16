@@ -1481,7 +1481,32 @@ void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
       {
         delete[] m_instResults[m_currInst].data;
       }
-      m_instResults[m_currInst] = clone(m_instResults[returnVal]);
+
+      if (isConstantOperand(returnVal))
+      {
+        if (returnVal->getValueID() == llvm::Value::ConstantExprVal)
+        {
+          TypedValue value =
+            resolveConstExpr((const llvm::ConstantExpr*)returnVal);
+          m_instResults[m_currInst] = value;
+        }
+        else
+        {
+          pair<size_t,size_t> size = getValueSize(returnVal);
+          TypedValue value =
+          {
+            size.first,
+            size.second,
+            new unsigned char[size.first*size.second]
+          };
+          getConstantData(value.data, (const llvm::Constant*)returnVal);
+          m_instResults[m_currInst] = value;
+        }
+      }
+      else
+      {
+        m_instResults[m_currInst] = clone(m_instResults[returnVal]);
+      }
     }
   }
   else
