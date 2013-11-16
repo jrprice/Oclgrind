@@ -107,6 +107,19 @@ Kernel::~Kernel()
   delete m_localMemory;
 }
 
+bool Kernel::allArgumentsSet() const
+{
+  llvm::Function::const_arg_iterator itr;
+  for (itr = m_function->arg_begin(); itr != m_function->arg_end(); itr++)
+  {
+    if (m_arguments.find(itr) == m_arguments.end())
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 void Kernel::allocateConstants(Memory *memory)
 {
   list<const llvm::GlobalVariable*>::const_iterator itr;

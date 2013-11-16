@@ -43,6 +43,7 @@ namespace spirsim
     TypedValueMap::const_iterator args_end() const;
     std::list<const llvm::GlobalVariable*>::const_iterator vars_begin() const;
     std::list<const llvm::GlobalVariable*>::const_iterator vars_end() const;
+    bool allArgumentsSet() const;
     void allocateConstants(Memory *memory);
     void deallocateConstants(Memory *memory);
     size_t getArgumentSize(unsigned int index) const;

@@ -4207,7 +4207,11 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
     }
   }
 
-  // TODO: Ensure all arguments have been set
+  // Ensure all arguments have been set
+  if (!kernel->kernel->allArgumentsSet())
+  {
+    return CL_INVALID_KERNEL_ARGS;
+  }
 
   // Enqueue command
   spirsim::Queue::KernelCommand *cmd = new spirsim::Queue::KernelCommand();
