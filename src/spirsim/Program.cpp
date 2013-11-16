@@ -191,15 +191,18 @@ bool Program::build(const char *options, list<Header> headers)
   // Compile
   llvm::LLVMContext& context = llvm::getGlobalContext();
   clang::CodeGenAction *action = new clang::EmitLLVMOnlyAction(&context);
-  if (!compiler.ExecuteAction(*action))
+
+  if (compiler.ExecuteAction(*action))
+  {
+    // Retrieve module
+    m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
+    m_module = action->takeModule();
+    m_buildStatus = CL_BUILD_SUCCESS;
+  }
+  else
   {
     m_buildStatus = CL_BUILD_ERROR;
-    return false;
   }
-
-  // Retrieve module
-  m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
-  m_module = action->takeModule();
 
   // Dump temps if required
   const char *keepTempsEnv = getenv(ENV_DUMP);
@@ -225,25 +228,27 @@ bool Program::build(const char *options, list<Header> headers)
     cl << m_source;
     cl.close();
 
-    // Dump IR
-    string err;
-    llvm::raw_fd_ostream ir(tempIR, err);
-    llvm::AssemblyAnnotationWriter asmWriter;
-    m_module->print(ir, &asmWriter);
-    ir.close();
+    if (m_buildStatus == CL_BUILD_SUCCESS)
+    {
+      // Dump IR
+      string err;
+      llvm::raw_fd_ostream ir(tempIR, err);
+      llvm::AssemblyAnnotationWriter asmWriter;
+      m_module->print(ir, &asmWriter);
+      ir.close();
 
-    // Dump bitcode
-    llvm::raw_fd_ostream bc(tempBC, err);
-    llvm::WriteBitcodeToFile(m_module, bc);
-    bc.close();
+      // Dump bitcode
+      llvm::raw_fd_ostream bc(tempBC, err);
+      llvm::WriteBitcodeToFile(m_module, bc);
+      bc.close();
+    }
 
     delete[] tempCL;
     delete[] tempIR;
     delete[] tempBC;
   }
 
-  m_buildStatus = CL_BUILD_SUCCESS;
-  return true;
+  return m_buildStatus == CL_BUILD_SUCCESS;
 }
 
 Program* Program::createFromBitcode(const unsigned char *bitcode,
