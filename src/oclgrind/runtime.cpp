@@ -322,7 +322,7 @@ clGetDeviceInfo(cl_device_id    device,
     result_size = sizeof(cl_device_fp_config);
     result_data = malloc(result_size);
     *(cl_device_fp_config*)result_data =
-     CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN;
+     CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN | CL_FP_DENORM;
     break;
   case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:
     result_size = sizeof(cl_device_mem_cache_type);
