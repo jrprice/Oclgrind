@@ -43,7 +43,15 @@ Kernel::Kernel(const Program& program,
   for (itr = module->global_begin(); itr != module->global_end(); itr++)
   {
     llvm::PointerType *type = itr->getType();
-    if (type->getPointerAddressSpace() == AddrSpaceLocal)
+    switch (type->getPointerAddressSpace())
+    {
+    case AddrSpacePrivate:
+      m_globalVariables.push_back(itr);
+      break;
+    case AddrSpaceConstant:
+      m_constants.push_back(itr);
+      break;
+    case AddrSpaceLocal:
     {
       // Allocate buffer
       size_t size = getTypeSize(itr->getInitializer()->getType());
@@ -54,21 +62,11 @@ Kernel::Kernel(const Program& program,
       };
       *((size_t*)v.data) = m_localMemory->allocateBuffer(size);
       m_arguments[itr] = v;
+      break;
     }
-    // TODO: Check for constant address space when generator fixed
-    else if (itr->isConstant() ||
-             (itr->hasUnnamedAddr() && itr->getName().str()[0] == '.'))
-    {
-      m_constants.push_back(itr);
-    }
-    else if (type->getPointerAddressSpace() == AddrSpacePrivate)
-    {
-      m_globalVariables.push_back(itr);
-    }
-    else
-    {
-      FATAL_ERROR("Unsupported GlobalVariable: value=%d, type=%d",
-                  itr->getValueID(), itr->getType()->getTypeID());
+    default:
+      FATAL_ERROR("Unsupported GlobalVariable address space: %d",
+                  type->getPointerAddressSpace());
     }
   }
 
