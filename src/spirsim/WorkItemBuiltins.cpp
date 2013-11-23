@@ -2717,8 +2717,7 @@ namespace spirsim
       size_t base = *(size_t*)(workItem->m_instResults[ptrOp].data);
       uint64_t offset = UARG(0);
 
-      string addrSpaceStr = overload.substr(overload.length()-2);
-      unsigned int addressSpace = atoi(addrSpaceStr.c_str());
+      unsigned int addressSpace = ptrOp->getType()->getPointerAddressSpace();
 
       size_t address = base + offset*result.size*result.num;
       size_t size = result.size*result.num;
@@ -2755,8 +2754,7 @@ namespace spirsim
       const llvm::Value *ptrOp = ARG(2);
       size_t base = *(size_t*)(workItem->m_instResults[ptrOp].data);
 
-      string addrSpaceStr = overload.substr(overload.length()-2);
-      unsigned int addressSpace = atoi(addrSpaceStr.c_str());
+      unsigned int addressSpace = ptrOp->getType()->getPointerAddressSpace();
 
       size_t address = base + offset*size;
       Memory *memory = workItem->getMemory(addressSpace);
