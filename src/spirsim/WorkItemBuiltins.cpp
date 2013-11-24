@@ -58,6 +58,7 @@ namespace spirsim
 #define UARG(i) workItem->getUnsignedInt(callInst->getArgOperand(i))
 #define SARG(i) workItem->getSignedInt(callInst->getArgOperand(i))
 #define FARG(i) workItem->getFloatValue(callInst->getArgOperand(i))
+#define PARG(i) workItem->getPointer(callInst->getArgOperand(i))
 #define UARGV(i,v) workItem->getUnsignedInt(callInst->getArgOperand(i), v)
 #define SARGV(i,v) workItem->getSignedInt(callInst->getArgOperand(i), v)
 #define FARGV(i,v) workItem->getFloatValue(callInst->getArgOperand(i), v)
@@ -201,8 +202,8 @@ namespace spirsim
       // Get src/dest addresses
       const llvm::Value *destOp = ARG(arg++);
       const llvm::Value *srcOp = ARG(arg++);
-      size_t dest = *(size_t*)(workItem->m_instResults[destOp].data);
-      size_t src = *(size_t*)(workItem->m_instResults[srcOp].data);
+      size_t dest = workItem->getPointer(destOp);
+      size_t src = workItem->getPointer(srcOp);
 
       // Get size of copy
       size_t elemSize = getTypeSize(destOp->getType()->getPointerElementType());
@@ -286,7 +287,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -305,7 +306,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -324,7 +325,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -346,7 +347,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -365,7 +366,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -384,7 +385,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -404,7 +405,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -424,7 +425,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -443,7 +444,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -462,7 +463,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -481,7 +482,7 @@ namespace spirsim
       // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = UARG(0);
+      size_t ptr = PARG(0);
 
       // Load old value
       uint32_t old;
@@ -2388,7 +2389,7 @@ namespace spirsim
       Memory *memory =
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
-      size_t iptr = UARG(1);
+      size_t iptr = PARG(1);
       for (int i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
@@ -2407,7 +2408,7 @@ namespace spirsim
       Memory *memory =
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
-      size_t iptr = UARG(1);
+      size_t iptr = PARG(1);
       for (int i = 0; i < result.num; i++)
       {
         int32_t e;
@@ -2438,7 +2439,7 @@ namespace spirsim
       Memory *memory =
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
-      size_t signp = UARG(1);
+      size_t signp = PARG(1);
       for (int i = 0; i < result.num; i++)
       {
         double r = lgamma(FARGV(0, i));
@@ -2453,7 +2454,7 @@ namespace spirsim
       Memory *memory =
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
-      size_t iptr = UARG(1);
+      size_t iptr = PARG(1);
       for (int i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
@@ -2491,7 +2492,7 @@ namespace spirsim
       Memory *memory =
         workItem->getMemory(ARG(2)->getType()->getPointerAddressSpace());
 
-      size_t quop = UARG(2);
+      size_t quop = PARG(2);
       for (int i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
@@ -2519,7 +2520,7 @@ namespace spirsim
       Memory *memory =
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
-      size_t cv = UARG(1);
+      size_t cv = PARG(1);
       for (int i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
@@ -2713,11 +2714,9 @@ namespace spirsim
 
     DEFINE_BUILTIN(vload)
     {
-      const llvm::Value *ptrOp = ARG(1);
-      size_t base = *(size_t*)(workItem->m_instResults[ptrOp].data);
+      size_t base = PARG(1);
+      unsigned int addressSpace = ARG(1)->getType()->getPointerAddressSpace();
       uint64_t offset = UARG(0);
-
-      unsigned int addressSpace = ptrOp->getType()->getPointerAddressSpace();
 
       size_t address = base + offset*result.size*result.num;
       size_t size = result.size*result.num;
@@ -2749,12 +2748,10 @@ namespace spirsim
       {
         memcpy(data, workItem->m_instResults[value].data, size);
       }
+
+      size_t base = PARG(2);
+      unsigned int addressSpace = ARG(2)->getType()->getPointerAddressSpace();
       uint64_t offset = UARG(1);
-
-      const llvm::Value *ptrOp = ARG(2);
-      size_t base = *(size_t*)(workItem->m_instResults[ptrOp].data);
-
-      unsigned int addressSpace = ptrOp->getType()->getPointerAddressSpace();
 
       size_t address = base + offset*size;
       Memory *memory = workItem->getMemory(addressSpace);

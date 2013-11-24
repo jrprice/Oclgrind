@@ -443,6 +443,44 @@ Memory* WorkItem::getPrivateMemory() const
   return m_privateMemory;
 }
 
+size_t WorkItem::getPointer(const llvm::Value *operand, unsigned int index)
+{
+  unsigned id = operand->getValueID();
+  if (id == llvm::Value::ArgumentVal ||
+      id == llvm::Value::GlobalVariableVal ||
+      id >= llvm::Value::InstructionVal)
+  {
+    return *(size_t*)m_instResults[operand].data;
+  }
+  else if (id == llvm::Value::UndefValueVal)
+  {
+    return -1;
+  }
+  else if (id == llvm::Value::ConstantExprVal)
+  {
+    size_t ptr;
+    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
+    memcpy(&ptr, result.data + index*result.size, result.size);
+    delete[] result.data;
+    return ptr;
+  }
+  if (id == llvm::Value::ConstantAggregateZeroVal ||
+      id == llvm::Value::ConstantPointerNullVal)
+  {
+    return 0;
+  }
+  if (id == llvm::Value::ConstantDataVectorVal ||
+      id == llvm::Value::ConstantVectorVal)
+  {
+    return getPointer(
+      ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
+  }
+  else
+  {
+    FATAL_ERROR("Unsupported pointer operand type: %d", id);
+  }
+}
+
 int64_t WorkItem::getSignedInt(const llvm::Value *operand,
                                unsigned int index)
 {
@@ -1376,21 +1414,8 @@ void WorkItem::load(const llvm::Instruction& instruction,
                     TypedValue& result)
 {
   const llvm::LoadInst *loadInst = (const llvm::LoadInst*)&instruction;
-  const llvm::Value *ptrOp = loadInst->getPointerOperand();
   unsigned addressSpace = loadInst->getPointerAddressSpace();
-
-  // Get address
-  size_t address;
-  if (ptrOp->getValueID() == llvm::Value::ConstantExprVal)
-  {
-    TypedValue result = resolveConstExpr((llvm::ConstantExpr*)ptrOp);
-    address = *(size_t*)result.data;
-    delete[] result.data;
-  }
-  else
-  {
-    address = *((size_t*)m_instResults[ptrOp].data);
-  }
+  size_t address = getPointer(loadInst->getPointerOperand());
 
   // Load data
   size_t size = result.size*result.num;
@@ -1652,13 +1677,10 @@ void WorkItem::srem(const llvm::Instruction& instruction, TypedValue& result)
 void WorkItem::store(const llvm::Instruction& instruction)
 {
   const llvm::StoreInst *storeInst = (const llvm::StoreInst*)&instruction;
-  const llvm::Value *ptrOp = storeInst->getPointerOperand();
   const llvm::Value *valOp = storeInst->getValueOperand();
   const llvm::Type *type = valOp->getType();
   unsigned addressSpace = storeInst->getPointerAddressSpace();
-
-  // Get address
-  size_t address = *((size_t*)m_instResults[ptrOp].data);
+  size_t address = getPointer(storeInst->getPointerOperand());
 
   // Get store operand
   size_t size = getTypeSize(valOp->getType());

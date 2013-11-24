@@ -74,6 +74,7 @@ namespace spirsim
                          unsigned int index = 0);
     const size_t* getLocalID() const;
     Memory* getPrivateMemory() const;
+    size_t getPointer(const llvm::Value *operand, unsigned int index = 0);
     int64_t getSignedInt(const llvm::Value *operand,
                          unsigned int index = 0);
     State getState() const;
