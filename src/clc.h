@@ -52,20 +52,20 @@ TYPEDEF_VECTOR(double);
   __attribute__((vec_type_hint(typen)))
 
 #define CHAR_BIT    8
-#define	SCHAR_MAX	127		/* min value for a signed char */
-#define	SCHAR_MIN	(-128)		/* max value for a signed char */
-#define	UCHAR_MAX	255		/* max value for an unsigned char */
-#define	CHAR_MAX	SCHAR_MAX		/* max value for a char */
-#define	CHAR_MIN	SCHAR_MIN		/* min value for a char */
-#define	USHRT_MAX	65535		/* max value for an unsigned short */
-#define	SHRT_MAX	32767		/* max value for a short */
-#define	SHRT_MIN	(-32768)	/* min value for a short */
-#define	UINT_MAX	0xffffffff	/* max value for an unsigned int */
-#define	INT_MAX		2147483647	/* max value for an int */
-#define	INT_MIN		(-2147483647-1)	/* min value for an int */
-#define	ULONG_MAX	0xffffffffffffffffUL	/* max unsigned long */
-#define	LONG_MAX	((long)0x7fffffffffffffffL)	/* max signed long */
-#define	LONG_MIN	((long)(-0x7fffffffffffffffL-1)) /* min signed long */
+#define SCHAR_MAX 127
+#define SCHAR_MIN (-128)
+#define UCHAR_MAX 255
+#define CHAR_MAX  SCHAR_MAX
+#define CHAR_MIN  SCHAR_MIN
+#define USHRT_MAX 65535
+#define SHRT_MAX  32767
+#define SHRT_MIN  (-32768)
+#define UINT_MAX  0xffffffff
+#define INT_MAX   2147483647
+#define INT_MIN   (-2147483647-1)
+#define ULONG_MAX 0xffffffffffffffffUL
+#define LONG_MAX  ((long)0x7fffffffffffffffL)
+#define LONG_MIN  ((long)(-0x7fffffffffffffffL-1))
 
 #define FLT_DIG         6
 #define FLT_MANT_DIG    24
@@ -92,33 +92,33 @@ TYPEDEF_VECTOR(double);
 #define FP_ILOGB0       INT_MIN
 #define FP_ILOGBNAN     INT_MIN
 
-#define M_E_F         2.71828182845904523536028747135266250f   /* e */
-#define M_LOG2E_F     1.44269504088896340735992468100189214f   /* log 2e */
-#define M_LOG10E_F    0.434294481903251827651128918916605082f  /* log 10e */
-#define M_LN2_F       0.693147180559945309417232121458176568f  /* log e2 */
-#define M_LN10_F      2.3025850929940456840179914546843642f    /* log e10 */
-#define M_PI_F        3.14159265358979323846264338327950288f   /* pi */
-#define M_PI_2_F      1.57079632679489661923132169163975144f   /* pi/2 */
-#define M_PI_4_F      0.785398163397448309615660845819875721f  /* pi/4 */
-#define M_1_PI_F      0.318309886183790671537767526745028724f  /* 1/pi */
-#define M_2_PI_F      0.636619772367581343075535053490057448f  /* 2/pi */
-#define M_2_SQRTPI_F  1.12837916709551257389615890312154517f   /* 2/sqrt(pi) */
-#define M_SQRT2_F     1.41421356237309504880168872420969808f   /* sqrt(2) */
-#define M_SQRT1_2_F   0.707106781186547524400844362104849039f  /* 1/sqrt(2) */
+#define M_E_F         2.71828182845904523536028747135266250f
+#define M_LOG2E_F     1.44269504088896340735992468100189214f
+#define M_LOG10E_F    0.434294481903251827651128918916605082f
+#define M_LN2_F       0.693147180559945309417232121458176568f
+#define M_LN10_F      2.3025850929940456840179914546843642f
+#define M_PI_F        3.14159265358979323846264338327950288f
+#define M_PI_2_F      1.57079632679489661923132169163975144f
+#define M_PI_4_F      0.785398163397448309615660845819875721f
+#define M_1_PI_F      0.318309886183790671537767526745028724f
+#define M_2_PI_F      0.636619772367581343075535053490057448f
+#define M_2_SQRTPI_F  1.12837916709551257389615890312154517f
+#define M_SQRT2_F     1.41421356237309504880168872420969808f
+#define M_SQRT1_2_F   0.707106781186547524400844362104849039f
 
-#define M_E         2.71828182845904523536028747135266250   /* e */
-#define M_LOG2E     1.44269504088896340735992468100189214   /* log 2e */
-#define M_LOG10E    0.434294481903251827651128918916605082  /* log 10e */
-#define M_LN2       0.693147180559945309417232121458176568  /* log e2 */
-#define M_LN10      2.30258509299404568401799145468436421   /* log e10 */
-#define M_PI        3.14159265358979323846264338327950288   /* pi */
-#define M_PI_2      1.57079632679489661923132169163975144   /* pi/2 */
-#define M_PI_4      0.785398163397448309615660845819875721  /* pi/4 */
-#define M_1_PI      0.318309886183790671537767526745028724  /* 1/pi */
-#define M_2_PI      0.636619772367581343075535053490057448  /* 2/pi */
-#define M_2_SQRTPI  1.12837916709551257389615890312154517   /* 2/sqrt(pi) */
-#define M_SQRT2     1.41421356237309504880168872420969808   /* sqrt(2) */
-#define M_SQRT1_2   0.707106781186547524400844362104849039  /* 1/sqrt(2) */
+#define M_E         2.71828182845904523536028747135266250
+#define M_LOG2E     1.44269504088896340735992468100189214
+#define M_LOG10E    0.434294481903251827651128918916605082
+#define M_LN2       0.693147180559945309417232121458176568
+#define M_LN10      2.30258509299404568401799145468436421
+#define M_PI        3.14159265358979323846264338327950288
+#define M_PI_2      1.57079632679489661923132169163975144
+#define M_PI_4      0.785398163397448309615660845819875721
+#define M_1_PI      0.318309886183790671537767526745028724
+#define M_2_PI      0.636619772367581343075535053490057448
+#define M_2_SQRTPI  1.12837916709551257389615890312154517
+#define M_SQRT2     1.41421356237309504880168872420969808
+#define M_SQRT1_2   0.707106781186547524400844362104849039
 
 #define MAXFLOAT ((float)3.40282346638528860e+38)
 #define HUGE_VALF __builtin_huge_valf()
@@ -173,82 +173,82 @@ TYPEDEF_VECTOR(double);
 #define __OVERLOAD__ __attribute__((__overloadable__))
 
 #define BUILTIN_1ARG(rtype, type0, name)  \
-	rtype __OVERLOAD__ name(type0 a);       \
-	rtype##2 __OVERLOAD__ name(type0##2 a); \
-	rtype##3 __OVERLOAD__ name(type0##3 a); \
-	rtype##4 __OVERLOAD__ name(type0##4 a); \
-	rtype##8 __OVERLOAD__ name(type0##8 a); \
-	rtype##16 __OVERLOAD__ name(type0##16 a);
+  rtype __OVERLOAD__ name(type0 a);       \
+  rtype##2 __OVERLOAD__ name(type0##2 a); \
+  rtype##3 __OVERLOAD__ name(type0##3 a); \
+  rtype##4 __OVERLOAD__ name(type0##4 a); \
+  rtype##8 __OVERLOAD__ name(type0##8 a); \
+  rtype##16 __OVERLOAD__ name(type0##16 a);
 #define BUILTIN_2ARG(rtype, type0, type1, name)       \
-	rtype __OVERLOAD__ name(type0 a, type1 b);          \
-	rtype##2 __OVERLOAD__ name(type0##2 a, type1##2 b); \
-	rtype##3 __OVERLOAD__ name(type0##3 a, type1##3 b); \
-	rtype##4 __OVERLOAD__ name(type0##4 a, type1##4 b); \
-	rtype##8 __OVERLOAD__ name(type0##8 a, type1##8 b); \
-	rtype##16 __OVERLOAD__ name(type0##16 a, type1##16 b);
+  rtype __OVERLOAD__ name(type0 a, type1 b);          \
+  rtype##2 __OVERLOAD__ name(type0##2 a, type1##2 b); \
+  rtype##3 __OVERLOAD__ name(type0##3 a, type1##3 b); \
+  rtype##4 __OVERLOAD__ name(type0##4 a, type1##4 b); \
+  rtype##8 __OVERLOAD__ name(type0##8 a, type1##8 b); \
+  rtype##16 __OVERLOAD__ name(type0##16 a, type1##16 b);
 #define BUILTIN_3ARG(rtype, type0, type1, type2, name)            \
-	rtype __OVERLOAD__ name(type0 a, type1 b, type2 c);             \
-	rtype##2 __OVERLOAD__ name(type0##2 a, type1##2 b, type2##2 c); \
-	rtype##3 __OVERLOAD__ name(type0##3 a, type1##3 b, type2##3 c); \
-	rtype##4 __OVERLOAD__ name(type0##4 a, type1##4 b, type2##4 c); \
-	rtype##8 __OVERLOAD__ name(type0##8 a, type1##8 b, type2##8 c); \
-	rtype##16 __OVERLOAD__ name(type0##16 a, type1##16 b, type2##16 c);
+  rtype __OVERLOAD__ name(type0 a, type1 b, type2 c);             \
+  rtype##2 __OVERLOAD__ name(type0##2 a, type1##2 b, type2##2 c); \
+  rtype##3 __OVERLOAD__ name(type0##3 a, type1##3 b, type2##3 c); \
+  rtype##4 __OVERLOAD__ name(type0##4 a, type1##4 b, type2##4 c); \
+  rtype##8 __OVERLOAD__ name(type0##8 a, type1##8 b, type2##8 c); \
+  rtype##16 __OVERLOAD__ name(type0##16 a, type1##16 b, type2##16 c);
 
 #define BUILTIN_1ARG_INTEGERS(name)  \
-	BUILTIN_1ARG(char, char, name)     \
-	BUILTIN_1ARG(uchar, uchar, name)   \
-	BUILTIN_1ARG(short, short, name)   \
-	BUILTIN_1ARG(ushort, ushort, name) \
-	BUILTIN_1ARG(int, int, name)       \
-	BUILTIN_1ARG(uint, uint, name)     \
-	BUILTIN_1ARG(long, long, name)     \
-	BUILTIN_1ARG(ulong, ulong, name);
+  BUILTIN_1ARG(char, char, name)     \
+  BUILTIN_1ARG(uchar, uchar, name)   \
+  BUILTIN_1ARG(short, short, name)   \
+  BUILTIN_1ARG(ushort, ushort, name) \
+  BUILTIN_1ARG(int, int, name)       \
+  BUILTIN_1ARG(uint, uint, name)     \
+  BUILTIN_1ARG(long, long, name)     \
+  BUILTIN_1ARG(ulong, ulong, name);
 #define BUILTIN_2ARG_INTEGERS(name)          \
-	BUILTIN_2ARG(char, char, char, name)       \
-	BUILTIN_2ARG(uchar, uchar, uchar, name)    \
-	BUILTIN_2ARG(short, short, short, name)    \
-	BUILTIN_2ARG(ushort, ushort, ushort, name) \
-	BUILTIN_2ARG(int, int, int, name)          \
-	BUILTIN_2ARG(uint, uint, uint, name)       \
-	BUILTIN_2ARG(long, long, long, name)       \
-	BUILTIN_2ARG(ulong, ulong, ulong, name);
+  BUILTIN_2ARG(char, char, char, name)       \
+  BUILTIN_2ARG(uchar, uchar, uchar, name)    \
+  BUILTIN_2ARG(short, short, short, name)    \
+  BUILTIN_2ARG(ushort, ushort, ushort, name) \
+  BUILTIN_2ARG(int, int, int, name)          \
+  BUILTIN_2ARG(uint, uint, uint, name)       \
+  BUILTIN_2ARG(long, long, long, name)       \
+  BUILTIN_2ARG(ulong, ulong, ulong, name);
 #define BUILTIN_3ARG_INTEGERS(name)                  \
-	BUILTIN_3ARG(char, char, char, char, name)         \
-	BUILTIN_3ARG(uchar, uchar, uchar, uchar, name)     \
-	BUILTIN_3ARG(short, short, short, short, name)     \
-	BUILTIN_3ARG(ushort, ushort, ushort, ushort, name) \
-	BUILTIN_3ARG(int, int, int, int, name)             \
-	BUILTIN_3ARG(uint, uint, uint, uint, name)         \
-	BUILTIN_3ARG(long, long, long, long, name)         \
-	BUILTIN_3ARG(ulong, ulong, ulong, ulong, name);
+  BUILTIN_3ARG(char, char, char, char, name)         \
+  BUILTIN_3ARG(uchar, uchar, uchar, uchar, name)     \
+  BUILTIN_3ARG(short, short, short, short, name)     \
+  BUILTIN_3ARG(ushort, ushort, ushort, ushort, name) \
+  BUILTIN_3ARG(int, int, int, int, name)             \
+  BUILTIN_3ARG(uint, uint, uint, uint, name)         \
+  BUILTIN_3ARG(long, long, long, long, name)         \
+  BUILTIN_3ARG(ulong, ulong, ulong, ulong, name);
 
 #define BUILTIN_1ARG_FLOATS(name)  \
-	BUILTIN_1ARG(float, float, name) \
-	BUILTIN_1ARG(double, double, name);
+  BUILTIN_1ARG(float, float, name) \
+  BUILTIN_1ARG(double, double, name);
 #define BUILTIN_2ARG_FLOATS(name)         \
-	BUILTIN_2ARG(float, float, float, name) \
-	BUILTIN_2ARG(double, double, double, name);
+  BUILTIN_2ARG(float, float, float, name) \
+  BUILTIN_2ARG(double, double, double, name);
 #define BUILTIN_3ARG_FLOATS(name)                \
-	BUILTIN_3ARG(float, float, float, float, name) \
-	BUILTIN_3ARG(double, double, double, double, name);
+  BUILTIN_3ARG(float, float, float, float, name) \
+  BUILTIN_3ARG(double, double, double, double, name);
 
 
 ///////////////////////////////////////
 // Async Copy and Prefetch Functions //
 ///////////////////////////////////////
 
-#define ASYNC_COPY_TYPE(type) \
-	event_t __OVERLOAD__ async_work_group_copy(__local type*, const __global type*, size_t, event_t);  \
-	event_t __OVERLOAD__ async_work_group_copy(__global type*, const __local type*, size_t, event_t);  \
-	event_t __OVERLOAD__ async_work_group_strided_copy(__local type*, const __global type*, size_t, size_t, event_t);  \
-	event_t __OVERLOAD__ async_work_group_strided_copy(__global type*, const __local type*, size_t, size_t, event_t);
+#define ASYNC_COPY_TYPE(type)                                                                                       \
+  event_t __OVERLOAD__ async_work_group_copy(__local type*, const __global type*, size_t, event_t);                 \
+  event_t __OVERLOAD__ async_work_group_copy(__global type*, const __local type*, size_t, event_t);                 \
+  event_t __OVERLOAD__ async_work_group_strided_copy(__local type*, const __global type*, size_t, size_t, event_t); \
+  event_t __OVERLOAD__ async_work_group_strided_copy(__global type*, const __local type*, size_t, size_t, event_t);
 #define ASYNC_COPY(type)   \
-	ASYNC_COPY_TYPE(type)    \
-	ASYNC_COPY_TYPE(type##2) \
-	ASYNC_COPY_TYPE(type##3) \
-	ASYNC_COPY_TYPE(type##4) \
-	ASYNC_COPY_TYPE(type##8) \
-	ASYNC_COPY_TYPE(type##16);
+  ASYNC_COPY_TYPE(type)    \
+  ASYNC_COPY_TYPE(type##2) \
+  ASYNC_COPY_TYPE(type##3) \
+  ASYNC_COPY_TYPE(type##4) \
+  ASYNC_COPY_TYPE(type##8) \
+  ASYNC_COPY_TYPE(type##16);
 ASYNC_COPY(char);
 ASYNC_COPY(uchar);
 ASYNC_COPY(short);
@@ -263,12 +263,12 @@ ASYNC_COPY(double);
 void wait_group_events(int, event_t*);
 
 #define PREFETCH(type)                                         \
-	void __OVERLOAD__ prefetch(const __global type*, size_t);    \
-	void __OVERLOAD__ prefetch(const __global type##2*, size_t); \
-	void __OVERLOAD__ prefetch(const __global type##3*, size_t); \
-	void __OVERLOAD__ prefetch(const __global type##4*, size_t); \
-	void __OVERLOAD__ prefetch(const __global type##8*, size_t); \
-	void __OVERLOAD__ prefetch(const __global type##16*, size_t);
+  void __OVERLOAD__ prefetch(const __global type*, size_t);    \
+  void __OVERLOAD__ prefetch(const __global type##2*, size_t); \
+  void __OVERLOAD__ prefetch(const __global type##3*, size_t); \
+  void __OVERLOAD__ prefetch(const __global type##4*, size_t); \
+  void __OVERLOAD__ prefetch(const __global type##8*, size_t); \
+  void __OVERLOAD__ prefetch(const __global type##16*, size_t);
 PREFETCH(char);
 PREFETCH(uchar);
 PREFETCH(short);
@@ -286,22 +286,22 @@ PREFETCH(double);
 //////////////////////
 
 #define ATOMIC_0ARG_DEF(name, type)                  \
-	type __OVERLOAD__ name(volatile __global type *p); \
-	type __OVERLOAD__ name(volatile __local type *p);
+  type __OVERLOAD__ name(volatile __global type *p); \
+  type __OVERLOAD__ name(volatile __local type *p);
 #define ATOMIC_0ARG(name)               \
-	ATOMIC_0ARG_DEF(atom_##name, int);    \
-	ATOMIC_0ARG_DEF(atom_##name, uint);   \
-	ATOMIC_0ARG_DEF(atomic_##name, int);  \
-	ATOMIC_0ARG_DEF(atomic_##name, uint);
+  ATOMIC_0ARG_DEF(atom_##name, int);    \
+  ATOMIC_0ARG_DEF(atom_##name, uint);   \
+  ATOMIC_0ARG_DEF(atomic_##name, int);  \
+  ATOMIC_0ARG_DEF(atomic_##name, uint);
 
 #define ATOMIC_1ARG_DEF(name, type)                            \
-	type __OVERLOAD__ name(volatile __global type *p, type val); \
-	type __OVERLOAD__ name(volatile __local type *p, type val);
+  type __OVERLOAD__ name(volatile __global type *p, type val); \
+  type __OVERLOAD__ name(volatile __local type *p, type val);
 #define ATOMIC_1ARG(name)               \
-	ATOMIC_1ARG_DEF(atom_##name, int);    \
-	ATOMIC_1ARG_DEF(atom_##name, uint);   \
-	ATOMIC_1ARG_DEF(atomic_##name, int);  \
-	ATOMIC_1ARG_DEF(atomic_##name, uint);
+  ATOMIC_1ARG_DEF(atom_##name, int);    \
+  ATOMIC_1ARG_DEF(atom_##name, uint);   \
+  ATOMIC_1ARG_DEF(atomic_##name, int);  \
+  ATOMIC_1ARG_DEF(atomic_##name, uint);
 
 ATOMIC_1ARG(add);
 ATOMIC_1ARG(and);
@@ -331,21 +331,21 @@ uint __OVERLOAD__ atomic_cmpxchg(volatile __local uint *p, uint cmp, uint val);
 //////////////////////
 
 #define ABS(type)                 \
-	u##type __OVERLOAD__ abs(type); \
-	u##type __OVERLOAD__ abs(u##type);
+  u##type __OVERLOAD__ abs(type); \
+  u##type __OVERLOAD__ abs(u##type);
 #define ABS_DIFF(type)                       \
-	u##type __OVERLOAD__ abs_diff(type, type); \
-	u##type __OVERLOAD__ abs_diff(u##type, u##type);
+  u##type __OVERLOAD__ abs_diff(type, type); \
+  u##type __OVERLOAD__ abs_diff(u##type, u##type);
 #define ABS_BOTH(type) \
-	ABS(type);           \
-	ABS_DIFF(type);
+  ABS(type);           \
+  ABS_DIFF(type);
 #define ABS_ALL(type) \
-	ABS_BOTH(type);     \
-	ABS_BOTH(type##2);  \
-	ABS_BOTH(type##3);  \
-	ABS_BOTH(type##4);  \
-	ABS_BOTH(type##8);  \
-	ABS_BOTH(type##16);
+  ABS_BOTH(type);     \
+  ABS_BOTH(type##2);  \
+  ABS_BOTH(type##3);  \
+  ABS_BOTH(type##4);  \
+  ABS_BOTH(type##8);  \
+  ABS_BOTH(type##16);
 
 ABS_ALL(char);
 ABS_ALL(short);
@@ -362,12 +362,12 @@ BUILTIN_3ARG_FLOATS(smoothstep);
 BUILTIN_2ARG_FLOATS(step);
 
 #define COMMON_SCALAR(type, n)                          \
-	type##n __OVERLOAD__ clamp(type##n, type, type);      \
-	type##n __OVERLOAD__ max(type##n, type);              \
-	type##n __OVERLOAD__ min(type##n, type);              \
-	type##n __OVERLOAD__ mix(type##n, type##n, type);     \
-	type##n __OVERLOAD__ smoothstep(type, type, type##n); \
-	type##n __OVERLOAD__ step(type, type##n);
+  type##n __OVERLOAD__ clamp(type##n, type, type);      \
+  type##n __OVERLOAD__ max(type##n, type);              \
+  type##n __OVERLOAD__ min(type##n, type);              \
+  type##n __OVERLOAD__ mix(type##n, type##n, type);     \
+  type##n __OVERLOAD__ smoothstep(type, type, type##n); \
+  type##n __OVERLOAD__ step(type, type##n);
 COMMON_SCALAR(float, 2);
 COMMON_SCALAR(float, 3);
 COMMON_SCALAR(float, 4);
@@ -384,15 +384,15 @@ COMMON_SCALAR(double, 16);
 // Geometric Functions //
 /////////////////////////
 
-#define GEOM_1ARG(type, name) \
- type __OVERLOAD__ name(type);  \
+#define GEOM_1ARG(type, name)     \
+ type __OVERLOAD__ name(type);    \
  type __OVERLOAD__ name(type##2); \
  type __OVERLOAD__ name(type##3); \
  type __OVERLOAD__ name(type##4); \
  type __OVERLOAD__ name(type##8); \
  type __OVERLOAD__ name(type##16);
-#define GEOM_2ARG(type, name) \
- type __OVERLOAD__ name(type, type);   \
+#define GEOM_2ARG(type, name)              \
+ type __OVERLOAD__ name(type, type);       \
  type __OVERLOAD__ name(type##2, type##2); \
  type __OVERLOAD__ name(type##3, type##3); \
  type __OVERLOAD__ name(type##4, type##4); \
@@ -546,15 +546,15 @@ BUILTIN_2ARG_INTEGERS(rhadd);
 BUILTIN_2ARG_INTEGERS(rotate);
 BUILTIN_2ARG_INTEGERS(sub_sat);
 #define UPSAMPLE_SIZES(out, in1, in2)            \
-	out     __OVERLOAD__ upsample(in1, in2);       \
-	out##2  __OVERLOAD__ upsample(in1##2, in2##2); \
-	out##3  __OVERLOAD__ upsample(in1##3, in2##3); \
-	out##4  __OVERLOAD__ upsample(in1##4, in2##4); \
-	out##8  __OVERLOAD__ upsample(in1##8, in2##8); \
-	out##16 __OVERLOAD__ upsample(in1##16, in2##16);
+  out     __OVERLOAD__ upsample(in1, in2);       \
+  out##2  __OVERLOAD__ upsample(in1##2, in2##2); \
+  out##3  __OVERLOAD__ upsample(in1##3, in2##3); \
+  out##4  __OVERLOAD__ upsample(in1##4, in2##4); \
+  out##8  __OVERLOAD__ upsample(in1##8, in2##8); \
+  out##16 __OVERLOAD__ upsample(in1##16, in2##16);
 #define UPSAMPLE(out, in)      \
-	UPSAMPLE_SIZES(out, in, u##in); \
-	UPSAMPLE_SIZES(u##out, u##in, u##in);
+  UPSAMPLE_SIZES(out, in, u##in); \
+  UPSAMPLE_SIZES(u##out, u##in, u##in);
 UPSAMPLE(short, char);
 UPSAMPLE(int, short);
 UPSAMPLE(long, int);
@@ -564,24 +564,24 @@ UPSAMPLE(long, int);
 // Math Functions //
 ////////////////////
 
-#define BUILTIN_2TYPE_PTR(type1, type2, name) \
+#define BUILTIN_2TYPE_PTR(type1, type2, name)     \
  type1 __OVERLOAD__ name(type1, __global type2*); \
- type1 __OVERLOAD__ name(type1, __local type2*); \
+ type1 __OVERLOAD__ name(type1, __local type2*);  \
  type1 __OVERLOAD__ name(type1, __private type2*);
-#define BUILTIN_PTR_ARG(type1, type2, name) \
- BUILTIN_2TYPE_PTR(type1, type2, name) \
+#define BUILTIN_PTR_ARG(type1, type2, name)  \
+ BUILTIN_2TYPE_PTR(type1, type2, name)       \
  BUILTIN_2TYPE_PTR(type1##2, type2##2, name) \
  BUILTIN_2TYPE_PTR(type1##3, type2##3, name) \
  BUILTIN_2TYPE_PTR(type1##4, type2##4, name) \
  BUILTIN_2TYPE_PTR(type1##8, type2##8, name) \
  BUILTIN_2TYPE_PTR(type1##16, type2##16, name);
-#define REMQUO(type, addrspace) \
-  type __OVERLOAD__ remquo(type, type, addrspace int*);          \
-	type##2 __OVERLOAD__ remquo(type##2, type##2, addrspace int2*); \
-	type##3 __OVERLOAD__ remquo(type##3, type##3, addrspace int3*); \
-	type##4 __OVERLOAD__ remquo(type##4, type##4, addrspace int4*); \
-	type##8 __OVERLOAD__ remquo(type##8, type##8, addrspace int8*); \
-	type##16 __OVERLOAD__ remquo(type##16, type##16, addrspace int16*);
+#define REMQUO(type, addrspace)                                   \
+  type __OVERLOAD__ remquo(type, type, addrspace int*);           \
+  type##2 __OVERLOAD__ remquo(type##2, type##2, addrspace int2*); \
+  type##3 __OVERLOAD__ remquo(type##3, type##3, addrspace int3*); \
+  type##4 __OVERLOAD__ remquo(type##4, type##4, addrspace int4*); \
+  type##8 __OVERLOAD__ remquo(type##8, type##8, addrspace int8*); \
+  type##16 __OVERLOAD__ remquo(type##16, type##16, addrspace int16*);
 
 BUILTIN_1ARG_FLOATS(acos);
 BUILTIN_1ARG_FLOATS(acosh);
@@ -702,20 +702,20 @@ BUILTIN_1ARG_FLOATS(native_tan);
 // Misc. Vector Functions //
 ////////////////////////////
 
-#define SHUFFLE_TYPE(ret, type, mask) \
+#define SHUFFLE_TYPE(ret, type, mask)         \
   ret __OVERLOAD__ shuffle(type, mask);       \
-	ret##2 __OVERLOAD__ shuffle(type, mask##2); \
-	ret##3 __OVERLOAD__ shuffle(type, mask##3); \
-	ret##4 __OVERLOAD__ shuffle(type, mask##4); \
-	ret##8 __OVERLOAD__ shuffle(type, mask##8); \
-	ret##16 __OVERLOAD__ shuffle(type, mask##16);
-#define SHUFFLE(type, mask) \
-	SHUFFLE_TYPE(type, type, mask);    \
-	SHUFFLE_TYPE(type, type##2, mask); \
-	SHUFFLE_TYPE(type, type##3, mask); \
-	SHUFFLE_TYPE(type, type##4, mask); \
-	SHUFFLE_TYPE(type, type##8, mask); \
-	SHUFFLE_TYPE(type, type##16, mask);
+  ret##2 __OVERLOAD__ shuffle(type, mask##2); \
+  ret##3 __OVERLOAD__ shuffle(type, mask##3); \
+  ret##4 __OVERLOAD__ shuffle(type, mask##4); \
+  ret##8 __OVERLOAD__ shuffle(type, mask##8); \
+  ret##16 __OVERLOAD__ shuffle(type, mask##16);
+#define SHUFFLE(type, mask)          \
+  SHUFFLE_TYPE(type, type, mask);    \
+  SHUFFLE_TYPE(type, type##2, mask); \
+  SHUFFLE_TYPE(type, type##3, mask); \
+  SHUFFLE_TYPE(type, type##4, mask); \
+  SHUFFLE_TYPE(type, type##8, mask); \
+  SHUFFLE_TYPE(type, type##16, mask);
 SHUFFLE(char, uchar);
 SHUFFLE(uchar, uchar);
 SHUFFLE(short, ushort);
@@ -727,20 +727,20 @@ SHUFFLE(ulong, ulong);
 SHUFFLE(float, uint);
 SHUFFLE(double, ulong);
 
-#define SHUFFLE2_TYPE(ret, type, mask) \
+#define SHUFFLE2_TYPE(ret, type, mask)               \
   ret __OVERLOAD__ shuffle2(type, type, mask);       \
-	ret##2 __OVERLOAD__ shuffle2(type, type, mask##2); \
-	ret##3 __OVERLOAD__ shuffle2(type, type, mask##3); \
-	ret##4 __OVERLOAD__ shuffle2(type, type, mask##4); \
-	ret##8 __OVERLOAD__ shuffle2(type, type, mask##8); \
-	ret##16 __OVERLOAD__ shuffle2(type, type, mask##16);
-#define SHUFFLE2(type, mask) \
-	SHUFFLE2_TYPE(type, type, mask);    \
-	SHUFFLE2_TYPE(type, type##2, mask); \
-	SHUFFLE2_TYPE(type, type##3, mask); \
-	SHUFFLE2_TYPE(type, type##4, mask); \
-	SHUFFLE2_TYPE(type, type##8, mask); \
-	SHUFFLE2_TYPE(type, type##16, mask);
+  ret##2 __OVERLOAD__ shuffle2(type, type, mask##2); \
+  ret##3 __OVERLOAD__ shuffle2(type, type, mask##3); \
+  ret##4 __OVERLOAD__ shuffle2(type, type, mask##4); \
+  ret##8 __OVERLOAD__ shuffle2(type, type, mask##8); \
+  ret##16 __OVERLOAD__ shuffle2(type, type, mask##16);
+#define SHUFFLE2(type, mask)          \
+  SHUFFLE2_TYPE(type, type, mask);    \
+  SHUFFLE2_TYPE(type, type##2, mask); \
+  SHUFFLE2_TYPE(type, type##3, mask); \
+  SHUFFLE2_TYPE(type, type##4, mask); \
+  SHUFFLE2_TYPE(type, type##8, mask); \
+  SHUFFLE2_TYPE(type, type##16, mask);
 SHUFFLE2(char, uchar);
 SHUFFLE2(uchar, uchar);
 SHUFFLE2(short, ushort);
@@ -758,18 +758,18 @@ SHUFFLE2(double, ulong);
 //////////////////////////
 
 #define BUILTIN_ANYALL(name, type) \
-	int __OVERLOAD__ name(type);  \
-	int __OVERLOAD__ name(type##2); \
-	int __OVERLOAD__ name(type##3); \
-	int __OVERLOAD__ name(type##4); \
-	int __OVERLOAD__ name(type##8); \
-	int __OVERLOAD__ name(type##16);
-#define REL_1ARG(name) \
-	BUILTIN_1ARG(int, float, name); \
-	BUILTIN_1ARG(long, double, name);
-#define REL_2ARG(name) \
-	BUILTIN_2ARG(int, float, float, name); \
-	BUILTIN_2ARG(long, double, double, name);
+  int __OVERLOAD__ name(type);     \
+  int __OVERLOAD__ name(type##2);  \
+  int __OVERLOAD__ name(type##3);  \
+  int __OVERLOAD__ name(type##4);  \
+  int __OVERLOAD__ name(type##8);  \
+  int __OVERLOAD__ name(type##16);
+#define REL_1ARG(name)            \
+  BUILTIN_1ARG(int, float, name); \
+  BUILTIN_1ARG(long, double, name);
+#define REL_2ARG(name)                   \
+  BUILTIN_2ARG(int, float, float, name); \
+  BUILTIN_2ARG(long, double, double, name);
 BUILTIN_ANYALL(all, char);
 BUILTIN_ANYALL(all, short);
 BUILTIN_ANYALL(all, int);
@@ -795,16 +795,16 @@ REL_2ARG(isordered);
 REL_2ARG(isunordered);
 REL_1ARG(signbit);
 
-#define SELECT_TYPE(type, ctype) \
-	type __OVERLOAD__ select(type, type, ctype); \
-	type __OVERLOAD__ select(type, type, u##ctype);
-#define SELECT(type, ctype) \
-	SELECT_TYPE(type, ctype) \
-	SELECT_TYPE(type##2, ctype##2) \
-	SELECT_TYPE(type##3, ctype##3) \
-	SELECT_TYPE(type##4, ctype##4) \
-	SELECT_TYPE(type##8, ctype##8) \
-	SELECT_TYPE(type##16, ctype##16);
+#define SELECT_TYPE(type, ctype)               \
+  type __OVERLOAD__ select(type, type, ctype); \
+  type __OVERLOAD__ select(type, type, u##ctype);
+#define SELECT(type, ctype)      \
+  SELECT_TYPE(type, ctype)       \
+  SELECT_TYPE(type##2, ctype##2) \
+  SELECT_TYPE(type##3, ctype##3) \
+  SELECT_TYPE(type##4, ctype##4) \
+  SELECT_TYPE(type##8, ctype##8) \
+  SELECT_TYPE(type##16, ctype##16);
 SELECT(char, char);
 SELECT(uchar, char);
 SELECT(short, short);
@@ -821,7 +821,8 @@ SELECT(double, long);
 // Synchronization Functions //
 ///////////////////////////////
 
-typedef enum {
+typedef enum
+{
   CLK_LOCAL_MEM_FENCE  = 1U << 0,
   CLK_GLOBAL_MEM_FENCE = 1U << 1,
   __unused_except_to_make_sure_the_enum_has_the_right_size = 1U << 31
@@ -837,7 +838,7 @@ void write_mem_fence(cl_mem_fence_flags);
 // Vector Data Load and Store Functions //
 //////////////////////////////////////////
 
-#define VLOAD_ADDRSPACE(type, width)                             \
+#define VLOAD_ADDRSPACE(type, width)                                    \
   type##width __OVERLOAD__ vload##width(size_t, const __private type*); \
   type##width __OVERLOAD__ vload##width(size_t, const __local type*);   \
   type##width __OVERLOAD__ vload##width(size_t, const __global type*);  \
@@ -849,13 +850,13 @@ void write_mem_fence(cl_mem_fence_flags);
   void __OVERLOAD__ vstore##width(type##width, size_t, __private type*);
 
 #define V_ADDRSPACE(macro, type) \
-  macro(type, 2) \
-  macro(type, 3) \
-  macro(type, 4) \
-  macro(type, 8) \
+  macro(type, 2)                 \
+  macro(type, 3)                 \
+  macro(type, 4)                 \
+  macro(type, 8)                 \
   macro(type, 16);
 
-#define VLOADSTORE(type) \
+#define VLOADSTORE(type)              \
   V_ADDRSPACE(VLOAD_ADDRSPACE, type); \
   V_ADDRSPACE(VSTORE_ADDRSPACE, type);
 
@@ -880,10 +881,10 @@ VLOADSTORE(double);
   float##n __OVERLOAD__ vload_half##n(size_t, const __constant half*); \
   float##n __OVERLOAD__ vloada_half##n(size_t, const __constant half*);
 #define VSTORE_HALF_ADDRSPACE(func, type)                      \
-	void __OVERLOAD__ func(type, size_t, const __private half*); \
-	void __OVERLOAD__ func(type, size_t, const __local half*);   \
-	void __OVERLOAD__ func(type, size_t, const __global half*);  \
-	void __OVERLOAD__ func(type, size_t, const __constant half*);
+  void __OVERLOAD__ func(type, size_t, const __private half*); \
+  void __OVERLOAD__ func(type, size_t, const __local half*);   \
+  void __OVERLOAD__ func(type, size_t, const __global half*);  \
+  void __OVERLOAD__ func(type, size_t, const __constant half*);
 #define VSTORE_HALF_ROUND(func, type)      \
   VSTORE_HALF_ADDRSPACE(func, type);       \
   VSTORE_HALF_ADDRSPACE(func##_rte, type); \
@@ -1006,8 +1007,8 @@ int printf(__constant char * restrict, ...);
   out __OVERLOAD__ convert_##out##_sat_rtz(in); \
   out __OVERLOAD__ convert_##out##_sat_rtp(in); \
   out __OVERLOAD__ convert_##out##_sat_rtn(in);
-#define CONVERT_TYPE(out, in) \
-  CONVERT_TYPE_SIZE(out, in); \
+#define CONVERT_TYPE(out, in)             \
+  CONVERT_TYPE_SIZE(out, in);             \
   CONVERT_TYPE_SIZE(out##2, in##2);       \
   CONVERT_TYPE_SIZE(out##3, in##3);       \
   CONVERT_TYPE_SIZE(out##4, in##4);       \
