@@ -26,6 +26,7 @@
 
 #include "CL/cl.h"
 #include "Device.h"
+#include "half.h"
 #include "Memory.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
@@ -2763,6 +2764,29 @@ namespace spirsim
       delete[] data;
     }
 
+    DEFINE_BUILTIN(vload_half)
+    {
+      size_t base = PARG(1);
+      unsigned int addressSpace = ARG(1)->getType()->getPointerAddressSpace();
+      uint64_t offset = UARG(0);
+
+      size_t address = base + offset*sizeof(cl_half)*result.num;
+      size_t size = sizeof(cl_half)*result.num;
+      uint16_t halfData[result.num];
+      Memory *memory = workItem->getMemory(addressSpace);
+      if (!memory->load((unsigned char*)halfData, address, size))
+      {
+        workItem->m_device->notifyMemoryError(true, addressSpace,
+                                              address, size);
+      }
+
+      // Convert to floats
+      for (int i = 0; i < result.num; i++)
+      {
+        ((float*)result.data)[i] = halfToFloat(halfData[i]);
+      }
+    }
+
 
     /////////////////////////
     // Work-Item Functions //
@@ -3433,6 +3457,8 @@ namespace spirsim
     ADD_BUILTIN("write_mem_fence", mem_fence, NULL);
 
     // Vector Data Load and Store Functions
+    ADD_PREFIX_BUILTIN("vload_half", vload_half, NULL);
+    ADD_PREFIX_BUILTIN("vloada_half", vload_half, NULL);
     ADD_PREFIX_BUILTIN("vload", vload, NULL);
     ADD_PREFIX_BUILTIN("vstore", vstore, NULL);
 

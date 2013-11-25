@@ -870,6 +870,22 @@ VLOADSTORE(ulong);
 VLOADSTORE(float);
 VLOADSTORE(double);
 
+#define VLOAD_HALF_WIDTH(width)                                                \
+  float##width __OVERLOAD__ vload_half##width(size_t, const __private half*);  \
+  float##width __OVERLOAD__ vloada_half##width(size_t, const __private half*); \
+  float##width __OVERLOAD__ vload_half##width(size_t, const __local half*);    \
+  float##width __OVERLOAD__ vloada_half##width(size_t, const __local half*);   \
+  float##width __OVERLOAD__ vload_half##width(size_t, const __global half*);   \
+  float##width __OVERLOAD__ vloada_half##width(size_t, const __global half*);  \
+  float##width __OVERLOAD__ vload_half##width(size_t, const __constant half*); \
+  float##width __OVERLOAD__ vloada_half##width(size_t, const __constant half*);
+VLOAD_HALF_WIDTH()
+VLOAD_HALF_WIDTH(2)
+VLOAD_HALF_WIDTH(3)
+VLOAD_HALF_WIDTH(4)
+VLOAD_HALF_WIDTH(8)
+VLOAD_HALF_WIDTH(16)
+
 
 /////////////////////////
 // Work-Item Functions //
