@@ -2770,7 +2770,15 @@ namespace spirsim
       unsigned int addressSpace = ARG(1)->getType()->getPointerAddressSpace();
       uint64_t offset = UARG(0);
 
-      size_t address = base + offset*sizeof(cl_half)*result.num;
+      size_t address;
+      if (fnName.compare(0, 6, "vloada") == 0 && result.num == 3)
+      {
+        address = base + offset*sizeof(cl_half)*4;
+      }
+      else
+      {
+        address = base + offset*sizeof(cl_half)*result.num;
+      }
       size_t size = sizeof(cl_half)*result.num;
       uint16_t halfData[result.num];
       Memory *memory = workItem->getMemory(addressSpace);
@@ -2822,7 +2830,16 @@ namespace spirsim
         halfData[i] = floatToHalf(((float*)data)[i]);
       }
 
-      size_t address = base + offset*sizeof(cl_half)*num;
+      size_t address;
+      if (fnName.compare(0, 7, "vstorea") == 0 && num == 3)
+      {
+        address = base + offset*sizeof(cl_half)*4;
+      }
+      else
+      {
+        address = base + offset*sizeof(cl_half)*num;
+      }
+
       Memory *memory = workItem->getMemory(addressSpace);
       if (!memory->store((unsigned char*)halfData, address, size))
       {
