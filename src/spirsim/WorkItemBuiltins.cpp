@@ -2787,6 +2787,51 @@ namespace spirsim
       }
     }
 
+    DEFINE_BUILTIN(vstore_half)
+    {
+      const llvm::Value *value = ARG(0);
+      size_t size = getTypeSize(value->getType());
+      unsigned char *data = new unsigned char[size];
+      if (isVector3(value))
+      {
+        // 3-element vectors are same size as 4-element vectors,
+        // but vstore address offset shouldn't use this.
+        size = (size/4) * 3;
+      }
+
+      if (isConstantOperand(value))
+      {
+        getConstantData(data, (const llvm::Constant*)value);
+      }
+      else
+      {
+        memcpy(data, workItem->m_instResults[value].data, size);
+      }
+
+      size_t base = PARG(2);
+      unsigned int addressSpace = ARG(2)->getType()->getPointerAddressSpace();
+      uint64_t offset = UARG(1);
+
+      // Convert to halfs
+      size_t num = size / sizeof(float);
+      size = num*sizeof(cl_half);
+      uint16_t halfData[num];
+      for (int i = 0; i < num; i++)
+      {
+        // TODO: Pass rounding mode
+        halfData[i] = floatToHalf(((float*)data)[i]);
+      }
+
+      size_t address = base + offset*sizeof(cl_half)*num;
+      Memory *memory = workItem->getMemory(addressSpace);
+      if (!memory->store((unsigned char*)halfData, address, size))
+      {
+        workItem->m_device->notifyMemoryError(false, addressSpace,
+                                              address, size);
+      }
+      delete[] data;
+    }
+
 
     /////////////////////////
     // Work-Item Functions //
@@ -3459,6 +3504,8 @@ namespace spirsim
     // Vector Data Load and Store Functions
     ADD_PREFIX_BUILTIN("vload_half", vload_half, NULL);
     ADD_PREFIX_BUILTIN("vloada_half", vload_half, NULL);
+    ADD_PREFIX_BUILTIN("vstore_half", vstore_half, NULL);
+    ADD_PREFIX_BUILTIN("vstorea_half", vstore_half, NULL);
     ADD_PREFIX_BUILTIN("vload", vload, NULL);
     ADD_PREFIX_BUILTIN("vstore", vstore, NULL);
 

@@ -62,3 +62,61 @@ float halfToFloat(uint16_t half)
 	uint32_t result = f_sign | f_exponent | f_mantissa;
 	return *(float*)&result;
 }
+
+uint16_t floatToHalf(float sp)
+{
+	uint16_t h_sign, h_exponent, h_mantissa;
+	uint32_t f_sign, f_exponent, f_mantissa;
+
+	uint32_t f = *(uint32_t*)&sp;
+	f_sign     = f & 0x80000000; // 1000 0000 0000 0000 0000 0000 0000 0000
+	f_exponent = f & 0x7F800000; // 0111 1111 1000 0000 0000 0000 0000 0000
+	f_mantissa = f & 0x007FFFFF; // 0000 0000 0111 1111 1111 1111 1111 1111
+
+	h_sign     = f_sign >> 16;
+
+	if (f_exponent == 0)
+	{
+		h_exponent = 0;
+		h_mantissa = 0;
+	}
+	else if (f_exponent == 0x7F800000)
+	{
+		h_exponent = 0x7C00;
+		h_mantissa = f_mantissa;
+	}
+	else
+	{
+		int e = (((int32_t)(f_exponent >> 23)) - 127 + 15);
+		if (e >= 0x1F)
+		{
+			h_exponent = 0x7C00;
+			h_mantissa = 0;
+		}
+		else if (e <= 0)
+		{
+			h_exponent = 0;
+			if (14 - e > 24)
+			{
+				h_mantissa = 0;
+			}
+			else
+			{
+				f_mantissa |= 0x800000;
+				h_mantissa = (f_mantissa >> (14-e));
+				if ((f_mantissa >> (13 - e)) & 0x1)
+				{
+					h_mantissa += 0x1;
+				}
+			}
+		}
+		else
+		{
+			// TODO: Round
+			h_exponent = e << 10;
+			h_mantissa = f_mantissa >> 13;
+		}
+	}
+
+	return h_sign + h_exponent + h_mantissa;
+}

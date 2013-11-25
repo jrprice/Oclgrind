@@ -870,21 +870,38 @@ VLOADSTORE(ulong);
 VLOADSTORE(float);
 VLOADSTORE(double);
 
-#define VLOAD_HALF_WIDTH(width)                                                \
-  float##width __OVERLOAD__ vload_half##width(size_t, const __private half*);  \
-  float##width __OVERLOAD__ vloada_half##width(size_t, const __private half*); \
-  float##width __OVERLOAD__ vload_half##width(size_t, const __local half*);    \
-  float##width __OVERLOAD__ vloada_half##width(size_t, const __local half*);   \
-  float##width __OVERLOAD__ vload_half##width(size_t, const __global half*);   \
-  float##width __OVERLOAD__ vloada_half##width(size_t, const __global half*);  \
-  float##width __OVERLOAD__ vload_half##width(size_t, const __constant half*); \
-  float##width __OVERLOAD__ vloada_half##width(size_t, const __constant half*);
-VLOAD_HALF_WIDTH()
-VLOAD_HALF_WIDTH(2)
-VLOAD_HALF_WIDTH(3)
-VLOAD_HALF_WIDTH(4)
-VLOAD_HALF_WIDTH(8)
-VLOAD_HALF_WIDTH(16)
+#define VLOAD_HALF_WIDTH(n)                                            \
+  float##n __OVERLOAD__ vload_half##n(size_t, const __private half*);  \
+  float##n __OVERLOAD__ vloada_half##n(size_t, const __private half*); \
+  float##n __OVERLOAD__ vload_half##n(size_t, const __local half*);    \
+  float##n __OVERLOAD__ vloada_half##n(size_t, const __local half*);   \
+  float##n __OVERLOAD__ vload_half##n(size_t, const __global half*);   \
+  float##n __OVERLOAD__ vloada_half##n(size_t, const __global half*);  \
+  float##n __OVERLOAD__ vload_half##n(size_t, const __constant half*); \
+  float##n __OVERLOAD__ vloada_half##n(size_t, const __constant half*);
+#define VSTORE_HALF_ADDRSPACE(func, type)                      \
+	void __OVERLOAD__ func(type, size_t, const __private half*); \
+	void __OVERLOAD__ func(type, size_t, const __local half*);   \
+	void __OVERLOAD__ func(type, size_t, const __global half*);  \
+	void __OVERLOAD__ func(type, size_t, const __constant half*);
+#define VSTORE_HALF_ROUND(func, type)      \
+  VSTORE_HALF_ADDRSPACE(func, type);       \
+  VSTORE_HALF_ADDRSPACE(func##_rte, type); \
+  VSTORE_HALF_ADDRSPACE(func##_rtz, type); \
+  VSTORE_HALF_ADDRSPACE(func##_rtp, type); \
+  VSTORE_HALF_ADDRSPACE(func##_rtn, type);
+#define VSTORE_HALF_WIDTH(n)                    \
+  VSTORE_HALF_ROUND(vstore_half##n, float##n);  \
+  VSTORE_HALF_ROUND(vstorea_half##n, float##n);
+#define VLOADSTORE_HALF_WIDTH(n) \
+  VLOAD_HALF_WIDTH(n);           \
+  VSTORE_HALF_WIDTH(n);
+VLOADSTORE_HALF_WIDTH();
+VLOADSTORE_HALF_WIDTH(2);
+VLOADSTORE_HALF_WIDTH(3);
+VLOADSTORE_HALF_WIDTH(4);
+VLOADSTORE_HALF_WIDTH(8);
+VLOADSTORE_HALF_WIDTH(16);
 
 
 /////////////////////////
