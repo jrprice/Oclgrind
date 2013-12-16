@@ -50,7 +50,10 @@ static struct _cl_device_id *m_device = NULL;
 #define DEVICE_VERSION "OpenCL 1.2"
 #define DRIVER_VERSION "0.1"
 #define DEVICE_PROFILE "FULL_PROFILE"
-#define DEVICE_EXTENSIONS "cl_khr_spir cl_khr_fp64 cl_khr_3d_image_writes"
+#define DEVICE_EXTENSIONS "cl_khr_spir cl_khr_3d_image_writes \
+  cl_khr_global_int32_base_atomics cl_khr_global_int32_extended_atomics \
+  cl_khr_local_int32_base_atomics cl_khr_local_int32_extended_atomics \
+  cl_khr_byte_addressable_store cl_khr_fp64"
 #define DEVICE_SPIR_VERSIONS "1.2"
 
 CL_API_ENTRY cl_int CL_API_CALL
