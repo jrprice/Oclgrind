@@ -17,9 +17,6 @@
 #ifndef __common_h_
 #define __common_h_
 
-#define __STDC_LIMIT_MACROS
-#define __STDC_CONSTANT_MACROS
-
 #include "config.h"
 #include "CL/cl.h"
 #include <cstdio>
