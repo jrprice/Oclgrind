@@ -42,6 +42,8 @@
 
 #define REMAP_DIR "/remapped/"
 #define REMAP_INPUT "input.cl"
+#define CLC_H_PATH REMAP_DIR"clc.h"
+extern const char CLC_H_DATA[];
 
 using namespace spirsim;
 using namespace std;
@@ -109,7 +111,7 @@ bool Program::build(const char *options, list<Header> headers)
   else
   {
     args.push_back("-include");
-    args.push_back("clc.h");
+    args.push_back(CLC_H_PATH);
   }
 
   // Add OpenCL build options
@@ -152,33 +154,25 @@ bool Program::build(const char *options, list<Header> headers)
   clang::CompilerInstance compiler;
   compiler.setInvocation(invocation.take());
 
-  // Add header directories from C_INCLUDE_PATH
-  char *includes = strdup(getenv("C_INCLUDE_PATH"));
-  char *path = strtok(includes, ":");
-  while (path)
-  {
-    compiler.getHeaderSearchOpts().AddPath(path, clang::frontend::Quoted,
-                                           false, false, false);
-    path = strtok(NULL, ":");
-  }
-  free(includes);
-
   // Remap include files
+  llvm::MemoryBuffer *buffer;
   compiler.getHeaderSearchOpts().AddPath(REMAP_DIR, clang::frontend::Quoted,
                                          false, false, false);
   list<Header>::iterator itr;
   for (itr = headers.begin(); itr != headers.end(); itr++)
   {
-    llvm::MemoryBuffer *buffer =
-      llvm::MemoryBuffer::getMemBuffer(itr->second->m_source, "", false);
+    buffer = llvm::MemoryBuffer::getMemBuffer(itr->second->m_source, "", false);
     compiler.getPreprocessorOpts().addRemappedFile(REMAP_DIR + itr->first,
                                                    buffer);
   }
 
+  // Remap clc.h
+  buffer = llvm::MemoryBuffer::getMemBuffer(CLC_H_DATA, "", false);
+  compiler.getPreprocessorOpts().addRemappedFile(CLC_H_PATH, buffer);
+
   // Remap input file
-  llvm::MemoryBuffer *buffer =
-      llvm::MemoryBuffer::getMemBuffer(m_source, "", false);
-    compiler.getPreprocessorOpts().addRemappedFile(REMAP_INPUT, buffer);
+  buffer = llvm::MemoryBuffer::getMemBuffer(m_source, "", false);
+  compiler.getPreprocessorOpts().addRemappedFile(REMAP_INPUT, buffer);
 
   // Prepare diagnostics
   compiler.createDiagnostics(args.size(), &args[0], &diagConsumer, false);

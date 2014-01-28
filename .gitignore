@@ -25,6 +25,7 @@ stamp-h1
 liboclgrind.la
 libspirsim.la
 libtool
+src/spirsim/clc_h.cpp
 
 # Misc
 *.bc

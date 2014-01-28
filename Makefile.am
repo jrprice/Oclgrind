@@ -12,6 +12,7 @@ libspirsim_la_SOURCES = src/sprisim/common.h src/spirsim/common.cpp	\
  src/spirsim/WorkGroup.h src/spirsim/WorkGroup.cpp			\
  src/spirsim/Program.h src/spirsim/Program.cpp src/spirsim/Kernel.h	\
  src/spirsim/Kernel.cpp src/spirsim/Memory.h src/spirsim/Memory.cpp
+nodist_libspirsim_la_SOURCES = src/spirsim/clc_h.cpp
 libspirsim_la_LDFLAGS = -lclangCodeGen -lclangAST -lclang		\
 -lLLVMBitReader -lLLVMBitWriter -lLLVMAsmParser -lLLVMInstrumentation	\
 -lLLVMipo -lLLVMipa -lLLVMInstCombine -lLLVMLinker -lLLVMMC		\
@@ -20,6 +21,9 @@ libspirsim_la_LDFLAGS = -lclangCodeGen -lclangAST -lclang		\
 spirsimincludedir = $(includedir)/spirsim
 spirsiminclude_HEADERS = src/spirsim/Device.h src/spirsim/Kernel.h	\
 src/spirsim/Memory.h src/spirsim/Program.h
+CLEANFILES = src/spirsim/clc_h.cpp
+src/spirsim/clc_h.cpp: Makefile src/spirsim/gen_clc_h.sh src/spirsim/clc.h
+	src/spirsim/gen_clc_h.sh src/spirsim/clc.h $@
 
 liboclgrind_la_SOURCES = src/oclgrind/init.cpp src/oclgrind/icd.h	\
 src/oclgrind/rename_api.h src/oclgrind/runtime.cpp			\
