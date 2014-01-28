@@ -10,42 +10,87 @@ aid for OpenCL development. The simulator is built on an interpreter
 for SPIR. This is a side-project is being undertaken by James Price (a
 PhD student at the University of Bristol).
 
+This project is currently in beta, and so you may encounter issues
+when running it. If you do, please get in touch using the contact
+details below.
 
-Project Status
---------------
-At present (Nov'13), the simulator has demonstated the ability to run
-many real OpenCL programs 'out-of-the-box'. The project also
-demonstrates valgrind-style detection of memory access errors, and a
-simple gdb-style debugging interface. However, there are still some
-gaps in the implementation, and this project has not been thoroughly
-tested on different platforms or with a large number of
-applications. There is currently no timeline for an actual release,
-although the v0.1 milestone on GitHub indicates a rough set of targets
-desired for a beta candidate.
 
-If you are using this project, you have likely been in contact with
-the author already. If you haven't, but are interested, please use the
-contact details below to get in touch.
+Building
+--------
+To use this project you will require a version of Clang that is
+capable of generating SPIR. The Khronos working group has made a
+patched version of Clang 3.2 that can generate SPIR available on
+GitHub:
+
+https://github.com/KhronosGroup/SPIR
+
+Follow the instructions in the README.md file in that repository to
+build the Clang/SPIR generator. To improve the performance of
+oclgrind, it is recommended to build for release mode (i.e. set
+CMAKE_BUILD_TYPE to RelWithDebInfo).
+
+Run ./configure to generate the Makefile, optionally using
+--prefix=PATH to specify the target installation directory. If you
+don't have the Clang/SPIR generator includes and libraries on your
+search path, you can specify the location of the generator using the
+--with-spir=PATH option. For example:
+
+./configure --prefix=$PWD/build/ --with-spir=PATH/TO/CLANG/SPIR/BUILD
+
+Next, build with make:
+
+make (or make install)
+
+Ensure that the lib directory in the Clang/SPIR generator build is
+covered by your dynamic library search path, adding it to
+[DY]LD_LIBRARY_PATH if necessary.
+
+An ICD entry point containing the path to liboclgrind.{so,dylib}
+should be created in /etc/OpenCL/vendors/. If you don't already have
+the OpenCL ICD installed, download and build the sources from the
+Khronos website:
+
+http://www.khronos.org/registry/cl/
+
+To build the OpenCL ICD on OS X, modify the CMakeLists.txt file such
+that the first comparison of ${CMAKE_SYSTEM_NAME} with the string
+"Linux" instead compares to the string "Darwin"
 
 
 Usage
 -----
-To use this project you will require a SPIR-capable version of
-LLVM/Clang. Although SPIR functionality already exists in the LLVM
-ToT, at present this project has only been tested with patches to the
-LLVM 3.2 release that have been circulated internally in the Khronos
-OpenCL working group (of which the author is a member).
+If installed correctly, oclgrind should appear as a platform when an
+application calls clGetPlatformIDs(). To run an OpenCL application
+with oclgrind, simply target this platform and its only device (a CPU
+device). If it encounters any invalid memory accesses, oclgrind will
+report the details to stderr, for example:
 
-The SPIR-capable LLVM headers and libraries need to be available in
-CPLUS_INCLUDE_PATH, LIBRARY_PATH, {DY}LD_LIBRARY_PATH, and PATH. The
-OpenCL C header file found at src/clc.h needs to be covered by a
-directory in C_INCLUDE_PATH. An ICD entry point for oclgrind should be
-created in /etc/OpenCL/vendors/ and pointed to liboclgrind.{so,dylib}.
+> Invalid read of size 4 at global memory address 1000000000040
+>         Work-item:  Global(16,0,0) Local(0,0,0)
+>         Work-group: (16,0,0)
+>         Kernel:     vecadd
+>         %tmp8 = load float addrspace(1)* %tmp7, align 4, !dbg !47
+>         At line 16 of input.cl
 
-Further instructions on running the simulator available on request.
+Since it is interpreting an abstract intermediate representation and
+bounds-checking each memory access, oclgrind will run very slowly
+(typically several orders of magnitude slower than a regular CPU
+implementation). Therefore, it is recommended to run with a small
+problem if possible.
+
+To enable an interactive, GDB-style debugging session, export the
+environment variable OCLGRIND_INTERACTIVE=1. This will automatically
+break at the beginning of each kernel invocation, and upon
+encountering an invalid memory access. Type 'help' for details of
+available commands. This feature is currently very limited, and will
+likely be improved in the future.
 
 
 Contact
 -------
-For more details about this project, please contact:
+If you encounter any issues or have any questions, please use the
+GitHub issues page:
+https://github.com/jrprice/oclgrind/issues
+
+You can also contact the developer via email:
 James Price <j.price@bristol.ac.uk>
