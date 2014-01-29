@@ -101,6 +101,11 @@ size_t Device::getLineNumber(const llvm::Instruction *instruction) const
   return 0;
 }
 
+bool Device::isInteractive() const
+{
+  return m_interactive;
+}
+
 bool Device::nextWorkItem()
 {
   // Switch to next ready work-item
