@@ -281,8 +281,12 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   TypedValue result = {
     resultSize.first,
     resultSize.second,
-    new unsigned char[resultSize.first*resultSize.second]
+    NULL
   };
+  if (result.size)
+  {
+    result.data = new unsigned char[result.size*result.num];
+  }
 
   if (instruction.getOpcode() != llvm::Instruction::PHI &&
       m_phiTemps.size() > 0)
@@ -304,7 +308,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   dispatch(instruction, result);
 
   // Store result
-  if (resultSize.first > 0)
+  if (result.size)
   {
     if (instruction.getOpcode() != llvm::Instruction::PHI)
     {
@@ -318,10 +322,6 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     {
       m_phiTemps[&instruction] = result;
     }
-  }
-  else
-  {
-    delete[] result.data;
   }
 }
 
