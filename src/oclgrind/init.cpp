@@ -1,4 +1,4 @@
-// init.cpp (oclgrind)
+// init.cpp (Oclgrind)
 // Copyright (C) 2013 James Price
 //
 // This program is free software; you can redistribute it and/or
@@ -53,10 +53,10 @@ clIcdGetPlatformIDsKHR(cl_uint num_entries,
 
     cliIcdDispatchTableCreate(&m_dispatchTable);
 
-    m_platform->version = "OpenCL 1.2 oclgrind";
+    m_platform->version = "OpenCL 1.2 Oclgrind";
     m_platform->vendor = "James Price, University of Bristol";
     m_platform->profile = "FULL_PROFILE";
-    m_platform->name = "oclgrind";
+    m_platform->name = "Oclgrind";
     m_platform->extensions = "cl_khr_icd";
     m_platform->suffix = "oclg";
     m_platform->dispatch = m_dispatchTable;

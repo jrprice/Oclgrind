@@ -1,5 +1,5 @@
 ========
-oclgrind
+Oclgrind
 ========
 
 About
@@ -26,7 +26,7 @@ https://github.com/KhronosGroup/SPIR
 
 Follow the instructions in the README.md file in that repository to
 build the Clang/SPIR generator. To improve the performance of
-oclgrind, it is recommended to build for release mode (i.e. set
+Oclgrind, it is recommended to build for release mode (i.e. set
 CMAKE_BUILD_TYPE to RelWithDebInfo).
 
 Run ./configure to generate the Makefile, optionally using
@@ -59,10 +59,10 @@ that the first comparison of ${CMAKE_SYSTEM_NAME} with the string
 
 Usage
 -----
-If installed correctly, oclgrind should appear as a platform when an
+If installed correctly, Oclgrind should appear as a platform when an
 application calls clGetPlatformIDs(). To run an OpenCL application
-with oclgrind, simply target this platform and its only device (a CPU
-device). If it encounters any invalid memory accesses, oclgrind will
+with Oclgrind, simply target this platform and its only device (a CPU
+device). If it encounters any invalid memory accesses, Oclgrind will
 report the details to stderr, for example:
 
 > Invalid read of size 4 at global memory address 1000000000040
@@ -73,7 +73,7 @@ report the details to stderr, for example:
 >         At line 16 of input.cl
 
 Since it is interpreting an abstract intermediate representation and
-bounds-checking each memory access, oclgrind will run very slowly
+bounds-checking each memory access, Oclgrind will run very slowly
 (typically several orders of magnitude slower than a regular CPU
 implementation). Therefore, it is recommended to run with a small
 problem if possible.
@@ -90,7 +90,7 @@ Contact
 -------
 If you encounter any issues or have any questions, please use the
 GitHub issues page:
-https://github.com/jrprice/oclgrind/issues
+https://github.com/jrprice/Oclgrind/issues
 
 You can also contact the developer via email:
 James Price <j.price@bristol.ac.uk>

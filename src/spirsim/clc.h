@@ -1,4 +1,4 @@
-// clc.h (oclgrind)
+// clc.h (Oclgrind)
 // Copyright (C) 2013 James Price
 //
 // This program is free software; you can redistribute it and/or

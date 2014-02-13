@@ -1,4 +1,4 @@
-AC_INIT([oclgrind], [0.1], [j.price@bristol.ac.uk], [oclgrind], [http://www.cs.bris.ac.uk/~jp8463/oclgrind/])
+AC_INIT([Oclgrind], [0.1], [j.price@bristol.ac.uk], [oclgrind], [https://github.com/jrprice/Oclgrind])
 AC_PREREQ([2.68])
 AC_CONFIG_SRCDIR([src/])
 AM_INIT_AUTOMAKE([foreign])

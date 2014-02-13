@@ -6,4 +6,4 @@ then
     exit 1
 fi
 
-clang -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown $1 -o $2
+clang-3.2 -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown $1 -o $2
