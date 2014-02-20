@@ -28,7 +28,7 @@ AC_CHECK_HEADERS(
 AC_CHECK_LIB(
         [clang],
         [clang_getClangVersion],
-        [ ],
+        [],
         AC_MSG_ERROR([Clang library not found (use --with-spir)]))
 
 AC_OUTPUT
