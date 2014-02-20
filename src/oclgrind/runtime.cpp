@@ -22,10 +22,10 @@
 #include "async_queue.h"
 #include "icd.h"
 
-#include <CL/cl.h>
-#include <CL/cl_ext.h>
-#include <CL/cl_gl.h>
-#include <CL/cl_gl_ext.h>
+#include "CL/cl.h"
+#include "CL/cl_ext.h"
+#include "CL/cl_gl.h"
+#include "CL/cl_gl_ext.h"
 
 #include <spirsim/Device.h>
 #include <spirsim/Kernel.h>
