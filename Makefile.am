@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
-AM_CFLAGS = -wno-deprecated-declarations
+AM_CPPFLAGS = -I$(top_srcdir)/src/
 
 lib_LTLIBRARIES = libspirsim.la liboclgrind.la
 
@@ -31,13 +31,11 @@ src/spirsim/clc_h.cpp: Makefile src/spirsim/gen_clc_h.sh	\
 liboclgrind_la_SOURCES = src/oclgrind/async_queue.h	\
  src/oclgrind/async_queue.cpp src/oclgrind/icd.h	\
  src/oclgrind/runtime.cpp
-liboclgrind_la_CPPFLAGS = -I$(top_srcdir)/src/
 liboclgrind_la_LIBADD = libspirsim.la
 liboclgrind_la_LDFLAGS = -shared
 
 bin_PROGRAMS = oclgrind-kernel
 oclgrind_kernel_SOURCES = src/oclgrind-kernel/main.cpp
-oclgrind_kernel_CPPFLAGS = -I$(top_srcdir)/src/
 oclgrind_kernel_LDADD = libspirsim.la
 
 EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h

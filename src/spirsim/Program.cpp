@@ -31,7 +31,6 @@
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 
-#include <CL/cl.h>
 #include "Kernel.h"
 #include "Program.h"
 
