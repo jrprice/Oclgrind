@@ -939,7 +939,7 @@ DECLARE_API(cl_int, clSetCommandQueueProperty)
   cl_command_queue_properties    properties,
   cl_bool                        enable,
   cl_command_queue_properties *  old_properties
-) CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
+)
 {
   return CL_SUCCESS;
 }
