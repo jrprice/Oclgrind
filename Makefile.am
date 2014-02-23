@@ -1,3 +1,11 @@
+# Makefile.am (Oclgrind)
+# Copyright (c) 2013-2014, University of Bristol
+# All rights reserved.
+#
+# This program is provided under a three-clause BSD license. For full
+# license terms please see the LICENSE file distributed with this
+# source code.
+
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
