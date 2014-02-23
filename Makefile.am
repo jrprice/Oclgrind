@@ -28,9 +28,9 @@ src/spirsim/clc_h.cpp: Makefile src/spirsim/gen_clc_h.sh	\
  src/spirsim/clc.h
 	$(top_srcdir)/src/spirsim/gen_clc_h.sh $(top_srcdir)/src/spirsim/clc.h $@
 
-liboclgrind_la_SOURCES = src/oclgrind/init.cpp				\
- src/oclgrind/async_queue.h src/oclgrind/async_queue.cpp		\
- src/oclgrind/icd.h src/oclgrind/rename_api.h src/oclgrind/runtime.cpp
+liboclgrind_la_SOURCES = src/oclgrind/async_queue.h	\
+ src/oclgrind/async_queue.cpp src/oclgrind/icd.h	\
+ src/oclgrind/runtime.cpp
 liboclgrind_la_CPPFLAGS = -I$(top_srcdir)/src/
 liboclgrind_la_LIBADD = libspirsim.la
 liboclgrind_la_LDFLAGS = -shared

@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 
+#include <cassert>
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -21,11 +22,6 @@
 
 #include "async_queue.h"
 #include "icd.h"
-
-#include "CL/cl.h"
-#include "CL/cl_ext.h"
-#include "CL/cl_gl.h"
-#include "CL/cl_gl_ext.h"
 
 #include <spirsim/Device.h>
 #include <spirsim/Kernel.h>
@@ -35,14 +31,10 @@
 
 using namespace std;
 
-CLIicdDispatchTable *m_dispatchTable = NULL;
-struct _cl_platform_id *m_platform = NULL;
-static struct _cl_device_id *m_device = NULL;
-
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
 #define MAX_GLOBAL_MEM_SIZE 16 * 1048576 // 16 MB
 #define MAX_LOCAL_MEM_SIZE 1048576 // 1 MB
-#define MAX_WI_SIZE (unsigned short)-1
+#define MAX_WI_SIZE 65536
 
 #define DEVICE_NAME "SPIR Simulator"
 #define DEVICE_VENDOR "James Price, University of Bristol"
@@ -56,20 +48,90 @@ static struct _cl_device_id *m_device = NULL;
   cl_khr_byte_addressable_store cl_khr_fp64"
 #define DEVICE_SPIR_VERSIONS "1.2"
 
+static struct _cl_platform_id *m_platform = NULL;
+static struct _cl_device_id *m_device = NULL;
+
 CL_API_ENTRY cl_int CL_API_CALL
-clGetPlatformIDs(cl_uint           num_entries ,
-                 cl_platform_id *  platforms ,
-                 cl_uint *         num_platforms) CL_API_SUFFIX__VERSION_1_0
+clIcdGetPlatformIDsKHR
+(
+  cl_uint num_entries,
+  cl_platform_id *platforms,
+  cl_uint *num_platforms
+)
+{
+  if (!m_platform)
+  {
+    m_platform = (cl_platform_id)malloc(sizeof(struct _cl_platform_id));
+    m_platform->version = "OpenCL 1.2 Oclgrind";
+    m_platform->vendor = "James Price, University of Bristol";
+    m_platform->profile = "FULL_PROFILE";
+    m_platform->name = "Oclgrind";
+    m_platform->extensions = "cl_khr_icd";
+    m_platform->suffix = "oclg";
+    m_platform->dispatch = m_dispatchTable;
+  }
+
+  if (num_entries > 0)
+  {
+    platforms[0] = m_platform;
+  }
+
+  if (num_platforms)
+  {
+    *num_platforms = 1;
+  }
+
+  return CL_SUCCESS;
+}
+
+////////////////////////////////////
+// OpenCL Runtime API Definitions //
+////////////////////////////////////
+
+#ifndef CL_USE_DEPRECATED_OPENCL_1_0_APIS
+#define CL_USE_DEPRECATED_OPENCL_1_0_APIS
+#endif
+
+#ifndef CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
+#endif
+
+#define DECLARE_API(RET, FUNCTION) CL_API_ENTRY RET CL_API_CALL _##FUNCTION##_
+
+CL_API_ENTRY void* CL_API_CALL
+clGetExtensionFunctionAddress
+(
+  const char *  funcname
+) CL_API_SUFFIX__VERSION_1_2
+{
+  if (strcmp(funcname, "clIcdGetPlatformIDsKHR") == 0)
+  {
+    return (void*)clIcdGetPlatformIDsKHR;
+  }
+  else
+  {
+    return NULL;
+  }
+}
+
+DECLARE_API(cl_int, clGetPlatformIDs)
+(
+  cl_uint           num_entries,
+  cl_platform_id *  platforms,
+  cl_uint *         num_platforms
+) CL_API_SUFFIX__VERSION_1_0
 {
   return clIcdGetPlatformIDsKHR(num_entries, platforms, num_platforms);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetPlatformInfo(cl_platform_id    platform,
-                  cl_platform_info  param_name,
-                  size_t            param_value_size,
-                  void *            param_value,
-                  size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetPlatformInfo)
+(
+  cl_platform_id    platform,
+  cl_platform_info  param_name,
+  size_t            param_value_size,
+  void *            param_value,
+  size_t *          param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   cl_int return_value = CL_SUCCESS;
   const char *returnString = NULL;
@@ -125,14 +187,14 @@ clGetPlatformInfo(cl_platform_id    platform,
   return return_value;
 }
 
-
-/* Device APIs */
-CL_API_ENTRY cl_int CL_API_CALL
-clGetDeviceIDs(cl_platform_id   platform,
-               cl_device_type   device_type,
-               cl_uint          num_entries,
-               cl_device_id *   devices,
-               cl_uint *        num_devices) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetDeviceIDs)
+(
+  cl_platform_id  platform,
+  cl_device_type  device_type,
+  cl_uint         num_entries,
+  cl_device_id *  devices,
+  cl_uint *       num_devices
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (devices && num_entries < 1)
@@ -166,12 +228,14 @@ clGetDeviceIDs(cl_platform_id   platform,
   return return_value;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetDeviceInfo(cl_device_id    device,
-                cl_device_info  param_name,
-                size_t          param_value_size,
-                void *          param_value,
-                size_t *        param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetDeviceInfo)
+(
+  cl_device_id    device,
+  cl_device_info  param_name,
+  size_t          param_value_size,
+  void *          param_value,
+  size_t *        param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -589,37 +653,46 @@ clGetDeviceInfo(cl_device_id    device,
   return return_value;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clCreateSubDevices(cl_device_id in_device,
-                   const cl_device_partition_property *properties,
-                   cl_uint num_entries,
-                   cl_device_id *out_devices,
-                   cl_uint *num_devices) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clCreateSubDevices)
+(
+  cl_device_id                          in_device,
+  const cl_device_partition_property *  properties,
+  cl_uint                               num_entries,
+  cl_device_id *                        out_devices,
+  cl_uint *                             num_devices
+) CL_API_SUFFIX__VERSION_1_2
 {
   return CL_INVALID_VALUE;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainDevice(cl_device_id device) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clRetainDevice)
+(
+  cl_device_id  device
+) CL_API_SUFFIX__VERSION_1_2
 {
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseDevice(cl_device_id device) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clReleaseDevice)
+(
+  cl_device_id  device
+) CL_API_SUFFIX__VERSION_1_2
 {
   return CL_SUCCESS;
 }
 
-
-/* Context APIs  */
-CL_API_ENTRY cl_context CL_API_CALL
-clCreateContext(const cl_context_properties * properties,
-                cl_uint                       num_devices ,
-                const cl_device_id *          devices,
-                void (CL_CALLBACK * pfn_notify)(const char *, const void *, size_t, void *),
-                void *                        user_data,
-                cl_int *                      errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_context, clCreateContext)
+(
+  const cl_context_properties *  properties,
+  cl_uint                        num_devices,
+  const cl_device_id *           devices,
+  void (CL_CALLBACK *            pfn_notify)(const char *,
+                                             const void *,
+                                             size_t,
+                                             void *),
+  void *                         user_data,
+  cl_int *                       errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (num_devices != 1 || !devices)
@@ -665,12 +738,17 @@ clCreateContext(const cl_context_properties * properties,
   return context;
 }
 
-CL_API_ENTRY cl_context CL_API_CALL
-clCreateContextFromType(const cl_context_properties * properties,
-                        cl_device_type                device_type,
-                        void (CL_CALLBACK *     pfn_notify)(const char *, const void *, size_t, void *),
-                        void *                        user_data,
-                        cl_int *                      errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_context, clCreateContextFromType)
+(
+  const cl_context_properties *  properties,
+  cl_device_type                 device_type,
+  void (CL_CALLBACK *            pfn_notify)(const char *,
+                                             const void *,
+                                             size_t,
+                                             void *),
+  void *                         user_data,
+  cl_int *                       errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!pfn_notify && user_data)
@@ -713,8 +791,10 @@ clCreateContextFromType(const cl_context_properties * properties,
   return context;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clRetainContext)
+(
+  cl_context  context
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!context)
   {
@@ -726,8 +806,10 @@ clRetainContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clReleaseContext)
+(
+  cl_context  context
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!context)
   {
@@ -743,12 +825,14 @@ clReleaseContext(cl_context context) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetContextInfo(cl_context         context,
-                 cl_context_info    param_name,
-                 size_t             param_value_size,
-                 void *             param_value,
-                 size_t *           param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetContextInfo)
+(
+  cl_context       context,
+  cl_context_info  param_name,
+  size_t           param_value_size,
+  void *           param_value,
+  size_t *         param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -809,13 +893,13 @@ clGetContextInfo(cl_context         context,
   return return_value;
 }
 
-
-/* Command Queue APIs */
-CL_API_ENTRY cl_command_queue CL_API_CALL
-clCreateCommandQueue(cl_context                     context,
-                     cl_device_id                   device,
-                     cl_command_queue_properties    properties,
-                     cl_int *                       errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_command_queue, clCreateCommandQueue)
+(
+  cl_context                   context,
+  cl_device_id                 device,
+  cl_command_queue_properties  properties,
+  cl_int *                     errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!context)
@@ -849,17 +933,21 @@ clCreateCommandQueue(cl_context                     context,
   return queue;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetCommandQueueProperty(cl_command_queue               command_queue ,
-                          cl_command_queue_properties    properties ,
-                          cl_bool                        enable ,
-                          cl_command_queue_properties *  old_properties) //CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
+DECLARE_API(cl_int, clSetCommandQueueProperty)
+(
+  cl_command_queue               command_queue,
+  cl_command_queue_properties    properties,
+  cl_bool                        enable,
+  cl_command_queue_properties *  old_properties
+) CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
 {
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clRetainCommandQueue)
+(
+  cl_command_queue  command_queue
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -872,8 +960,10 @@ clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clReleaseCommandQueue)
+(
+  cl_command_queue  command_queue
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!command_queue)
   {
@@ -894,12 +984,14 @@ clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetCommandQueueInfo(cl_command_queue       command_queue ,
-                      cl_command_queue_info  param_name ,
-                      size_t                 param_value_size ,
-                      void *                 param_value ,
-                      size_t *               param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetCommandQueueInfo)
+(
+  cl_command_queue       command_queue,
+  cl_command_queue_info  param_name,
+  size_t                 param_value_size,
+  void *                 param_value,
+  size_t *               param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -960,14 +1052,14 @@ clGetCommandQueueInfo(cl_command_queue       command_queue ,
   return return_value;
 }
 
-
-/* Memory Object APIs */
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateBuffer(cl_context    context ,
-               cl_mem_flags  flags ,
-               size_t        size ,
-               void *        host_ptr ,
-               cl_int *      errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_mem, clCreateBuffer)
+(
+  cl_context    context,
+  cl_mem_flags  flags,
+  size_t        size,
+  void *        host_ptr,
+  cl_int *      errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!context)
@@ -1033,12 +1125,14 @@ clCreateBuffer(cl_context    context ,
   return mem;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateSubBuffer(cl_mem                    buffer ,
-                  cl_mem_flags              flags ,
-                  cl_buffer_create_type     buffer_create_type ,
-                  const void *              buffer_create_info ,
-                  cl_int *                  errcode_ret) CL_API_SUFFIX__VERSION_1_1
+DECLARE_API(cl_mem, clCreateSubBuffer)
+(
+  cl_mem                 buffer,
+  cl_mem_flags           flags,
+  cl_buffer_create_type  buffer_create_type,
+  const void *           buffer_create_info,
+  cl_int *               errcode_ret
+) CL_API_SUFFIX__VERSION_1_1
 {
   // Check parameters
   if (!buffer || buffer->parent)
@@ -1195,13 +1289,15 @@ bool isImageArray(cl_mem_object_type type)
   return false;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateImage(cl_context              context,
-              cl_mem_flags            flags,
-              const cl_image_format * image_format,
-              const cl_image_desc *   image_desc,
-              void *                  host_ptr,
-              cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_mem, clCreateImage)
+(
+  cl_context               context,
+  cl_mem_flags             flags,
+  const cl_image_format *  image_format,
+  const cl_image_desc *    image_desc,
+  void *                   host_ptr,
+  cl_int *                 errcode_ret
+) CL_API_SUFFIX__VERSION_1_2
 {
   // Check parameters
   if (!context)
@@ -1294,15 +1390,17 @@ clCreateImage(cl_context              context,
 }
 
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateImage2D(cl_context              context ,
-                cl_mem_flags            flags ,
-                const cl_image_format * image_format ,
-                size_t                  image_width ,
-                size_t                  image_height ,
-                size_t                  image_row_pitch ,
-                void *                  host_ptr ,
-                cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_mem, clCreateImage2D)
+(
+  cl_context               context,
+  cl_mem_flags             flags,
+  const cl_image_format *  image_format,
+  size_t                   image_width,
+  size_t                   image_height,
+  size_t                   image_row_pitch,
+  void *                   host_ptr,
+  cl_int *                 errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   cl_image_desc desc =
   {
@@ -1322,17 +1420,19 @@ clCreateImage2D(cl_context              context ,
                        host_ptr, errcode_ret);
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateImage3D(cl_context              context,
-                cl_mem_flags            flags,
-                const cl_image_format * image_format,
-                size_t                  image_width,
-                size_t                  image_height ,
-                size_t                  image_depth ,
-                size_t                  image_row_pitch ,
-                size_t                  image_slice_pitch ,
-                void *                  host_ptr ,
-                cl_int *                errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_mem, clCreateImage3D)
+(
+  cl_context               context,
+  cl_mem_flags             flags,
+  const cl_image_format *  image_format,
+  size_t                   image_width,
+  size_t                   image_height,
+  size_t                   image_depth,
+  size_t                   image_row_pitch,
+  size_t                   image_slice_pitch,
+  void *                   host_ptr,
+  cl_int *                 errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   cl_image_desc desc =
   {
@@ -1352,8 +1452,10 @@ clCreateImage3D(cl_context              context,
                        host_ptr, errcode_ret);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clRetainMemObject)
+(
+  cl_mem  memobj
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!memobj)
   {
@@ -1364,8 +1466,10 @@ clRetainMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clReleaseMemObject)
+(
+  cl_mem  memobj
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!memobj)
   {
@@ -1407,13 +1511,15 @@ clReleaseMemObject(cl_mem memobj) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetSupportedImageFormats(cl_context           context,
-                           cl_mem_flags         flags,
-                           cl_mem_object_type   image_type ,
-                           cl_uint              num_entries ,
-                           cl_image_format *    image_formats ,
-                           cl_uint *            num_image_formats) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetSupportedImageFormats)
+(
+  cl_context          context,
+  cl_mem_flags        flags,
+  cl_mem_object_type  image_type,
+  cl_uint             num_entries,
+  cl_image_format *   image_formats,
+  cl_uint *           num_image_formats
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!context)
@@ -1483,12 +1589,14 @@ clGetSupportedImageFormats(cl_context           context,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetMemObjectInfo(cl_mem            memobj ,
-                   cl_mem_info       param_name ,
-                   size_t            param_value_size ,
-                   void *            param_value ,
-                   size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetMemObjectInfo)
+(
+  cl_mem       memobj,
+  cl_mem_info  param_name,
+  size_t       param_value_size,
+  void *       param_value,
+  size_t *     param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -1574,12 +1682,14 @@ clGetMemObjectInfo(cl_mem            memobj ,
   return return_value;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetImageInfo(cl_mem            image ,
-               cl_image_info     param_name ,
-               size_t            param_value_size ,
-               void *            param_value ,
-               size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetImageInfo)
+(
+  cl_mem         image,
+  cl_image_info  param_name,
+  size_t         param_value_size,
+  void *         param_value,
+  size_t *       param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -1679,10 +1789,12 @@ clGetImageInfo(cl_mem            image ,
   return return_value;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetMemObjectDestructorCallback(cl_mem  memobj ,
-                                 void (CL_CALLBACK * pfn_notify)(cl_mem  memobj , void* user_data),
-                                 void * user_data)             CL_API_SUFFIX__VERSION_1_1
+DECLARE_API(cl_int, clSetMemObjectDestructorCallback)
+(
+  cl_mem               memobj,
+  void (CL_CALLBACK *  pfn_notify)(cl_mem, void*),
+  void *               user_data
+) CL_API_SUFFIX__VERSION_1_1
 {
   // Check parameters
   if (!memobj)
@@ -1699,13 +1811,14 @@ clSetMemObjectDestructorCallback(cl_mem  memobj ,
   return CL_SUCCESS;
 }
 
-/* Sampler APIs  */
-CL_API_ENTRY cl_sampler CL_API_CALL
-clCreateSampler(cl_context           context ,
-                cl_bool              normalized_coords ,
-                cl_addressing_mode   addressing_mode ,
-                cl_filter_mode       filter_mode ,
-                cl_int *             errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_sampler, clCreateSampler)
+(
+  cl_context          context,
+  cl_bool             normalized_coords,
+  cl_addressing_mode  addressing_mode,
+  cl_filter_mode      filter_mode,
+  cl_int *            errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!context)
@@ -1769,8 +1882,10 @@ clCreateSampler(cl_context           context ,
   return sampler;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainSampler(cl_sampler  sampler) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clRetainSampler)
+(
+  cl_sampler  sampler
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!sampler)
   {
@@ -1782,8 +1897,10 @@ clRetainSampler(cl_sampler  sampler) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseSampler(cl_sampler  sampler) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clReleaseSampler)
+(
+  cl_sampler  sampler
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!sampler)
   {
@@ -1798,12 +1915,14 @@ clReleaseSampler(cl_sampler  sampler) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetSamplerInfo(cl_sampler          sampler ,
-                 cl_sampler_info     param_name ,
-                 size_t              param_value_size ,
-                 void *              param_value ,
-                 size_t *            param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetSamplerInfo)
+(
+  cl_sampler       sampler,
+  cl_sampler_info  param_name,
+  size_t           param_value_size,
+  void *           param_value,
+  size_t *         param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -1869,13 +1988,14 @@ clGetSamplerInfo(cl_sampler          sampler ,
   return return_value;
 }
 
-/* Program Object APIs  */
-CL_API_ENTRY cl_program CL_API_CALL
-clCreateProgramWithSource(cl_context         context ,
-                          cl_uint            count ,
-                          const char **      strings ,
-                          const size_t *     lengths ,
-                          cl_int *           errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_program, clCreateProgramWithSource)
+(
+  cl_context      context,
+  cl_uint         count,
+  const char **   strings,
+  const size_t *  lengths,
+  cl_int *        errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!context)
@@ -1914,14 +2034,16 @@ clCreateProgramWithSource(cl_context         context ,
   return prog;
 }
 
-CL_API_ENTRY cl_program CL_API_CALL
-clCreateProgramWithBinary(cl_context                      context ,
-                          cl_uint                         num_devices ,
-                          const cl_device_id *            device_list ,
-                          const size_t *                  lengths ,
-                          const unsigned char **          binaries ,
-                          cl_int *                        binary_status ,
-                          cl_int *                        errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_program, clCreateProgramWithBinary)
+(
+  cl_context              context,
+  cl_uint                 num_devices,
+  const cl_device_id *    device_list,
+  const size_t *          lengths,
+  const unsigned char **  binaries,
+  cl_int *                binary_status,
+  cl_int *                errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!context)
@@ -1965,19 +2087,23 @@ clCreateProgramWithBinary(cl_context                      context ,
   return prog;
 }
 
-CL_API_ENTRY cl_program CL_API_CALL
-clCreateProgramWithBuiltInKernels(cl_context             context ,
-                                  cl_uint                num_devices ,
-                                  const cl_device_id *   device_list ,
-                                  const char *           kernel_names ,
-                                  cl_int *               errcode_ret) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_program, clCreateProgramWithBuiltInKernels)
+(
+  cl_context            context,
+  cl_uint               num_devices,
+  const cl_device_id *  device_list,
+  const char *          kernel_names,
+  cl_int *              errcode_ret
+) CL_API_SUFFIX__VERSION_1_2
 {
   ERRCODE(CL_INVALID_VALUE);
   return NULL;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clRetainProgram)
+(
+  cl_program  program
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!program)
   {
@@ -1988,8 +2114,10 @@ clRetainProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clReleaseProgram)
+(
+  cl_program  program
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!program)
   {
@@ -2005,13 +2133,15 @@ clReleaseProgram(cl_program  program) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clBuildProgram(cl_program            program ,
-               cl_uint               num_devices ,
-               const cl_device_id *  device_list ,
-               const char *          options ,
-               void (CL_CALLBACK *   pfn_notify)(cl_program  program , void *  user_data),
-               void *                user_data) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clBuildProgram)
+(
+  cl_program            program,
+  cl_uint               num_devices,
+  const cl_device_id *  device_list,
+  const char *          options,
+  void (CL_CALLBACK *   pfn_notify)(cl_program, void*),
+  void *                user_data
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!program || !program->program)
@@ -2047,22 +2177,26 @@ clBuildProgram(cl_program            program ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clUnloadCompiler(void) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clUnloadCompiler)
+(
+  void
+) CL_API_SUFFIX__VERSION_1_0
 {
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clCompileProgram(cl_program            program ,
-                 cl_uint               num_devices ,
-                 const cl_device_id *  device_list ,
-                 const char *          options ,
-                 cl_uint               num_input_headers ,
-                 const cl_program *    input_headers,
-                 const char **         header_include_names ,
-                 void (CL_CALLBACK *   pfn_notify)(cl_program  program , void *  user_data),
-                 void *                user_data) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clCompileProgram)
+(
+  cl_program            program,
+  cl_uint               num_devices,
+  const cl_device_id *  device_list,
+  const char *          options,
+  cl_uint               num_input_headers,
+  const cl_program *    input_headers,
+  const char **         header_include_names,
+  void (CL_CALLBACK *   pfn_notify)(cl_program, void*),
+  void *                user_data
+) CL_API_SUFFIX__VERSION_1_2
 {
   // Check parameters
   if (!program)
@@ -2111,16 +2245,18 @@ clCompileProgram(cl_program            program ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_program CL_API_CALL
-clLinkProgram(cl_context            context ,
-              cl_uint               num_devices ,
-              const cl_device_id *  device_list ,
-              const char *          options ,
-              cl_uint               num_input_programs ,
-              const cl_program *    input_programs ,
-              void (CL_CALLBACK *   pfn_notify)(cl_program  program , void *  user_data),
-              void *                user_data ,
-              cl_int *              errcode_ret) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_program, clLinkProgram)
+(
+  cl_context            context,
+  cl_uint               num_devices,
+  const cl_device_id *  device_list,
+  const char *          options,
+  cl_uint               num_input_programs,
+  const cl_program *    input_programs,
+  void (CL_CALLBACK *   pfn_notify)(cl_program, void*),
+  void *                user_data,
+  cl_int *              errcode_ret
+) CL_API_SUFFIX__VERSION_1_2
 {
   // Check parameters
   if (!context)
@@ -2180,18 +2316,22 @@ clLinkProgram(cl_context            context ,
   return prog;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clUnloadPlatformCompiler(cl_platform_id  platform) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clUnloadPlatformCompiler)
+(
+  cl_platform_id  platform
+) CL_API_SUFFIX__VERSION_1_2
 {
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetProgramInfo(cl_program          program ,
-                 cl_program_info     param_name ,
-                 size_t              param_value_size ,
-                 void *              param_value ,
-                 size_t *            param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetProgramInfo)
+(
+  cl_program       program,
+  cl_program_info  param_name,
+  size_t           param_value_size,
+  void *           param_value,
+  size_t *         param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -2303,13 +2443,15 @@ clGetProgramInfo(cl_program          program ,
   return return_value;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetProgramBuildInfo(cl_program             program ,
-                      cl_device_id           device ,
-                      cl_program_build_info  param_name ,
-                      size_t                 param_value_size ,
-                      void *                 param_value ,
-                      size_t *               param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetProgramBuildInfo)
+(
+  cl_program             program,
+  cl_device_id           device,
+  cl_program_build_info  param_name,
+  size_t                 param_value_size,
+  void *                 param_value,
+  size_t *               param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -2371,12 +2513,12 @@ clGetProgramBuildInfo(cl_program             program ,
   return return_value;
 }
 
-
-/* Kernel Object APIs */
-CL_API_ENTRY cl_kernel CL_API_CALL
-clCreateKernel(cl_program       program ,
-               const char *     kernel_name ,
-               cl_int *         errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_kernel, clCreateKernel)
+(
+  cl_program    program,
+  const char *  kernel_name,
+  cl_int *      errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (program->dispatch != m_dispatchTable)
@@ -2409,11 +2551,13 @@ clCreateKernel(cl_program       program ,
   return kernel;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clCreateKernelsInProgram(cl_program      program ,
-                         cl_uint         num_kernels ,
-                         cl_kernel *     kernels ,
-                         cl_uint *       num_kernels_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clCreateKernelsInProgram)
+(
+  cl_program   program,
+  cl_uint      num_kernels,
+  cl_kernel *  kernels,
+  cl_uint *    num_kernels_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!program)
@@ -2456,8 +2600,10 @@ clCreateKernelsInProgram(cl_program      program ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainKernel(cl_kernel     kernel) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clRetainKernel)
+(
+  cl_kernel  kernel
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!kernel)
   {
@@ -2468,8 +2614,10 @@ clRetainKernel(cl_kernel     kernel) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseKernel(cl_kernel    kernel) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clReleaseKernel)
+(
+  cl_kernel  kernel
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!kernel)
   {
@@ -2486,11 +2634,13 @@ clReleaseKernel(cl_kernel    kernel) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetKernelArg(cl_kernel     kernel ,
-               cl_uint       arg_index ,
-               size_t        arg_size ,
-               const void *  arg_value) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clSetKernelArg)
+(
+  cl_kernel     kernel,
+  cl_uint       arg_index,
+  size_t        arg_size,
+  const void *  arg_value
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (arg_index >= kernel->kernel->getNumArguments())
@@ -2568,12 +2718,14 @@ clSetKernelArg(cl_kernel     kernel ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetKernelInfo(cl_kernel        kernel ,
-                cl_kernel_info   param_name ,
-                size_t           param_value_size ,
-                void *           param_value ,
-                size_t *         param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetKernelInfo)
+(
+  cl_kernel       kernel,
+  cl_kernel_info  param_name,
+  size_t          param_value_size,
+  void *          param_value,
+  size_t *        param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -2644,13 +2796,15 @@ clGetKernelInfo(cl_kernel        kernel ,
   return return_value;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetKernelArgInfo(cl_kernel        kernel ,
-                   cl_uint          arg_indx ,
-                   cl_kernel_arg_info   param_name ,
-                   size_t           param_value_size ,
-                   void *           param_value ,
-                   size_t *         param_value_size_ret) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clGetKernelArgInfo)
+(
+  cl_kernel           kernel,
+  cl_uint             arg_indx,
+  cl_kernel_arg_info  param_name,
+  size_t              param_value_size,
+  void *              param_value,
+  size_t *            param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_2
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -2729,13 +2883,15 @@ clGetKernelArgInfo(cl_kernel        kernel ,
   return return_value;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetKernelWorkGroupInfo(cl_kernel                   kernel ,
-                         cl_device_id                device ,
-                         cl_kernel_work_group_info   param_name ,
-                         size_t                      param_value_size ,
-                         void *                      param_value ,
-                         size_t *                    param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetKernelWorkGroupInfo)
+(
+  cl_kernel                  kernel,
+  cl_device_id               device,
+  cl_kernel_work_group_info  param_name,
+  size_t                     param_value_size,
+  void *                     param_value,
+  size_t *                   param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -2815,9 +2971,11 @@ inline bool isComplete(cl_event event)
   return (event->event->state == CL_COMPLETE || event->event->state < 0);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clWaitForEvents(cl_uint              num_events ,
-                const cl_event *     event_list) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clWaitForEvents)
+(
+  cl_uint           num_events,
+  const cl_event *  event_list
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!num_events || !event_list)
@@ -2875,12 +3033,14 @@ clWaitForEvents(cl_uint              num_events ,
   return ret;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetEventInfo(cl_event          event ,
-               cl_event_info     param_name ,
-               size_t            param_value_size ,
-               void *            param_value ,
-               size_t *          param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetEventInfo)
+(
+  cl_event       event,
+  cl_event_info  param_name,
+  size_t         param_value_size,
+  void *         param_value,
+  size_t *       param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -2946,9 +3106,11 @@ clGetEventInfo(cl_event          event ,
   return return_value;
 }
 
-CL_API_ENTRY cl_event CL_API_CALL
-clCreateUserEvent(cl_context     context ,
-                  cl_int *       errcode_ret) CL_API_SUFFIX__VERSION_1_1
+DECLARE_API(cl_event, clCreateUserEvent)
+(
+  cl_context  context,
+  cl_int *    errcode_ret
+) CL_API_SUFFIX__VERSION_1_1
 {
   // Check parameters
   if (!context)
@@ -2971,8 +3133,10 @@ clCreateUserEvent(cl_context     context ,
   return event;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainEvent(cl_event  event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clRetainEvent)
+(
+  cl_event  event
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!event)
   {
@@ -2984,8 +3148,10 @@ clRetainEvent(cl_event  event) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseEvent(cl_event  event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clReleaseEvent)
+(
+  cl_event  event
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!event)
   {
@@ -3004,9 +3170,11 @@ clReleaseEvent(cl_event  event) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetUserEventStatus(cl_event    event ,
-                     cl_int      execution_status) CL_API_SUFFIX__VERSION_1_1
+DECLARE_API(cl_int, clSetUserEventStatus)
+(
+  cl_event  event,
+  cl_int    execution_status
+) CL_API_SUFFIX__VERSION_1_1
 {
   // Check parameters
   if (!event || event->queue)
@@ -3034,11 +3202,13 @@ clSetUserEventStatus(cl_event    event ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetEventCallback(cl_event     event ,
-                   cl_int       command_exec_callback_type ,
-                   void (CL_CALLBACK *  pfn_notify)(cl_event, cl_int, void *),
-                   void *       user_data) CL_API_SUFFIX__VERSION_1_1
+DECLARE_API(cl_int, clSetEventCallback)
+(
+  cl_event             event,
+  cl_int               command_exec_callback_type,
+  void (CL_CALLBACK *  pfn_notify)(cl_event, cl_int, void*),
+  void *               user_data
+) CL_API_SUFFIX__VERSION_1_1
 {
   // Check parameters
   if (!event)
@@ -3058,13 +3228,14 @@ clSetEventCallback(cl_event     event ,
   return CL_SUCCESS;
 }
 
-/* Profiling APIs  */
-CL_API_ENTRY cl_int CL_API_CALL
-clGetEventProfilingInfo(cl_event             event ,
-                        cl_profiling_info    param_name ,
-                        size_t               param_value_size ,
-                        void *               param_value ,
-                        size_t *             param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetEventProfilingInfo)
+(
+  cl_event           event,
+  cl_profiling_info  param_name,
+  size_t             param_value_size,
+  void *             param_value,
+  size_t *           param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t result_size = 0;
   void *result_data = NULL;
@@ -3129,10 +3300,10 @@ clGetEventProfilingInfo(cl_event             event ,
   return return_value;
 }
 
-
-/* Flush and Finish APIs */
-CL_API_ENTRY cl_int CL_API_CALL
-clFlush(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clFlush)
+(
+  cl_command_queue  command_queue
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3146,8 +3317,10 @@ clFlush(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clFinish(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clFinish)
+(
+  cl_command_queue  command_queue
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3169,17 +3342,18 @@ clFinish(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
   return CL_SUCCESS;
 }
 
-/* Enqueued Commands APIs */
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReadBuffer(cl_command_queue     command_queue ,
-                    cl_mem               buffer ,
-                    cl_bool              blocking_read ,
-                    size_t               offset ,
-                    size_t               cb ,
-                    void *               ptr ,
-                    cl_uint              num_events_in_wait_list ,
-                    const cl_event *     event_wait_list ,
-                    cl_event *           event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueReadBuffer)
+(
+  cl_command_queue  command_queue,
+  cl_mem            buffer,
+  cl_bool           blocking_read,
+  size_t            offset,
+  size_t            cb,
+  void *            ptr,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3217,21 +3391,23 @@ clEnqueueReadBuffer(cl_command_queue     command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReadBufferRect(cl_command_queue     command_queue ,
-                        cl_mem               buffer ,
-                        cl_bool              blocking_read ,
-                        const size_t *       buffer_origin ,
-                        const size_t *       host_origin ,
-                        const size_t *       region ,
-                        size_t               buffer_row_pitch ,
-                        size_t               buffer_slice_pitch ,
-                        size_t               host_row_pitch ,
-                        size_t               host_slice_pitch ,
-                        void *               ptr ,
-                        cl_uint              num_events_in_wait_list ,
-                        const cl_event *     event_wait_list ,
-                        cl_event *           event) CL_API_SUFFIX__VERSION_1_1
+DECLARE_API(cl_int, clEnqueueReadBufferRect)
+(
+  cl_command_queue  command_queue,
+  cl_mem            buffer,
+  cl_bool           blocking_read,
+  const size_t *    buffer_origin,
+  const size_t *    host_origin,
+  const size_t *    region,
+  size_t            buffer_row_pitch,
+  size_t            buffer_slice_pitch,
+  size_t            host_row_pitch,
+  size_t            host_slice_pitch,
+  void *            ptr,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_1
 {
   // Check parameters
   if (!command_queue)
@@ -3309,16 +3485,18 @@ clEnqueueReadBufferRect(cl_command_queue     command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueWriteBuffer(cl_command_queue    command_queue ,
-                     cl_mem              buffer ,
-                     cl_bool             blocking_write ,
-                     size_t              offset ,
-                     size_t              cb ,
-                     const void *        ptr ,
-                     cl_uint             num_events_in_wait_list ,
-                     const cl_event *    event_wait_list ,
-                     cl_event *          event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueWriteBuffer)
+(
+  cl_command_queue  command_queue,
+  cl_mem            buffer,
+  cl_bool           blocking_write,
+  size_t            offset,
+  size_t            cb,
+  const void *      ptr,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3356,21 +3534,23 @@ clEnqueueWriteBuffer(cl_command_queue    command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueWriteBufferRect(cl_command_queue     command_queue ,
-                         cl_mem               buffer ,
-                         cl_bool              blocking_write ,
-                         const size_t *       buffer_origin ,
-                         const size_t *       host_origin ,
-                         const size_t *       region ,
-                         size_t               buffer_row_pitch ,
-                         size_t               buffer_slice_pitch ,
-                         size_t               host_row_pitch ,
-                         size_t               host_slice_pitch ,
-                         const void *         ptr ,
-                         cl_uint              num_events_in_wait_list ,
-                         const cl_event *     event_wait_list ,
-                         cl_event *           event) CL_API_SUFFIX__VERSION_1_1
+DECLARE_API(cl_int, clEnqueueWriteBufferRect)
+(
+  cl_command_queue  command_queue,
+  cl_mem            buffer,
+  cl_bool           blocking_write,
+  const size_t *    buffer_origin,
+  const size_t *    host_origin,
+  const size_t *    region,
+  size_t            buffer_row_pitch,
+  size_t            buffer_slice_pitch,
+  size_t            host_row_pitch,
+  size_t            host_slice_pitch,
+  const void *      ptr,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_1
 {
   // Check parameters
   if (!command_queue)
@@ -3448,16 +3628,18 @@ clEnqueueWriteBufferRect(cl_command_queue     command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyBuffer(cl_command_queue     command_queue ,
-                    cl_mem               src_buffer ,
-                    cl_mem               dst_buffer ,
-                    size_t               src_offset ,
-                    size_t               dst_offset ,
-                    size_t               cb ,
-                    cl_uint              num_events_in_wait_list ,
-                    const cl_event *     event_wait_list ,
-                    cl_event *           event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueCopyBuffer)
+(
+  cl_command_queue  command_queue,
+  cl_mem            src_buffer,
+  cl_mem            dst_buffer,
+  size_t            src_offset,
+  size_t            dst_offset,
+  size_t            cb,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3487,20 +3669,22 @@ clEnqueueCopyBuffer(cl_command_queue     command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
-                        cl_mem               src_buffer ,
-                        cl_mem               dst_buffer ,
-                        const size_t *       src_origin ,
-                        const size_t *       dst_origin ,
-                        const size_t *       region ,
-                        size_t               src_row_pitch ,
-                        size_t               src_slice_pitch ,
-                        size_t               dst_row_pitch ,
-                        size_t               dst_slice_pitch ,
-                        cl_uint              num_events_in_wait_list ,
-                        const cl_event *     event_wait_list ,
-                        cl_event *           event) CL_API_SUFFIX__VERSION_1_1
+DECLARE_API(cl_int, clEnqueueCopyBufferRect)
+(
+  cl_command_queue  command_queue,
+  cl_mem            src_buffer,
+  cl_mem            dst_buffer,
+  const size_t *    src_origin,
+  const size_t *    dst_origin,
+  const size_t *    region,
+  size_t            src_row_pitch,
+  size_t            src_slice_pitch,
+  size_t            dst_row_pitch,
+  size_t            dst_slice_pitch,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_1
 {
   // Check parameters
   if (!command_queue)
@@ -3574,16 +3758,18 @@ clEnqueueCopyBufferRect(cl_command_queue     command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueFillBuffer(cl_command_queue    command_queue ,
-                    cl_mem              buffer ,
-                    const void *        pattern ,
-                    size_t              pattern_size ,
-                    size_t              offset ,
-                    size_t              cb ,
-                    cl_uint             num_events_in_wait_list ,
-                    const cl_event *    event_wait_list ,
-                    cl_event *          event) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clEnqueueFillBuffer)
+(
+  cl_command_queue  command_queue,
+  cl_mem            buffer,
+  const void *      pattern,
+  size_t            pattern_size,
+  size_t            offset,
+  size_t            cb,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_2
 {
   // Check parameters
   if (!command_queue)
@@ -3620,15 +3806,17 @@ clEnqueueFillBuffer(cl_command_queue    command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueFillImage(cl_command_queue    command_queue ,
-                   cl_mem              image ,
-                   const void *        fill_color ,
-                   const size_t *      origin ,
-                   const size_t *      region ,
-                   cl_uint             num_events_in_wait_list ,
-                   const cl_event *    event_wait_list ,
-                   cl_event *          event) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clEnqueueFillImage)
+(
+  cl_command_queue  command_queue,
+  cl_mem            image,
+  const void *      fill_color,
+  const size_t *    origin,
+  const size_t *    region,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_2
 {
   // Check parameters
   if (!command_queue)
@@ -3763,18 +3951,20 @@ clEnqueueFillImage(cl_command_queue    command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReadImage(cl_command_queue      command_queue ,
-                   cl_mem                image ,
-                   cl_bool               blocking_read ,
-                   const size_t *        origin ,
-                   const size_t *        region ,
-                   size_t                row_pitch ,
-                   size_t                slice_pitch ,
-                   void *                ptr ,
-                   cl_uint               num_events_in_wait_list ,
-                   const cl_event *      event_wait_list ,
-                   cl_event *            event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueReadImage)
+(
+  cl_command_queue  command_queue,
+  cl_mem            image,
+  cl_bool           blocking_read,
+  const size_t *    origin,
+  const size_t *    region,
+  size_t            row_pitch,
+  size_t            slice_pitch,
+  void *            ptr,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3813,18 +4003,20 @@ clEnqueueReadImage(cl_command_queue      command_queue ,
                                  event_wait_list, event);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueWriteImage(cl_command_queue     command_queue ,
-                    cl_mem               image ,
-                    cl_bool              blocking_write ,
-                    const size_t *       origin ,
-                    const size_t *       region ,
-                    size_t               input_row_pitch ,
-                    size_t               input_slice_pitch ,
-                    const void *         ptr ,
-                    cl_uint              num_events_in_wait_list ,
-                    const cl_event *     event_wait_list ,
-                    cl_event *           event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueWriteImage)
+(
+  cl_command_queue  command_queue,
+  cl_mem            image,
+  cl_bool           blocking_write,
+  const size_t *    origin,
+  const size_t *    region,
+  size_t            input_row_pitch,
+  size_t            input_slice_pitch,
+  const void *      ptr,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3863,16 +4055,18 @@ clEnqueueWriteImage(cl_command_queue     command_queue ,
                                   event_wait_list, event);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyImage(cl_command_queue      command_queue ,
-                   cl_mem                src_image ,
-                   cl_mem                dst_image ,
-                   const size_t *        src_origin ,
-                   const size_t *        dst_origin ,
-                   const size_t *        region ,
-                   cl_uint               num_events_in_wait_list ,
-                   const cl_event *      event_wait_list ,
-                   cl_event *            event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueCopyImage)
+(
+  cl_command_queue  command_queue,
+  cl_mem            src_image,
+  cl_mem            dst_image,
+  const size_t *    src_origin,
+  const size_t *    dst_origin,
+  const size_t *    region,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3916,16 +4110,18 @@ clEnqueueCopyImage(cl_command_queue      command_queue ,
                                  event_wait_list, event);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyImageToBuffer(cl_command_queue  command_queue ,
-                           cl_mem            src_image ,
-                           cl_mem            dst_buffer ,
-                           const size_t *    src_origin ,
-                           const size_t *    region ,
-                           size_t            dst_offset ,
-                           cl_uint           num_events_in_wait_list ,
-                           const cl_event *  event_wait_list ,
-                           cl_event *        event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueCopyImageToBuffer)
+(
+  cl_command_queue  command_queue,
+  cl_mem            src_image,
+  cl_mem            dst_buffer,
+  const size_t *    src_origin,
+  const size_t *    region,
+  size_t            dst_offset,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3956,16 +4152,18 @@ clEnqueueCopyImageToBuffer(cl_command_queue  command_queue ,
                                  event_wait_list, event);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyBufferToImage(cl_command_queue  command_queue ,
-                           cl_mem            src_buffer ,
-                           cl_mem            dst_image ,
-                           size_t            src_offset ,
-                           const size_t *    dst_origin ,
-                           const size_t *    region ,
-                           cl_uint           num_events_in_wait_list ,
-                           const cl_event *  event_wait_list ,
-                           cl_event *        event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueCopyBufferToImage)
+(
+  cl_command_queue  command_queue,
+  cl_mem            src_buffer,
+  cl_mem            dst_image,
+  size_t            src_offset,
+  const size_t *    dst_origin,
+  const size_t *    region,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -3996,17 +4194,19 @@ clEnqueueCopyBufferToImage(cl_command_queue  command_queue ,
                                  event_wait_list, event);
 }
 
-CL_API_ENTRY void * CL_API_CALL
-clEnqueueMapBuffer(cl_command_queue  command_queue ,
-                   cl_mem            buffer ,
-                   cl_bool           blocking_map ,
-                   cl_map_flags      map_flags ,
-                   size_t            offset ,
-                   size_t            cb ,
-                   cl_uint           num_events_in_wait_list ,
-                   const cl_event *  event_wait_list ,
-                   cl_event *        event ,
-                   cl_int *          errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(void *, clEnqueueMapBuffer)
+(
+  cl_command_queue  command_queue,
+  cl_mem            buffer,
+  cl_bool           blocking_map,
+  cl_map_flags      map_flags,
+  size_t            offset,
+  size_t            cb,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event,
+  cl_int *          errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -4044,19 +4244,21 @@ clEnqueueMapBuffer(cl_command_queue  command_queue ,
   return ptr;
 }
 
-CL_API_ENTRY void * CL_API_CALL
-clEnqueueMapImage(cl_command_queue   command_queue ,
-                  cl_mem             image ,
-                  cl_bool            blocking_map ,
-                  cl_map_flags       map_flags ,
-                  const size_t *     origin ,
-                  const size_t *     region ,
-                  size_t *           image_row_pitch ,
-                  size_t *           image_slice_pitch ,
-                  cl_uint            num_events_in_wait_list ,
-                  const cl_event *   event_wait_list ,
-                  cl_event *         event ,
-                  cl_int *           errcode_ret) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(void *, clEnqueueMapImage)
+(
+  cl_command_queue  command_queue,
+  cl_mem            image,
+  cl_bool           blocking_map,
+  cl_map_flags      map_flags,
+  const size_t *    origin,
+  const size_t *    region,
+  size_t *          image_row_pitch,
+  size_t *          image_slice_pitch,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event,
+  cl_int *          errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -4122,13 +4324,15 @@ clEnqueueMapImage(cl_command_queue   command_queue ,
   return ptr;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueUnmapMemObject(cl_command_queue  command_queue ,
-                        cl_mem            memobj ,
-                        void *            mapped_ptr ,
-                        cl_uint           num_events_in_wait_list ,
-                        const cl_event *   event_wait_list ,
-                        cl_event *         event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueUnmapMemObject)
+(
+  cl_command_queue  command_queue,
+  cl_mem            memobj,
+  void *            mapped_ptr,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -4149,14 +4353,16 @@ clEnqueueUnmapMemObject(cl_command_queue  command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueMigrateMemObjects(cl_command_queue        command_queue ,
-                           cl_uint                 num_mem_objects ,
-                           const cl_mem *          mem_objects ,
-                           cl_mem_migration_flags  flags ,
-                           cl_uint                 num_events_in_wait_list ,
-                           const cl_event *        event_wait_list ,
-                           cl_event *              event) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clEnqueueMigrateMemObjects)
+(
+  cl_command_queue        command_queue,
+  cl_uint                 num_mem_objects,
+  const cl_mem *          mem_objects,
+  cl_mem_migration_flags  flags,
+  cl_uint                 num_events_in_wait_list,
+  const cl_event *        event_wait_list,
+  cl_event *              event
+) CL_API_SUFFIX__VERSION_1_2
 {
   // Check parameters
   if (!command_queue)
@@ -4172,16 +4378,18 @@ clEnqueueMigrateMemObjects(cl_command_queue        command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
-                       cl_kernel         kernel ,
-                       cl_uint           work_dim ,
-                       const size_t *    global_work_offset ,
-                       const size_t *    global_work_size ,
-                       const size_t *    local_work_size ,
-                       cl_uint           num_events_in_wait_list ,
-                       const cl_event *  event_wait_list ,
-                       cl_event *        event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueNDRangeKernel)
+(
+  cl_command_queue  command_queue,
+  cl_kernel         kernel,
+  cl_uint           work_dim,
+  const size_t *    global_work_offset,
+  const size_t *    global_work_size,
+  const size_t *    local_work_size,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -4238,12 +4446,14 @@ clEnqueueNDRangeKernel(cl_command_queue  command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueTask(cl_command_queue   command_queue ,
-              cl_kernel          kernel ,
-              cl_uint            num_events_in_wait_list ,
-              const cl_event *   event_wait_list ,
-              cl_event *         event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueTask)
+(
+  cl_command_queue  command_queue,
+  cl_kernel         kernel,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   size_t work = 1;
   return clEnqueueNDRangeKernel(command_queue, kernel, 1,
@@ -4253,17 +4463,19 @@ clEnqueueTask(cl_command_queue   command_queue ,
                                 event);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueNativeKernel(cl_command_queue   command_queue ,
-                      void (CL_CALLBACK *user_func)(void *),
-                      void *             args ,
-                      size_t             cb_args ,
-                      cl_uint            num_mem_objects ,
-                      const cl_mem *     mem_list ,
-                      const void **      args_mem_loc ,
-                      cl_uint            num_events_in_wait_list ,
-                      const cl_event *   event_wait_list ,
-                      cl_event *         event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueNativeKernel)
+(
+  cl_command_queue  command_queue,
+  void (CL_CALLBACK *user_func)(void *),
+  void *            args,
+  size_t            cb_args,
+  cl_uint           num_mem_objects,
+  const cl_mem *    mem_list,
+  const void **     args_mem_loc,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
   if (!command_queue)
@@ -4317,19 +4529,22 @@ clEnqueueNativeKernel(cl_command_queue   command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY void * CL_API_CALL
-clGetExtensionFunctionAddressForPlatform(cl_platform_id  platform ,
-                                         const char *    func_name) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(void *, clGetExtensionFunctionAddressForPlatform)
+(
+  cl_platform_id  platform,
+  const char *    func_name
+) CL_API_SUFFIX__VERSION_1_2
 {
   return NULL;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueMarkerWithWaitList(cl_command_queue  command_queue ,
-                            cl_uint            num_events_in_wait_list ,
-                            const cl_event *   event_wait_list ,
-                            cl_event *         event) CL_API_SUFFIX__VERSION_1_2
-
+DECLARE_API(cl_int, clEnqueueMarkerWithWaitList)
+(
+  cl_command_queue  command_queue,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_2
 {
   // Check parameters
   if (!command_queue)
@@ -4345,11 +4560,13 @@ clEnqueueMarkerWithWaitList(cl_command_queue  command_queue ,
   return CL_SUCCESS;
 }
 
-extern CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueBarrierWithWaitList(cl_command_queue  command_queue ,
-                             cl_uint            num_events_in_wait_list ,
-                             const cl_event *   event_wait_list ,
-                             cl_event *         event) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clEnqueueBarrierWithWaitList)
+(
+  cl_command_queue  command_queue,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_2
 {
   // Check parameters
   if (!command_queue)
@@ -4365,29 +4582,31 @@ clEnqueueBarrierWithWaitList(cl_command_queue  command_queue ,
   return CL_SUCCESS;
 }
 
-extern CL_API_ENTRY cl_int CL_API_CALL
-clSetPrintfCallback(cl_context           context ,
-                    void (CL_CALLBACK *  pfn_notify)(cl_context  program ,
-                                                     cl_uint printf_data_len ,
-                                                     char *  printf_data_ptr ,
-                                                     void *  user_data),
-                    void *               user_data) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_int, clSetPrintfCallback)
+(
+  cl_context           context,
+  void (CL_CALLBACK *  pfn_notify)(cl_context, cl_uint, char*, void*),
+  void *               user_data
+) CL_API_SUFFIX__VERSION_1_2
 {
-  // This function doesn't appear in spec...
-  return CL_INVALID_VALUE;
+  return CL_INVALID_OPERATION;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueMarker(cl_command_queue     command_queue ,
-                cl_event *           event) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueMarker)
+(
+  cl_command_queue  command_queue,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   return clEnqueueMarkerWithWaitList(command_queue, 0, NULL, event);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueWaitForEvents(cl_command_queue  command_queue ,
-                       cl_uint           num_events ,
-                       const cl_event *  event_list) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueWaitForEvents)
+(
+  cl_command_queue  command_queue,
+  cl_uint           num_events,
+  const cl_event *  event_list
+) CL_API_SUFFIX__VERSION_1_0
 {
   if (!command_queue)
   {
@@ -4397,131 +4616,307 @@ clEnqueueWaitForEvents(cl_command_queue  command_queue ,
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueBarrier(cl_command_queue  command_queue) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueBarrier)
+(
+  cl_command_queue  command_queue
+) CL_API_SUFFIX__VERSION_1_0
 {
   return clEnqueueBarrierWithWaitList(command_queue, 0, NULL, NULL);
 }
 
-
-#ifndef SIZE_T_MAX
-#define SIZE_T_MAX (size_t) 0xFFFFFFFFFFFFFFFFULL
-#endif
-
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLBuffer(cl_context      context ,
-                     cl_mem_flags    flags ,
-                     cl_GLuint       bufret_mem ,
-                     int *           errcode_ret ) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_mem, clCreateFromGLBuffer)
+(
+  cl_context    context,
+  cl_mem_flags  flags,
+  cl_GLuint     bufret_mem,
+  int *         errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLTexture(cl_context       context ,
-                      cl_mem_flags     flags ,
-                      cl_GLenum        target ,
-                      cl_GLint         miplevel ,
-                      cl_GLuint        texture ,
-                      cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_2
+DECLARE_API(cl_mem, clCreateFromGLTexture)
+(
+  cl_context    context,
+  cl_mem_flags  flags,
+  cl_GLenum     target,
+  cl_GLint      miplevel,
+  cl_GLuint     texture,
+  cl_int *      errcode_ret
+) CL_API_SUFFIX__VERSION_1_2
 {
   ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLTexture2D(cl_context       context,
-                        cl_mem_flags     flags,
-                        cl_GLenum        target,
-                        cl_GLint         miplevel,
-                        cl_GLuint        texture,
-                        cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_mem, clCreateFromGLTexture2D)
+(
+  cl_context    context,
+  cl_mem_flags  flags,
+  cl_GLenum     target,
+  cl_GLint      miplevel,
+  cl_GLuint     texture,
+  cl_int *      errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLTexture3D(cl_context       context,
-                        cl_mem_flags     flags,
-                        cl_GLenum        target,
-                        cl_GLint         miplevel,
-                        cl_GLuint        texture,
-                        cl_int *         errcode_ret ) CL_API_SUFFIX__VERSION_1_0
-
+DECLARE_API(cl_mem, clCreateFromGLTexture3D)
+(
+  cl_context    context,
+  cl_mem_flags  flags,
+  cl_GLenum     target,
+  cl_GLint      miplevel,
+  cl_GLuint     texture,
+  cl_int *      errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLRenderbuffer(cl_context    context,
-                           cl_mem_flags  flags,
-                           cl_GLuint     renderbuffer,
-                           cl_int *      errcode_ret ) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_mem, clCreateFromGLRenderbuffer)
+(
+  cl_context    context,
+  cl_mem_flags  flags,
+  cl_GLuint     renderbuffer,
+  cl_int *      errcode_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetGLObjectInfo(cl_mem                 memobj,
-                  cl_gl_object_type *    gl_object_type,
-                  cl_GLuint *            gl_object_name ) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetGLObjectInfo)
+(
+  cl_mem               memobj,
+  cl_gl_object_type *  gl_object_type,
+  cl_GLuint *          gl_object_name
+) CL_API_SUFFIX__VERSION_1_0
 {
   return CL_INVALID_MEM_OBJECT;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetGLTextureInfo(cl_mem                memobj,
-                   cl_gl_texture_info    param_name,
-                   size_t                param_value_size,
-                   void *                param_value,
-                   size_t *              param_value_size_ret ) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetGLTextureInfo)
+(
+  cl_mem              memobj,
+  cl_gl_texture_info  param_name,
+  size_t              param_value_size,
+  void *              param_value,
+  size_t *            param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   return CL_INVALID_MEM_OBJECT;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueAcquireGLObjects(cl_command_queue       command_queue,
-                          cl_uint                num_objects,
-                          const cl_mem *         mem_objects,
-                          cl_uint                num_events_in_wait_list,
-                          const cl_event *       event_wait_list,
-                          cl_event *             event ) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clEnqueueAcquireGLObjects)
+(
+  cl_command_queue  command_queue,
+  cl_uint           num_objects,
+  const cl_mem *    mem_objects,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   return CL_INVALID_CONTEXT;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReleaseGLObjects(cl_command_queue       command_queue,
-                          cl_uint                num_objects,
-                          const cl_mem *         mem_objects,
-                          cl_uint                num_events_in_wait_list,
-                          const cl_event *       event_wait_list,
-                          cl_event *             event ) CL_API_SUFFIX__VERSION_1_0
-
+DECLARE_API(cl_int, clEnqueueReleaseGLObjects)
+(
+  cl_command_queue  command_queue,
+  cl_uint           num_objects,
+  const cl_mem *    mem_objects,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_1_0
 {
   return CL_INVALID_CONTEXT;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetGLContextInfoKHR(const cl_context_properties *  properties,
-                      cl_gl_context_info             param_name,
-                      size_t                         param_value_size,
-                      void *                         param_value,
-                      size_t *                       param_value_size_ret ) CL_API_SUFFIX__VERSION_1_0
+DECLARE_API(cl_int, clGetGLContextInfoKHR)
+(
+  const cl_context_properties *  properties,
+  cl_gl_context_info             param_name,
+  size_t                         param_value_size,
+  void *                         param_value,
+  size_t *                       param_value_size_ret
+) CL_API_SUFFIX__VERSION_1_0
 {
   return CL_INVALID_OPERATION;
 }
 
-CL_API_ENTRY cl_event CL_API_CALL
-clCreateEventFromGLsyncKHR(cl_context            context ,
-                           cl_GLsync             cl_GLsync ,
-                           cl_int *              errcode_ret ) //CL_EXT_SUFFIX__VERSION_1_1
-
+DECLARE_API(cl_event, clCreateEventFromGLsyncKHR)
+(
+  cl_context  context,
+  cl_GLsync   cl_GLsync,
+  cl_int *    errcode_ret
+) CL_EXT_SUFFIX__VERSION_1_1
 {
   ERRCODE(CL_INVALID_CONTEXT);
   return NULL;
 }
+
+////////////////////
+// Dispatch Table //
+////////////////////
+
+#define _NULL_ NULL
+#define DISPATCH_TABLE_ENTRY(FUNCTION) (void*)(_##FUNCTION##_)
+void *m_dispatchTable[] =
+{
+  DISPATCH_TABLE_ENTRY(clGetPlatformIDs),
+  DISPATCH_TABLE_ENTRY(clGetPlatformInfo),
+  DISPATCH_TABLE_ENTRY(clGetDeviceIDs),
+  DISPATCH_TABLE_ENTRY(clGetDeviceInfo),
+  DISPATCH_TABLE_ENTRY(clCreateContext),
+  DISPATCH_TABLE_ENTRY(clCreateContextFromType),
+  DISPATCH_TABLE_ENTRY(clRetainContext),
+  DISPATCH_TABLE_ENTRY(clReleaseContext),
+  DISPATCH_TABLE_ENTRY(clGetContextInfo),
+  DISPATCH_TABLE_ENTRY(clCreateCommandQueue),
+  DISPATCH_TABLE_ENTRY(clRetainCommandQueue),
+  DISPATCH_TABLE_ENTRY(clReleaseCommandQueue),
+  DISPATCH_TABLE_ENTRY(clGetCommandQueueInfo),
+  DISPATCH_TABLE_ENTRY(clSetCommandQueueProperty),
+  DISPATCH_TABLE_ENTRY(clCreateBuffer),
+  DISPATCH_TABLE_ENTRY(clCreateImage2D),
+  DISPATCH_TABLE_ENTRY(clCreateImage3D),
+  DISPATCH_TABLE_ENTRY(clRetainMemObject),
+  DISPATCH_TABLE_ENTRY(clReleaseMemObject),
+  DISPATCH_TABLE_ENTRY(clGetSupportedImageFormats),
+  DISPATCH_TABLE_ENTRY(clGetMemObjectInfo),
+  DISPATCH_TABLE_ENTRY(clGetImageInfo),
+  DISPATCH_TABLE_ENTRY(clCreateSampler),
+  DISPATCH_TABLE_ENTRY(clRetainSampler),
+  DISPATCH_TABLE_ENTRY(clReleaseSampler),
+  DISPATCH_TABLE_ENTRY(clGetSamplerInfo),
+  DISPATCH_TABLE_ENTRY(clCreateProgramWithSource),
+  DISPATCH_TABLE_ENTRY(clCreateProgramWithBinary),
+  DISPATCH_TABLE_ENTRY(clRetainProgram),
+  DISPATCH_TABLE_ENTRY(clReleaseProgram),
+  DISPATCH_TABLE_ENTRY(clBuildProgram),
+  DISPATCH_TABLE_ENTRY(clUnloadCompiler),
+  DISPATCH_TABLE_ENTRY(clGetProgramInfo),
+  DISPATCH_TABLE_ENTRY(clGetProgramBuildInfo),
+  DISPATCH_TABLE_ENTRY(clCreateKernel),
+  DISPATCH_TABLE_ENTRY(clCreateKernelsInProgram),
+  DISPATCH_TABLE_ENTRY(clRetainKernel),
+  DISPATCH_TABLE_ENTRY(clReleaseKernel),
+  DISPATCH_TABLE_ENTRY(clSetKernelArg),
+  DISPATCH_TABLE_ENTRY(clGetKernelInfo),
+  DISPATCH_TABLE_ENTRY(clGetKernelWorkGroupInfo),
+  DISPATCH_TABLE_ENTRY(clWaitForEvents),
+  DISPATCH_TABLE_ENTRY(clGetEventInfo),
+  DISPATCH_TABLE_ENTRY(clRetainEvent),
+  DISPATCH_TABLE_ENTRY(clReleaseEvent),
+  DISPATCH_TABLE_ENTRY(clGetEventProfilingInfo),
+  DISPATCH_TABLE_ENTRY(clFlush),
+  DISPATCH_TABLE_ENTRY(clFinish),
+  DISPATCH_TABLE_ENTRY(clEnqueueReadBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueWriteBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueReadImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueWriteImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyImageToBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyBufferToImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueMapBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueMapImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueUnmapMemObject),
+  DISPATCH_TABLE_ENTRY(clEnqueueNDRangeKernel),
+  DISPATCH_TABLE_ENTRY(clEnqueueTask),
+  DISPATCH_TABLE_ENTRY(clEnqueueNativeKernel),
+  DISPATCH_TABLE_ENTRY(clEnqueueMarker),
+  DISPATCH_TABLE_ENTRY(clEnqueueWaitForEvents),
+  DISPATCH_TABLE_ENTRY(clEnqueueBarrier),
+  (void*)(clGetExtensionFunctionAddress),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLBuffer),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLTexture2D),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLTexture3D),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLRenderbuffer),
+  DISPATCH_TABLE_ENTRY(clGetGLObjectInfo),
+  DISPATCH_TABLE_ENTRY(clGetGLTextureInfo),
+  DISPATCH_TABLE_ENTRY(clEnqueueAcquireGLObjects),
+  DISPATCH_TABLE_ENTRY(clEnqueueReleaseGLObjects),
+
+  DISPATCH_TABLE_ENTRY(clGetGLContextInfoKHR),
+
+#if defined(_WIN32)
+  DISPATCH_TABLE_ENTRY(NULL); // clGetDeviceIDsFromD3D10KHR
+  DISPATCH_TABLE_ENTRY(NULL); // clCreateFromD3D10BufferKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clCreateFromD3D10Texture2DKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clCreateFromD3D10Texture3DKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clEnqueueAcquireD3D10ObjectsKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clEnqueueReleaseD3D10ObjectsKHR
+#else
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+#endif
+
+  // OpenCL 1.1
+  DISPATCH_TABLE_ENTRY(clSetEventCallback),
+  DISPATCH_TABLE_ENTRY(clCreateSubBuffer),
+  DISPATCH_TABLE_ENTRY(clSetMemObjectDestructorCallback),
+  DISPATCH_TABLE_ENTRY(clCreateUserEvent),
+  DISPATCH_TABLE_ENTRY(clSetUserEventStatus),
+  DISPATCH_TABLE_ENTRY(clEnqueueReadBufferRect),
+  DISPATCH_TABLE_ENTRY(clEnqueueWriteBufferRect),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyBufferRect),
+
+  DISPATCH_TABLE_ENTRY(NULL), // clCreateSubDevicesEXT
+  DISPATCH_TABLE_ENTRY(NULL), // clRetainDeviceEXT
+  DISPATCH_TABLE_ENTRY(NULL), // clReleaseDeviceEXT
+
+  DISPATCH_TABLE_ENTRY(clCreateEventFromGLsyncKHR),
+
+  // OpenCL 1.2
+  DISPATCH_TABLE_ENTRY(clCreateSubDevices),
+  DISPATCH_TABLE_ENTRY(clRetainDevice),
+  DISPATCH_TABLE_ENTRY(clReleaseDevice),
+  DISPATCH_TABLE_ENTRY(clCreateImage),
+  DISPATCH_TABLE_ENTRY(clCreateProgramWithBuiltInKernels),
+  DISPATCH_TABLE_ENTRY(clCompileProgram),
+  DISPATCH_TABLE_ENTRY(clLinkProgram),
+  DISPATCH_TABLE_ENTRY(clUnloadPlatformCompiler),
+  DISPATCH_TABLE_ENTRY(clGetKernelArgInfo),
+  DISPATCH_TABLE_ENTRY(clEnqueueFillBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueFillImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueMigrateMemObjects),
+  DISPATCH_TABLE_ENTRY(clEnqueueMarkerWithWaitList),
+  DISPATCH_TABLE_ENTRY(clEnqueueBarrierWithWaitList),
+  DISPATCH_TABLE_ENTRY(clGetExtensionFunctionAddressForPlatform),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLTexture),
+
+#if defined(_WIN32)
+  DISPATCH_TABLE_ENTRY(NULL); // clGetDeviceIDsFromD3D11KHR
+  DISPATCH_TABLE_ENTRY(NULL); // clCreateFromD3D11BufferKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clCreateFromD3D11Texture2DKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clCreateFromD3D11Texture3DKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clCreateFromDX9MediaSurfaceKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clEnqueueAcquireD3D11ObjectsKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clEnqueueReleaseD3D11ObjectsKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clGetDeviceIDsFromDX9MediaAdapterKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clEnqueueAcquireDX9MediaSurfacesKHR
+  DISPATCH_TABLE_ENTRY(NULL); // clEnqueueReleaseDX9MediaSurfacesKHR
+#else
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+#endif
+};

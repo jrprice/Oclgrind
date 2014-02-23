@@ -17,24 +17,14 @@
 #ifndef _ICD_H_
 #define _ICD_H_
 
-// Need to rename all CL API functions to prevent ICD loader functions calling
-// themselves via the dispatch table. Include this before cl headers.
-#include "rename_api.h"
-
-#include <CL/cl.h>
 #include <list>
 #include <map>
 #include <stack>
 
-#ifndef CL_USE_DEPRECATED_OPENCL_1_0_APIS
-#define CL_USE_DEPRECATED_OPENCL_1_0_APIS
-#endif
-
-#ifndef CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#endif
-
-#define CL_PLATFORM_ICD_SUFFIX_KHR 0x0920
+#include "CL/cl.h"
+#include "CL/cl_ext.h"
+#include "CL/cl_gl.h"
+#include "CL/cl_gl_ext.h"
 
 namespace spirsim
 {
@@ -45,15 +35,9 @@ namespace spirsim
   struct Event;
 }
 
-typedef struct CLIicdDispatchTable_st
-{
-  void *entries[256];
-  int entryCount;
-} CLIicdDispatchTable;
-
 struct _cl_platform_id
 {
-  CLIicdDispatchTable *dispatch;
+  void *dispatch;
   const char *profile;
   const char *version;
   const char *name;
@@ -64,12 +48,12 @@ struct _cl_platform_id
 
 struct _cl_device_id
 {
-  CLIicdDispatchTable* dispatch;
+  void **dispatch;
 };
 
 struct _cl_context
 {
-  CLIicdDispatchTable* dispatch;
+  void *dispatch;
   spirsim::Device *device;
   void (CL_CALLBACK *notify)(const char *, const void *, size_t, void *);
   void *data;
@@ -80,7 +64,7 @@ struct _cl_context
 
 struct _cl_command_queue
 {
-  CLIicdDispatchTable* dispatch;
+  void *dispatch;
   cl_command_queue_properties properties;
   cl_context context;
   spirsim::Queue *queue;
@@ -89,7 +73,7 @@ struct _cl_command_queue
 
 struct _cl_mem
 {
-  CLIicdDispatchTable* dispatch;
+  void *dispatch;
   cl_context context;
   cl_mem parent;
   size_t address;
@@ -98,7 +82,7 @@ struct _cl_mem
   cl_mem_flags flags;
   bool isImage;
   void *hostPtr;
-  std::stack< std::pair<void (CL_CALLBACK *)(cl_mem, void *), void*> > callbacks;
+  std::stack< std::pair<void (CL_CALLBACK*)(cl_mem, void *), void*> > callbacks;
   unsigned int refCount;
 };
 
@@ -110,7 +94,7 @@ struct cl_image : _cl_mem
 
 struct _cl_program
 {
-  CLIicdDispatchTable* dispatch;
+  void *dispatch;
   spirsim::Program *program;
   cl_context context;
   unsigned int refCount;
@@ -118,7 +102,7 @@ struct _cl_program
 
 struct _cl_kernel
 {
-  CLIicdDispatchTable* dispatch;
+  void *dispatch;
   spirsim::Kernel *kernel;
   cl_program program;
   std::map<cl_uint, cl_mem> memArgs;
@@ -127,18 +111,18 @@ struct _cl_kernel
 
 struct _cl_event
 {
-  CLIicdDispatchTable* dispatch;
+  void *dispatch;
   cl_context context;
   cl_command_queue queue;
   cl_command_type type;
   spirsim::Event *event;
-  std::list< std::pair<void (CL_CALLBACK *)(cl_event, cl_int, void *), void*> > callbacks;
+  std::list< std::pair<void (CL_CALLBACK*)(cl_event, cl_int, void*), void*> > callbacks;
   unsigned int refCount;
 };
 
 struct _cl_sampler
 {
-  CLIicdDispatchTable* dispatch;
+  void *dispatch;
   cl_context context;
   cl_bool normCoords;
   cl_addressing_mode addressMode;
@@ -147,19 +131,6 @@ struct _cl_sampler
   unsigned int refCount;
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+extern void *m_dispatchTable[256];
 
-cl_int cliIcdDispatchTableCreate(CLIicdDispatchTable **outDispatchTable);
-
-CL_API_ENTRY cl_int CL_API_CALL
-clIcdGetPlatformIDsKHR(cl_uint num_entries,
-                       cl_platform_id *platforms,
-                       cl_uint *num_platforms);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _ICD_STRUCTS_H_ */
+#endif // _ICD_H_

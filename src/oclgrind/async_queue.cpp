@@ -27,8 +27,6 @@
 using namespace spirsim;
 using namespace std;
 
-extern CLIicdDispatchTable *m_dispatchTable;
-
 // Maps to keep track of retained objects
 static map< Queue::Command*, list<cl_mem> > memObjectMap;
 static map< Queue::Command*, cl_kernel > kernelMap;
