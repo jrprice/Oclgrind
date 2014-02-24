@@ -37,10 +37,10 @@ then
 fi
 
 # Inject liboclgrind.{so,dylib} and run command
-OCLGRIND_LIB=__ROOT__/lib/liboclgrind.dylib
 if [ "$(uname -s)" == "Darwin" ]
 then
-  DYLD_INSERT_LIBRARIES=$OCLGRIND_LIB DYLD_FORCE_FLAT_NAMESPACE=1 $@
+  DYLD_INSERT_LIBRARIES=__ROOT__/lib/liboclgrind.dylib \
+      DYLD_FORCE_FLAT_NAMESPACE=1 $@
 else
-  LD_PRELOAD=$OCLGRIND_LIB $@
+  LD_PRELOAD=__ROOT__/lib/liboclgrind.so $@
 fi
