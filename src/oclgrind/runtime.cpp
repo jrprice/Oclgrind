@@ -88,8 +88,6 @@ clIcdGetPlatformIDsKHR
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
 #endif
 
-#define DECLARE_API(RET, FUNCTION) CL_API_ENTRY RET CL_API_CALL _##FUNCTION##_
-
 CL_API_ENTRY void* CL_API_CALL
 clGetExtensionFunctionAddress
 (
@@ -106,7 +104,8 @@ clGetExtensionFunctionAddress
   }
 }
 
-DECLARE_API(cl_int, clGetPlatformIDs)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetPlatformIDs
 (
   cl_uint           num_entries,
   cl_platform_id *  platforms,
@@ -116,7 +115,8 @@ DECLARE_API(cl_int, clGetPlatformIDs)
   return clIcdGetPlatformIDsKHR(num_entries, platforms, num_platforms);
 }
 
-DECLARE_API(cl_int, clGetPlatformInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetPlatformInfo
 (
   cl_platform_id    platform,
   cl_platform_info  param_name,
@@ -179,7 +179,8 @@ DECLARE_API(cl_int, clGetPlatformInfo)
   return return_value;
 }
 
-DECLARE_API(cl_int, clGetDeviceIDs)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetDeviceIDs
 (
   cl_platform_id  platform,
   cl_device_type  device_type,
@@ -220,7 +221,8 @@ DECLARE_API(cl_int, clGetDeviceIDs)
   return return_value;
 }
 
-DECLARE_API(cl_int, clGetDeviceInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetDeviceInfo
 (
   cl_device_id    device,
   cl_device_info  param_name,
@@ -645,7 +647,8 @@ DECLARE_API(cl_int, clGetDeviceInfo)
   return return_value;
 }
 
-DECLARE_API(cl_int, clCreateSubDevices)
+CL_API_ENTRY cl_int CL_API_CALL
+clCreateSubDevices
 (
   cl_device_id                          in_device,
   const cl_device_partition_property *  properties,
@@ -657,7 +660,8 @@ DECLARE_API(cl_int, clCreateSubDevices)
   return CL_INVALID_VALUE;
 }
 
-DECLARE_API(cl_int, clRetainDevice)
+CL_API_ENTRY cl_int CL_API_CALL
+clRetainDevice
 (
   cl_device_id  device
 ) CL_API_SUFFIX__VERSION_1_2
@@ -665,7 +669,8 @@ DECLARE_API(cl_int, clRetainDevice)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clReleaseDevice)
+CL_API_ENTRY cl_int CL_API_CALL
+clReleaseDevice
 (
   cl_device_id  device
 ) CL_API_SUFFIX__VERSION_1_2
@@ -673,7 +678,8 @@ DECLARE_API(cl_int, clReleaseDevice)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_context, clCreateContext)
+CL_API_ENTRY cl_context CL_API_CALL
+clCreateContext
 (
   const cl_context_properties *  properties,
   cl_uint                        num_devices,
@@ -730,7 +736,8 @@ DECLARE_API(cl_context, clCreateContext)
   return context;
 }
 
-DECLARE_API(cl_context, clCreateContextFromType)
+CL_API_ENTRY cl_context CL_API_CALL
+clCreateContextFromType
 (
   const cl_context_properties *  properties,
   cl_device_type                 device_type,
@@ -783,7 +790,8 @@ DECLARE_API(cl_context, clCreateContextFromType)
   return context;
 }
 
-DECLARE_API(cl_int, clRetainContext)
+CL_API_ENTRY cl_int CL_API_CALL
+clRetainContext
 (
   cl_context  context
 ) CL_API_SUFFIX__VERSION_1_0
@@ -798,7 +806,8 @@ DECLARE_API(cl_int, clRetainContext)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clReleaseContext)
+CL_API_ENTRY cl_int CL_API_CALL
+clReleaseContext
 (
   cl_context  context
 ) CL_API_SUFFIX__VERSION_1_0
@@ -817,7 +826,8 @@ DECLARE_API(cl_int, clReleaseContext)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clGetContextInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetContextInfo
 (
   cl_context       context,
   cl_context_info  param_name,
@@ -885,7 +895,8 @@ DECLARE_API(cl_int, clGetContextInfo)
   return return_value;
 }
 
-DECLARE_API(cl_command_queue, clCreateCommandQueue)
+CL_API_ENTRY cl_command_queue CL_API_CALL
+clCreateCommandQueue
 (
   cl_context                   context,
   cl_device_id                 device,
@@ -925,7 +936,8 @@ DECLARE_API(cl_command_queue, clCreateCommandQueue)
   return queue;
 }
 
-DECLARE_API(cl_int, clSetCommandQueueProperty)
+CL_API_ENTRY cl_int CL_API_CALL
+clSetCommandQueueProperty
 (
   cl_command_queue               command_queue,
   cl_command_queue_properties    properties,
@@ -936,7 +948,8 @@ DECLARE_API(cl_int, clSetCommandQueueProperty)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clRetainCommandQueue)
+CL_API_ENTRY cl_int CL_API_CALL
+clRetainCommandQueue
 (
   cl_command_queue  command_queue
 ) CL_API_SUFFIX__VERSION_1_0
@@ -952,7 +965,8 @@ DECLARE_API(cl_int, clRetainCommandQueue)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clReleaseCommandQueue)
+CL_API_ENTRY cl_int CL_API_CALL
+clReleaseCommandQueue
 (
   cl_command_queue  command_queue
 ) CL_API_SUFFIX__VERSION_1_0
@@ -976,7 +990,8 @@ DECLARE_API(cl_int, clReleaseCommandQueue)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clGetCommandQueueInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetCommandQueueInfo
 (
   cl_command_queue       command_queue,
   cl_command_queue_info  param_name,
@@ -1044,7 +1059,8 @@ DECLARE_API(cl_int, clGetCommandQueueInfo)
   return return_value;
 }
 
-DECLARE_API(cl_mem, clCreateBuffer)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateBuffer
 (
   cl_context    context,
   cl_mem_flags  flags,
@@ -1117,7 +1133,8 @@ DECLARE_API(cl_mem, clCreateBuffer)
   return mem;
 }
 
-DECLARE_API(cl_mem, clCreateSubBuffer)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateSubBuffer
 (
   cl_mem                 buffer,
   cl_mem_flags           flags,
@@ -1281,7 +1298,8 @@ bool isImageArray(cl_mem_object_type type)
   return false;
 }
 
-DECLARE_API(cl_mem, clCreateImage)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateImage
 (
   cl_context               context,
   cl_mem_flags             flags,
@@ -1382,7 +1400,8 @@ DECLARE_API(cl_mem, clCreateImage)
 }
 
 
-DECLARE_API(cl_mem, clCreateImage2D)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateImage2D
 (
   cl_context               context,
   cl_mem_flags             flags,
@@ -1412,7 +1431,8 @@ DECLARE_API(cl_mem, clCreateImage2D)
                        host_ptr, errcode_ret);
 }
 
-DECLARE_API(cl_mem, clCreateImage3D)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateImage3D
 (
   cl_context               context,
   cl_mem_flags             flags,
@@ -1444,7 +1464,8 @@ DECLARE_API(cl_mem, clCreateImage3D)
                        host_ptr, errcode_ret);
 }
 
-DECLARE_API(cl_int, clRetainMemObject)
+CL_API_ENTRY cl_int CL_API_CALL
+clRetainMemObject
 (
   cl_mem  memobj
 ) CL_API_SUFFIX__VERSION_1_0
@@ -1458,7 +1479,8 @@ DECLARE_API(cl_int, clRetainMemObject)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clReleaseMemObject)
+CL_API_ENTRY cl_int CL_API_CALL
+clReleaseMemObject
 (
   cl_mem  memobj
 ) CL_API_SUFFIX__VERSION_1_0
@@ -1503,7 +1525,8 @@ DECLARE_API(cl_int, clReleaseMemObject)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clGetSupportedImageFormats)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetSupportedImageFormats
 (
   cl_context          context,
   cl_mem_flags        flags,
@@ -1581,7 +1604,8 @@ DECLARE_API(cl_int, clGetSupportedImageFormats)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clGetMemObjectInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetMemObjectInfo
 (
   cl_mem       memobj,
   cl_mem_info  param_name,
@@ -1674,7 +1698,8 @@ DECLARE_API(cl_int, clGetMemObjectInfo)
   return return_value;
 }
 
-DECLARE_API(cl_int, clGetImageInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetImageInfo
 (
   cl_mem         image,
   cl_image_info  param_name,
@@ -1781,7 +1806,8 @@ DECLARE_API(cl_int, clGetImageInfo)
   return return_value;
 }
 
-DECLARE_API(cl_int, clSetMemObjectDestructorCallback)
+CL_API_ENTRY cl_int CL_API_CALL
+clSetMemObjectDestructorCallback
 (
   cl_mem               memobj,
   void (CL_CALLBACK *  pfn_notify)(cl_mem, void*),
@@ -1803,7 +1829,8 @@ DECLARE_API(cl_int, clSetMemObjectDestructorCallback)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_sampler, clCreateSampler)
+CL_API_ENTRY cl_sampler CL_API_CALL
+clCreateSampler
 (
   cl_context          context,
   cl_bool             normalized_coords,
@@ -1874,7 +1901,8 @@ DECLARE_API(cl_sampler, clCreateSampler)
   return sampler;
 }
 
-DECLARE_API(cl_int, clRetainSampler)
+CL_API_ENTRY cl_int CL_API_CALL
+clRetainSampler
 (
   cl_sampler  sampler
 ) CL_API_SUFFIX__VERSION_1_0
@@ -1889,7 +1917,8 @@ DECLARE_API(cl_int, clRetainSampler)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clReleaseSampler)
+CL_API_ENTRY cl_int CL_API_CALL
+clReleaseSampler
 (
   cl_sampler  sampler
 ) CL_API_SUFFIX__VERSION_1_0
@@ -1907,7 +1936,8 @@ DECLARE_API(cl_int, clReleaseSampler)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clGetSamplerInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetSamplerInfo
 (
   cl_sampler       sampler,
   cl_sampler_info  param_name,
@@ -1980,7 +2010,8 @@ DECLARE_API(cl_int, clGetSamplerInfo)
   return return_value;
 }
 
-DECLARE_API(cl_program, clCreateProgramWithSource)
+CL_API_ENTRY cl_program CL_API_CALL
+clCreateProgramWithSource
 (
   cl_context      context,
   cl_uint         count,
@@ -2026,7 +2057,8 @@ DECLARE_API(cl_program, clCreateProgramWithSource)
   return prog;
 }
 
-DECLARE_API(cl_program, clCreateProgramWithBinary)
+CL_API_ENTRY cl_program CL_API_CALL
+clCreateProgramWithBinary
 (
   cl_context              context,
   cl_uint                 num_devices,
@@ -2079,7 +2111,8 @@ DECLARE_API(cl_program, clCreateProgramWithBinary)
   return prog;
 }
 
-DECLARE_API(cl_program, clCreateProgramWithBuiltInKernels)
+CL_API_ENTRY cl_program CL_API_CALL
+clCreateProgramWithBuiltInKernels
 (
   cl_context            context,
   cl_uint               num_devices,
@@ -2092,7 +2125,8 @@ DECLARE_API(cl_program, clCreateProgramWithBuiltInKernels)
   return NULL;
 }
 
-DECLARE_API(cl_int, clRetainProgram)
+CL_API_ENTRY cl_int CL_API_CALL
+clRetainProgram
 (
   cl_program  program
 ) CL_API_SUFFIX__VERSION_1_0
@@ -2106,7 +2140,8 @@ DECLARE_API(cl_int, clRetainProgram)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clReleaseProgram)
+CL_API_ENTRY cl_int CL_API_CALL
+clReleaseProgram
 (
   cl_program  program
 ) CL_API_SUFFIX__VERSION_1_0
@@ -2125,7 +2160,8 @@ DECLARE_API(cl_int, clReleaseProgram)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clBuildProgram)
+CL_API_ENTRY cl_int CL_API_CALL
+clBuildProgram
 (
   cl_program            program,
   cl_uint               num_devices,
@@ -2169,7 +2205,8 @@ DECLARE_API(cl_int, clBuildProgram)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clUnloadCompiler)
+CL_API_ENTRY cl_int CL_API_CALL
+clUnloadCompiler
 (
   void
 ) CL_API_SUFFIX__VERSION_1_0
@@ -2177,7 +2214,8 @@ DECLARE_API(cl_int, clUnloadCompiler)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clCompileProgram)
+CL_API_ENTRY cl_int CL_API_CALL
+clCompileProgram
 (
   cl_program            program,
   cl_uint               num_devices,
@@ -2237,7 +2275,8 @@ DECLARE_API(cl_int, clCompileProgram)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_program, clLinkProgram)
+CL_API_ENTRY cl_program CL_API_CALL
+clLinkProgram
 (
   cl_context            context,
   cl_uint               num_devices,
@@ -2308,7 +2347,8 @@ DECLARE_API(cl_program, clLinkProgram)
   return prog;
 }
 
-DECLARE_API(cl_int, clUnloadPlatformCompiler)
+CL_API_ENTRY cl_int CL_API_CALL
+clUnloadPlatformCompiler
 (
   cl_platform_id  platform
 ) CL_API_SUFFIX__VERSION_1_2
@@ -2316,7 +2356,8 @@ DECLARE_API(cl_int, clUnloadPlatformCompiler)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clGetProgramInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetProgramInfo
 (
   cl_program       program,
   cl_program_info  param_name,
@@ -2435,7 +2476,8 @@ DECLARE_API(cl_int, clGetProgramInfo)
   return return_value;
 }
 
-DECLARE_API(cl_int, clGetProgramBuildInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetProgramBuildInfo
 (
   cl_program             program,
   cl_device_id           device,
@@ -2505,7 +2547,8 @@ DECLARE_API(cl_int, clGetProgramBuildInfo)
   return return_value;
 }
 
-DECLARE_API(cl_kernel, clCreateKernel)
+CL_API_ENTRY cl_kernel CL_API_CALL
+clCreateKernel
 (
   cl_program    program,
   const char *  kernel_name,
@@ -2543,7 +2586,8 @@ DECLARE_API(cl_kernel, clCreateKernel)
   return kernel;
 }
 
-DECLARE_API(cl_int, clCreateKernelsInProgram)
+CL_API_ENTRY cl_int CL_API_CALL
+clCreateKernelsInProgram
 (
   cl_program   program,
   cl_uint      num_kernels,
@@ -2592,7 +2636,8 @@ DECLARE_API(cl_int, clCreateKernelsInProgram)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clRetainKernel)
+CL_API_ENTRY cl_int CL_API_CALL
+clRetainKernel
 (
   cl_kernel  kernel
 ) CL_API_SUFFIX__VERSION_1_0
@@ -2606,7 +2651,8 @@ DECLARE_API(cl_int, clRetainKernel)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clReleaseKernel)
+CL_API_ENTRY cl_int CL_API_CALL
+clReleaseKernel
 (
   cl_kernel  kernel
 ) CL_API_SUFFIX__VERSION_1_0
@@ -2626,7 +2672,8 @@ DECLARE_API(cl_int, clReleaseKernel)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clSetKernelArg)
+CL_API_ENTRY cl_int CL_API_CALL
+clSetKernelArg
 (
   cl_kernel     kernel,
   cl_uint       arg_index,
@@ -2710,7 +2757,8 @@ DECLARE_API(cl_int, clSetKernelArg)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clGetKernelInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetKernelInfo
 (
   cl_kernel       kernel,
   cl_kernel_info  param_name,
@@ -2788,7 +2836,8 @@ DECLARE_API(cl_int, clGetKernelInfo)
   return return_value;
 }
 
-DECLARE_API(cl_int, clGetKernelArgInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetKernelArgInfo
 (
   cl_kernel           kernel,
   cl_uint             arg_indx,
@@ -2875,7 +2924,8 @@ DECLARE_API(cl_int, clGetKernelArgInfo)
   return return_value;
 }
 
-DECLARE_API(cl_int, clGetKernelWorkGroupInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetKernelWorkGroupInfo
 (
   cl_kernel                  kernel,
   cl_device_id               device,
@@ -2963,7 +3013,8 @@ inline bool isComplete(cl_event event)
   return (event->event->state == CL_COMPLETE || event->event->state < 0);
 }
 
-DECLARE_API(cl_int, clWaitForEvents)
+CL_API_ENTRY cl_int CL_API_CALL
+clWaitForEvents
 (
   cl_uint           num_events,
   const cl_event *  event_list
@@ -3025,7 +3076,8 @@ DECLARE_API(cl_int, clWaitForEvents)
   return ret;
 }
 
-DECLARE_API(cl_int, clGetEventInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetEventInfo
 (
   cl_event       event,
   cl_event_info  param_name,
@@ -3098,7 +3150,8 @@ DECLARE_API(cl_int, clGetEventInfo)
   return return_value;
 }
 
-DECLARE_API(cl_event, clCreateUserEvent)
+CL_API_ENTRY cl_event CL_API_CALL
+clCreateUserEvent
 (
   cl_context  context,
   cl_int *    errcode_ret
@@ -3125,7 +3178,8 @@ DECLARE_API(cl_event, clCreateUserEvent)
   return event;
 }
 
-DECLARE_API(cl_int, clRetainEvent)
+CL_API_ENTRY cl_int CL_API_CALL
+clRetainEvent
 (
   cl_event  event
 ) CL_API_SUFFIX__VERSION_1_0
@@ -3140,7 +3194,8 @@ DECLARE_API(cl_int, clRetainEvent)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clReleaseEvent)
+CL_API_ENTRY cl_int CL_API_CALL
+clReleaseEvent
 (
   cl_event  event
 ) CL_API_SUFFIX__VERSION_1_0
@@ -3162,7 +3217,8 @@ DECLARE_API(cl_int, clReleaseEvent)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clSetUserEventStatus)
+CL_API_ENTRY cl_int CL_API_CALL
+clSetUserEventStatus
 (
   cl_event  event,
   cl_int    execution_status
@@ -3194,7 +3250,8 @@ DECLARE_API(cl_int, clSetUserEventStatus)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clSetEventCallback)
+CL_API_ENTRY cl_int CL_API_CALL
+clSetEventCallback
 (
   cl_event             event,
   cl_int               command_exec_callback_type,
@@ -3220,7 +3277,8 @@ DECLARE_API(cl_int, clSetEventCallback)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clGetEventProfilingInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetEventProfilingInfo
 (
   cl_event           event,
   cl_profiling_info  param_name,
@@ -3292,7 +3350,8 @@ DECLARE_API(cl_int, clGetEventProfilingInfo)
   return return_value;
 }
 
-DECLARE_API(cl_int, clFlush)
+CL_API_ENTRY cl_int CL_API_CALL
+clFlush
 (
   cl_command_queue  command_queue
 ) CL_API_SUFFIX__VERSION_1_0
@@ -3309,7 +3368,8 @@ DECLARE_API(cl_int, clFlush)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clFinish)
+CL_API_ENTRY cl_int CL_API_CALL
+clFinish
 (
   cl_command_queue  command_queue
 ) CL_API_SUFFIX__VERSION_1_0
@@ -3334,7 +3394,8 @@ DECLARE_API(cl_int, clFinish)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueReadBuffer)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueReadBuffer
 (
   cl_command_queue  command_queue,
   cl_mem            buffer,
@@ -3383,7 +3444,8 @@ DECLARE_API(cl_int, clEnqueueReadBuffer)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueReadBufferRect)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueReadBufferRect
 (
   cl_command_queue  command_queue,
   cl_mem            buffer,
@@ -3477,7 +3539,8 @@ DECLARE_API(cl_int, clEnqueueReadBufferRect)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueWriteBuffer)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueWriteBuffer
 (
   cl_command_queue  command_queue,
   cl_mem            buffer,
@@ -3526,7 +3589,8 @@ DECLARE_API(cl_int, clEnqueueWriteBuffer)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueWriteBufferRect)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueWriteBufferRect
 (
   cl_command_queue  command_queue,
   cl_mem            buffer,
@@ -3620,7 +3684,8 @@ DECLARE_API(cl_int, clEnqueueWriteBufferRect)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueCopyBuffer)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueCopyBuffer
 (
   cl_command_queue  command_queue,
   cl_mem            src_buffer,
@@ -3661,7 +3726,8 @@ DECLARE_API(cl_int, clEnqueueCopyBuffer)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueCopyBufferRect)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueCopyBufferRect
 (
   cl_command_queue  command_queue,
   cl_mem            src_buffer,
@@ -3750,7 +3816,8 @@ DECLARE_API(cl_int, clEnqueueCopyBufferRect)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueFillBuffer)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueFillBuffer
 (
   cl_command_queue  command_queue,
   cl_mem            buffer,
@@ -3798,7 +3865,8 @@ DECLARE_API(cl_int, clEnqueueFillBuffer)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueFillImage)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueFillImage
 (
   cl_command_queue  command_queue,
   cl_mem            image,
@@ -3943,7 +4011,8 @@ DECLARE_API(cl_int, clEnqueueFillImage)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueReadImage)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueReadImage
 (
   cl_command_queue  command_queue,
   cl_mem            image,
@@ -3995,7 +4064,8 @@ DECLARE_API(cl_int, clEnqueueReadImage)
                                  event_wait_list, event);
 }
 
-DECLARE_API(cl_int, clEnqueueWriteImage)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueWriteImage
 (
   cl_command_queue  command_queue,
   cl_mem            image,
@@ -4047,7 +4117,8 @@ DECLARE_API(cl_int, clEnqueueWriteImage)
                                   event_wait_list, event);
 }
 
-DECLARE_API(cl_int, clEnqueueCopyImage)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueCopyImage
 (
   cl_command_queue  command_queue,
   cl_mem            src_image,
@@ -4102,7 +4173,8 @@ DECLARE_API(cl_int, clEnqueueCopyImage)
                                  event_wait_list, event);
 }
 
-DECLARE_API(cl_int, clEnqueueCopyImageToBuffer)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueCopyImageToBuffer
 (
   cl_command_queue  command_queue,
   cl_mem            src_image,
@@ -4144,7 +4216,8 @@ DECLARE_API(cl_int, clEnqueueCopyImageToBuffer)
                                  event_wait_list, event);
 }
 
-DECLARE_API(cl_int, clEnqueueCopyBufferToImage)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueCopyBufferToImage
 (
   cl_command_queue  command_queue,
   cl_mem            src_buffer,
@@ -4186,7 +4259,8 @@ DECLARE_API(cl_int, clEnqueueCopyBufferToImage)
                                  event_wait_list, event);
 }
 
-DECLARE_API(void *, clEnqueueMapBuffer)
+CL_API_ENTRY void* CL_API_CALL
+clEnqueueMapBuffer
 (
   cl_command_queue  command_queue,
   cl_mem            buffer,
@@ -4236,7 +4310,8 @@ DECLARE_API(void *, clEnqueueMapBuffer)
   return ptr;
 }
 
-DECLARE_API(void *, clEnqueueMapImage)
+CL_API_ENTRY void* CL_API_CALL
+clEnqueueMapImage
 (
   cl_command_queue  command_queue,
   cl_mem            image,
@@ -4316,7 +4391,8 @@ DECLARE_API(void *, clEnqueueMapImage)
   return ptr;
 }
 
-DECLARE_API(cl_int, clEnqueueUnmapMemObject)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueUnmapMemObject
 (
   cl_command_queue  command_queue,
   cl_mem            memobj,
@@ -4345,7 +4421,8 @@ DECLARE_API(cl_int, clEnqueueUnmapMemObject)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueMigrateMemObjects)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueMigrateMemObjects
 (
   cl_command_queue        command_queue,
   cl_uint                 num_mem_objects,
@@ -4370,7 +4447,8 @@ DECLARE_API(cl_int, clEnqueueMigrateMemObjects)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueNDRangeKernel)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueNDRangeKernel
 (
   cl_command_queue  command_queue,
   cl_kernel         kernel,
@@ -4438,7 +4516,8 @@ DECLARE_API(cl_int, clEnqueueNDRangeKernel)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueTask)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueTask
 (
   cl_command_queue  command_queue,
   cl_kernel         kernel,
@@ -4455,7 +4534,8 @@ DECLARE_API(cl_int, clEnqueueTask)
                                 event);
 }
 
-DECLARE_API(cl_int, clEnqueueNativeKernel)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueNativeKernel
 (
   cl_command_queue  command_queue,
   void (CL_CALLBACK *user_func)(void *),
@@ -4521,7 +4601,8 @@ DECLARE_API(cl_int, clEnqueueNativeKernel)
   return CL_SUCCESS;
 }
 
-DECLARE_API(void *, clGetExtensionFunctionAddressForPlatform)
+CL_API_ENTRY void* CL_API_CALL
+clGetExtensionFunctionAddressForPlatform
 (
   cl_platform_id  platform,
   const char *    func_name
@@ -4530,7 +4611,8 @@ DECLARE_API(void *, clGetExtensionFunctionAddressForPlatform)
   return NULL;
 }
 
-DECLARE_API(cl_int, clEnqueueMarkerWithWaitList)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueMarkerWithWaitList
 (
   cl_command_queue  command_queue,
   cl_uint           num_events_in_wait_list,
@@ -4552,7 +4634,8 @@ DECLARE_API(cl_int, clEnqueueMarkerWithWaitList)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueBarrierWithWaitList)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueBarrierWithWaitList
 (
   cl_command_queue  command_queue,
   cl_uint           num_events_in_wait_list,
@@ -4574,7 +4657,8 @@ DECLARE_API(cl_int, clEnqueueBarrierWithWaitList)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clSetPrintfCallback)
+CL_API_ENTRY cl_int CL_API_CALL
+clSetPrintfCallback
 (
   cl_context           context,
   void (CL_CALLBACK *  pfn_notify)(cl_context, cl_uint, char*, void*),
@@ -4584,7 +4668,8 @@ DECLARE_API(cl_int, clSetPrintfCallback)
   return CL_INVALID_OPERATION;
 }
 
-DECLARE_API(cl_int, clEnqueueMarker)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueMarker
 (
   cl_command_queue  command_queue,
   cl_event *        event
@@ -4593,7 +4678,8 @@ DECLARE_API(cl_int, clEnqueueMarker)
   return clEnqueueMarkerWithWaitList(command_queue, 0, NULL, event);
 }
 
-DECLARE_API(cl_int, clEnqueueWaitForEvents)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueWaitForEvents
 (
   cl_command_queue  command_queue,
   cl_uint           num_events,
@@ -4608,7 +4694,8 @@ DECLARE_API(cl_int, clEnqueueWaitForEvents)
   return CL_SUCCESS;
 }
 
-DECLARE_API(cl_int, clEnqueueBarrier)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueBarrier
 (
   cl_command_queue  command_queue
 ) CL_API_SUFFIX__VERSION_1_0
@@ -4616,7 +4703,8 @@ DECLARE_API(cl_int, clEnqueueBarrier)
   return clEnqueueBarrierWithWaitList(command_queue, 0, NULL, NULL);
 }
 
-DECLARE_API(cl_mem, clCreateFromGLBuffer)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateFromGLBuffer
 (
   cl_context    context,
   cl_mem_flags  flags,
@@ -4628,7 +4716,8 @@ DECLARE_API(cl_mem, clCreateFromGLBuffer)
   return NULL;
 }
 
-DECLARE_API(cl_mem, clCreateFromGLTexture)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateFromGLTexture
 (
   cl_context    context,
   cl_mem_flags  flags,
@@ -4642,7 +4731,8 @@ DECLARE_API(cl_mem, clCreateFromGLTexture)
   return NULL;
 }
 
-DECLARE_API(cl_mem, clCreateFromGLTexture2D)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateFromGLTexture2D
 (
   cl_context    context,
   cl_mem_flags  flags,
@@ -4656,7 +4746,8 @@ DECLARE_API(cl_mem, clCreateFromGLTexture2D)
   return NULL;
 }
 
-DECLARE_API(cl_mem, clCreateFromGLTexture3D)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateFromGLTexture3D
 (
   cl_context    context,
   cl_mem_flags  flags,
@@ -4670,7 +4761,8 @@ DECLARE_API(cl_mem, clCreateFromGLTexture3D)
   return NULL;
 }
 
-DECLARE_API(cl_mem, clCreateFromGLRenderbuffer)
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateFromGLRenderbuffer
 (
   cl_context    context,
   cl_mem_flags  flags,
@@ -4682,7 +4774,8 @@ DECLARE_API(cl_mem, clCreateFromGLRenderbuffer)
   return NULL;
 }
 
-DECLARE_API(cl_int, clGetGLObjectInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetGLObjectInfo
 (
   cl_mem               memobj,
   cl_gl_object_type *  gl_object_type,
@@ -4692,7 +4785,8 @@ DECLARE_API(cl_int, clGetGLObjectInfo)
   return CL_INVALID_MEM_OBJECT;
 }
 
-DECLARE_API(cl_int, clGetGLTextureInfo)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetGLTextureInfo
 (
   cl_mem              memobj,
   cl_gl_texture_info  param_name,
@@ -4704,7 +4798,8 @@ DECLARE_API(cl_int, clGetGLTextureInfo)
   return CL_INVALID_MEM_OBJECT;
 }
 
-DECLARE_API(cl_int, clEnqueueAcquireGLObjects)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueAcquireGLObjects
 (
   cl_command_queue  command_queue,
   cl_uint           num_objects,
@@ -4717,7 +4812,8 @@ DECLARE_API(cl_int, clEnqueueAcquireGLObjects)
   return CL_INVALID_CONTEXT;
 }
 
-DECLARE_API(cl_int, clEnqueueReleaseGLObjects)
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueReleaseGLObjects
 (
   cl_command_queue  command_queue,
   cl_uint           num_objects,
@@ -4730,7 +4826,8 @@ DECLARE_API(cl_int, clEnqueueReleaseGLObjects)
   return CL_INVALID_CONTEXT;
 }
 
-DECLARE_API(cl_int, clGetGLContextInfoKHR)
+CL_API_ENTRY cl_int CL_API_CALL
+clGetGLContextInfoKHR
 (
   const cl_context_properties *  properties,
   cl_gl_context_info             param_name,
@@ -4742,7 +4839,8 @@ DECLARE_API(cl_int, clGetGLContextInfoKHR)
   return CL_INVALID_OPERATION;
 }
 
-DECLARE_API(cl_event, clCreateEventFromGLsyncKHR)
+CL_API_ENTRY cl_event CL_API_CALL
+clCreateEventFromGLsyncKHR
 (
   cl_context  context,
   cl_GLsync   cl_GLsync,
@@ -4758,7 +4856,7 @@ DECLARE_API(cl_event, clCreateEventFromGLsyncKHR)
 ////////////////////
 
 #define _NULL_ NULL
-#define DISPATCH_TABLE_ENTRY(FUNCTION) (void*)(_##FUNCTION##_)
+#define DISPATCH_TABLE_ENTRY(FUNCTION) (void*)(FUNCTION)
 void *m_dispatchTable[] =
 {
   DISPATCH_TABLE_ENTRY(clGetPlatformIDs),
@@ -4826,7 +4924,7 @@ void *m_dispatchTable[] =
   DISPATCH_TABLE_ENTRY(clEnqueueMarker),
   DISPATCH_TABLE_ENTRY(clEnqueueWaitForEvents),
   DISPATCH_TABLE_ENTRY(clEnqueueBarrier),
-  (void*)(clGetExtensionFunctionAddress),
+  DISPATCH_TABLE_ENTRY(clGetExtensionFunctionAddress),
   DISPATCH_TABLE_ENTRY(clCreateFromGLBuffer),
   DISPATCH_TABLE_ENTRY(clCreateFromGLTexture2D),
   DISPATCH_TABLE_ENTRY(clCreateFromGLTexture3D),

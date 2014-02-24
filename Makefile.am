@@ -11,7 +11,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/
 
-lib_LTLIBRARIES = libspirsim.la liboclgrind.la
+lib_LTLIBRARIES = libspirsim.la liboclgrind.la liboclgrind-icd.la
 
 libspirsim_la_SOURCES = src/spirsim/common.h src/spirsim/common.cpp	\
  src/spirsim/Device.h src/spirsim/Device.cpp src/spirsim/half.h		\
@@ -41,6 +41,12 @@ liboclgrind_la_SOURCES = src/oclgrind/async_queue.h	\
  src/oclgrind/runtime.cpp
 liboclgrind_la_LIBADD = libspirsim.la
 liboclgrind_la_LDFLAGS = -shared
+
+liboclgrind_icd_la_SOURCES = src/oclgrind/async_queue.h	\
+ src/oclgrind/async_queue.cpp src/oclgrind/icd.h	\
+ src/oclgrind/runtime-icd.cpp
+liboclgrind_icd_la_LIBADD = libspirsim.la
+liboclgrind_icd_la_LDFLAGS = -shared
 
 bin_PROGRAMS = oclgrind-kernel
 oclgrind_kernel_SOURCES = src/oclgrind-kernel/main.cpp
