@@ -276,5 +276,5 @@ static bool parseArguments(int argc, char *argv[])
 
 static void printUsage()
 {
-  cout << "Usage: oclgrind [-g] simfile" << endl;
+  cout << "Usage: oclgrind-kernel [-g] simfile" << endl;
 }

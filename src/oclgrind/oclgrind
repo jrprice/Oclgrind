@@ -1,0 +1,46 @@
+#!/bin/bash
+# oclgrind (Oclgrind)
+# Copyright (c) 2013-2014, James Price and Simon McIntosh-Smith,
+# University of Bristol. All rights reserved.
+#
+# This program is provided under a three-clause BSD license. For full
+# license terms please see the LICENSE file distributed with this
+# source code.
+
+function usage
+{
+  echo "Usage: oclgrind [-i] COMMAND"
+  echo
+  echo "Options:"
+  echo "  -i  Enable interactive mode"
+}
+
+# Parse arguments
+while [ $# -gt 0 -a "${1:0:1}" == "-" ]
+do
+  if [ "$1" == "-i" ]
+  then
+    export OCLGRIND_INTERACTIVE=1
+  else
+    echo "Unrecognized argument '$1'"
+    usage
+    exit 1
+  fi
+  shift
+done
+
+# Ensure target command supplied
+if [ $# -lt 1 ]
+then
+  usage
+  exit 1
+fi
+
+# Inject liboclgrind.{so,dylib} and run command
+OCLGRIND_LIB=__ROOT__/lib/liboclgrind.dylib
+if [ "$(uname -s)" == "Darwin" ]
+then
+  DYLD_INSERT_LIBRARIES=$OCLGRIND_LIB DYLD_FORCE_FLAT_NAMESPACE=1 $@
+else
+  LD_PRELOAD=$OCLGRIND_LIB $@
+fi

@@ -31,7 +31,6 @@ spirsiminclude_HEADERS = src/spirsim/common.h src/spirsim/Device.h	\
  src/spirsim/half.h src/spirsim/Kernel.h src/spirsim/Memory.h		\
  src/spirsim/Program.h src/spirsim/Queue.h src/spirsim/WorkItem.h	\
  src/spirsim/WorkGroup.h
-CLEANFILES = src/spirsim/clc_h.cpp
 src/spirsim/clc_h.cpp: Makefile src/spirsim/gen_clc_h.sh	\
  src/spirsim/clc.h
 	$(top_srcdir)/src/spirsim/gen_clc_h.sh $(top_srcdir)/src/spirsim/clc.h $@
@@ -52,4 +51,9 @@ bin_PROGRAMS = oclgrind-kernel
 oclgrind_kernel_SOURCES = src/oclgrind-kernel/main.cpp
 oclgrind_kernel_LDADD = libspirsim.la
 
+bin_SCRIPTS = oclgrind
+oclgrind: src/oclgrind/oclgrind
+	$(SED) 's|__ROOT__|'$(prefix)'|g' src/oclgrind/oclgrind >oclgrind
+
 EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h
+CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS)
