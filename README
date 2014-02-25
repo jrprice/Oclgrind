@@ -39,30 +39,36 @@ search path, you can specify the location of the generator using the
 
 Next, build with make:
 
-make (or make install)
+make install
 
 Ensure that the lib directory in the Clang/SPIR generator build is
 covered by your dynamic library search path, adding it to
-[DY]LD_LIBRARY_PATH if necessary.
+[DY]LD_LIBRARY_PATH if necessary. If installing to a non-default
+location, you should add the bin/ directory to the PATH environment
+variable in order to make use of the oclgrind command.
 
-An ICD entry point containing the path to liboclgrind.{so,dylib}
-should be created in /etc/OpenCL/vendors/. If you don't already have
-the OpenCL ICD installed, download and build the sources from the
-Khronos website:
-
-http://www.khronos.org/registry/cl/
-
-To build the OpenCL ICD on OS X, modify the CMakeLists.txt file such
-that the first comparison of ${CMAKE_SYSTEM_NAME} with the string
-"Linux" instead compares to the string "Darwin"
+If you wish to use Oclgrind via the OpenCL ICD (optional), then you
+should also create an ICD loading point. To do this, create the file
+/etc/OpenCL/vendors/oclgrind.icd, which should lioclgrind-icd.so (or
+.dylib on OS X), of the full path to this library if it isn't covered
+by your dynamic library search path.
 
 
 Usage
 -----
-If installed correctly, Oclgrind should appear as a platform when an
-application calls clGetPlatformIDs(). To run an OpenCL application
-with Oclgrind, simply target this platform and its only device (a CPU
-device). If it encounters any invalid memory accesses, Oclgrind will
+
+The recommended method of running an application with Oclgrind is to
+use the oclgrind command, for example:
+
+oclgrind ./application
+
+This command will make it such the only OpenCL platform and device
+available to your application is Oclgrind. If you need more control
+over platform selection then installing an ICD loading point for
+Oclgrind will cause it to appear when an application calls
+clGetPlatformIDs().
+
+If it encounters any invalid memory accesses, Oclgrind will
 report the details to stderr, for example:
 
 > Invalid read of size 4 at global memory address 1000000000040
@@ -78,12 +84,17 @@ bounds-checking each memory access, Oclgrind will run very slowly
 implementation). Therefore, it is recommended to run with a small
 problem if possible.
 
-To enable an interactive, GDB-style debugging session, export the
-environment variable OCLGRIND_INTERACTIVE=1. This will automatically
+To enable an interactive, GDB-style debugging session, supply the -i
+flag to the oclgrind command, or export the environment variable
+OCLGRIND_INTERACTIVE=1. This will cause Oclgrind to automatically
 break at the beginning of each kernel invocation, and upon
 encountering an invalid memory access. Type 'help' for details of
 available commands. This feature is currently very limited, and will
 likely be improved in the future.
+
+For more detailed information about using Oclgrind please visit the
+GitHub Wiki:
+https://github.com/jrprice/Oclgrind/wiki/
 
 
 Contact
