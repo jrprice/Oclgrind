@@ -45,7 +45,7 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
   TypedValueMap::const_iterator argItr;
   for (argItr = kernel.args_begin(); argItr != kernel.args_end(); argItr++)
   {
-    m_values.set(argItr->first, clone(argItr->second));
+    m_values.set(argItr->first, m_pool.clone(argItr->second));
   }
 
   m_privateMemory = new Memory();
@@ -61,14 +61,12 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
     {
       TypedValue value = resolveConstExpr((const llvm::ConstantExpr*)init);
       m_privateMemory->store(value.data, address, size);
-      delete[] value.data;
     }
     else if (isConstantOperand(init))
     {
-      unsigned char *data = new unsigned char[size];
+      unsigned char *data = m_pool.alloc(size);
       getConstantData(data, init);
       m_privateMemory->store(data, address, size);
-      delete[] data;
     }
     else
     {
@@ -80,7 +78,7 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
     {
       sizeof(size_t),
       1,
-      new unsigned char[sizeof(size_t)]
+      m_pool.alloc(sizeof(size_t))
     };
     *(size_t*)var.data = address;
     m_values.set(*varItr, var);
@@ -271,7 +269,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   };
   if (result.size)
   {
-    result.data = new unsigned char[result.size*result.num];
+    result.data = m_pool.alloc(result.size*result.num);
   }
 
   if (instruction.getOpcode() != llvm::Instruction::PHI &&
@@ -369,7 +367,6 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     {
       FATAL_ERROR("Unsupported float size: %lu bytes", result.size);
     }
-    delete[] result.data;
   }
   else if (isConstantOperand(operand))
   {
@@ -438,7 +435,6 @@ size_t WorkItem::getPointer(const llvm::Value *operand, unsigned int index)
     size_t ptr;
     TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
     memcpy(&ptr, result.data + index*result.size, result.size);
-    delete[] result.data;
     return ptr;
   }
   if (id == llvm::Value::ConstantAggregateZeroVal ||
@@ -508,7 +504,6 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
   {
     TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
     memcpy(&val, result.data + index*result.size, result.size);
-    delete[] result.data;
   }
   else if (id == llvm::Value::ConstantPointerNullVal)
   {
@@ -560,7 +555,6 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   {
     TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
     memcpy(&val, result.data + index*result.size, result.size);
-    delete[] result.data;
   }
   else if (id == llvm::Value::ConstantPointerNullVal)
   {
@@ -626,12 +620,10 @@ bool WorkItem::printVariable(string name)
     const llvm::Type *elemType = value->getType()->getPointerElementType();
     size_t address = *(size_t*)result.data;
     size_t size = getTypeSize(elemType);
-    unsigned char *data = new unsigned char[size];
+    unsigned char *data = m_pool.alloc(size);
     m_privateMemory->load(data, address, size);
 
     printTypedData(elemType, data);
-
-    delete[] data;
   }
   else
   {
@@ -649,7 +641,7 @@ TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
     {
       resultSize.first,
       resultSize.second,
-      new unsigned char[resultSize.first*resultSize.second]
+      m_pool.alloc(resultSize.first*resultSize.second)
     };
 
   dispatch(*instruction, result);
@@ -762,7 +754,6 @@ void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
   {
     TypedValue op = resolveConstExpr((const llvm::ConstantExpr*)operand);
     memcpy(result.data, op.data, result.size*result.num);
-    delete[] op.data;
     break;
   }
   case llvm::Value::ConstantVectorVal:
@@ -900,7 +891,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       TypedValue value = {
         argSize.first,
         argSize.second,
-        new unsigned char[size]
+        m_pool.alloc(size)
       };
 
       unsigned id = arg->getValueID();
@@ -1178,7 +1169,6 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   {
     TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)base);
     address = *(size_t*)result.data;
-    delete[] result.data;
   }
   else
   {
@@ -1489,7 +1479,7 @@ void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
           {
             size.first,
             size.second,
-            new unsigned char[size.first*size.second]
+            m_pool.alloc(size.first*size.second)
           };
           getConstantData(value.data, (const llvm::Constant*)returnVal);
           m_values.set(m_currInst, value);
@@ -1497,7 +1487,7 @@ void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
       }
       else
       {
-        m_values.set(m_currInst, clone(m_values.get(returnVal)));
+        m_values.set(m_currInst, m_pool.clone(m_values.get(returnVal)));
       }
     }
   }
@@ -1651,14 +1641,13 @@ void WorkItem::store(const llvm::Instruction& instruction)
 
   // Get store operand
   size_t size = getTypeSize(valOp->getType());
-  unsigned char *data = new unsigned char[size];
+  unsigned char *data = m_pool.alloc(size);
   if (isConstantOperand(valOp))
   {
     if (valOp->getValueID() == llvm::Value::ConstantExprVal)
     {
       TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)valOp);
       memcpy(data, result.data, result.size*result.num);
-      delete[] result.data;
     }
     else
     {
@@ -1688,8 +1677,6 @@ void WorkItem::store(const llvm::Instruction& instruction)
   {
     m_device->notifyMemoryError(false, addressSpace, address, size);
   }
-
-  delete[] data;
 }
 
 void WorkItem::sub(const llvm::Instruction& instruction, TypedValue& result)
@@ -1751,6 +1738,50 @@ void WorkItem::zext(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
+
+//////////////////////////
+// WorkItem::MemoryPool //
+//////////////////////////
+
+WorkItem::MemoryPool::MemoryPool(size_t blockSize) : m_blockSize(blockSize)
+{
+  // Force first allocation to create new block
+  m_offset = m_blockSize;
+}
+
+WorkItem::MemoryPool::~MemoryPool()
+{
+  while (!m_blocks.empty())
+  {
+    delete[] m_blocks.top();
+    m_blocks.pop();
+  }
+}
+
+unsigned char* WorkItem::MemoryPool::alloc(size_t size)
+{
+  assert(size <= m_blockSize);
+  if (m_offset + size > m_blockSize)
+  {
+    m_blocks.push(new unsigned char[m_blockSize]);
+    m_offset = 0;
+  }
+  unsigned char *buffer = m_blocks.top() + m_offset;
+  m_offset += size;
+  return buffer;
+}
+
+TypedValue WorkItem::MemoryPool::clone(const TypedValue& source)
+{
+  TypedValue dest;
+  dest.size = source.size;
+  dest.num = source.num;
+  dest.data = alloc(dest.size*dest.num);
+  memcpy(dest.data, source.data, dest.size*dest.num);
+  return dest;
+}
+
+
 //////////////////////
 // WorkItem::Values //
 //////////////////////
@@ -1759,12 +1790,6 @@ map<const llvm::Value*, size_t> WorkItem::Values::m_indices;
 
 WorkItem::Values::~Values()
 {
-  vector<TypedValue>::iterator itr;
-  for (itr = m_values.begin(); itr != m_values.end(); itr++)
-  {
-    delete[] itr->data;
-  }
-
   // Assume we destroy all work-items together for now
   m_indices.clear();
 }
@@ -1789,10 +1814,6 @@ void WorkItem::Values::set(const llvm::Value *key, TypedValue value)
     {
       TypedValue empty = {0, 0, NULL};
       m_values.resize(itr->second+1, empty);
-    }
-    else
-    {
-      delete[] m_values[itr->second].data;
     }
 
     m_values[itr->second] = value;

@@ -1040,7 +1040,7 @@ namespace spirsim
     }
 
     static inline float readNormalizedColor(const Image *image,
-                                            const WorkItem *workItem,
+                                            WorkItem *workItem,
                                             int i, int j, int k,
                                             int layer, int c)
     {
@@ -1076,7 +1076,7 @@ namespace spirsim
                         + channel*channelSize;
 
       // Load channel data
-      unsigned char *data = new unsigned char[channelSize];
+      unsigned char *data = workItem->m_pool.alloc(channelSize);
       if (!workItem->m_device->getGlobalMemory()->load(data, address,
                                                        channelSize))
       {
@@ -1109,13 +1109,12 @@ namespace spirsim
           FATAL_ERROR("Unsupported image channel data type: %X",
                       image->format.image_channel_data_type);
       }
-      delete[] data;
 
       return color;
     }
 
     static inline int32_t readSignedColor(const Image *image,
-                                          const WorkItem *workItem,
+                                          WorkItem *workItem,
                                           int i, int j, int k,
                                           int layer, int c)
     {
@@ -1151,7 +1150,7 @@ namespace spirsim
                         + channel*channelSize;
 
       // Load channel data
-      unsigned char *data = new unsigned char[channelSize];
+      unsigned char *data = workItem->m_pool.alloc(channelSize);
       if (!workItem->m_device->getGlobalMemory()->load(data, address,
                                                        channelSize))
       {
@@ -1178,13 +1177,12 @@ namespace spirsim
           FATAL_ERROR("Unsupported image channel data type: %X",
                       image->format.image_channel_data_type);
       }
-      delete[] data;
 
       return color;
     }
 
     static inline uint32_t readUnsignedColor(const Image *image,
-                                             const WorkItem *workItem,
+                                             WorkItem *workItem,
                                              int i, int j, int k,
                                              int layer, int c)
     {
@@ -1220,7 +1218,7 @@ namespace spirsim
                         + channel*channelSize;
 
       // Load channel data
-      unsigned char *data = new unsigned char[channelSize];
+      unsigned char *data = workItem->m_pool.alloc(channelSize);
       if (!workItem->m_device->getGlobalMemory()->load(data, address,
                                                        channelSize))
       {
@@ -1247,7 +1245,6 @@ namespace spirsim
           FATAL_ERROR("Unsupported image channel data type: %X",
                       image->format.image_channel_data_type);
       }
-      delete[] data;
 
       return color;
     }
@@ -1618,7 +1615,7 @@ namespace spirsim
       for (int i = 0; i < numChannels; i++)
       {
         // Compute normalized color value
-        unsigned char *data = new unsigned char[channelSize];
+        unsigned char *data = workItem->m_pool.alloc(channelSize);
         switch (image->format.image_channel_data_type)
         {
           case CL_SNORM_INT8:
@@ -1649,7 +1646,6 @@ namespace spirsim
                                                 pixelAddress + i*channelSize,
                                                 channelSize);
         }
-        delete[] data;
       }
     }
 
@@ -1722,7 +1718,7 @@ namespace spirsim
       for (int i = 0; i < numChannels; i++)
       {
         // Compute normalized color value
-        unsigned char *data = new unsigned char[channelSize];
+        unsigned char *data = workItem->m_pool.alloc(channelSize);
         switch (image->format.image_channel_data_type)
         {
           case CL_SIGNED_INT8:
@@ -1818,7 +1814,7 @@ namespace spirsim
       for (int i = 0; i < numChannels; i++)
       {
         // Compute normalized color value
-        unsigned char *data = new unsigned char[channelSize];
+        unsigned char *data = workItem->m_pool.alloc(channelSize);
         switch (image->format.image_channel_data_type)
         {
           case CL_UNSIGNED_INT8:
@@ -2725,7 +2721,7 @@ namespace spirsim
     {
       const llvm::Value *value = ARG(0);
       size_t size = getTypeSize(value->getType());
-      unsigned char *data = new unsigned char[size];
+      unsigned char *data = workItem->m_pool.alloc(size);
       if (isVector3(value))
       {
         // 3-element vectors are same size as 4-element vectors,
@@ -2753,7 +2749,6 @@ namespace spirsim
         workItem->m_device->notifyMemoryError(false, addressSpace,
                                               address, size);
       }
-      delete[] data;
     }
 
     DEFINE_BUILTIN(vload_half)
@@ -2791,7 +2786,7 @@ namespace spirsim
     {
       const llvm::Value *value = ARG(0);
       size_t size = getTypeSize(value->getType());
-      unsigned char *data = new unsigned char[size];
+      unsigned char *data = workItem->m_pool.alloc(size);
       if (isVector3(value))
       {
         // 3-element vectors are same size as 4-element vectors,
@@ -2838,7 +2833,6 @@ namespace spirsim
         workItem->m_device->notifyMemoryError(false, addressSpace,
                                               address, size);
       }
-      delete[] data;
     }
 
 
@@ -3246,7 +3240,7 @@ namespace spirsim
       Memory *destMemory = workItem->getMemory(destAddrSpace);
       Memory *srcMemory = workItem->getMemory(srcAddrSpace);
 
-      unsigned char *buffer = new unsigned char[size];
+      unsigned char *buffer = workItem->m_pool.alloc(size);
       if (!srcMemory->load(buffer, src, size))
       {
         workItem->m_device->notifyMemoryError(true, srcAddrSpace, src, size);
@@ -3255,7 +3249,6 @@ namespace spirsim
       {
         workItem->m_device->notifyMemoryError(false, destAddrSpace, dest, size);
       }
-      delete[] buffer;
     }
 
     DEFINE_BUILTIN(llvm_memset)
@@ -3267,14 +3260,13 @@ namespace spirsim
       unsigned addressSpace = memsetInst->getDestAddressSpace();
       Memory *memory = workItem->getMemory(addressSpace);
 
-      unsigned char *buffer = new unsigned char[size];
+      unsigned char *buffer = workItem->m_pool.alloc(size);
       unsigned char value = workItem->getUnsignedInt(ARG(1));
       memset(buffer, value, size);
       if (!memory->store(buffer, dest, size))
       {
         workItem->m_device->notifyMemoryError(false, addressSpace, dest, size);
       }
-      delete[] buffer;
     }
 
     DEFINE_BUILTIN(llvm_trap)
