@@ -1755,32 +1755,51 @@ void WorkItem::zext(const llvm::Instruction& instruction, TypedValue& result)
 // WorkItem::Values //
 //////////////////////
 
+map<const llvm::Value*, size_t> WorkItem::Values::m_indices;
+
 WorkItem::Values::~Values()
 {
-  TypedValueMap::iterator pmItr;
-  for (pmItr = m_values.begin();
-       pmItr != m_values.end(); pmItr++)
+  vector<TypedValue>::iterator itr;
+  for (itr = m_values.begin(); itr != m_values.end(); itr++)
   {
-    delete[] pmItr->second.data;
+    delete[] itr->data;
   }
+
+  // Assume we destroy all work-items together for now
+  m_indices.clear();
 }
 
 TypedValue WorkItem::Values::get(const llvm::Value *key) const
 {
   assert(has(key));
-  return m_values.at(key);
+  return m_values[m_indices[key]];
 }
 
 bool WorkItem::Values::has(const llvm::Value *key) const
 {
-  return m_values.find(key) != m_values.end();
+  return m_indices.find(key) != m_indices.end();
 }
 
 void WorkItem::Values::set(const llvm::Value *key, TypedValue value)
 {
-  if (has(key) && m_values[key].data)
+  map<const llvm::Value*, size_t>::iterator itr = m_indices.find(key);
+  if (itr != m_indices.end())
   {
-    delete[] m_values[key].data;
+    if (m_values.size() <= itr->second)
+    {
+      TypedValue empty = {0, 0, NULL};
+      m_values.resize(itr->second+1, empty);
+    }
+    else
+    {
+      delete[] m_values[itr->second].data;
+    }
+
+    m_values[itr->second] = value;
   }
-  m_values[key] = value;
+  else
+  {
+    m_indices[key] = m_values.size();
+    m_values.push_back(value);
+  }
 }

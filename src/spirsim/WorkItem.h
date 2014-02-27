@@ -60,7 +60,9 @@ namespace spirsim
       bool has(const llvm::Value *key) const;
       void set(const llvm::Value *key, TypedValue value);
     private:
-      TypedValueMap m_values;
+      static std::map<const llvm::Value*, size_t> m_indices;
+
+      std::vector<TypedValue> m_values;
     };
 
   public:
