@@ -8,7 +8,9 @@
 
 #include "common.h"
 
+#ifdef HAVE_CXX11
 #include <unordered_map>
+#endif
 
 #include "llvm/Function.h"
 
@@ -76,7 +78,11 @@ namespace spirsim
       bool has(const llvm::Value *key) const;
       void set(const llvm::Value *key, TypedValue value);
     private:
+#ifdef HAVE_CXX11
       static std::unordered_map<const llvm::Value*, size_t> m_indices;
+#else
+      static std::map<const llvm::Value*, size_t> m_indices;
+#endif
 
       std::vector<TypedValue> m_values;
     };

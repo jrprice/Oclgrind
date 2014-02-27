@@ -1565,10 +1565,10 @@ namespace spirsim
       // Get color data
       float values[4] =
       {
-        FARGV(2, 0),
-        FARGV(2, 1),
-        FARGV(2, 2),
-        FARGV(2, 3),
+        (float)FARGV(2, 0),
+        (float)FARGV(2, 1),
+        (float)FARGV(2, 2),
+        (float)FARGV(2, 3),
       };
 
       // Re-order color values
@@ -1668,10 +1668,10 @@ namespace spirsim
       // Get color data
       int32_t values[4] =
       {
-        SARGV(2, 0),
-        SARGV(2, 1),
-        SARGV(2, 2),
-        SARGV(2, 3),
+        (int32_t)SARGV(2, 0),
+        (int32_t)SARGV(2, 1),
+        (int32_t)SARGV(2, 2),
+        (int32_t)SARGV(2, 3),
       };
 
       // Re-order color values
@@ -1764,10 +1764,10 @@ namespace spirsim
       // Get color data
       uint32_t values[4] =
       {
-        SARGV(2, 0),
-        SARGV(2, 1),
-        SARGV(2, 2),
-        SARGV(2, 3),
+        (uint32_t)SARGV(2, 0),
+        (uint32_t)SARGV(2, 1),
+        (uint32_t)SARGV(2, 2),
+        (uint32_t)SARGV(2, 3),
       };
 
       // Re-order color values

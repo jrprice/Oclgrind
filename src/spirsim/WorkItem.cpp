@@ -1786,12 +1786,18 @@ TypedValue WorkItem::MemoryPool::clone(const TypedValue& source)
 // WorkItem::Values //
 //////////////////////
 
+#ifdef HAVE_CXX11
 unordered_map<const llvm::Value*, size_t> WorkItem::Values::m_indices;
+#else
+map<const llvm::Value*, size_t> WorkItem::Values::m_indices;
+#endif
 
 WorkItem::Values::Values()
 {
+#ifdef HAVE_CXX11
   // TODO: Determine amount to reserve dynamically
   m_indices.reserve(256);
+#endif
 }
 
 WorkItem::Values::~Values()
@@ -1814,7 +1820,11 @@ bool WorkItem::Values::has(const llvm::Value *key) const
 
 void WorkItem::Values::set(const llvm::Value *key, TypedValue value)
 {
+#ifdef HAVE_CXX11
   unordered_map<const llvm::Value*, size_t>::iterator itr = m_indices.find(key);
+#else
+  map<const llvm::Value*, size_t>::iterator itr = m_indices.find(key);
+#endif
   if (itr != m_indices.end())
   {
     if (m_values.size() <= itr->second)
