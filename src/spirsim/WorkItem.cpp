@@ -1786,11 +1786,18 @@ TypedValue WorkItem::MemoryPool::clone(const TypedValue& source)
 // WorkItem::Values //
 //////////////////////
 
-map<const llvm::Value*, size_t> WorkItem::Values::m_indices;
+unordered_map<const llvm::Value*, size_t> WorkItem::Values::m_indices;
+
+WorkItem::Values::Values()
+{
+  // TODO: Determine amount to reserve dynamically
+  m_indices.reserve(256);
+}
 
 WorkItem::Values::~Values()
 {
   // Assume we destroy all work-items together for now
+  // TODO: Retain indices for future invocations of same kernel
   m_indices.clear();
 }
 
@@ -1807,7 +1814,7 @@ bool WorkItem::Values::has(const llvm::Value *key) const
 
 void WorkItem::Values::set(const llvm::Value *key, TypedValue value)
 {
-  map<const llvm::Value*, size_t>::iterator itr = m_indices.find(key);
+  unordered_map<const llvm::Value*, size_t>::iterator itr = m_indices.find(key);
   if (itr != m_indices.end())
   {
     if (m_values.size() <= itr->second)

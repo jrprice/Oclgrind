@@ -8,6 +8,8 @@
 
 #include "common.h"
 
+#include <unordered_map>
+
 #include "llvm/Function.h"
 
 namespace llvm
@@ -67,13 +69,14 @@ namespace spirsim
     class Values
     {
     public:
+      Values();
       ~Values();
 
       TypedValue get(const llvm::Value *key) const;
       bool has(const llvm::Value *key) const;
       void set(const llvm::Value *key, TypedValue value);
     private:
-      static std::map<const llvm::Value*, size_t> m_indices;
+      static std::unordered_map<const llvm::Value*, size_t> m_indices;
 
       std::vector<TypedValue> m_values;
     };
