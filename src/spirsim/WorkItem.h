@@ -50,6 +50,18 @@ namespace spirsim
 
   public:
     enum State {READY, BARRIER, FINISHED};
+  private:
+    class Values
+    {
+    public:
+      ~Values();
+
+      TypedValue get(const llvm::Value *key) const;
+      bool has(const llvm::Value *key) const;
+      void set(const llvm::Value *key, TypedValue value);
+    private:
+      TypedValueMap m_values;
+    };
 
   public:
     WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
@@ -136,7 +148,7 @@ namespace spirsim
   private:
     size_t m_globalID[3];
     size_t m_localID[3];
-    TypedValueMap m_instResults;
+    Values m_values;
     TypedValueMap m_phiTemps;
     std::map<std::string, const llvm::Value*> m_variables;
     Device *m_device;
