@@ -10,6 +10,9 @@
 
 #ifdef HAVE_CXX11
 #include <unordered_map>
+#define MAP unordered_map
+#else
+#define MAP map
 #endif
 
 #include "llvm/Function.h"
@@ -40,7 +43,7 @@ namespace spirsim
                      std::string, std::string, TypedValue&, void*),
                      void *o) : func(f), op(o) {};
   } BuiltinFunction;
-  extern std::map<std::string,BuiltinFunction> workItemBuiltins;
+  extern std::MAP<std::string,BuiltinFunction> workItemBuiltins;
   extern std::list< std::pair<std::string,
                               BuiltinFunction> > workItemPrefixBuiltins;
 
@@ -78,11 +81,7 @@ namespace spirsim
       bool has(const llvm::Value *key) const;
       void set(const llvm::Value *key, TypedValue value);
     private:
-#ifdef HAVE_CXX11
-      static std::unordered_map<const llvm::Value*, size_t> m_indices;
-#else
-      static std::map<const llvm::Value*, size_t> m_indices;
-#endif
+      static std::MAP<const llvm::Value*, size_t> m_indices;
 
       std::vector<TypedValue> m_values;
     };

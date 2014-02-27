@@ -3275,7 +3275,7 @@ namespace spirsim
     }
 
   public:
-    static std::map<std::string, BuiltinFunction> initBuiltins();
+    static std::MAP<std::string, BuiltinFunction> initBuiltins();
   };
 
   // Utility macros for generating builtin function map
@@ -3293,11 +3293,11 @@ namespace spirsim
 
   // Generate builtin function map
   list< pair<string, BuiltinFunction> > workItemPrefixBuiltins;
-  map<string,BuiltinFunction> workItemBuiltins =
+  MAP<string,BuiltinFunction> workItemBuiltins =
     WorkItemBuiltins::initBuiltins();
-  map<string,BuiltinFunction> WorkItemBuiltins::initBuiltins()
+  MAP<string,BuiltinFunction> WorkItemBuiltins::initBuiltins()
   {
-    map<string, BuiltinFunction> builtins;
+    MAP<string, BuiltinFunction> builtins;
 
     // Async Copy and Prefetch Functions
     ADD_BUILTIN("async_work_group_copy", async_work_group_copy, NULL);
