@@ -1813,7 +1813,7 @@ void WorkItem::Values::set(const llvm::Value *key, TypedValue value)
     if (m_values.size() <= itr->second)
     {
       TypedValue empty = {0, 0, NULL};
-      m_values.resize(itr->second+1, empty);
+      m_values.resize(m_indices.size(), empty);
     }
 
     m_values[itr->second] = value;
