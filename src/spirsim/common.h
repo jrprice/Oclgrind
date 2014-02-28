@@ -108,13 +108,14 @@ namespace spirsim
   };
 
   // Utility macro for raising an exception with a sprintf-based message
-  #define FATAL_ERROR(format, ...)               \
-    {                                            \
-      char *str = new char[strlen(format)-1];    \
-      sprintf(str, format, ##__VA_ARGS__);       \
-      string msg = str;                          \
-      delete str;                                \
-      throw FatalError(msg, __FILE__, __LINE__); \
+  #define FATAL_ERROR(format, ...)                       \
+    {                                                    \
+      int sz = snprintf(NULL, 0, format, ##__VA_ARGS__); \
+      char *str = new char[sz+1];                        \
+      sprintf(str, format, ##__VA_ARGS__);               \
+      string msg = str;                                  \
+      delete[] str;                                      \
+      throw FatalError(msg, __FILE__, __LINE__);         \
     }
 }
 
