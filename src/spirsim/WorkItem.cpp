@@ -939,7 +939,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   }
 
   // Check function cache
-  MAP<const llvm::Function*, CachedBuiltin>::iterator fItr;
+  map<const llvm::Function*, CachedBuiltin>::iterator fItr;
   fItr = m_cache->builtins.find(function);
   if (fItr != m_cache->builtins.end())
   {

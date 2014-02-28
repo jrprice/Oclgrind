@@ -83,7 +83,7 @@ namespace spirsim
     typedef struct
     {
       std::MAP<const llvm::Value*, size_t> valueIDs;
-      std::MAP<const llvm::Function*, CachedBuiltin> builtins;
+      std::map<const llvm::Function*, CachedBuiltin> builtins;
     } InterpreterState;
 
   public:
