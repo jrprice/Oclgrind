@@ -307,7 +307,6 @@ void WorkItem::execute(const llvm::Instruction& instruction)
 
 TypedValue WorkItem::get(const llvm::Value *key) const
 {
-  assert(has(key));
   return m_values[m_cache->valueIDs[key]];
 }
 
