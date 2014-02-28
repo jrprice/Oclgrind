@@ -46,6 +46,9 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
   m_cache = InterpreterCache::get(kernel.getProgram().getUID());
   assert(m_cache);
 
+  // Set initial number of values to store based on cache
+  m_values.resize(m_cache->valueIDs.size());
+
   // Store kernel arguments in private memory
   TypedValueMap::const_iterator argItr;
   for (argItr = kernel.args_begin(); argItr != kernel.args_end(); argItr++)
@@ -669,20 +672,21 @@ TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
 void WorkItem::set(const llvm::Value *key, TypedValue value)
 {
   MAP<const llvm::Value*, size_t>::iterator itr = m_cache->valueIDs.find(key);
-  if (itr != m_cache->valueIDs.end())
+  if (itr == m_cache->valueIDs.end())
   {
-    if (m_values.size() <= itr->second)
-    {
-      m_values.resize(m_cache->valueIDs.size(), (TypedValue){0, 0, NULL});
-    }
+    // Assign next index to value
+    size_t pos = m_cache->valueIDs.size();
+    m_cache->valueIDs[key] = pos;
+    itr = m_cache->valueIDs.insert(make_pair(key, pos)).first;
+  }
 
-    m_values[itr->second] = value;
-  }
-  else
+  // Resize vector if necessary
+  if (m_values.size() <= itr->second)
   {
-    m_cache->valueIDs[key] = m_values.size();
-    m_values.push_back(value);
+    m_values.resize(m_cache->valueIDs.size(), (TypedValue){0, 0, NULL});
   }
+
+  m_values[itr->second] = value;
 }
 
 void WorkItem::setFloatResult(TypedValue& result, double val,
