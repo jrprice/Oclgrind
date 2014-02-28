@@ -69,7 +69,7 @@ namespace spirsim
     private:
       size_t m_blockSize;
       size_t m_offset;
-      std::stack<unsigned char *> m_blocks;
+      std::list<unsigned char *> m_blocks;
     } m_pool;
 
   private:

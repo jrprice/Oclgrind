@@ -1843,22 +1843,32 @@ WorkItem::MemoryPool::MemoryPool(size_t blockSize) : m_blockSize(blockSize)
 
 WorkItem::MemoryPool::~MemoryPool()
 {
-  while (!m_blocks.empty())
+  list<unsigned char*>::iterator itr;
+  for (itr = m_blocks.begin(); itr != m_blocks.end(); itr++)
   {
-    delete[] m_blocks.top();
-    m_blocks.pop();
+    delete[] *itr;
   }
 }
 
 unsigned char* WorkItem::MemoryPool::alloc(size_t size)
 {
-  assert(size <= m_blockSize);
+  // Check if requested size larger than block size
+  if (size > m_blockSize)
+  {
+    // Oversized buffers allocated separately from main pool
+    unsigned char *buffer = new unsigned char[size];
+    m_blocks.push_back(buffer);
+    return buffer;
+  }
+
+  // Check if enough space in current block
   if (m_offset + size > m_blockSize)
   {
-    m_blocks.push(new unsigned char[m_blockSize]);
+    // Allocate new block
+    m_blocks.push_front(new unsigned char[m_blockSize]);
     m_offset = 0;
   }
-  unsigned char *buffer = m_blocks.top() + m_offset;
+  unsigned char *buffer = m_blocks.front() + m_offset;
   m_offset += size;
   return buffer;
 }
