@@ -600,7 +600,7 @@ const llvm::Value* WorkItem::getVariable(std::string name) const
 
 bool WorkItem::has(const llvm::Value *key) const
 {
-  return m_cache->valueIDs.find(key) != m_cache->valueIDs.end();
+  return m_cache->valueIDs.count(key);
 }
 
 bool WorkItem::printValue(const llvm::Value *value)

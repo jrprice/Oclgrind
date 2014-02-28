@@ -611,7 +611,7 @@ void Device::del(vector<string> args)
     }
 
     // Ensure breakpoint exists
-    if (m_breakpoints[m_program].find(bpNum) == m_breakpoints[m_program].end())
+    if (!m_breakpoints[m_program].count(bpNum))
     {
       cout << "Breakpoint not found." << endl;
       return;

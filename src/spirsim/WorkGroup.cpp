@@ -221,7 +221,7 @@ void WorkGroup::notifyFinished(WorkItem *workItem)
 void WorkGroup::wait_event(uint64_t event)
 {
   // TODO: Ensure all work-items hit same wait at same time?
-  assert(m_pendingEvents.find(event) != m_pendingEvents.end());
+  assert(m_pendingEvents.count(event));
   m_waitEvents.insert(event);
 }
 
