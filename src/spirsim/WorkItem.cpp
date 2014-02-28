@@ -25,6 +25,8 @@
 using namespace spirsim;
 using namespace std;
 
+MAP<const llvm::Function*, WorkItem::CachedBuiltin> WorkItem::m_builtinCache;
+
 WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
                    size_t lid_x, size_t lid_y, size_t lid_z)
   : m_device(device), m_workGroup(workGroup), m_kernel(kernel)
@@ -96,6 +98,10 @@ WorkItem::~WorkItem()
 {
   // Free private memory
   delete m_privateMemory;
+
+  // Assume we destroy all work-items together for now
+  // TODO: Retain cache for future invocations of same kernel
+  m_builtinCache.clear();
 }
 
 void WorkItem::clearBarrier()
@@ -853,23 +859,6 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     function = (const llvm::Function*)funcPtr;
   }
 
-  string name, overload;
-  const string fullname = function->getName().str();
-
-  // Demangle if necessary
-  if (fullname.compare(0,2, "_Z") == 0)
-  {
-    int len = atoi(fullname.c_str()+2);
-    int start = fullname.find_first_not_of("0123456789", 2);
-    name = fullname.substr(start, len);
-    overload = fullname.substr(start + len);
-  }
-  else
-  {
-    name = fullname;
-    overload = "";
-  }
-
   // Check if function has definition
   if (!function->isDeclaration())
   {
@@ -920,11 +909,43 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     return;
   }
 
+  // Check function cache
+  MAP<const llvm::Function*, CachedBuiltin>::iterator fItr;
+  fItr = m_builtinCache.find(function);
+  if (fItr != m_builtinCache.end())
+  {
+    fItr->second.function.func(this, callInst,
+                               fItr->second.name,
+                               fItr->second.overload,
+                               result,
+                               fItr->second.function.op);
+    return;
+  }
+
+  // Extract unmangled name and overload
+  string name, overload;
+  const string fullname = function->getName().str();
+  if (fullname.compare(0,2, "_Z") == 0)
+  {
+    int len = atoi(fullname.c_str()+2);
+    int start = fullname.find_first_not_of("0123456789", 2);
+    name = fullname.substr(start, len);
+    overload = fullname.substr(start + len);
+  }
+  else
+  {
+    name = fullname;
+    overload = "";
+  }
+
   // Find builtin function in map
   MAP<string,BuiltinFunction>::iterator bItr = workItemBuiltins.find(name);
   if (bItr != workItemBuiltins.end())
   {
     bItr->second.func(this, callInst, name, overload, result, bItr->second.op);
+
+    m_builtinCache[function] = (CachedBuiltin){bItr->second, name, overload};
+
     return;
   }
 
@@ -937,6 +958,9 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     {
       pItr->second.func(this, callInst, name,
                         overload, result, pItr->second.op);
+
+      m_builtinCache[function] = (CachedBuiltin){pItr->second, name, overload};
+
       return;
     }
   }
@@ -1821,8 +1845,7 @@ void WorkItem::Values::set(const llvm::Value *key, TypedValue value)
   {
     if (m_values.size() <= itr->second)
     {
-      TypedValue empty = {0, 0, NULL};
-      m_values.resize(m_indices.size(), empty);
+      m_values.resize(m_indices.size(), (TypedValue){0, 0, NULL});
     }
 
     m_values[itr->second] = value;

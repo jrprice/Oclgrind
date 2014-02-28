@@ -187,5 +187,12 @@ namespace spirsim
     std::stack<ReturnAddress> m_callStack;
 
     Memory* getMemory(unsigned int addrSpace);
+
+    typedef struct
+    {
+      BuiltinFunction function;
+      std::string name, overload;
+    } CachedBuiltin;
+    static std::MAP<const llvm::Function*, CachedBuiltin> m_builtinCache;
   };
 }
