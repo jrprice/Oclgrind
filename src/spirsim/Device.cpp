@@ -267,7 +267,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
          << kernel.getName() << "'"
          << endl;
     return;
- }
+  }
 
   // Prepare kernel invocation
   m_program = &kernel.getProgram();

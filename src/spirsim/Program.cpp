@@ -25,6 +25,7 @@
 
 #include "Kernel.h"
 #include "Program.h"
+#include "WorkItem.h"
 
 #define ENV_DUMP "OCLGRIND_DUMP_TEMPS"
 #define CL_DUMP_NAME "/tmp/oclgrind_%lX.cl"
@@ -62,6 +63,8 @@ Program::Program(const string& source)
 
 Program::~Program()
 {
+  WorkItem::InterpreterCache::clear(m_uid);
+
   if (m_module)
   {
     delete m_module;
@@ -89,6 +92,8 @@ bool Program::build(const char *options, list<Header> headers)
   {
     delete m_module;
     m_module = NULL;
+
+    WorkItem::InterpreterCache::clear(m_uid);
   }
 
   // Assign a new UID to this program
