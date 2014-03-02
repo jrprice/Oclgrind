@@ -246,7 +246,7 @@ namespace spirsim
     {
       uint64_t num = UARG(0);
       const llvm::Value *ptrOp = ARG(1);
-      size_t address = *(size_t*)(workItem->m_instResults[ptrOp].data);
+      size_t address = *(size_t*)(workItem->get(ptrOp).data);
       for (int i = 0; i < num; i++)
       {
         // TODO: Can we safely assume this is private/stack data?
@@ -833,28 +833,28 @@ namespace spirsim
 
     DEFINE_BUILTIN(get_image_array_size)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
       workItem->setIntResult(result,
                              (int64_t)image->desc.image_array_size);
     }
 
     DEFINE_BUILTIN(get_image_channel_data_type)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
       workItem->setIntResult(result,
                              (int64_t)image->format.image_channel_data_type);
     }
 
     DEFINE_BUILTIN(get_image_channel_order)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
       workItem->setIntResult(result,
                              (int64_t)image->format.image_channel_order);
     }
 
     DEFINE_BUILTIN(get_image_dim)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
 
       workItem->setIntResult(result, (int64_t)image->desc.image_width, 0);
       workItem->setIntResult(result, (int64_t)image->desc.image_height, 1);
@@ -867,19 +867,19 @@ namespace spirsim
 
     DEFINE_BUILTIN(get_image_depth)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
       workItem->setIntResult(result, (int64_t)image->desc.image_depth);
     }
 
     DEFINE_BUILTIN(get_image_height)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
       workItem->setIntResult(result, (int64_t)image->desc.image_height);
     }
 
     DEFINE_BUILTIN(get_image_width)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
       workItem->setIntResult(result, (int64_t)image->desc.image_width);
     }
 
@@ -1040,7 +1040,7 @@ namespace spirsim
     }
 
     static inline float readNormalizedColor(const Image *image,
-                                            const WorkItem *workItem,
+                                            WorkItem *workItem,
                                             int i, int j, int k,
                                             int layer, int c)
     {
@@ -1076,7 +1076,7 @@ namespace spirsim
                         + channel*channelSize;
 
       // Load channel data
-      unsigned char *data = new unsigned char[channelSize];
+      unsigned char *data = workItem->m_pool.alloc(channelSize);
       if (!workItem->m_device->getGlobalMemory()->load(data, address,
                                                        channelSize))
       {
@@ -1109,13 +1109,12 @@ namespace spirsim
           FATAL_ERROR("Unsupported image channel data type: %X",
                       image->format.image_channel_data_type);
       }
-      delete[] data;
 
       return color;
     }
 
     static inline int32_t readSignedColor(const Image *image,
-                                          const WorkItem *workItem,
+                                          WorkItem *workItem,
                                           int i, int j, int k,
                                           int layer, int c)
     {
@@ -1151,7 +1150,7 @@ namespace spirsim
                         + channel*channelSize;
 
       // Load channel data
-      unsigned char *data = new unsigned char[channelSize];
+      unsigned char *data = workItem->m_pool.alloc(channelSize);
       if (!workItem->m_device->getGlobalMemory()->load(data, address,
                                                        channelSize))
       {
@@ -1178,13 +1177,12 @@ namespace spirsim
           FATAL_ERROR("Unsupported image channel data type: %X",
                       image->format.image_channel_data_type);
       }
-      delete[] data;
 
       return color;
     }
 
     static inline uint32_t readUnsignedColor(const Image *image,
-                                             const WorkItem *workItem,
+                                             WorkItem *workItem,
                                              int i, int j, int k,
                                              int layer, int c)
     {
@@ -1220,7 +1218,7 @@ namespace spirsim
                         + channel*channelSize;
 
       // Load channel data
-      unsigned char *data = new unsigned char[channelSize];
+      unsigned char *data = workItem->m_pool.alloc(channelSize);
       if (!workItem->m_device->getGlobalMemory()->load(data, address,
                                                        channelSize))
       {
@@ -1247,7 +1245,6 @@ namespace spirsim
           FATAL_ERROR("Unsupported image channel data type: %X",
                       image->format.image_channel_data_type);
       }
-      delete[] data;
 
       return color;
     }
@@ -1275,7 +1272,7 @@ namespace spirsim
 
     DEFINE_BUILTIN(read_imagef)
     {
-      const Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      const Image *image = *(Image**)(workItem->get(ARG(0)).data);
 
       uint32_t sampler = CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
       int coordIndex = 1;
@@ -1397,7 +1394,7 @@ namespace spirsim
 
     DEFINE_BUILTIN(read_imagei)
     {
-      const Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      const Image *image = *(Image**)(workItem->get(ARG(0)).data);
 
       uint32_t sampler = CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
       int coordIndex = 1;
@@ -1474,7 +1471,7 @@ namespace spirsim
 
     DEFINE_BUILTIN(read_imageui)
     {
-      const Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      const Image *image = *(Image**)(workItem->get(ARG(0)).data);
 
       uint32_t sampler = CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
       int coordIndex = 1;
@@ -1551,7 +1548,7 @@ namespace spirsim
 
     DEFINE_BUILTIN(write_imagef)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
 
       // Get pixel coordinates
       int x, y = 0, z = 0 ;
@@ -1568,10 +1565,10 @@ namespace spirsim
       // Get color data
       float values[4] =
       {
-        FARGV(2, 0),
-        FARGV(2, 1),
-        FARGV(2, 2),
-        FARGV(2, 3),
+        (float)FARGV(2, 0),
+        (float)FARGV(2, 1),
+        (float)FARGV(2, 2),
+        (float)FARGV(2, 3),
       };
 
       // Re-order color values
@@ -1618,7 +1615,7 @@ namespace spirsim
       for (int i = 0; i < numChannels; i++)
       {
         // Compute normalized color value
-        unsigned char *data = new unsigned char[channelSize];
+        unsigned char *data = workItem->m_pool.alloc(channelSize);
         switch (image->format.image_channel_data_type)
         {
           case CL_SNORM_INT8:
@@ -1649,13 +1646,12 @@ namespace spirsim
                                                 pixelAddress + i*channelSize,
                                                 channelSize);
         }
-        delete[] data;
       }
     }
 
     DEFINE_BUILTIN(write_imagei)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
 
       // Get pixel coordinates
       int x, y = 0, z = 0 ;
@@ -1672,10 +1668,10 @@ namespace spirsim
       // Get color data
       int32_t values[4] =
       {
-        SARGV(2, 0),
-        SARGV(2, 1),
-        SARGV(2, 2),
-        SARGV(2, 3),
+        (int32_t)SARGV(2, 0),
+        (int32_t)SARGV(2, 1),
+        (int32_t)SARGV(2, 2),
+        (int32_t)SARGV(2, 3),
       };
 
       // Re-order color values
@@ -1722,7 +1718,7 @@ namespace spirsim
       for (int i = 0; i < numChannels; i++)
       {
         // Compute normalized color value
-        unsigned char *data = new unsigned char[channelSize];
+        unsigned char *data = workItem->m_pool.alloc(channelSize);
         switch (image->format.image_channel_data_type)
         {
           case CL_SIGNED_INT8:
@@ -1751,7 +1747,7 @@ namespace spirsim
 
     DEFINE_BUILTIN(write_imageui)
     {
-      Image *image = *(Image**)(workItem->m_instResults[ARG(0)].data);
+      Image *image = *(Image**)(workItem->get(ARG(0)).data);
 
       // Get pixel coordinates
       int x, y = 0, z = 0 ;
@@ -1768,10 +1764,10 @@ namespace spirsim
       // Get color data
       uint32_t values[4] =
       {
-        SARGV(2, 0),
-        SARGV(2, 1),
-        SARGV(2, 2),
-        SARGV(2, 3),
+        (uint32_t)SARGV(2, 0),
+        (uint32_t)SARGV(2, 1),
+        (uint32_t)SARGV(2, 2),
+        (uint32_t)SARGV(2, 3),
       };
 
       // Re-order color values
@@ -1818,7 +1814,7 @@ namespace spirsim
       for (int i = 0; i < numChannels; i++)
       {
         // Compute normalized color value
-        unsigned char *data = new unsigned char[channelSize];
+        unsigned char *data = workItem->m_pool.alloc(channelSize);
         switch (image->format.image_channel_data_type)
         {
           case CL_UNSIGNED_INT8:
@@ -2725,7 +2721,7 @@ namespace spirsim
     {
       const llvm::Value *value = ARG(0);
       size_t size = getTypeSize(value->getType());
-      unsigned char *data = new unsigned char[size];
+      unsigned char *data = workItem->m_pool.alloc(size);
       if (isVector3(value))
       {
         // 3-element vectors are same size as 4-element vectors,
@@ -2739,7 +2735,7 @@ namespace spirsim
       }
       else
       {
-        memcpy(data, workItem->m_instResults[value].data, size);
+        memcpy(data, workItem->get(value).data, size);
       }
 
       size_t base = PARG(2);
@@ -2753,7 +2749,6 @@ namespace spirsim
         workItem->m_device->notifyMemoryError(false, addressSpace,
                                               address, size);
       }
-      delete[] data;
     }
 
     DEFINE_BUILTIN(vload_half)
@@ -2791,7 +2786,7 @@ namespace spirsim
     {
       const llvm::Value *value = ARG(0);
       size_t size = getTypeSize(value->getType());
-      unsigned char *data = new unsigned char[size];
+      unsigned char *data = workItem->m_pool.alloc(size);
       if (isVector3(value))
       {
         // 3-element vectors are same size as 4-element vectors,
@@ -2805,7 +2800,7 @@ namespace spirsim
       }
       else
       {
-        memcpy(data, workItem->m_instResults[value].data, size);
+        memcpy(data, workItem->get(value).data, size);
       }
 
       size_t base = PARG(2);
@@ -2838,7 +2833,6 @@ namespace spirsim
         workItem->m_device->notifyMemoryError(false, addressSpace,
                                               address, size);
       }
-      delete[] data;
     }
 
 
@@ -3237,16 +3231,16 @@ namespace spirsim
     {
       const llvm::MemCpyInst *memcpyInst = (const llvm::MemCpyInst*)callInst;
       size_t dest =
-        *(size_t*)(workItem->m_instResults[memcpyInst->getDest()].data);
+        *(size_t*)(workItem->get(memcpyInst->getDest()).data);
       size_t src =
-        *(size_t*)(workItem->m_instResults[memcpyInst->getSource()].data);
+        *(size_t*)(workItem->get(memcpyInst->getSource()).data);
       size_t size = workItem->getUnsignedInt(memcpyInst->getLength());
       unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
       unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
       Memory *destMemory = workItem->getMemory(destAddrSpace);
       Memory *srcMemory = workItem->getMemory(srcAddrSpace);
 
-      unsigned char *buffer = new unsigned char[size];
+      unsigned char *buffer = workItem->m_pool.alloc(size);
       if (!srcMemory->load(buffer, src, size))
       {
         workItem->m_device->notifyMemoryError(true, srcAddrSpace, src, size);
@@ -3255,26 +3249,24 @@ namespace spirsim
       {
         workItem->m_device->notifyMemoryError(false, destAddrSpace, dest, size);
       }
-      delete[] buffer;
     }
 
     DEFINE_BUILTIN(llvm_memset)
     {
       const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)callInst;
       size_t dest =
-        *(size_t*)(workItem->m_instResults[memsetInst->getDest()].data);
+        *(size_t*)(workItem->get(memsetInst->getDest()).data);
       size_t size = workItem->getUnsignedInt(memsetInst->getLength());
       unsigned addressSpace = memsetInst->getDestAddressSpace();
       Memory *memory = workItem->getMemory(addressSpace);
 
-      unsigned char *buffer = new unsigned char[size];
+      unsigned char *buffer = workItem->m_pool.alloc(size);
       unsigned char value = workItem->getUnsignedInt(ARG(1));
       memset(buffer, value, size);
       if (!memory->store(buffer, dest, size))
       {
         workItem->m_device->notifyMemoryError(false, addressSpace, dest, size);
       }
-      delete[] buffer;
     }
 
     DEFINE_BUILTIN(llvm_trap)
@@ -3283,7 +3275,7 @@ namespace spirsim
     }
 
   public:
-    static std::map<std::string, BuiltinFunction> initBuiltins();
+    static std::MAP<std::string, BuiltinFunction> initBuiltins();
   };
 
   // Utility macros for generating builtin function map
@@ -3301,11 +3293,11 @@ namespace spirsim
 
   // Generate builtin function map
   list< pair<string, BuiltinFunction> > workItemPrefixBuiltins;
-  map<string,BuiltinFunction> workItemBuiltins =
+  MAP<string,BuiltinFunction> workItemBuiltins =
     WorkItemBuiltins::initBuiltins();
-  map<string,BuiltinFunction> WorkItemBuiltins::initBuiltins()
+  MAP<string,BuiltinFunction> WorkItemBuiltins::initBuiltins()
   {
-    map<string, BuiltinFunction> builtins;
+    MAP<string, BuiltinFunction> builtins;
 
     // Async Copy and Prefetch Functions
     ADD_BUILTIN("async_work_group_copy", async_work_group_copy, NULL);

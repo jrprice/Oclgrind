@@ -8,6 +8,13 @@
 
 #include "common.h"
 
+#ifdef HAVE_CXX11
+#include <unordered_map>
+#define MAP unordered_map
+#else
+#define MAP map
+#endif
+
 #include "llvm/Function.h"
 
 namespace llvm
@@ -36,7 +43,7 @@ namespace spirsim
                      std::string, std::string, TypedValue&, void*),
                      void *o) : func(f), op(o) {};
   } BuiltinFunction;
-  extern std::map<std::string,BuiltinFunction> workItemBuiltins;
+  extern std::MAP<std::string,BuiltinFunction> workItemBuiltins;
   extern std::list< std::pair<std::string,
                               BuiltinFunction> > workItemPrefixBuiltins;
 
@@ -50,6 +57,45 @@ namespace spirsim
 
   public:
     enum State {READY, BARRIER, FINISHED};
+
+  private:
+    class MemoryPool
+    {
+    public:
+      MemoryPool(size_t blockSize = 1024);
+      ~MemoryPool();
+      unsigned char* alloc(size_t size);
+      TypedValue clone(const TypedValue& source);
+    private:
+      size_t m_blockSize;
+      size_t m_offset;
+      std::list<unsigned char *> m_blocks;
+    } m_pool;
+
+  private:
+    typedef struct
+    {
+      BuiltinFunction function;
+      std::string name, overload;
+    } CachedBuiltin;
+
+    // Per-program interpreter state, shared between all work-items
+    typedef struct
+    {
+      std::MAP<const llvm::Value*, size_t> valueIDs;
+      std::map<const llvm::Function*, CachedBuiltin> builtins;
+    } InterpreterState;
+
+  public:
+    // Per-program cache for various interpreter state information
+    class InterpreterCache
+    {
+    public:
+      static void clear(unsigned long uid);
+      static InterpreterState* get(unsigned long uid);
+    private:
+      static std::MAP<unsigned long, InterpreterState*> m_cache;
+    };
 
   public:
     WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
@@ -86,6 +132,7 @@ namespace spirsim
     State step();
 
     // SPIR instructions
+  private:
     void add(const llvm::Instruction& instruction, TypedValue& result);
     void alloc(const llvm::Instruction& instruction, TypedValue& result);
     void ashr(const llvm::Instruction& instruction, TypedValue& result);
@@ -136,7 +183,6 @@ namespace spirsim
   private:
     size_t m_globalID[3];
     size_t m_localID[3];
-    TypedValueMap m_instResults;
     TypedValueMap m_phiTemps;
     std::map<std::string, const llvm::Value*> m_variables;
     Device *m_device;
@@ -152,5 +198,13 @@ namespace spirsim
     std::stack<ReturnAddress> m_callStack;
 
     Memory* getMemory(unsigned int addrSpace);
+
+    // Store for instruction results and other operand values
+    std::vector<TypedValue> m_values;
+    TypedValue get(const llvm::Value *key) const;
+    bool has(const llvm::Value *key) const;
+    void set(const llvm::Value *key, TypedValue value);
+
+    InterpreterState *m_cache;
   };
 }

@@ -102,7 +102,7 @@ bool Kernel::allArgumentsSet() const
   llvm::Function::const_arg_iterator itr;
   for (itr = m_function->arg_begin(); itr != m_function->arg_end(); itr++)
   {
-    if (m_arguments.find(itr) == m_arguments.end())
+    if (!m_arguments.count(itr))
     {
       return false;
     }
@@ -423,7 +423,7 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     const llvm::Value *arg = getArgument(index);
 
     // Deallocate existing argument
-    if (m_arguments.find(arg) != m_arguments.end())
+    if (m_arguments.count(arg))
     {
       m_localMemory->deallocateBuffer(*(size_t*)m_arguments[arg].data);
     }

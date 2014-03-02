@@ -12,10 +12,14 @@ AC_CONFIG_SRCDIR([src/])
 AM_INIT_AUTOMAKE([foreign])
 AC_LANG(C++)
 AC_PROG_CXX
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
 
 LT_INIT
+
+# Enable C++11 if available
+AX_CXX_COMPILE_STDCXX_11(, [optional])
 
 # Add LLVM required macro definitions
 CPPFLAGS="$CPPFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"

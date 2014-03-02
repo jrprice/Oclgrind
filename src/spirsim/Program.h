@@ -48,6 +48,7 @@ namespace spirsim
     std::list<std::string> getKernelNames() const;
     unsigned int getNumKernels() const;
     const std::string& getSource() const;
+    unsigned long getUID() const;
 
   private:
     Program(llvm::Module *module);
@@ -58,5 +59,8 @@ namespace spirsim
     std::string m_buildLog;
     std::string m_buildOptions;
     unsigned int m_buildStatus;
+
+    unsigned long m_uid;
+    unsigned long generateUID() const;
   };
 }

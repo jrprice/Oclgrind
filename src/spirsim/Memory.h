@@ -47,7 +47,7 @@ namespace spirsim
     } Buffer;
 
     std::queue<int> m_freeBuffers;
-    std::map<int,Buffer> m_memory;
+    std::vector<Buffer> m_memory;
     size_t m_totalAllocated;
 
     int getNextBuffer();

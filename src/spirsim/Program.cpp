@@ -25,6 +25,7 @@
 
 #include "Kernel.h"
 #include "Program.h"
+#include "WorkItem.h"
 
 #define ENV_DUMP "OCLGRIND_DUMP_TEMPS"
 #define CL_DUMP_NAME "/tmp/oclgrind_%lX.cl"
@@ -46,6 +47,7 @@ Program::Program(llvm::Module *module)
   m_buildLog = "";
   m_buildOptions = "";
   m_buildStatus = CL_BUILD_SUCCESS;
+  m_uid = generateUID();
 }
 
 Program::Program(const string& source)
@@ -56,10 +58,13 @@ Program::Program(const string& source)
   m_buildLog = "";
   m_buildOptions = "";
   m_buildStatus = CL_BUILD_NONE;
+  m_uid = 0;
 }
 
 Program::~Program()
 {
+  WorkItem::InterpreterCache::clear(m_uid);
+
   if (m_module)
   {
     delete m_module;
@@ -82,6 +87,17 @@ bool Program::build(const char *options, list<Header> headers)
     m_buildStatus = CL_BUILD_SUCCESS;
     return true;
   }
+
+  if (m_module)
+  {
+    delete m_module;
+    m_module = NULL;
+
+    WorkItem::InterpreterCache::clear(m_uid);
+  }
+
+  // Assign a new UID to this program
+  m_uid = generateUID();
 
   // Set compiler arguments
   vector<const char*> args;
@@ -193,19 +209,13 @@ bool Program::build(const char *options, list<Header> headers)
   const char *keepTempsEnv = getenv(ENV_DUMP);
   if (keepTempsEnv && strcmp(keepTempsEnv, "1") == 0)
   {
-    // Generate unique tag for temporary files
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    srand(tv.tv_usec + tv.tv_sec*1e6);
-    unsigned long tag = rand();
-
     // Construct unique filenames
     char *tempCL = new char[strlen(CL_DUMP_NAME) + 17];
     char *tempIR = new char[strlen(IR_DUMP_NAME) + 17];
     char *tempBC = new char[strlen(BC_DUMP_NAME) + 17];
-    sprintf(tempCL, CL_DUMP_NAME, tag);
-    sprintf(tempIR, IR_DUMP_NAME, tag);
-    sprintf(tempBC, BC_DUMP_NAME, tag);
+    sprintf(tempCL, CL_DUMP_NAME, m_uid);
+    sprintf(tempIR, IR_DUMP_NAME, m_uid);
+    sprintf(tempBC, BC_DUMP_NAME, m_uid);
 
     // Dump source
     ofstream cl;
@@ -382,6 +392,14 @@ unsigned int Program::getBuildStatus() const
   return m_buildStatus;
 }
 
+unsigned long Program::generateUID() const
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  srand(tv.tv_usec + tv.tv_sec*1e6);
+  return rand();
+}
+
 list<string> Program::getKernelNames() const
 {
   list<string> names;
@@ -423,4 +441,9 @@ unsigned int Program::getNumKernels() const
 const string& Program::getSource() const
 {
   return m_source;
+}
+
+unsigned long Program::getUID() const
+{
+  return m_uid;
 }

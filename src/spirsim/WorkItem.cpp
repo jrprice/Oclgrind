@@ -19,6 +19,7 @@
 #include "Device.h"
 #include "Kernel.h"
 #include "Memory.h"
+#include "Program.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
@@ -41,11 +42,18 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
   m_globalID[1] = lid_y + groupID[1]*groupSize[1] + globalOffset[1];
   m_globalID[2] = lid_z + groupID[2]*groupSize[2] + globalOffset[2];
 
+  // Load or create cached interpreter state
+  m_cache = InterpreterCache::get(kernel.getProgram().getUID());
+  assert(m_cache);
+
+  // Set initial number of values to store based on cache
+  m_values.resize(m_cache->valueIDs.size());
+
   // Store kernel arguments in private memory
   TypedValueMap::const_iterator argItr;
   for (argItr = kernel.args_begin(); argItr != kernel.args_end(); argItr++)
   {
-    m_instResults[argItr->first] = clone(argItr->second);
+    set(argItr->first, m_pool.clone(argItr->second));
   }
 
   m_privateMemory = new Memory();
@@ -61,14 +69,12 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
     {
       TypedValue value = resolveConstExpr((const llvm::ConstantExpr*)init);
       m_privateMemory->store(value.data, address, size);
-      delete[] value.data;
     }
     else if (isConstantOperand(init))
     {
-      unsigned char *data = new unsigned char[size];
+      unsigned char *data = m_pool.alloc(size);
       getConstantData(data, init);
       m_privateMemory->store(data, address, size);
-      delete[] data;
     }
     else
     {
@@ -80,10 +86,10 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
     {
       sizeof(size_t),
       1,
-      new unsigned char[sizeof(size_t)]
+      m_pool.alloc(sizeof(size_t))
     };
     *(size_t*)var.data = address;
-    m_instResults[*varItr] = var;
+    set(*varItr, var);
   }
 
   m_prevBlock = NULL;
@@ -97,12 +103,6 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
 WorkItem::~WorkItem()
 {
   // Free private memory
-  TypedValueMap::iterator pmItr;
-  for (pmItr = m_instResults.begin();
-       pmItr != m_instResults.end(); pmItr++)
-  {
-    delete[] pmItr->second.data;
-  }
   delete m_privateMemory;
 }
 
@@ -277,7 +277,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   };
   if (result.size)
   {
-    result.data = new unsigned char[result.size*result.num];
+    result.data = m_pool.alloc(result.size*result.num);
   }
 
   if (instruction.getOpcode() != llvm::Instruction::PHI &&
@@ -286,12 +286,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     TypedValueMap::iterator itr;
     for (itr = m_phiTemps.begin(); itr != m_phiTemps.end(); itr++)
     {
-      if (m_instResults.find(itr->first) != m_instResults.end())
-      {
-        delete[] m_instResults[itr->first].data;
-      }
-
-      m_instResults[itr->first] = itr->second;
+      set(itr->first, itr->second);
     }
     m_phiTemps.clear();
   }
@@ -304,17 +299,18 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   {
     if (instruction.getOpcode() != llvm::Instruction::PHI)
     {
-      if (m_instResults.find(&instruction) != m_instResults.end())
-      {
-        delete[] m_instResults[&instruction].data;
-      }
-      m_instResults[&instruction] = result;
+      set(&instruction, result);
     }
     else
     {
       m_phiTemps[&instruction] = result;
     }
   }
+}
+
+TypedValue WorkItem::get(const llvm::Value *key) const
+{
+  return m_values[m_cache->valueIDs[key]];
 }
 
 const stack<ReturnAddress>& WorkItem::getCallStack() const
@@ -341,7 +337,7 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
       id == llvm::Value::ArgumentVal ||
       id >= llvm::Value::InstructionVal)
   {
-    TypedValue op = m_instResults.at(operand);
+    TypedValue op = get(operand);
     if (op.size == sizeof(float))
     {
       val = ((float*)op.data)[index];
@@ -384,7 +380,6 @@ double WorkItem::getFloatValue(const llvm::Value *operand,
     {
       FATAL_ERROR("Unsupported float size: %lu bytes", result.size);
     }
-    delete[] result.data;
   }
   else if (isConstantOperand(operand))
   {
@@ -442,7 +437,7 @@ size_t WorkItem::getPointer(const llvm::Value *operand, unsigned int index)
       id == llvm::Value::GlobalVariableVal ||
       id >= llvm::Value::InstructionVal)
   {
-    return *(size_t*)m_instResults[operand].data;
+    return *(size_t*)get(operand).data;
   }
   else if (id == llvm::Value::UndefValueVal)
   {
@@ -453,7 +448,6 @@ size_t WorkItem::getPointer(const llvm::Value *operand, unsigned int index)
     size_t ptr;
     TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
     memcpy(&ptr, result.data + index*result.size, result.size);
-    delete[] result.data;
     return ptr;
   }
   if (id == llvm::Value::ConstantAggregateZeroVal ||
@@ -482,7 +476,7 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
       id == llvm::Value::ArgumentVal ||
       id >= llvm::Value::InstructionVal)
   {
-    TypedValue op = m_instResults.at(operand);
+    TypedValue op = get(operand);
     switch (op.size)
     {
     case 1:
@@ -523,7 +517,6 @@ int64_t WorkItem::getSignedInt(const llvm::Value *operand,
   {
     TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
     memcpy(&val, result.data + index*result.size, result.size);
-    delete[] result.data;
   }
   else if (id == llvm::Value::ConstantPointerNullVal)
   {
@@ -550,7 +543,7 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
       id == llvm::Value::ArgumentVal ||
       id >= llvm::Value::InstructionVal)
   {
-    TypedValue op = m_instResults.at(operand);
+    TypedValue op = get(operand);
     memcpy(&val, op.data + index*op.size, op.size);
   }
   else if (id == llvm::Value::ConstantVectorVal ||
@@ -575,7 +568,6 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
   {
     TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
     memcpy(&val, result.data + index*result.size, result.size);
-    delete[] result.data;
   }
   else if (id == llvm::Value::ConstantPointerNullVal)
   {
@@ -591,12 +583,11 @@ uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
 
 const unsigned char* WorkItem::getValueData(const llvm::Value *value) const
 {
-  TypedValueMap::const_iterator itr = m_instResults.find(value);
-  if (itr == m_instResults.end())
+  if (!has(value))
   {
     return NULL;
   }
-  return itr->second.data;
+  return get(value).data;
 }
 
 const llvm::Value* WorkItem::getVariable(std::string name) const
@@ -610,14 +601,19 @@ const llvm::Value* WorkItem::getVariable(std::string name) const
   return itr->second;
 }
 
+bool WorkItem::has(const llvm::Value *key) const
+{
+  return m_cache->valueIDs.count(key);
+}
+
 bool WorkItem::printValue(const llvm::Value *value)
 {
-  if (m_instResults.find(value) == m_instResults.end())
+  if (!has(value))
   {
     return false;
   }
 
-  printTypedData(value->getType(), m_instResults[value].data);
+  printTypedData(value->getType(), get(value).data);
 
   return true;
 }
@@ -632,7 +628,7 @@ bool WorkItem::printVariable(string name)
   }
 
   // Get variable value
-  TypedValue result = m_instResults[value];
+  TypedValue result = get(value);
   const llvm::Type *type = value->getType();
 
   if (((const llvm::Instruction*)value)->getOpcode()
@@ -642,12 +638,10 @@ bool WorkItem::printVariable(string name)
     const llvm::Type *elemType = value->getType()->getPointerElementType();
     size_t address = *(size_t*)result.data;
     size_t size = getTypeSize(elemType);
-    unsigned char *data = new unsigned char[size];
+    unsigned char *data = m_pool.alloc(size);
     m_privateMemory->load(data, address, size);
 
     printTypedData(elemType, data);
-
-    delete[] data;
   }
   else
   {
@@ -665,7 +659,7 @@ TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
     {
       resultSize.first,
       resultSize.second,
-      new unsigned char[resultSize.first*resultSize.second]
+      m_pool.alloc(resultSize.first*resultSize.second)
     };
 
   dispatch(*instruction, result);
@@ -673,6 +667,26 @@ TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
   delete instruction;
 
   return result;
+}
+
+void WorkItem::set(const llvm::Value *key, TypedValue value)
+{
+  MAP<const llvm::Value*, size_t>::iterator itr = m_cache->valueIDs.find(key);
+  if (itr == m_cache->valueIDs.end())
+  {
+    // Assign next index to value
+    size_t pos = m_cache->valueIDs.size();
+    m_cache->valueIDs[key] = pos;
+    itr = m_cache->valueIDs.insert(make_pair(key, pos)).first;
+  }
+
+  // Resize vector if necessary
+  if (m_values.size() <= itr->second)
+  {
+    m_values.resize(m_cache->valueIDs.size(), (TypedValue){0, 0, NULL});
+  }
+
+  m_values[itr->second] = value;
 }
 
 void WorkItem::setFloatResult(TypedValue& result, double val,
@@ -778,7 +792,6 @@ void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
   {
     TypedValue op = resolveConstExpr((const llvm::ConstantExpr*)operand);
     memcpy(result.data, op.data, result.size*result.num);
-    delete[] op.data;
     break;
   }
   case llvm::Value::ConstantVectorVal:
@@ -805,9 +818,9 @@ void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
     break;
   }
   default:
-    if (m_instResults.find(operand) != m_instResults.end())
+    if (has(operand))
     {
-      memcpy(result.data, m_instResults[operand].data, result.size*result.num);
+      memcpy(result.data, get(operand).data, result.size*result.num);
     }
     else
     {
@@ -827,7 +840,7 @@ void WorkItem::br(const llvm::Instruction& instruction)
   else
   {
     // Conditional branch
-    bool pred = *((bool*)m_instResults[instruction.getOperand(0)].data);
+    bool pred = *((bool*)get(instruction.getOperand(0)).data);
     const llvm::Value *iftrue = instruction.getOperand(2);
     const llvm::Value *iffalse = instruction.getOperand(1);
     m_nextBlock = (const llvm::BasicBlock*)(pred ? iftrue : iffalse);
@@ -878,23 +891,6 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     function = (const llvm::Function*)funcPtr;
   }
 
-  string name, overload;
-  const string fullname = function->getName().str();
-
-  // Demangle if necessary
-  if (fullname.compare(0,2, "_Z") == 0)
-  {
-    int len = atoi(fullname.c_str()+2);
-    int start = fullname.find_first_not_of("0123456789", 2);
-    name = fullname.substr(start, len);
-    overload = fullname.substr(start + len);
-  }
-  else
-  {
-    name = fullname;
-    overload = "";
-  }
-
   // Check if function has definition
   if (!function->isDeclaration())
   {
@@ -916,7 +912,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       TypedValue value = {
         argSize.first,
         argSize.second,
-        new unsigned char[size]
+        m_pool.alloc(size)
       };
 
       unsigned id = arg->getValueID();
@@ -924,7 +920,7 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
           id == llvm::Value::ArgumentVal ||
           id >= llvm::Value::InstructionVal)
       {
-        memcpy(value.data, m_instResults[arg].data, size);
+        memcpy(value.data, get(arg).data, size);
       }
       else if (id == llvm::Value::ConstantFPVal)
       {
@@ -939,21 +935,49 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
         FATAL_ERROR("Unsupported function argument type: %d", id);
       }
 
-      if (m_instResults.find(argItr) != m_instResults.end())
-      {
-        delete[] m_instResults[argItr].data;
-      }
-      m_instResults[argItr] = value;
+      set(argItr, value);
     }
 
     return;
   }
 
+  // Check function cache
+  map<const llvm::Function*, CachedBuiltin>::iterator fItr;
+  fItr = m_cache->builtins.find(function);
+  if (fItr != m_cache->builtins.end())
+  {
+    fItr->second.function.func(this, callInst,
+                               fItr->second.name,
+                               fItr->second.overload,
+                               result,
+                               fItr->second.function.op);
+    return;
+  }
+
+  // Extract unmangled name and overload
+  string name, overload;
+  const string fullname = function->getName().str();
+  if (fullname.compare(0,2, "_Z") == 0)
+  {
+    int len = atoi(fullname.c_str()+2);
+    int start = fullname.find_first_not_of("0123456789", 2);
+    name = fullname.substr(start, len);
+    overload = fullname.substr(start + len);
+  }
+  else
+  {
+    name = fullname;
+    overload = "";
+  }
+
   // Find builtin function in map
-  map<string,BuiltinFunction>::iterator bItr = workItemBuiltins.find(name);
+  MAP<string,BuiltinFunction>::iterator bItr = workItemBuiltins.find(name);
   if (bItr != workItemBuiltins.end())
   {
     bItr->second.func(this, callInst, name, overload, result, bItr->second.op);
+
+    m_cache->builtins[function] = (CachedBuiltin){bItr->second, name, overload};
+
     return;
   }
 
@@ -966,6 +990,10 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
     {
       pItr->second.func(this, callInst, name,
                         overload, result, pItr->second.op);
+
+      m_cache->builtins[function] =
+        (CachedBuiltin){pItr->second, name, overload};
+
       return;
     }
   }
@@ -1040,7 +1068,7 @@ void WorkItem::extractval(const llvm::Instruction& instruction,
     }
 
     // Copy target value to result
-    memcpy(result.data, m_instResults[agg].data + offset, result.size);
+    memcpy(result.data, get(agg).data + offset, result.size);
   }
 }
 
@@ -1198,11 +1226,10 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   {
     TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)base);
     address = *(size_t*)result.data;
-    delete[] result.data;
   }
   else
   {
-    address = *((size_t*)m_instResults[base].data);
+    address = *((size_t*)get(base).data);
   }
   llvm::Type *ptrType = gepInst->getPointerOperandType();
 
@@ -1354,7 +1381,7 @@ void WorkItem::insertval(const llvm::Instruction& instruction,
   }
   else
   {
-    memcpy(result.data, m_instResults[agg].data, result.size);
+    memcpy(result.data, get(agg).data, result.size);
   }
 
   // Compute offset for inserted value
@@ -1388,7 +1415,7 @@ void WorkItem::insertval(const llvm::Instruction& instruction,
   }
   else
   {
-    memcpy(result.data + offset, m_instResults[value].data,
+    memcpy(result.data + offset, get(value).data,
            getTypeSize(value->getType()));
   }
 }
@@ -1461,7 +1488,7 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
       setFloatResult(result, getFloatValue(value, i), i);
       break;
     case llvm::Type::PointerTyID:
-      memcpy(result.data, m_instResults[value].data, result.size);
+      memcpy(result.data, get(value).data, result.size);
       break;
     default:
       FATAL_ERROR("Unsupported operand type: %d", type);
@@ -1494,18 +1521,13 @@ void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
     const llvm::Value *returnVal = retInst->getReturnValue();
     if (returnVal)
     {
-      if (m_instResults.find(m_currInst) != m_instResults.end())
-      {
-        delete[] m_instResults[m_currInst].data;
-      }
-
       if (isConstantOperand(returnVal))
       {
         if (returnVal->getValueID() == llvm::Value::ConstantExprVal)
         {
           TypedValue value =
             resolveConstExpr((const llvm::ConstantExpr*)returnVal);
-          m_instResults[m_currInst] = value;
+          set(m_currInst, value);
         }
         else
         {
@@ -1514,15 +1536,15 @@ void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
           {
             size.first,
             size.second,
-            new unsigned char[size.first*size.second]
+            m_pool.alloc(size.first*size.second)
           };
           getConstantData(value.data, (const llvm::Constant*)returnVal);
-          m_instResults[m_currInst] = value;
+          set(m_currInst, value);
         }
       }
       else
       {
-        m_instResults[m_currInst] = clone(m_instResults[returnVal]);
+        set(m_currInst, m_pool.clone(get(returnVal)));
       }
     }
   }
@@ -1676,14 +1698,13 @@ void WorkItem::store(const llvm::Instruction& instruction)
 
   // Get store operand
   size_t size = getTypeSize(valOp->getType());
-  unsigned char *data = new unsigned char[size];
+  unsigned char *data = m_pool.alloc(size);
   if (isConstantOperand(valOp))
   {
     if (valOp->getValueID() == llvm::Value::ConstantExprVal)
     {
       TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)valOp);
       memcpy(data, result.data, result.size*result.num);
-      delete[] result.data;
     }
     else
     {
@@ -1692,14 +1713,15 @@ void WorkItem::store(const llvm::Instruction& instruction)
   }
   else
   {
-    if (m_instResults.find(valOp) != m_instResults.end())
+    if (has(valOp))
     {
-      memcpy(data, m_instResults[valOp].data, size);
+      memcpy(data, get(valOp).data, size);
     }
     else if (valOp->getValueID() >= llvm::Value::InstructionVal)
     {
       execute(*(llvm::Instruction*)valOp);
-      memcpy(data, m_instResults[valOp].data, m_instResults[valOp].size);
+      TypedValue result = get(valOp);
+      memcpy(data, result.data, result.size*result.num);
     }
     else
     {
@@ -1712,8 +1734,6 @@ void WorkItem::store(const llvm::Instruction& instruction)
   {
     m_device->notifyMemoryError(false, addressSpace, address, size);
   }
-
-  delete[] data;
 }
 
 void WorkItem::sub(const llvm::Instruction& instruction, TypedValue& result)
@@ -1773,4 +1793,95 @@ void WorkItem::zext(const llvm::Instruction& instruction, TypedValue& result)
     uint64_t val = getUnsignedInt(instruction.getOperand(0), i);
     setIntResult(result, val, i);
   }
+}
+
+
+////////////////////////////////
+// WorkItem::InterpreterCache //
+////////////////////////////////
+
+MAP<unsigned long, WorkItem::InterpreterState*>
+  WorkItem::InterpreterCache::m_cache;
+
+void WorkItem::InterpreterCache::clear(unsigned long uid)
+{
+  MAP<unsigned long, InterpreterState*>::iterator itr = m_cache.find(uid);
+  if (itr != m_cache.end())
+  {
+    delete itr->second;
+    m_cache.erase(itr);
+  }
+}
+
+WorkItem::InterpreterState* WorkItem::InterpreterCache::get(unsigned long uid)
+{
+  // Check for existing state
+  MAP<unsigned long, InterpreterState*>::iterator itr = m_cache.find(uid);
+  if (itr != m_cache.end())
+  {
+    return itr->second;
+  }
+
+  // Create new state
+  InterpreterState *state = new InterpreterState;
+  m_cache[uid] = state;
+
+#ifdef HAVE_CXX11
+  state->valueIDs.reserve(1024); // TODO: Determine this number dynamically?
+#endif
+
+  return state;
+}
+
+
+//////////////////////////
+// WorkItem::MemoryPool //
+//////////////////////////
+
+WorkItem::MemoryPool::MemoryPool(size_t blockSize) : m_blockSize(blockSize)
+{
+  // Force first allocation to create new block
+  m_offset = m_blockSize;
+}
+
+WorkItem::MemoryPool::~MemoryPool()
+{
+  list<unsigned char*>::iterator itr;
+  for (itr = m_blocks.begin(); itr != m_blocks.end(); itr++)
+  {
+    delete[] *itr;
+  }
+}
+
+unsigned char* WorkItem::MemoryPool::alloc(size_t size)
+{
+  // Check if requested size larger than block size
+  if (size > m_blockSize)
+  {
+    // Oversized buffers allocated separately from main pool
+    unsigned char *buffer = new unsigned char[size];
+    m_blocks.push_back(buffer);
+    return buffer;
+  }
+
+  // Check if enough space in current block
+  if (m_offset + size > m_blockSize)
+  {
+    // Allocate new block
+    m_blocks.push_front(new unsigned char[m_blockSize]);
+    m_offset = 0;
+  }
+  unsigned char *buffer = m_blocks.front() + m_offset;
+  m_offset += size;
+  return buffer;
+}
+
+TypedValue WorkItem::MemoryPool::clone(const TypedValue& source)
+{
+  TypedValue dest;
+  dest.size = source.size;
+  dest.num = source.num;
+  dest.data = alloc(dest.size*dest.num);
+  memcpy(dest.data, source.data, dest.size*dest.num);
+  return dest;
 }
