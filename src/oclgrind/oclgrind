@@ -9,10 +9,13 @@
 
 function usage
 {
-  echo "Usage: oclgrind [-i] COMMAND"
+  echo "Usage: "
+  echo "  oclgrind [-i] COMMAND"
+  echo "  oclgrind -v"
   echo
   echo "Options:"
   echo "  -i  Enable interactive mode"
+  echo "  -v  Display version information"
 }
 
 # Parse arguments
@@ -21,6 +24,16 @@ do
   if [ "$1" == "-i" ]
   then
     export OCLGRIND_INTERACTIVE=1
+  elif [ "$1" == "-v" ]
+  then
+    echo
+    echo "Oclgrind __VERSION__"
+    echo
+    echo "Copyright (c) 2013-2014"
+    echo "James Price and Simon McIntosh-Smith, University of Bristol"
+    echo "https://github.com/jrprice/Oclgrind"
+    echo
+    exit 0
   else
     echo "Unrecognized argument '$1'"
     usage

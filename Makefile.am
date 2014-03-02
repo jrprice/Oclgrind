@@ -53,7 +53,10 @@ oclgrind_kernel_LDADD = libspirsim.la
 
 bin_SCRIPTS = oclgrind
 oclgrind: src/oclgrind/oclgrind
-	$(SED) 's|__ROOT__|'$(prefix)'|g' src/oclgrind/oclgrind >oclgrind
+	cat src/oclgrind/oclgrind \
+	| $(SED) 's|__ROOT__|'$(prefix)'|g' \
+	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
+	>oclgrind
 
 EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h
 CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS)
