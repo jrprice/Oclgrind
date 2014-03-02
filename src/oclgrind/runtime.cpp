@@ -3425,6 +3425,10 @@ clEnqueueReadBuffer
   {
     return CL_INVALID_VALUE;
   }
+  if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
+  {
+    return CL_INVALID_OPERATION;
+  }
 
   // Enqueue command
   spirsim::Queue::BufferCommand *cmd =
@@ -3475,6 +3479,10 @@ clEnqueueReadBufferRect
   if (!ptr)
   {
     return CL_INVALID_VALUE;
+  }
+  if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
+  {
+    return CL_INVALID_OPERATION;
   }
 
   // Compute pitches if neccessary
@@ -3570,6 +3578,10 @@ clEnqueueWriteBuffer
   {
     return CL_INVALID_VALUE;
   }
+  if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
+  {
+    return CL_INVALID_OPERATION;
+  }
 
   // Enqueue command
   spirsim::Queue::BufferCommand *cmd =
@@ -3620,6 +3632,10 @@ clEnqueueWriteBufferRect
   if (!ptr)
   {
     return CL_INVALID_VALUE;
+  }
+  if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
+  {
+    return CL_INVALID_OPERATION;
   }
 
   // Compute pitches if neccessary
@@ -4285,6 +4301,18 @@ clEnqueueMapBuffer
     ERRCODE(CL_INVALID_MEM_OBJECT);
     return NULL;
   }
+  if (map_flags & CL_MAP_WRITE &&
+      buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
+  {
+    ERRCODE(CL_INVALID_OPERATION);
+    return NULL;
+  }
+  if (map_flags & CL_MAP_READ &&
+      buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
+  {
+    ERRCODE(CL_INVALID_OPERATION);
+    return NULL;
+  }
 
   // Map buffer
   void *ptr = buffer->context->device->getGlobalMemory()->mapBuffer(
@@ -4341,6 +4369,18 @@ clEnqueueMapImage
   if (!image_row_pitch)
   {
     ERRCODE(CL_INVALID_VALUE);
+    return NULL;
+  }
+  if (map_flags & CL_MAP_WRITE &&
+      image->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
+  {
+    ERRCODE(CL_INVALID_OPERATION);
+    return NULL;
+  }
+  if (map_flags & CL_MAP_READ &&
+      image->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
+  {
+    ERRCODE(CL_INVALID_OPERATION);
     return NULL;
   }
 
