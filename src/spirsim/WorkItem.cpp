@@ -7,7 +7,6 @@
 // source code.
 
 #include "common.h"
-#include <cxxabi.h>
 
 #include "llvm/DebugInfo.h"
 #include "llvm/GlobalVariable.h"
