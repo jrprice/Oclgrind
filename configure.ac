@@ -30,7 +30,8 @@ AC_ARG_WITH(
         AS_HELP_STRING([--with-spir],
                        [directory containing Clang/SPIR generator ]),
         [CPPFLAGS="$CPPFLAGS -I$withval/include";
-         LDFLAGS="$LDFLAGS -L$withval/lib"])
+         LDFLAGS="$LDFLAGS -L$withval/lib";
+         AC_SUBST(clang_spir, $withval/bin/clang)])
 
 # Check for LLVM/Clang headers/libraries
 AC_CHECK_HEADERS(
@@ -42,5 +43,8 @@ AC_CHECK_LIB(
         [clang_getClangVersion],
         [:],
         AC_MSG_ERROR([Clang library not found (use --with-spir)]))
+
+# Find Clang/SPIR binary (assume clang on PATH if --with-spir not used)
+AC_CHECK_PROG(clang_spir, [clang], `which clang`)
 
 AC_OUTPUT

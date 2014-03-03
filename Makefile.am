@@ -9,7 +9,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/
+AM_CPPFLAGS = -DINSTALL_ROOT=\"$(prefix)\" -I$(top_srcdir)/src/
 
 lib_LTLIBRARIES = libspirsim.la liboclgrind.la liboclgrind-icd.la
 
@@ -30,10 +30,27 @@ spirsimincludedir = $(includedir)/spirsim
 spirsiminclude_HEADERS = src/spirsim/common.h src/spirsim/Device.h	\
  src/spirsim/half.h src/spirsim/Kernel.h src/spirsim/Memory.h		\
  src/spirsim/Program.h src/spirsim/Queue.h src/spirsim/WorkItem.h	\
- src/spirsim/WorkGroup.h
+ src/spirsim/WorkGroup.h src/spirsim/clc.h
 src/spirsim/clc_h.cpp: Makefile src/spirsim/gen_clc_h.sh	\
  src/spirsim/clc.h
 	$(top_srcdir)/src/spirsim/gen_clc_h.sh $(top_srcdir)/src/spirsim/clc.h $@
+
+install-data-hook:
+	-@clang_spir@ \
+	-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
+	$(includedir)/spirsim/clc.h \
+	-o $(includedir)/spirsim/clc.noopt.pch
+	-@clang_spir@ \
+	-cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown \
+	$(includedir)/spirsim/clc.h \
+	-o $(includedir)/spirsim/clc.pch
+	@if [ ! -r $(includedir)/spirsim/clc.pch  \
+	   -o ! -r $(includedir)/spirsim/clc.noopt.pch ]; \
+	then \
+		echo; \
+		echo "WARNING: Failed to generate precompiled headers."; \
+		echo; \
+	fi
 
 liboclgrind_la_SOURCES = src/oclgrind/async_queue.h	\
  src/oclgrind/async_queue.cpp src/oclgrind/icd.h	\

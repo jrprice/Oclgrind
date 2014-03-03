@@ -81,6 +81,10 @@ bool Program::build(const char *options, list<Header> headers)
   m_buildStatus = CL_BUILD_IN_PROGRESS;
   m_buildOptions = options ? options : "";
 
+  // Create build log
+  m_buildLog = "";
+  llvm::raw_string_ostream buildLog(m_buildLog);
+
   // Do nothing if program was created with binary
   if (m_source.empty() && m_module)
   {
@@ -106,20 +110,10 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-triple");
   args.push_back("spir64-unknown-unknown");
   args.push_back("-g");
-  args.push_back("-O0");
 
-  // Auto-include OpenCL C header (precompiled if available)
-  const char *pch = getenv("OCLGRIND_PCH");
-  if (pch && strlen(pch) > 0)
-  {
-    args.push_back("-include-pch");
-    args.push_back(pch);
-  }
-  else
-  {
-    args.push_back("-include");
-    args.push_back(CLC_H_PATH);
-  }
+  // Disable optimizations by default due to bugs in Khronos SPIR generator
+  bool optimize = false;
+  args.push_back("-O0");
 
   // Add OpenCL build options
   if (options)
@@ -133,17 +127,54 @@ bool Program::build(const char *options, list<Header> headers)
           strcmp(opt, "-cl-single-precision-constant") != 0)
       {
         args.push_back(opt);
+
+        // Check for optimization flags
+        if (strncmp(opt, "-O", 2) == 0)
+        {
+          if (strcmp(opt, "-O0") == 0)
+          {
+            optimize = false;
+          }
+          else
+          {
+            optimize = true;
+          }
+        }
       }
       opt = strtok(NULL, " ");
     }
   }
 
+  // Select precompiled header
+  const char *pch = NULL;
+  if (optimize)
+  {
+    pch = INSTALL_ROOT"/include/spirsim/clc.pch";
+  }
+  else
+  {
+    pch = INSTALL_ROOT"/include/spirsim/clc.noopt.pch";
+  }
+
+  // Use precompiled header if it exists, otherwise fall back to embedded clc.h
+  ifstream pchfile(pch);
+  if (pchfile.good())
+  {
+    args.push_back("-include-pch");
+    args.push_back(pch);
+  }
+  else
+  {
+    args.push_back("-include");
+    args.push_back(CLC_H_PATH);
+    buildLog << "WARNING: Unable to find precompiled header.\n";
+  }
+  pchfile.close();
+
   // Append input file to arguments (remapped later)
   args.push_back(REMAP_INPUT);
 
   // Create diagnostics engine
-  m_buildLog = "";
-  llvm::raw_string_ostream buildLog(m_buildLog);
   clang::DiagnosticOptions *diagOpts = new clang::DiagnosticOptions();
   llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(
     new clang::DiagnosticIDs());
