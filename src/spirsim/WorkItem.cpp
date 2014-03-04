@@ -682,7 +682,7 @@ void WorkItem::set(const llvm::Value *key, TypedValue value)
   // Resize vector if necessary
   if (m_values.size() <= itr->second)
   {
-    m_values.resize(m_cache->valueIDs.size(), (TypedValue){0, 0, NULL});
+    m_values.resize(m_cache->valueIDs.size());
   }
 
   m_values[itr->second] = value;
@@ -975,7 +975,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   {
     bItr->second.func(this, callInst, name, overload, result, bItr->second.op);
 
-    m_cache->builtins[function] = (CachedBuiltin){bItr->second, name, overload};
+    const CachedBuiltin entry = {bItr->second, name, overload};
+    m_cache->builtins[function] = entry;
 
     return;
   }
@@ -990,8 +991,8 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
       pItr->second.func(this, callInst, name,
                         overload, result, pItr->second.op);
 
-      m_cache->builtins[function] =
-        (CachedBuiltin){pItr->second, name, overload};
+      const CachedBuiltin entry = {pItr->second, name, overload};
+      m_cache->builtins[function] = entry;
 
       return;
     }
