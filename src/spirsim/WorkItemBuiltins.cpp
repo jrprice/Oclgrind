@@ -2387,7 +2387,11 @@ namespace spirsim
       {
         double x = FARGV(0, i);
         double fl = floor(x);
+#if defined(_WIN32) && !defined(__MINGW32__)
+        double r = fmin(x - fl, nextafter(1, 0));
+#else
         double r = fmin(x - fl, 0x1.fffffep-1f);
+#endif
 
         size_t offset = i*result.size;
         WorkItem::setFloatResult(result, fl, i);
