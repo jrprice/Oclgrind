@@ -813,12 +813,9 @@ SELECT(double, long);
 // Synchronization Functions //
 ///////////////////////////////
 
-typedef enum
-{
-  CLK_LOCAL_MEM_FENCE  = 1U << 0,
-  CLK_GLOBAL_MEM_FENCE = 1U << 1,
-  __unused_except_to_make_sure_the_enum_has_the_right_size = 1U << 31
-} cl_mem_fence_flags;
+typedef uint cl_mem_fence_flags;
+#define CLK_LOCAL_MEM_FENCE  (1<<0)
+#define CLK_GLOBAL_MEM_FENCE (1<<1)
 
 void barrier(cl_mem_fence_flags);
 void mem_fence(cl_mem_fence_flags);
