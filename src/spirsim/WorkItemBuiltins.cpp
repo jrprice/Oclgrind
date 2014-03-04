@@ -2775,7 +2775,7 @@ namespace spirsim
         address = base + offset*sizeof(cl_half)*result.num;
       }
       size_t size = sizeof(cl_half)*result.num;
-      uint16_t halfData[result.num];
+      uint16_t *halfData = (uint16_t*)workItem->m_pool.alloc(2*result.num);
       Memory *memory = workItem->getMemory(addressSpace);
       if (!memory->load((unsigned char*)halfData, address, size))
       {
@@ -2818,7 +2818,7 @@ namespace spirsim
       // Convert to halfs
       size_t num = size / sizeof(float);
       size = num*sizeof(cl_half);
-      uint16_t halfData[num];
+      uint16_t *halfData = (uint16_t*)workItem->m_pool.alloc(2*num);
       for (int i = 0; i < num; i++)
       {
         // TODO: Pass rounding mode
