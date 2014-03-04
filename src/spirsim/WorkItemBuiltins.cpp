@@ -2904,7 +2904,7 @@ namespace spirsim
 
     DEFINE_BUILTIN(get_work_dim)
     {
-      *((uint*)result.data) = workItem->m_workGroup.getWorkDim();
+      *((uint32_t*)result.data) = workItem->m_workGroup.getWorkDim();
     }
 
 
