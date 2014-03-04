@@ -7,6 +7,7 @@
 // source code.
 
 #include <fstream>
+#include <string>
 
 #include "spirsim/Device.h"
 #include "spirsim/Kernel.h"

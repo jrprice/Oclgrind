@@ -9,6 +9,7 @@
 #ifndef _ICD_H_
 #define _ICD_H_
 
+#include <cstdint>
 #include <list>
 #include <map>
 #include <stack>
