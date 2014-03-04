@@ -10,7 +10,7 @@ IN=$1
 OUT=$2
 
 echo "extern const char CLC_H_DATA[] =" >$OUT
-sed -e 's/\\/\\\\/g;s/"/\\"/g;s/  /\\t/g;s/^/"/;s/$/\\n"/' $IN >>$OUT
+sed -e 's/\\/\\\\/g;s/"/\\"/g;s/^/"/;s/$/\\n"/' $IN >>$OUT
 if [ $? -ne 0 ]
 then
   exit 1
