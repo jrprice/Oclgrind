@@ -10,7 +10,6 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
-#include <sys/time.h>
 
 #include "async_queue.h"
 #include "icd.h"

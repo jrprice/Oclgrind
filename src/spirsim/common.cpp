@@ -8,6 +8,12 @@
 
 #include "common.h"
 
+#if defined(_WIN32) && !defined(__MINGW32__)
+#include <time.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include "llvm/Instructions.h"
 #include "llvm/Operator.h"
 #include "llvm/Support/raw_os_ostream.h"
@@ -350,6 +356,17 @@ namespace spirsim
   {
     return (value->getType()->isVectorTy() &&
             value->getType()->getVectorNumElements() == 3);
+  }
+
+  double now()
+  {
+#if defined(_WIN32) && !defined(__MINGW32__)
+    return time(NULL)*1e9;
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_usec*1e3 + tv.tv_sec*1e9;
+#endif
   }
 
   void printTypedData(const llvm::Type *type, const unsigned char *data)

@@ -8,7 +8,6 @@
 
 #include "common.h"
 #include <fstream>
-#include <sys/time.h>
 
 #include "llvm/Assembly/AssemblyAnnotationWriter.h"
 #include "llvm/Bitcode/ReaderWriter.h"
@@ -425,9 +424,7 @@ unsigned int Program::getBuildStatus() const
 
 unsigned long Program::generateUID() const
 {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  srand(tv.tv_usec + tv.tv_sec*1e6);
+  srand(now());
   return rand();
 }
 

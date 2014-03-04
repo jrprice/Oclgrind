@@ -8,7 +8,6 @@
 
 #include "common.h"
 #include <cassert>
-#include <sys/time.h>
 
 #include "Device.h"
 #include "Memory.h"
@@ -16,8 +15,6 @@
 
 using namespace spirsim;
 using namespace std;
-
-static double now();
 
 Queue::Queue(Device& device)
   : m_device(device)
@@ -179,13 +176,6 @@ void Queue::executeWriteBufferRect(BufferRectCommand *cmd)
 bool Queue::isEmpty() const
 {
   return m_queue.empty();
-}
-
-double now()
-{
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return tv.tv_usec*1e3 + tv.tv_sec*1e9;
 }
 
 Queue::Command* Queue::update()

@@ -90,6 +90,9 @@ namespace spirsim
   // Returns true if the value is a 3-element vector
   extern bool isVector3(const llvm::Value *value);
 
+  // Return the current time in nanoseconds since the epoch
+  extern double now();
+
   // Print data in a human readable format (according to its type)
   extern void printTypedData(const llvm::Type *type, const unsigned char *data);
 
