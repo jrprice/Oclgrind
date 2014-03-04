@@ -2592,7 +2592,7 @@ namespace spirsim
 
       for (int i = 0; i < num; i++)
       {
-        if (!signbit(SARGV(0, i)))
+        if (!(SARGV(0, i) & INT64_MIN))
         {
           WorkItem::setIntResult(result, (int64_t)0);
           return;
@@ -2611,7 +2611,7 @@ namespace spirsim
 
       for (int i = 0; i < num; i++)
       {
-        if (signbit(SARGV(0, i)))
+        if (SARGV(0, i) & INT64_MIN)
         {
           WorkItem::setIntResult(result, (int64_t)1);
           return;
@@ -2664,7 +2664,7 @@ namespace spirsim
       for (int i = 0; i < result.num; i++)
       {
         int64_t c = SARGV(2, i);
-        bool _c = (result.num > 1) ? signbit(c) : c;
+        bool _c = (result.num > 1) ? c & INT64_MIN : c;
         switch (type)
         {
           case 'f':
