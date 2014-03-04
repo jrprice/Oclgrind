@@ -75,5 +75,5 @@ oclgrind: src/oclgrind/oclgrind
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>oclgrind
 
-EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h
+EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h src/oclgrind/oclgrind
 CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS)
