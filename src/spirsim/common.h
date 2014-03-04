@@ -28,6 +28,10 @@
 #define BIG_SEPARATOR   "================================"
 #define SMALL_SEPARATOR "--------------------------------"
 
+#if defined(_WIN32) && !defined(__MINGW32__)
+#define snprintf _snprintf
+#endif
+
 namespace llvm
 {
   class Constant;
