@@ -52,6 +52,10 @@ install-data-hook:
 		echo; \
 	fi
 
+uninstall-hook:
+	rm -rf $(includedir)/spirsim/clc.pch
+	rm -rf $(includedir)/spirsim/clc.noopt.pch
+
 liboclgrind_la_SOURCES = src/oclgrind/async_queue.h	\
  src/oclgrind/async_queue.cpp src/oclgrind/icd.h	\
  src/oclgrind/runtime.cpp
