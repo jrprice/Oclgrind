@@ -56,15 +56,16 @@ uninstall-hook:
 	rm -rf $(includedir)/spirsim/clc.pch
 	rm -rf $(includedir)/spirsim/clc.noopt.pch
 
-liboclgrind_la_SOURCES = src/oclgrind/async_queue.h	\
+OCLGRIND_SOURCES = src/oclgrind/async_queue.h		\
  src/oclgrind/async_queue.cpp src/oclgrind/icd.h	\
  src/oclgrind/runtime.cpp
+
+liboclgrind_la_SOURCES = $(OCLGRIND_SOURCES)
 liboclgrind_la_LIBADD = libspirsim.la
 liboclgrind_la_LDFLAGS = -shared
 
-liboclgrind_icd_la_SOURCES = src/oclgrind/async_queue.h	\
- src/oclgrind/async_queue.cpp src/oclgrind/icd.h	\
- src/oclgrind/runtime-icd.cpp
+liboclgrind_icd_la_CPPFLAGS = -DOCLGRIND_ICD $(AM_CPPFLAGS)
+liboclgrind_icd_la_SOURCES = $(OCLGRIND_SOURCES)
 liboclgrind_icd_la_LIBADD = libspirsim.la
 liboclgrind_icd_la_LDFLAGS = -shared
 
