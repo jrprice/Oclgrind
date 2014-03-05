@@ -1,0 +1,5 @@
+EXPORTS
+
+; Make ICD initialisation functions visible
+clGetExtensionFunctionAddress
+clIcdGetPlatformIDsKHR

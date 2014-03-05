@@ -1,0 +1,1 @@
+#define PACKAGE_VERSION "@Oclgrind_VERSION_MAJOR@.@Oclgrind_VERSION_MINOR@"
