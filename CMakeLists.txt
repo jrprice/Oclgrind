@@ -3,6 +3,13 @@ project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 14)
 set(Oclgrind_VERSION_MINOR X)
 
+# Warn if not using Windows
+if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  message(WARNING
+"CMake build on non-Windows platform detected.\n"
+"Recommended build system for Unix is 'configure' and 'make'.")
+endif()
+
 configure_file("cmake_config.h.in" "config.h")
 
 # Set RPATH
@@ -18,6 +25,16 @@ list(FIND
 if("${isSystemDir}" STREQUAL "-1")
   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 endif("${isSystemDir}" STREQUAL "-1")
+
+# Warn if on OS X and CMake doesn't support CMAKE_MACOSX_RPATH
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin" AND
+    "${isSystemDir}" STREQUAL "-1" AND
+     ${CMAKE_VERSION} STRLESS 2.8.12)
+  message(WARNING
+"RPATH not set for installed files on OS X with CMake version < 2.8.12.\n"
+"This means that you will need to add the build directory to your "
+"DYLD_LIBRARY_PATH.")
+endif()
 
 # Add LLVM required macro definitions
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
