@@ -244,13 +244,21 @@ bool Program::build(const char *options, list<Header> headers)
   const char *keepTempsEnv = getenv(ENV_DUMP);
   if (keepTempsEnv && strcmp(keepTempsEnv, "1") == 0)
   {
-    // Construct unique filenames
-    char *tempCL = new char[strlen(CL_DUMP_NAME) + 17];
-    char *tempIR = new char[strlen(IR_DUMP_NAME) + 17];
-    char *tempBC = new char[strlen(BC_DUMP_NAME) + 17];
-    sprintf(tempCL, CL_DUMP_NAME, m_uid);
-    sprintf(tempIR, IR_DUMP_NAME, m_uid);
-    sprintf(tempBC, BC_DUMP_NAME, m_uid);
+    // Temporary directory
+#if defined(_WIN32)
+    const char *tmpdir = getenv("TEMP");
+#else
+    const char *tmpdir = "/tmp";
+#endif
+
+    // Construct unique output filenames
+    size_t sz = snprintf(NULL, 0, "%s/oclgrind_%lX.XX", tmpdir, m_uid) + 1;
+    char *tempCL = new char[sz];
+    char *tempIR = new char[sz];
+    char *tempBC = new char[sz];
+    sprintf(tempCL, "%s/oclgrind_%lX.cl", tmpdir, m_uid);
+    sprintf(tempIR, "%s/oclgrind_%lX.ll", tmpdir, m_uid);
+    sprintf(tempBC, "%s/oclgrind_%lX.bc", tmpdir, m_uid);
 
     // Dump source
     ofstream cl;
