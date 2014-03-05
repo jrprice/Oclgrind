@@ -44,7 +44,16 @@ add_custom_command(
 
 include_directories("src/" "${PROJECT_BINARY_DIR}")
 
-add_library(spirsim
+if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  set(SPIRSIM_LIB_TYPE "SHARED")
+  set(SPIRSIM_EXTRA_LIBS "${CMAKE_DL_LIBS}")
+
+  if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    list(APPEND SPIRSIM_EXTRA_LIBS "pthread")
+  endif()
+endif()
+
+add_library(spirsim ${SPIRSIM_LIB_TYPE}
   src/spirsim/clc_h.cpp
   src/spirsim/common.h src/spirsim/common.cpp
   src/spirsim/Device.h src/spirsim/Device.cpp
@@ -56,7 +65,7 @@ add_library(spirsim
   src/spirsim/WorkItem.h src/spirsim/WorkItem.cpp
   src/spirsim/WorkItemBuiltins.cpp
   src/spirsim/WorkGroup.h src/spirsim/WorkGroup.cpp)
-target_link_libraries(spirsim
+target_link_libraries(spirsim ${SPIRSIM_EXTRA_LIBS}
   clangAnalysis clangAST clangBasic clangCodeGen clangDriver clangEdit
   clangFrontend clangLex clangParse clangSema clangSerialization
   LLVMBitReader LLVMBitWriter LLVMAsmParser LLVMInstrumentation
@@ -65,7 +74,7 @@ target_link_libraries(spirsim
   LLVMAnalysis LLVMCore LLVMSupport)
 
 # Sources for OpenCL runtime API frontend
-set (OCLGRIND_SOURCES
+set(OCLGRIND_SOURCES
   src/oclgrind/async_queue.h
   src/oclgrind/async_queue.cpp
   src/oclgrind/icd.h
