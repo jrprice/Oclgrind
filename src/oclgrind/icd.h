@@ -113,10 +113,10 @@
 #define clCreateEventFromGLsyncKHR _clCreateEventFromGLsyncKHR_
 #endif // OCLGRIND_ICD
 
-#include <cstdint>
 #include <list>
 #include <map>
 #include <stack>
+#include <stdint.h>
 
 #include "CL/cl.h"
 #include "CL/cl_ext.h"

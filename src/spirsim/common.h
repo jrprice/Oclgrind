@@ -14,7 +14,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <list>
@@ -23,6 +22,7 @@
 #include <set>
 #include <stack>
 #include <stdexcept>
+#include <stdint.h>
 #include <vector>
 
 #define BIG_SEPARATOR   "================================"
