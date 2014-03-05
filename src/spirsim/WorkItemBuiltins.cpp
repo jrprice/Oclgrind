@@ -3294,7 +3294,7 @@ namespace spirsim
 #define F2ARG(name) (double(*)(double,double))name
 #define F3ARG(name) (double(*)(double,double,double))name
 #define ADD_BUILTIN(name, func, op)         \
-  workItemBuiltins[name] = BuiltinFunction((CAST)func, (void*)op);
+  builtins[name] = BuiltinFunction((CAST)func, (void*)op);
 #define ADD_PREFIX_BUILTIN(name, func, op)  \
   workItemPrefixBuiltins.push_back(                 \
     make_pair(name, BuiltinFunction((CAST)func, (void*)op)));
