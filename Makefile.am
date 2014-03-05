@@ -74,8 +74,8 @@ oclgrind_kernel_SOURCES = src/oclgrind-kernel/main.cpp
 oclgrind_kernel_LDADD = libspirsim.la
 
 bin_SCRIPTS = oclgrind
-oclgrind: src/oclgrind/oclgrind
-	cat src/oclgrind/oclgrind \
+oclgrind: $(top_srcdir)/src/oclgrind/oclgrind
+	cat $(top_srcdir)/src/oclgrind/oclgrind \
 	| $(SED) 's|__ROOT__|'$(prefix)'|g' \
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>oclgrind
