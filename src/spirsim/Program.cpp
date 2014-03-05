@@ -31,7 +31,12 @@
 #define IR_DUMP_NAME "/tmp/oclgrind_%lX.s"
 #define BC_DUMP_NAME "/tmp/oclgrind_%lX.bc"
 
+#if defined(_WIN32)
+#define REMAP_DIR "Z:/remapped/"
+#else
 #define REMAP_DIR "/remapped/"
+#endif
+
 #define REMAP_INPUT "input.cl"
 #define CLC_H_PATH REMAP_DIR"clc.h"
 extern const char CLC_H_DATA[];
