@@ -82,6 +82,8 @@ oclgrind: $(top_srcdir)/src/oclgrind/oclgrind
 
 EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h			\
  src/oclgrind/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
- src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/opencl.h CMakeLists.txt	\
- cmake_config.h.in src/spirsim/gen_clc_h.cmake src/oclgrind/icd.def
+ src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_d3d10.h			\
+ src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
+ CMakeLists.txt cmake_config.h.in src/spirsim/gen_clc_h.cmake		\
+ src/oclgrind/icd.def
 CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS)

@@ -122,6 +122,11 @@
 #include "CL/cl_ext.h"
 #include "CL/cl_gl.h"
 #include "CL/cl_gl_ext.h"
+#if defined(_WIN32) && !defined(__MINGW32__)
+#include "CL/cl_d3d11.h"
+#include "CL/cl_d3d10.h"
+#include "CL/cl_dx9_media_sharing.h"
+#endif
 
 namespace spirsim
 {
