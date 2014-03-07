@@ -21,11 +21,17 @@ libspirsim_la_SOURCES = src/spirsim/common.h src/spirsim/common.cpp	\
  src/spirsim/WorkItem.cpp src/spirsim/WorkItemBuiltins.cpp		\
  src/spirsim/WorkGroup.h src/spirsim/WorkGroup.cpp
 nodist_libspirsim_la_SOURCES = src/spirsim/clc_h.cpp
-libspirsim_la_LDFLAGS = -lclangCodeGen -lclangAST -lclang		\
+libspirsim_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
+-lclangDriver -lclangSerialization -lclangCodeGen -lclangParse		\
+-lclangSema -lclangStaticAnalyzerFrontend				\
+-lclangStaticAnalyzerCheckers -lclangStaticAnalyzerCore			\
+-lclangAnalysis -lclangARCMigrate -lclangRewriteFrontend		\
+-lclangRewriteCore -lclangEdit -lclangAST -lclangLex -lclangBasic	\
 -lLLVMBitReader -lLLVMBitWriter -lLLVMAsmParser -lLLVMInstrumentation	\
 -lLLVMipo -lLLVMipa -lLLVMInstCombine -lLLVMLinker -lLLVMMC		\
--lLLVMScalarOpts -lLLVMTarget -lLLVMTransformUtils -lLLVMVectorize	\
--lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lpthread -shared
+-lLLVMMCParser -lLLVMScalarOpts -lLLVMTarget -lLLVMTransformUtils	\
+-lLLVMVectorize -lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lpthread	\
+-shared
 spirsimincludedir = $(includedir)/spirsim
 spirsiminclude_HEADERS = src/spirsim/common.h src/spirsim/Device.h	\
  src/spirsim/half.h src/spirsim/Kernel.h src/spirsim/Memory.h		\
