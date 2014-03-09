@@ -4,15 +4,19 @@ Oclgrind
 
 About
 -----
+
 This project implements a virtual OpenCL device simulator, including
-an OpenCL runtime with ICD support. The goal is to provide a debugging
-aid for OpenCL development. The simulator is built on an interpreter
-for SPIR. This is a side-project is being undertaken by James Price (a
-PhD student at the University of Bristol).
+an OpenCL runtime with ICD support. The goal is to provide a platform
+for creating tools to aid OpenCL development. In particular, this
+project currently implements utilities for debugging memory access
+errors and for interactive OpenCL kernel debugging. The simulator is
+built on an interpreter for SPIR. This is a side-project is being
+undertaken by James Price (a PhD student at the University of
+Bristol).
 
 This project is currently in beta, and so you may encounter issues
-when running it. If you do, please get in touch using the contact
-details below.
+when building or running it. If you do, please get in touch using the
+contact details below.
 
 
 Building
@@ -29,6 +33,9 @@ build the Clang/SPIR generator. To improve the performance of
 Oclgrind, it is recommended to build for release mode (i.e. set
 CMAKE_BUILD_TYPE to RelWithDebInfo).
 
+
+Building on Linux and OS X
+--------------------------
 Run ./configure to generate the Makefile, optionally using
 --prefix=PATH to specify the target installation directory. If you
 don't have the Clang/SPIR generator includes and libraries on your
@@ -37,21 +44,44 @@ search path, you can specify the location of the generator using the
 
 ./configure --prefix=$PWD/build/ --with-spir=PATH/TO/CLANG/SPIR/BUILD
 
-Next, build with make:
+Next, build and install with make:
 
+make
 make install
 
-Ensure that the lib directory in the Clang/SPIR generator build is
-covered by your dynamic library search path, adding it to
-[DY]LD_LIBRARY_PATH if necessary. If installing to a non-default
-location, you should add the bin/ directory to the PATH environment
-variable in order to make use of the oclgrind command.
+If installing to a non-default location, you should add the bin/
+directory to the PATH environment variable in order to make use of the
+oclgrind command.
 
 If you wish to use Oclgrind via the OpenCL ICD (optional), then you
-should also create an ICD loading point. To do this, create the file
-/etc/OpenCL/vendors/oclgrind.icd, which should lioclgrind-icd.so (or
-.dylib on OS X), of the full path to this library if it isn't covered
-by your dynamic library search path.
+should also create an ICD loading point. To do this, create the text
+file /etc/OpenCL/vendors/oclgrind.icd, which should contain
+lioclgrind-icd.so (.dylib on OS X), or the full path to this library
+if it isn't already covered by your dynamic library search path.
+
+
+Building on Windows
+-------------------
+A CMake build system is provided for building Oclgrind on Windows. At
+present, this only works with Visual Studio 2013 (or newer), and
+Windows 7.
+
+When configuring the CMake build, you will be prompted to supply a
+value for the SPIR_ROOT parameter. This should be set to the root
+directory of the Clang/SPIR generator, (for example C:\Program
+Files\LLVM).
+
+If you wish to use Oclgrind via the OpenCL ICD (optional), then you
+should also create an ICD loading point. To do this, you should add a
+REG_DWORD value to the Windows Registry under one or both of the
+registry keys below, with the name set to the absolute path of the
+oclgrind-icd.dll library and the value set to 0.
+
+Key for 32-bit machines or 64-bit apps on a 64-bit machine:
+HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors
+
+Key for 32-bit apps on a 64-bit machine:
+HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Khronos\OpenCL\Vendors
 
 
 Usage
@@ -66,7 +96,8 @@ This command will make it such the only OpenCL platform and device
 available to your application is Oclgrind. If you need more control
 over platform selection then installing an ICD loading point for
 Oclgrind will cause it to appear when an application calls
-clGetPlatformIDs().
+clGetPlatformIDs(), alongside any other OpenCL platforms installed on
+your system.
 
 If it encounters any invalid memory accesses, Oclgrind will
 report the details to stderr, for example:
@@ -80,7 +111,7 @@ report the details to stderr, for example:
 
 Since it is interpreting an abstract intermediate representation and
 bounds-checking each memory access, Oclgrind will run very slowly
-(typically several orders of magnitude slower than a regular CPU
+(typically a few orders of magnitude slower than a regular CPU
 implementation). Therefore, it is recommended to run with a small
 problem if possible.
 
@@ -89,7 +120,7 @@ flag to the oclgrind command, or export the environment variable
 OCLGRIND_INTERACTIVE=1. This will cause Oclgrind to automatically
 break at the beginning of each kernel invocation, and upon
 encountering an invalid memory access. Type 'help' for details of
-available commands. This feature is currently very limited, and will
+available commands. This feature is currently fairly limited, and will
 likely be improved in the future.
 
 For more detailed information about using Oclgrind please visit the
