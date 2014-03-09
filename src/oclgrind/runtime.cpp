@@ -30,8 +30,8 @@ using namespace std;
 #define DEVICE_NAME "SPIR Simulator"
 #define DEVICE_VENDOR "James Price, University of Bristol"
 #define DEVICE_VENDOR_ID 0x0042
-#define DEVICE_VERSION "OpenCL 1.2 (Oclgrind "PACKAGE_VERSION")"
-#define DEVICE_LANG_VERSION "OpenCL C 1.2 (Oclgrind "PACKAGE_VERSION")"
+#define DEVICE_VERSION "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
+#define DEVICE_LANG_VERSION "OpenCL C 1.2 (Oclgrind " PACKAGE_VERSION ")"
 #define DRIVER_VERSION PACKAGE_VERSION
 #define DEVICE_PROFILE "FULL_PROFILE"
 #define DEVICE_EXTENSIONS "cl_khr_spir cl_khr_3d_image_writes \
@@ -54,7 +54,7 @@ clIcdGetPlatformIDsKHR
   if (!m_platform)
   {
     m_platform = (cl_platform_id)malloc(sizeof(struct _cl_platform_id));
-    m_platform->version = "OpenCL 1.2 (Oclgrind "PACKAGE_VERSION")";
+    m_platform->version = "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")";
     m_platform->vendor = "James Price, University of Bristol";
     m_platform->profile = "FULL_PROFILE";
     m_platform->name = "Oclgrind";
