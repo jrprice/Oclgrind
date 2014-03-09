@@ -31,6 +31,7 @@ using namespace std;
 #define DEVICE_VENDOR "James Price, University of Bristol"
 #define DEVICE_VENDOR_ID 0x0042
 #define DEVICE_VERSION "OpenCL 1.2 (Oclgrind "PACKAGE_VERSION")"
+#define DEVICE_LANG_VERSION "OpenCL C 1.2 (Oclgrind "PACKAGE_VERSION")"
 #define DRIVER_VERSION PACKAGE_VERSION
 #define DEVICE_PROFILE "FULL_PROFILE"
 #define DEVICE_EXTENSIONS "cl_khr_spir cl_khr_3d_image_writes \
@@ -549,9 +550,9 @@ clGetDeviceInfo
     *(cl_uint*)result_data = 0;
     break;
   case CL_DEVICE_OPENCL_C_VERSION:
-    result_size = sizeof(DEVICE_VERSION);
+    result_size = sizeof(DEVICE_LANG_VERSION);
     result_data = malloc(result_size);
-    strcpy((char*)result_data, DEVICE_VERSION);
+    strcpy((char*)result_data, DEVICE_LANG_VERSION);
     break;
   case CL_DEVICE_LINKER_AVAILABLE:
     result_size = sizeof(cl_bool);
