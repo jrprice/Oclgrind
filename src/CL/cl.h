@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 The Khronos Group Inc.
+ * Copyright (c) 2008 - 2012 The Khronos Group Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and/or associated documentation files (the
@@ -278,6 +278,8 @@ typedef struct _cl_buffer_region {
 #define CL_DEVICE_REFERENCE_COUNT                   0x1047
 #define CL_DEVICE_PREFERRED_INTEROP_USER_SYNC       0x1048
 #define CL_DEVICE_PRINTF_BUFFER_SIZE                0x1049
+#define CL_DEVICE_IMAGE_PITCH_ALIGNMENT             0x104A
+#define CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT      0x104B
 
 /* cl_device_fp_config - bitfield */
 #define CL_FP_DENORM                                (1 << 0)
@@ -366,6 +368,8 @@ typedef struct _cl_buffer_region {
 #define CL_Rx                                       0x10BA
 #define CL_RGx                                      0x10BB
 #define CL_RGBx                                     0x10BC
+#define CL_DEPTH                                    0x10BD
+#define CL_DEPTH_STENCIL                            0x10BE
 
 /* cl_channel_type */
 #define CL_SNORM_INT8                               0x10D0
@@ -383,6 +387,7 @@ typedef struct _cl_buffer_region {
 #define CL_UNSIGNED_INT32                           0x10DC
 #define CL_HALF_FLOAT                               0x10DD
 #define CL_FLOAT                                    0x10DE
+#define CL_UNORM_INT24                              0x10DF
 
 /* cl_mem_object_type */
 #define CL_MEM_OBJECT_BUFFER                        0x10F0
@@ -1146,15 +1151,6 @@ clEnqueueBarrierWithWaitList(cl_command_queue /* command_queue */,
                              cl_uint           /* num_events_in_wait_list */,
                              const cl_event *  /* event_wait_list */,
                              cl_event *        /* event */) CL_API_SUFFIX__VERSION_1_2;
-
-extern CL_API_ENTRY cl_int CL_API_CALL
-clSetPrintfCallback(cl_context          /* context */,
-                    void (CL_CALLBACK * /* pfn_notify */)(cl_context /* program */, 
-                                                          cl_uint /*printf_data_len */, 
-                                                          char * /* printf_data_ptr */, 
-                                                          void * /* user_data */),
-                    void *              /* user_data */) CL_API_SUFFIX__VERSION_1_2;
-
 
 
 /* Extension function access
