@@ -55,7 +55,8 @@ link_directories(${SPIR_ROOT}/lib)
 # Generate stringified clc.h
 add_custom_command(
   OUTPUT src/spirsim/clc_h.cpp
-  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/src/spirsim/gen_clc_h.cmake
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_FILE=${CMAKE_SOURCE_DIR}/src/spirsim/clc.h
+    -P ${CMAKE_SOURCE_DIR}/src/spirsim/gen_clc_h.cmake
   DEPENDS src/spirsim/clc.h src/spirsim/gen_clc_h.cmake
 )
 
