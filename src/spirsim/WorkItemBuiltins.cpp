@@ -517,7 +517,7 @@ namespace spirsim
 
     static double _sign_(double x)
     {
-      if (isnan(x))  return  0.0;
+      if (::isnan(x))  return  0.0;
       if (x  >  0.0) return  1.0;
       if (x == -0.0) return -0.0;
       if (x ==  0.0) return  0.0;
@@ -2456,7 +2456,7 @@ namespace spirsim
       {
         double x = FARGV(0, i);
         double integral = trunc(x);
-        double fractional = copysign(isinf(x) ? 0.0 : x - integral, x);
+        double fractional = copysign(::isinf(x) ? 0.0 : x - integral, x);
 
         size_t offset = i*result.size;
         WorkItem::setFloatResult(result, integral, i);
@@ -2575,8 +2575,8 @@ namespace spirsim
     static int64_t _isle_(double x, double y){ return islessequal(x, y); }
     static int64_t _islg_(double x, double y){ return islessgreater(x, y); }
     static int64_t _isfin_(double x){ return isfinite(x); }
-    static int64_t _isinf_(double x){ return isinf(x); }
-    static int64_t _isnan_(double x){ return isnan(x); }
+    static int64_t _isinf_(double x){ return ::isinf(x); }
+    static int64_t _isnan_(double x){ return ::isnan(x); }
     static int64_t _isnorm_(double x){ return isnormal(x); }
     static int64_t _isord_(double x, double y){ return !isunordered(x, y); }
     static int64_t _isuord_(double x, double y){ return isunordered(x, y); }
