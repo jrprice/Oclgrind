@@ -18,6 +18,7 @@ Makefile
 Makefile.in
 missing
 stamp-h1
+test-driver
 
 # Compiler output
 *.o
@@ -30,8 +31,13 @@ libtool
 oclgrind-kernel
 src/spirsim/clc_h.cpp
 
+# Test output
+test-suite.log
+*.trs
+*.log
+*.out
+*.diff
+
 # Misc
-*.bc
-*.s
 util/floatval
 util/hexval
