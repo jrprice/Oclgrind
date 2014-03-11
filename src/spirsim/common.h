@@ -32,13 +32,6 @@
 #define snprintf _snprintf
 #endif
 
-// Disable alignas attribute for Clang due to bug in LLVM 3.2 Support/AlignOf.h
-#ifdef __has_feature
-#if __has_feature(cxx_alignas)
-#define alignas(x)
-#endif
-#endif
-
 namespace llvm
 {
   class Constant;

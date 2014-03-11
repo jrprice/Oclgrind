@@ -16,6 +16,20 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
 
+# Disable alignas attribute for Clang due to bug in LLVM 3.2 Support/AlignOf.h
+DISABLE_ALIGNAS="
+#ifdef __has_feature
+#if __has_feature(cxx_alignas)
+#define alignas(x)
+#endif
+#endif"
+AH_BOTTOM([
+#ifdef __has_feature
+#if __has_feature(cxx_alignas)
+#define alignas(x)
+#endif
+#endif])
+
 LT_INIT
 
 # Enable C++11 if available
@@ -37,7 +51,9 @@ AC_ARG_WITH(
 AC_CHECK_HEADERS(
         [llvm/Instruction.h clang/CodeGen/CodeGenAction.h],
         [:],
-        AC_MSG_ERROR([LLVM/Clang includes not found (use --with-spir=)]))
+        AC_MSG_ERROR([LLVM/Clang includes not found (use --with-spir=)]),
+        $DISABLE_ALIGNAS)
+
 AC_CHECK_LIB(
         [clang],
         [clang_getClangVersion],
