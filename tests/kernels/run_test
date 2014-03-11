@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if [ $# -lt 1 ]
+then
+  echo "Usage: run_test SIMFILE [path/to/oclgrind-kernel]"
+  exit 1
+fi
+
+EXE=${2:-$PWD/oclgrind-kernel}
+
+cd $(dirname $1)
+
+SIM=${1##*/}
+NAME=${SIM%.sim}
+REF=$NAME.ref
+OUT=$NAME.out
+DIFF=$NAME.diff
+
+$EXE -g $SIM >$OUT 2>&1
+
+RET=$?
+cat $OUT
+
+if [ $RET -ne 0 ]
+then
+  echo "oclgrind-kernel returned non-zero value ($RET)"
+  exit $RET
+fi
+
+diff $REF $OUT >$DIFF 2>&1
+if [ -s $DIFF ]
+then
+  echo "Output didn't match reference"
+  cat $DIFF
+  exit 1
+fi
+
+echo
+echo "Test passed."
