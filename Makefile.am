@@ -92,3 +92,9 @@ EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h			\
  CMakeLists.txt cmake_config.h.in src/spirsim/gen_clc_h.cmake		\
  src/oclgrind/icd.def
 CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS)
+
+KERNEL_TESTS = \
+	tests/kernels/vecadd/vecadd.sim
+TESTS = $(KERNEL_TESTS)
+TEST_EXTENSIONS = .sim
+SIM_LOG_COMPILER = $(top_srcdir)/tests/kernels/run_test
