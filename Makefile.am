@@ -85,16 +85,17 @@ oclgrind: $(top_srcdir)/src/oclgrind/oclgrind
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>oclgrind
 
+TESTS = @KERNEL_TESTS@
+TEST_EXTENSIONS = .sim
+SIM_LOG_COMPILER = $(top_srcdir)/tests/kernels/run_test
+AM_TESTS_ENVIRONMENT = export AM_TESTS=1;
+
 EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h			\
  src/oclgrind/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
  src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_d3d10.h			\
  src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
  CMakeLists.txt cmake_config.h.in src/spirsim/gen_clc_h.cmake		\
- src/oclgrind/icd.def
-CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS)
-
-KERNEL_TESTS = \
-	tests/kernels/vecadd/vecadd.sim
-TESTS = $(KERNEL_TESTS)
-TEST_EXTENSIONS = .sim
-SIM_LOG_COMPILER = $(top_srcdir)/tests/kernels/run_test
+ src/oclgrind/icd.def tests/kernels/run_test \
+ @KERNEL_TEST_INPUTS@
+CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS) \
+ @KERNEL_TEST_OUTPUTS@

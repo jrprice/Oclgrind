@@ -6,17 +6,20 @@ then
   exit 1
 fi
 
-EXE=${2:-$PWD/oclgrind-kernel}
-
-cd $(dirname $1)
-
 SIM=${1##*/}
+REF=${1%.sim}.ref
 NAME=${SIM%.sim}
-REF=$NAME.ref
 OUT=$NAME.out
 DIFF=$NAME.diff
+EXE=oclgrind-kernel
+if [ "$AM_TESTS" == "1" ]
+then
+  EXE=$PWD/oclgrind-kernel
+  OUT=tests/kernels/$NAME/$OUT
+  DIFF=tests/kernels/$NAME/$DIFF
+fi
 
-$EXE -g $SIM >$OUT 2>&1
+(cd $(dirname $1); $EXE -g $SIM ) >$OUT 2>&1
 
 RET=$?
 cat $OUT

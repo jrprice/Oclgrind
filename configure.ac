@@ -63,4 +63,21 @@ AC_CHECK_LIB(
 # Find Clang/SPIR binary (assume clang on PATH if --with-spir not used)
 AC_CHECK_PROG(clang_spir, [clang], `which clang`)
 
+# Kernel tests
+KERNEL_TESTS=""
+KERNEL_TEST_INPUTS=""
+KERNEL_TEST_OUTPUTS=""
+m4_foreach([name], [[vecadd]],
+[
+    KERNEL_TESTS="$KERNEL_TESTS tests/kernels/"name"/"name".sim"
+    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".sim"
+    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".cl"
+    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".ref"
+    KERNEL_TEST_OUTPUTS="$KERNEL_TEST_OUTPUTS tests/kernels/"name"/"name".out"
+    KERNEL_TEST_OUTPUTS="$KERNEL_TEST_OUTPUTS tests/kernels/"name"/"name".diff"
+])
+AC_SUBST(KERNEL_TESTS, $KERNEL_TESTS)
+AC_SUBST(KERNEL_TEST_INPUTS, $KERNEL_TEST_INPUTS)
+AC_SUBST(KERNEL_TEST_OUTPUTS, $KERNEL_TEST_OUTPUTS)
+
 AC_OUTPUT
