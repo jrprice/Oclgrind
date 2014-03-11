@@ -37,8 +37,7 @@ spirsiminclude_HEADERS = src/spirsim/common.h src/spirsim/Device.h	\
  src/spirsim/half.h src/spirsim/Kernel.h src/spirsim/Memory.h		\
  src/spirsim/Program.h src/spirsim/Queue.h src/spirsim/WorkItem.h	\
  src/spirsim/WorkGroup.h src/spirsim/clc.h
-src/spirsim/clc_h.cpp: Makefile src/spirsim/gen_clc_h.sh	\
- src/spirsim/clc.h
+src/spirsim/clc_h.cpp: src/spirsim/gen_clc_h.sh	src/spirsim/clc.h
 	$(top_srcdir)/src/spirsim/gen_clc_h.sh $(top_srcdir)/src/spirsim/clc.h $@
 
 install-data-hook:
