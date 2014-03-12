@@ -38,8 +38,8 @@ namespace spirsim
               unsigned int workDim,
               size_t wgid_x, size_t wgid_y, size_t wgid_z,
               const size_t globalOffset[3],
-              const size_t wgsize[3],
-              const size_t globalSize[3]);
+              const size_t globalSize[3],
+              const size_t wgsize[3]);
     virtual ~WorkGroup();
 
     uint64_t async_copy(AsyncCopy copy, uint64_t event);
