@@ -34,19 +34,23 @@ namespace spirsim
   private:
     Memory *m_globalMemory;
 
-    // Comparator for ordering work-groups
-    struct WorkGroupCmp
+    struct PendingWorkGroup
     {
-      bool operator()(const WorkGroup *lhs, const WorkGroup *rhs) const;
+      size_t group[3];
+      size_t operator[](int i) const
+      {
+        return group[i];
+      }
     };
 
     // Current kernel invocation
     const Program *m_program;
     Kernel *m_kernel;
-    WorkGroup **m_workGroups;
     WorkGroup *m_currentWorkGroup;
     WorkItem *m_currentWorkItem;
-    std::set<WorkGroup*, WorkGroupCmp> m_runningGroups;
+    std::list<PendingWorkGroup> m_pendingGroups;
+    std::list<WorkGroup*> m_runningGroups;
+    size_t m_workDim;
     size_t m_globalSize[3];
     size_t m_globalOffset[3];
     size_t m_localSize[3];
@@ -62,6 +66,7 @@ namespace spirsim
     typedef void (Device::*Command)(std::vector<std::string>);
     std::map<std::string, Command> m_commands;
 
+    WorkGroup* createWorkGroup(size_t x, size_t y, size_t z);
     size_t getCurrentLineNumber() const;
     size_t getLineNumber(const llvm::Instruction *instruction) const;
     bool nextWorkItem();

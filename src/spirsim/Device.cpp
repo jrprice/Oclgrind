@@ -68,6 +68,13 @@ Device::~Device()
   delete m_globalMemory;
 }
 
+WorkGroup* Device::createWorkGroup(size_t x, size_t y, size_t z)
+{
+  return new WorkGroup(
+    this, *m_kernel, *m_globalMemory, m_workDim, x, y, z,
+    m_globalOffset, m_globalSize, m_localSize);
+}
+
 size_t Device::getCurrentLineNumber() const
 {
   if (!m_currentWorkItem || m_currentWorkItem->getState() == WorkItem::FINISHED)
@@ -100,31 +107,49 @@ bool Device::isInteractive() const
 
 bool Device::nextWorkItem()
 {
-  // Switch to next ready work-item
-  m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
-  if (m_currentWorkItem)
+  if (m_currentWorkGroup)
   {
-    return true;
-  }
-
-  // No work-items in READY state
-  // Check if there are work-items at a barrier
-  if (m_currentWorkGroup->hasBarrier())
-  {
-    // Resume execution
-    m_currentWorkGroup->clearBarrier();
+    // Switch to next ready work-item
     m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
-    return true;
+    if (m_currentWorkItem)
+    {
+      return true;
+    }
+
+    // No work-items in READY state
+    // Check if there are work-items at a barrier
+    if (m_currentWorkGroup->hasBarrier())
+    {
+      // Resume execution
+      m_currentWorkGroup->clearBarrier();
+      m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
+      return true;
+    }
+
+    // All work-items must have finished, destroy work-group
+    delete m_currentWorkGroup;
+    m_currentWorkGroup = NULL;
   }
 
-  // All work-items must have finished
   // Switch to next work-group
-  m_runningGroups.erase(m_currentWorkGroup);
-  if (m_runningGroups.empty())
+  if (!m_runningGroups.empty())
+  {
+    // Take work-group from running pool
+    m_currentWorkGroup = m_runningGroups.front();
+    m_runningGroups.pop_front();
+  }
+  else if (!m_pendingGroups.empty())
+  {
+    // Take work-group from pending pool
+    PendingWorkGroup group = m_pendingGroups.front();
+    m_pendingGroups.pop_front();
+    m_currentWorkGroup = createWorkGroup(group[0], group[1], group[2]);
+  }
+  else
   {
     return false;
   }
-  m_currentWorkGroup = *m_runningGroups.begin();
+
   m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
 
   // Check if this work-group has already finished
@@ -237,6 +262,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   assert(m_runningGroups.empty());
 
   // Set-up offsets and sizes
+  m_workDim = workDim;
   m_globalSize[0] = m_globalSize[1] = m_globalSize[2] = 1;
   m_globalOffset[0] = m_globalOffset[1] = m_globalOffset[2] = 0;
   m_localSize[0] = m_localSize[1] = m_localSize[2] = 1;
@@ -269,31 +295,29 @@ void Device::run(Kernel& kernel, unsigned int workDim,
     return;
   }
 
-  // Prepare kernel invocation
-  m_program = &kernel.getProgram();
-  m_kernel = &kernel;
+  // Create pool of pending work-groups
   m_numGroups[0] = m_globalSize[0]/m_localSize[0];
   m_numGroups[1] = m_globalSize[1]/m_localSize[1];
   m_numGroups[2] = m_globalSize[2]/m_localSize[2];
-  m_workGroups = new WorkGroup*[m_numGroups[0]*m_numGroups[1]*m_numGroups[2]];
-  for (int k = 0; k < m_numGroups[2]; k++)
+  for (size_t k = 0; k < m_numGroups[2]; k++)
   {
-    for (int j = 0; j < m_numGroups[1]; j++)
+    for (size_t j = 0; j < m_numGroups[1]; j++)
     {
-      for (int i = 0; i < m_numGroups[0]; i++)
+      for (size_t i = 0; i < m_numGroups[0]; i++)
       {
-        WorkGroup *workGroup =
-          new WorkGroup(this, kernel, *m_globalMemory, workDim, i, j, k,
-                        m_globalOffset, m_globalSize, m_localSize);
-        m_workGroups[i + (k*m_numGroups[1] + j)*m_numGroups[0]] = workGroup;
-        m_runningGroups.insert(workGroup);
+        PendingWorkGroup workGroup = {{i, j, k}};
+        m_pendingGroups.push_back(workGroup);
       }
     }
   }
 
+  // Prepare kernel invocation
+  m_program = &kernel.getProgram();
+  m_kernel = &kernel;
   m_listPosition = 0;
-  m_currentWorkGroup = m_workGroups[0];
-  m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
+  m_currentWorkGroup = NULL;
+  m_currentWorkItem = NULL;
+  nextWorkItem();
 
   try
   {
@@ -369,15 +393,19 @@ void Device::run(Kernel& kernel, unsigned int workDim,
          << "(" << err.getFile() << ":" << err.getLine() << ")"
          << endl << err.what() << endl;
     printErrorContext();
-    m_runningGroups.clear();
   }
 
-  // Destroy work-groups
-  for (int i = 0; i < m_numGroups[0]*m_numGroups[1]*m_numGroups[2]; i++)
+  // Destroy any remaining work-groups
+  while (!m_runningGroups.empty())
   {
-    delete m_workGroups[i];
+    delete m_runningGroups.front();
+    m_runningGroups.pop_front();
   }
-  delete[] m_workGroups;
+  if (m_currentWorkGroup)
+  {
+    delete m_currentWorkGroup;
+    m_currentWorkGroup = NULL;
+  }
 
   // Deallocate constant memory
   kernel.deallocateConstants(m_globalMemory);
@@ -1088,7 +1116,6 @@ void Device::quit(vector<string> args)
 {
   m_interactive = false;
   m_running = false;
-  m_runningGroups.clear();
   m_breakpoints.clear();
 }
 
@@ -1132,14 +1159,74 @@ void Device::workitem(vector<string> args)
     }
   }
 
-  // Get work-group containing target work-item
+  // Compute work-group ID
   size_t group[3] =
   {
     gid[0]/m_localSize[0],
     gid[1]/m_localSize[1],
     gid[2]/m_localSize[2]
   };
-  m_currentWorkGroup = m_workGroups[INDEX(group, m_numGroups)];
+
+  bool found = false;
+  WorkGroup *previousWorkGroup = m_currentWorkGroup;
+
+  // Check if we're already running the work-group
+  const size_t *_group = m_currentWorkGroup->getGroupID();
+  if (group[0] == _group[0] &&
+      group[1] == _group[1] &&
+      group[2] == _group[2])
+  {
+    found = true;
+  }
+
+  // Check if work-group is in running pool
+  if (!found)
+  {
+    std::list<WorkGroup*>::iterator rItr;
+    for (rItr = m_runningGroups.begin(); rItr != m_runningGroups.end(); rItr++)
+    {
+      const size_t *_group = (*rItr)->getGroupID();
+      if (group[0] == _group[0] &&
+          group[1] == _group[1] &&
+          group[2] == _group[2])
+      {
+        m_currentWorkGroup = *rItr;
+        m_runningGroups.erase(rItr);
+        found = true;
+        break;
+      }
+    }
+  }
+
+  // Check if work-group is in pending pool
+  if (!found)
+  {
+    std::list<PendingWorkGroup>::iterator pItr;
+    for (pItr = m_pendingGroups.begin(); pItr != m_pendingGroups.end(); pItr++)
+    {
+      const size_t *_group = pItr->group;
+      if (group[0] == _group[0] &&
+          group[1] == _group[1] &&
+          group[2] == _group[2])
+      {
+        m_currentWorkGroup = createWorkGroup(group[0], group[1], group[2]);
+        m_pendingGroups.erase(pItr);
+        found = true;
+        break;
+      }
+    }
+  }
+
+  if (!found)
+  {
+    cout << "Work-item has already finished, unable to load state." << endl;
+    return;
+  }
+
+  if (previousWorkGroup != m_currentWorkGroup)
+  {
+    m_runningGroups.push_back(previousWorkGroup);
+  }
 
   // Get work-item
   size_t lid[3] =
@@ -1162,20 +1249,4 @@ void Device::workitem(vector<string> args)
   {
     printCurrentLine();
   }
-}
-
-bool Device::WorkGroupCmp::operator()(const WorkGroup *lhs,
-                                      const WorkGroup *rhs) const
-{
-  const size_t *lgid = lhs->getGroupID();
-  const size_t *rgid = rhs->getGroupID();
-  if (lgid[2] != rgid[2])
-  {
-    return lgid[2] < rgid[2];
-  }
-  if (lgid[1] != rgid[1])
-  {
-    return lgid[1] < rgid[1];
-  }
-  return lgid[0] < rgid[0];
 }
