@@ -45,8 +45,6 @@ WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,
   m_localMemory = kernel.getLocalMemory()->clone();
 
   // Initialise work-items
-  m_totalWorkItems = groupSize[0] * groupSize[1] * groupSize[2];
-  m_workItems = new WorkItem*[m_totalWorkItems];
   for (size_t k = 0; k < groupSize[2]; k++)
   {
     for (size_t j = 0; j < groupSize[1]; j++)
@@ -54,7 +52,7 @@ WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,
       for (size_t i = 0; i < groupSize[0]; i++)
       {
         WorkItem *workItem = new WorkItem(m_device, *this, kernel, i, j, k);
-        m_workItems[i + (j + k*groupSize[1])*groupSize[0]] = workItem;
+        m_workItems.push_back(workItem);
         m_running.insert(workItem);
       }
     }
@@ -66,11 +64,10 @@ WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,
 WorkGroup::~WorkGroup()
 {
   // Delete work-items
-  for (int i = 0; i < m_totalWorkItems; i++)
+  for (int i = 0; i < m_workItems.size(); i++)
   {
     delete m_workItems[i];
   }
-  delete[] m_workItems;
 
   delete m_localMemory;
 }
@@ -101,7 +98,7 @@ uint64_t WorkGroup::async_copy(AsyncCopy copy, uint64_t event)
 void WorkGroup::clearBarrier()
 {
   // Check for divergence
-  if (m_barrier.size() != m_totalWorkItems)
+  if (m_barrier.size() != m_workItems.size())
   {
     FATAL_ERROR("Barrier divergence detected");
   }

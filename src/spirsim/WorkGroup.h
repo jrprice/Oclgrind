@@ -63,11 +63,10 @@ namespace spirsim
     size_t m_globalSize[3];
     size_t m_groupID[3];
     size_t m_groupSize[3];
-    size_t m_totalWorkItems;
     Device *m_device;
     const Kernel& m_kernel;
     Memory *m_localMemory;
-    WorkItem **m_workItems;
+    std::vector<WorkItem*> m_workItems;
 
     // Comparator for ordering work-items
     struct WorkItemCmp
