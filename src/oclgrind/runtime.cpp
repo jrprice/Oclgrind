@@ -23,8 +23,9 @@
 using namespace std;
 
 #define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
-#define MAX_GLOBAL_MEM_SIZE 16 * 1048576 // 16 MB
-#define MAX_LOCAL_MEM_SIZE 1048576 // 1 MB
+#define MAX_GLOBAL_MEM_SIZE 128 * 1048576 // 128 MB
+#define MAX_CONSTANT_BUFFER_SIZE 1 * 1048576 // 1 MB
+#define MAX_LOCAL_MEM_SIZE 32768 // 32 KB
 #define MAX_WI_SIZE 65536
 
 #define DEVICE_NAME "SPIR Simulator"
@@ -408,7 +409,7 @@ clGetDeviceInfo
   case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
     result_size = sizeof(cl_ulong);
     result_data = malloc(result_size);
-    *(cl_ulong*)result_data = MAX_GLOBAL_MEM_SIZE;
+    *(cl_ulong*)result_data = MAX_CONSTANT_BUFFER_SIZE;
     break;
   case CL_DEVICE_MAX_CONSTANT_ARGS:
     result_size = sizeof(cl_uint);
