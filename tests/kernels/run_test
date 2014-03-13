@@ -23,6 +23,7 @@ fi
 
 RET=$?
 cat $OUT
+echo
 
 if [ $RET -ne 0 ]
 then
@@ -30,7 +31,26 @@ then
   exit $RET
 fi
 
-diff $REF $OUT >$DIFF 2>&1
+REF_START=$(grep -n "Global Memory:" $REF | awk -F ':' '{print $1}')
+OUT_DATA=$(grep -n "Global Memory:" $OUT | awk -F ':' '{print $1}')
+if [ "$REF_START" == "" -o "$OUT_DATA" == "" ]
+then
+    echo "Global memory dump missing from output or reference"
+    exit 1
+fi
+
+# Check that errors are reported if and only if they are expected
+if [ $REF_START -ne 1 -a $OUT_DATA -eq 1 ]
+then
+    echo "Error expected, but no error reported"
+    exit 1
+elif [ $REF_START -eq 1 -a $OUT_DATA -ne 1 ]
+then
+    echo "Error reported, but no error expected"
+    exit 1
+fi
+
+diff <(tail -n +$REF_START $REF) <(tail -n +$OUT_DATA $OUT) >$DIFF 2>&1
 if [ -s $DIFF ]
 then
   echo "Output didn't match reference"
