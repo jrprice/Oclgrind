@@ -939,13 +939,16 @@ void Device::mem(vector<string> args)
     }
   }
 
-  // Read data from memory
-  unsigned char *data = new unsigned char[size];
-  if (!memory->load(data, address, size))
+  // Check address is valid
+  if (!memory->isAddressValid(address, size))
   {
-    cout << "Failed to read data from memory." << endl;
+    cout << "Invalid memory address." << endl;
     return;
   }
+
+  // Read data from memory
+  unsigned char *data = new unsigned char[size];
+  memory->load(data, address, size);
 
   // Output data
   for (int i = 0; i < size; i++)
@@ -1088,18 +1091,19 @@ void Device::print(vector<string> args)
       size_t elemSize = getTypeSize(elemType);
 
       // Load data
-      unsigned char *data = new unsigned char[elemSize];
-      if (!memory->load(data, base + index*elemSize, elemSize))
+      if (!memory->isAddressValid(base + index*elemSize, elemSize))
       {
-        cout << "failed to load data" << endl;
+        cout << "invalid memory address" << endl;
       }
       else
       {
         // Print data
+        unsigned char *data = new unsigned char[elemSize];
+        memory->load(data, base + index*elemSize, elemSize);
         printTypedData(elemType, data);
         cout << endl;
+        delete[] data;
       }
-      delete[] data;
     }
     else
     {

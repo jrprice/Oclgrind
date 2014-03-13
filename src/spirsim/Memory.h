@@ -34,6 +34,7 @@ namespace spirsim
     void dump() const;
     void* getPointer(size_t address) const;
     size_t getTotalAllocated() const;
+    bool isAddressValid(size_t address, size_t size=1) const;
     bool load(unsigned char *dest, size_t address, size_t size=1) const;
     unsigned char* mapBuffer(size_t address, size_t offset, size_t size);
     void setDevice(Device *device);

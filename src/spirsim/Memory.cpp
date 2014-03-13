@@ -164,16 +164,12 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
   size_t dest_offset = EXTRACT_OFFSET(dest);
 
   // Bounds checks
-  if (src_buffer >= m_memory.size() ||
-      !m_memory[src_buffer].data ||
-      src_offset+size > m_memory[src_buffer].size)
+  if (!isAddressValid(src, size))
   {
     m_device->notifyMemoryError(true, m_addressSpace, src, size);
     return false;
   }
-  if (dest_buffer >= m_memory.size() ||
-      !m_memory[dest_buffer].data ||
-      dest_offset+size > m_memory[dest_buffer].size)
+  if (!isAddressValid(dest, size))
   {
     m_device->notifyMemoryError(false, m_addressSpace, dest, size);
     return false;
@@ -247,12 +243,9 @@ int Memory::getNextBuffer()
 void* Memory::getPointer(size_t address) const
 {
   size_t buffer = EXTRACT_BUFFER(address);
-  size_t offset = EXTRACT_OFFSET(address);
 
   // Bounds check
-  if (buffer == 0 ||
-      buffer >= m_memory.size() ||
-      !m_memory[buffer].data)
+  if (!isAddressValid(address))
   {
     return NULL;
   }
@@ -265,16 +258,27 @@ size_t Memory::getTotalAllocated() const
   return m_totalAllocated;
 }
 
+bool Memory::isAddressValid(size_t address, size_t size) const
+{
+  size_t buffer = EXTRACT_BUFFER(address);
+  size_t offset = EXTRACT_OFFSET(address);
+  if (buffer == 0 ||
+      buffer >= m_memory.size() ||
+      !m_memory[buffer].data ||
+      offset+size > m_memory.at(buffer).size)
+  {
+    return false;
+  }
+  return true;
+}
+
 bool Memory::load(unsigned char *dest, size_t address, size_t size) const
 {
   size_t buffer = EXTRACT_BUFFER(address);
   size_t offset = EXTRACT_OFFSET(address);
 
   // Bounds check
-  if (buffer == 0 ||
-      buffer >= m_memory.size() ||
-      !m_memory[buffer].data ||
-      offset+size > m_memory.at(buffer).size)
+  if (!isAddressValid(address, size))
   {
     m_device->notifyMemoryError(true, m_addressSpace, address, size);
     return false;
@@ -290,9 +294,7 @@ unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
   size_t buffer = EXTRACT_BUFFER(address);
 
   // Bounds check
-  if (buffer >= m_memory.size() ||
-      !m_memory[buffer].data ||
-      offset+size > m_memory[buffer].size)
+  if (!isAddressValid(address, size))
   {
     return NULL;
   }
@@ -311,10 +313,7 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
   size_t offset = EXTRACT_OFFSET(address);
 
   // Bounds check
-  if (buffer == 0 ||
-      buffer >= m_memory.size() ||
-      !m_memory[buffer].data ||
-      offset+size > m_memory[buffer].size)
+  if (!isAddressValid(address, size))
   {
     m_device->notifyMemoryError(false, m_addressSpace, address, size);
     return false;
