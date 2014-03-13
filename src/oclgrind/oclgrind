@@ -10,14 +10,18 @@
 function usage
 {
   echo "Usage: "
-  echo "  oclgrind [-i] COMMAND"
-  echo "  oclgrind -v"
+  echo "  oclgrind [--dump-spir] [-i] COMMAND"
+  echo "  oclgrind [--help | --version]"
   echo
   echo "Options:"
   echo "     --dump-spir     Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
   echo "  -h --help          Display usage information"
   echo "  -i --interactive   Enable interactive mode"
   echo "  -v --version       Display version information"
+  echo
+  echo "For more information, please visit the Oclgrind wiki page:"
+  echo "-> https://github.com/jrprice/Oclgrind/wiki"
+  echo
 }
 
 # Parse arguments
