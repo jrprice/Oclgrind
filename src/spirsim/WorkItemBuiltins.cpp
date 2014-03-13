@@ -1079,7 +1079,7 @@ namespace spirsim
 
       // Load channel data
       unsigned char *data = workItem->m_pool.alloc(channelSize);
-      if (!workItem->m_device->getGlobalMemory()->load(data, address,
+      if (!workItem->getMemory(AddrSpaceGlobal)->load(data, address,
                                                        channelSize))
       {
         return 0.f;
@@ -1150,7 +1150,7 @@ namespace spirsim
 
       // Load channel data
       unsigned char *data = workItem->m_pool.alloc(channelSize);
-      if (!workItem->m_device->getGlobalMemory()->load(data, address,
+      if (!workItem->getMemory(AddrSpaceGlobal)->load(data, address,
                                                        channelSize))
       {
         return 0;
@@ -1215,7 +1215,7 @@ namespace spirsim
 
       // Load channel data
       unsigned char *data = workItem->m_pool.alloc(channelSize);
-      if (!workItem->m_device->getGlobalMemory()->load(data, address,
+      if (!workItem->getMemory(AddrSpaceGlobal)->load(data, address,
                                                        channelSize))
       {
         return 0;
@@ -1604,7 +1604,7 @@ namespace spirsim
                             * image->desc.image_width) * pixelSize;
 
       // Write channel values
-      Memory *memory = workItem->m_device->getGlobalMemory();
+      Memory *memory = workItem->getMemory(AddrSpaceGlobal);
       for (int i = 0; i < numChannels; i++)
       {
         // Compute normalized color value
@@ -1704,7 +1704,7 @@ namespace spirsim
                             * image->desc.image_width) * pixelSize;
 
       // Write channel values
-      Memory *memory = workItem->m_device->getGlobalMemory();
+      Memory *memory = workItem->getMemory(AddrSpaceGlobal);
       for (int i = 0; i < numChannels; i++)
       {
         // Compute normalized color value
@@ -1795,7 +1795,7 @@ namespace spirsim
                             * image->desc.image_width) * pixelSize;
 
       // Write channel values
-      Memory *memory = workItem->m_device->getGlobalMemory();
+      Memory *memory = workItem->getMemory(AddrSpaceGlobal);
       for (int i = 0; i < numChannels; i++)
       {
         // Compute normalized color value
@@ -3073,7 +3073,7 @@ namespace spirsim
       const llvm::ConstantExpr *formatExpr = (llvm::ConstantExpr*)ARG(0);
       TypedValue formatPtrData = workItem->resolveConstExpr(formatExpr);
       size_t formatPtr = *(size_t*)formatPtrData.data;
-      Memory *memory = workItem->m_device->getGlobalMemory();
+      Memory *memory = workItem->getMemory(AddrSpaceGlobal);
 
       int arg = 1;
       while (true)
