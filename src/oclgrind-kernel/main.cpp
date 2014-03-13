@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
   device->run(*kernel, 3, offset, ndrange, wgsize);
   if (outputGlobalMemory)
   {
+    cout << "Global Memory:" << endl;
     device->getGlobalMemory()->dump();
   }
 
