@@ -14,17 +14,17 @@ function usage
   echo "  oclgrind -v"
   echo
   echo "Options:"
-  echo "  -i  Enable interactive mode"
-  echo "  -v  Display version information"
+  echo "  -i --interactive   Enable interactive mode"
+  echo "  -v --version       Display version information"
 }
 
 # Parse arguments
 while [ $# -gt 0 -a "${1:0:1}" == "-" ]
 do
-  if [ "$1" == "-i" ]
+  if [ "$1" == "-i" -o "$1" == "--interactive" ]
   then
     export OCLGRIND_INTERACTIVE=1
-  elif [ "$1" == "-v" ]
+  elif [ "$1" == "-v" -o "$1" == "--version" ]
   then
     echo
     echo "Oclgrind __VERSION__"
