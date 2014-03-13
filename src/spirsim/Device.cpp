@@ -32,6 +32,7 @@ using namespace std;
 Device::Device()
 {
   m_globalMemory = new Memory(AddrSpaceGlobal, this);
+  m_kernel = NULL;
   m_interactive = false;
   m_nextBreakpoint = 1;
 
@@ -191,7 +192,10 @@ void Device::printErrorContext() const
   }
 
   // Kernel
-  cerr << "\tKernel:     " << m_kernel->getName() << endl;
+  if (m_kernel)
+  {
+    cerr << "\tKernel:     " << m_kernel->getName() << endl;
+  }
 
   // Instruction
   if (m_currentWorkItem)
@@ -409,6 +413,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
 
   // Deallocate constant memory
   kernel.deallocateConstants(m_globalMemory);
+  m_kernel = NULL;
 }
 
 void Device::printCurrentLine() const
