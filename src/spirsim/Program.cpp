@@ -26,7 +26,7 @@
 #include "Program.h"
 #include "WorkItem.h"
 
-#define ENV_DUMP "OCLGRIND_DUMP_TEMPS"
+#define ENV_DUMP_SPIR "OCLGRIND_DUMP_SPIR"
 #define CL_DUMP_NAME "/tmp/oclgrind_%lX.cl"
 #define IR_DUMP_NAME "/tmp/oclgrind_%lX.s"
 #define BC_DUMP_NAME "/tmp/oclgrind_%lX.bc"
@@ -241,8 +241,8 @@ bool Program::build(const char *options, list<Header> headers)
   }
 
   // Dump temps if required
-  const char *keepTempsEnv = getenv(ENV_DUMP);
-  if (keepTempsEnv && strcmp(keepTempsEnv, "1") == 0)
+  const char *dumpSpir = getenv(ENV_DUMP_SPIR);
+  if (dumpSpir && strcmp(dumpSpir, "1") == 0)
   {
     // Temporary directory
 #if defined(_WIN32)

@@ -14,6 +14,7 @@ function usage
   echo "  oclgrind -v"
   echo
   echo "Options:"
+  echo "     --dump-spir     Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
   echo "  -h --help          Display usage information"
   echo "  -i --interactive   Enable interactive mode"
   echo "  -v --version       Display version information"
@@ -22,7 +23,10 @@ function usage
 # Parse arguments
 while [ $# -gt 0 -a "${1:0:1}" == "-" ]
 do
-  if [ "$1" == "-h" -o "$1" == "--help" ]
+  if [ "$1" == "--dump-spir" ]
+  then
+    export OCLGRIND_DUMP_SPIR=1
+  elif [ "$1" == "-h" -o "$1" == "--help" ]
   then
     usage
     exit 0
