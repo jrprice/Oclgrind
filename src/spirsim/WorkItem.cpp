@@ -55,7 +55,7 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
     set(argItr->first, m_pool.clone(argItr->second));
   }
 
-  m_privateMemory = new Memory();
+  m_privateMemory = new Memory(AddrSpacePrivate, device);
 
   list<const llvm::GlobalVariable*>::const_iterator varItr;
   for (varItr = kernel.vars_begin(); varItr != kernel.vars_end(); varItr++)
@@ -1438,10 +1438,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
 
   // Load data
   size_t size = result.size*result.num;
-  if (!getMemory(addressSpace)->load(result.data, address, size))
-  {
-    m_device->notifyMemoryError(true, addressSpace, address, size);
-  }
+  getMemory(addressSpace)->load(result.data, address, size);
 }
 
 void WorkItem::lshr(const llvm::Instruction& instruction, TypedValue& result)
@@ -1730,10 +1727,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
   }
 
   // Store data
-  if (!getMemory(addressSpace)->store(data, address, size))
-  {
-    m_device->notifyMemoryError(false, addressSpace, address, size);
-  }
+  getMemory(addressSpace)->store(data, address, size);
 }
 
 void WorkItem::sub(const llvm::Instruction& instruction, TypedValue& result)

@@ -25,7 +25,7 @@ Kernel::Kernel(const Program& program,
  : m_program(program)
 {
   m_function = function;
-  m_localMemory = new Memory();
+  m_localMemory = new Memory(AddrSpaceLocal, NULL);
 
   // Get name
   m_name = function->getName().str();

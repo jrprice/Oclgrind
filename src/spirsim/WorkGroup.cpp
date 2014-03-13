@@ -43,6 +43,7 @@ WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,
 
   // Allocate local memory
   m_localMemory = kernel.getLocalMemory()->clone();
+  m_localMemory->setDevice(device);
 
   // Initialise work-items
   for (size_t k = 0; k < groupSize[2]; k++)

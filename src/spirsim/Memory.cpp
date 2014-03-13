@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstring>
 
+#include "Device.h"
 #include "Memory.h"
 
 #define NUM_BUFFER_BITS 16
@@ -26,8 +27,11 @@
 using namespace spirsim;
 using namespace std;
 
-Memory::Memory()
+Memory::Memory(unsigned int addrSpace, Device *device)
 {
+  m_device = device;
+  m_addressSpace = addrSpace;
+
   clear();
 }
 
@@ -93,7 +97,7 @@ void Memory::clear()
 
 Memory* Memory::clone() const
 {
-  Memory *mem = new Memory();
+  Memory *mem = new Memory(m_addressSpace, m_device);
 
   // Clone buffers
   mem->m_memory.resize(m_memory.size());
@@ -159,14 +163,19 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
   size_t dest_buffer = EXTRACT_BUFFER(dest);
   size_t dest_offset = EXTRACT_OFFSET(dest);
 
-  // Bounds check
+  // Bounds checks
   if (src_buffer >= m_memory.size() ||
-      dest_buffer >= m_memory.size() ||
       !m_memory[src_buffer].data ||
+      src_offset+size > m_memory[src_buffer].size)
+  {
+    m_device->notifyMemoryError(true, m_addressSpace, src, size);
+    return false;
+  }
+  if (dest_buffer >= m_memory.size() ||
       !m_memory[dest_buffer].data ||
-      src_offset+size > m_memory[src_buffer].size ||
       dest_offset+size > m_memory[dest_buffer].size)
   {
+    m_device->notifyMemoryError(false, m_addressSpace, dest, size);
     return false;
   }
 
@@ -267,12 +276,12 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
       !m_memory[buffer].data ||
       offset+size > m_memory.at(buffer).size)
   {
+    m_device->notifyMemoryError(true, m_addressSpace, address, size);
     return false;
   }
 
   // Load data
   memcpy(dest, m_memory.at(buffer).data + offset, size);
-
   return true;
 }
 
@@ -291,6 +300,11 @@ unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
   return m_memory[buffer].data + offset + EXTRACT_OFFSET(address);
 }
 
+void Memory::setDevice(Device *device)
+{
+  m_device = device;
+}
+
 bool Memory::store(const unsigned char *source, size_t address, size_t size)
 {
   size_t buffer = EXTRACT_BUFFER(address);
@@ -302,6 +316,7 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
       !m_memory[buffer].data ||
       offset+size > m_memory[buffer].size)
   {
+    m_device->notifyMemoryError(false, m_addressSpace, address, size);
     return false;
   }
 

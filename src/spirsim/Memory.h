@@ -10,6 +10,8 @@
 
 namespace spirsim
 {
+  class Device;
+
   typedef struct
   {
     size_t address;
@@ -20,7 +22,7 @@ namespace spirsim
   class Memory
   {
   public:
-    Memory();
+    Memory(unsigned int addrSpace, Device *device);
     virtual ~Memory();
 
     size_t allocateBuffer(size_t size);
@@ -34,6 +36,7 @@ namespace spirsim
     size_t getTotalAllocated() const;
     bool load(unsigned char *dest, size_t address, size_t size=1) const;
     unsigned char* mapBuffer(size_t address, size_t offset, size_t size);
+    void setDevice(Device *device);
     bool store(const unsigned char *source, size_t address, size_t size=1);
 
     static size_t getMaxAllocSize();
@@ -46,8 +49,10 @@ namespace spirsim
       unsigned char *data;
     } Buffer;
 
+    Device *m_device;
     std::queue<int> m_freeBuffers;
     std::vector<Buffer> m_memory;
+    unsigned int m_addressSpace;
     size_t m_totalAllocated;
 
     int getNextBuffer();

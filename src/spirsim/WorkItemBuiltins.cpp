@@ -258,8 +258,6 @@ namespace spirsim
         if (!workItem->m_privateMemory->load((unsigned char*)&event,
          address, sizeof(uint64_t)))
         {
-          workItem->m_device->notifyMemoryError(true, AddrSpacePrivate,
-                                                address, sizeof(uint64_t));
           return;
         }
         workItem->m_workGroup.wait_event(event);
@@ -1084,9 +1082,6 @@ namespace spirsim
       if (!workItem->m_device->getGlobalMemory()->load(data, address,
                                                        channelSize))
       {
-        workItem->m_device->notifyMemoryError(true, AddrSpaceGlobal,
-                                              address,
-                                              channelSize);
         return 0.f;
       }
 
@@ -1158,9 +1153,6 @@ namespace spirsim
       if (!workItem->m_device->getGlobalMemory()->load(data, address,
                                                        channelSize))
       {
-        workItem->m_device->notifyMemoryError(true, AddrSpaceGlobal,
-                                              address,
-                                              channelSize);
         return 0;
       }
 
@@ -1226,9 +1218,6 @@ namespace spirsim
       if (!workItem->m_device->getGlobalMemory()->load(data, address,
                                                        channelSize))
       {
-        workItem->m_device->notifyMemoryError(true, AddrSpaceGlobal,
-                                              address,
-                                              channelSize);
         return 0;
       }
 
@@ -1646,9 +1635,6 @@ namespace spirsim
         // Write data
         if (!memory->store(data, pixelAddress + i*channelSize, channelSize))
         {
-          workItem->m_device->notifyMemoryError(false, AddrSpaceGlobal,
-                                                pixelAddress + i*channelSize,
-                                                channelSize);
         }
       }
     }
@@ -1740,12 +1726,7 @@ namespace spirsim
         }
 
         // Write data
-        if (!memory->store(data, pixelAddress + i*channelSize, channelSize))
-        {
-          workItem->m_device->notifyMemoryError(false, AddrSpaceGlobal,
-                                                pixelAddress + i*channelSize,
-                                                channelSize);
-        }
+        memory->store(data, pixelAddress + i*channelSize, channelSize);
       }
     }
 
@@ -1836,12 +1817,7 @@ namespace spirsim
         }
 
         // Write data
-        if (!memory->store(data, pixelAddress + i*channelSize, channelSize))
-        {
-          workItem->m_device->notifyMemoryError(false, AddrSpaceGlobal,
-                                                pixelAddress + i*channelSize,
-                                                channelSize);
-        }
+        memory->store(data, pixelAddress + i*channelSize, channelSize);
       }
     }
 
@@ -2717,12 +2693,7 @@ namespace spirsim
 
       size_t address = base + offset*result.size*result.num;
       size_t size = result.size*result.num;
-      Memory *memory = workItem->getMemory(addressSpace);
-      if (!memory->load(result.data, address, size))
-      {
-        workItem->m_device->notifyMemoryError(true, addressSpace,
-                                              address, size);
-      }
+      workItem->getMemory(addressSpace)->load(result.data, address, size);
     }
 
     DEFINE_BUILTIN(vstore)
@@ -2751,12 +2722,7 @@ namespace spirsim
       uint64_t offset = UARG(1);
 
       size_t address = base + offset*size;
-      Memory *memory = workItem->getMemory(addressSpace);
-      if (!memory->store(data, address, size))
-      {
-        workItem->m_device->notifyMemoryError(false, addressSpace,
-                                              address, size);
-      }
+      workItem->getMemory(addressSpace)->store(data, address, size);
     }
 
     DEFINE_BUILTIN(vload_half)
@@ -2776,12 +2742,8 @@ namespace spirsim
       }
       size_t size = sizeof(cl_half)*result.num;
       uint16_t *halfData = (uint16_t*)workItem->m_pool.alloc(2*result.num);
-      Memory *memory = workItem->getMemory(addressSpace);
-      if (!memory->load((unsigned char*)halfData, address, size))
-      {
-        workItem->m_device->notifyMemoryError(true, addressSpace,
+      workItem->getMemory(addressSpace)->load((unsigned char*)halfData,
                                               address, size);
-      }
 
       // Convert to floats
       for (int i = 0; i < result.num; i++)
@@ -2835,12 +2797,8 @@ namespace spirsim
         address = base + offset*sizeof(cl_half)*num;
       }
 
-      Memory *memory = workItem->getMemory(addressSpace);
-      if (!memory->store((unsigned char*)halfData, address, size))
-      {
-        workItem->m_device->notifyMemoryError(false, addressSpace,
-                                              address, size);
-      }
+      workItem->getMemory(addressSpace)->store((unsigned char*)halfData,
+                                               address, size);
     }
 
 
@@ -3245,18 +3203,10 @@ namespace spirsim
       size_t size = workItem->getUnsignedInt(memcpyInst->getLength());
       unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
       unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
-      Memory *destMemory = workItem->getMemory(destAddrSpace);
-      Memory *srcMemory = workItem->getMemory(srcAddrSpace);
 
       unsigned char *buffer = workItem->m_pool.alloc(size);
-      if (!srcMemory->load(buffer, src, size))
-      {
-        workItem->m_device->notifyMemoryError(true, srcAddrSpace, src, size);
-      }
-      else if (!destMemory->store(buffer, dest, size))
-      {
-        workItem->m_device->notifyMemoryError(false, destAddrSpace, dest, size);
-      }
+      workItem->getMemory(srcAddrSpace)->load(buffer, src, size);
+      workItem->getMemory(destAddrSpace)->store(buffer, dest, size);
     }
 
     DEFINE_BUILTIN(llvm_memset)
@@ -3266,15 +3216,11 @@ namespace spirsim
         *(size_t*)(workItem->get(memsetInst->getDest()).data);
       size_t size = workItem->getUnsignedInt(memsetInst->getLength());
       unsigned addressSpace = memsetInst->getDestAddressSpace();
-      Memory *memory = workItem->getMemory(addressSpace);
 
       unsigned char *buffer = workItem->m_pool.alloc(size);
       unsigned char value = workItem->getUnsignedInt(ARG(1));
       memset(buffer, value, size);
-      if (!memory->store(buffer, dest, size))
-      {
-        workItem->m_device->notifyMemoryError(false, addressSpace, dest, size);
-      }
+      workItem->getMemory(addressSpace)->store(buffer, dest, size);
     }
 
     DEFINE_BUILTIN(llvm_trap)

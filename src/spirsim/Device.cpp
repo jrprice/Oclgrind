@@ -31,7 +31,7 @@ using namespace std;
 
 Device::Device()
 {
-  m_globalMemory = new Memory();
+  m_globalMemory = new Memory(AddrSpaceGlobal, this);
   m_interactive = false;
   m_nextBreakpoint = 1;
 
