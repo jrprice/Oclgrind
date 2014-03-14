@@ -41,6 +41,11 @@ WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,
   m_groupSize[1] = groupSize[1];
   m_groupSize[2] = groupSize[2];
 
+  m_groupIndex = (m_groupID[0] +
+                 (m_groupID[1] +
+                  m_groupID[2]*(globalSize[1]/groupSize[1])) *
+                  (globalSize[0]/groupSize[0]));
+
   // Allocate local memory
   m_localMemory = kernel.getLocalMemory()->clone();
   m_localMemory->setDevice(device);
@@ -156,6 +161,7 @@ void WorkGroup::clearBarrier()
 
   // TODO: Check fence flags, global memory fence
   m_localMemory->synchronize();
+  m_device->getGlobalMemory()->synchronize(true);
 }
 
 const size_t* WorkGroup::getGlobalOffset() const
@@ -171,6 +177,11 @@ const size_t* WorkGroup::getGlobalSize() const
 const size_t* WorkGroup::getGroupID() const
 {
   return m_groupID;
+}
+
+const size_t WorkGroup::getGroupIndex() const
+{
+  return m_groupIndex;
 }
 
 const size_t* WorkGroup::getGroupSize() const

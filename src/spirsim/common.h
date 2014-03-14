@@ -52,6 +52,13 @@ namespace spirsim
     AddrSpaceLocal = 3,
   };
 
+  // Enumeration for types of data-race
+  enum DataRaceType
+  {
+    ReadWriteRace,
+    WriteWriteRace
+  };
+
   // Structure for a value with a size/type
   typedef struct
   {

@@ -23,9 +23,12 @@ namespace spirsim
     virtual ~Device();
 
     Memory *getGlobalMemory() const;
+    const WorkGroup* getCurrentWorkGroup() const;
     const WorkItem* getCurrentWorkItem() const;
     bool isInteractive() const;
-    void notifyDataRace(unsigned int addrSpace, size_t address);
+    void notifyDataRace(DataRaceType type, unsigned int addrSpace,
+                        size_t address, size_t lastWorkItem,
+                        const llvm::Instruction *lastInstruction);
     void notifyMemoryError(bool read, unsigned int addrSpace,
                            size_t address, size_t size);
     void run(Kernel& kernel, unsigned int workDim,
@@ -75,6 +78,7 @@ namespace spirsim
     void printCurrentLine() const;
     void printErrorContext() const;
     void printFunction(const llvm::Instruction *instruction) const;
+    void printInstruction(const llvm::Instruction *instruction) const;
     void printSourceLine(size_t lineNum) const;
     void step();
 

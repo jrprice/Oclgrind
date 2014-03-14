@@ -47,6 +47,7 @@ namespace spirsim
     const size_t* getGlobalOffset() const;
     const size_t* getGlobalSize() const;
     const size_t* getGroupID() const;
+    const size_t getGroupIndex() const;
     const size_t* getGroupSize() const;
     Memory* getLocalMemory() const;
     WorkItem *getNextWorkItem() const;
@@ -59,6 +60,7 @@ namespace spirsim
 
   private:
     unsigned int m_workDim;
+    size_t m_groupIndex;
     size_t m_globalOffset[3];
     size_t m_globalSize[3];
     size_t m_groupID[3];

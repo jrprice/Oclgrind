@@ -13,6 +13,7 @@
 
 #include "Device.h"
 #include "Memory.h"
+#include "WorkGroup.h"
 #include "WorkItem.h"
 
 #define NUM_BUFFER_BITS 16
@@ -201,8 +202,8 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
          srcBuffer.data + src_offset,
          size);
 
-  registerRead(src, size);
-  registerWrite(dest, size);
+  registerAccess(true, src, size);
+  registerAccess(false, dest, size);
 
   return true;
 }
@@ -222,6 +223,7 @@ void Memory::deallocateBuffer(size_t address)
   }
 
   m_memory[buffer].data = NULL;
+  m_memory[buffer].status = NULL;
   m_totalAllocated -= m_memory[buffer].size;
   m_freeBuffers.push(buffer);
 }
@@ -316,7 +318,7 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   // Load data
   Buffer src = m_memory[buffer];
   memcpy(dest, src.data + offset, size);
-  registerRead(address, size);
+  registerAccess(true, address, size);
 
   return true;
 }
@@ -354,71 +356,68 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
   // Store data
   Buffer dest = m_memory[buffer];
   memcpy(dest.data + offset, source, size);
-  registerWrite(address, size);
+  registerAccess(false, address, size);
 
   return true;
 }
 
-void Memory::registerRead(size_t address, size_t size) const
+void Memory::registerAccess(bool read, size_t address, size_t size) const
 {
   if (!m_checkDataRaces)
   {
     return;
   }
 
-  size_t workItemIndex = -1;
-  const WorkItem *workItem = m_device->getCurrentWorkItem();
+  // Get index of work-item and work-group performing access
+  size_t workItemIndex = -1, workGroupIndex = -1;
+  const WorkItem *workItem = m_device->getCurrentWorkItem();;
+  const WorkGroup *workGroup = m_device->getCurrentWorkGroup();
   if (workItem)
   {
     workItemIndex = workItem->getGlobalIndex();
   }
+  if (workGroup)
+  {
+    workGroupIndex = workGroup->getGroupIndex();
+  }
 
+  bool race = false;
   size_t base = EXTRACT_OFFSET(address);
   Buffer buffer = m_memory[EXTRACT_BUFFER(address)];
-  for (size_t offset = 0; offset < size; offset++)
+  Status *status = buffer.status + base;
+  for (size_t offset = 0; offset < size; offset++, status++)
   {
-    if (!buffer.status[base+offset].canRead &&
-        buffer.status[base+offset].workItem != workItemIndex)
+    bool conflict = read ? !status->canRead : !status->canWrite;
+    if (!race && conflict &&
+        (status->wasWorkItem ?                // If status set by work-item,
+         status->workItem != workItemIndex :  // must be same work-item,
+         status->workGroup != workGroupIndex) // otherwise must be same group
+        )
     {
-      m_device->notifyDataRace(m_addressSpace, address + offset);
-      break; // TODO: remove (granualirty)
+      // Report data-race
+      DataRaceType type = read|status->canRead ? ReadWriteRace : WriteWriteRace;
+      m_device->notifyDataRace(type, m_addressSpace,
+                               address + offset, status->workItem,
+                               status->instruction);
+      race = true;
     }
-    buffer.status[base+offset].canWrite = false;
-    buffer.status[base+offset].workItem = workItemIndex;
+    else
+    {
+      // Update status
+      status->canRead &= read;
+      status->canWrite = false;
+      status->workGroup = workGroupIndex;
+      if (workItem)
+      {
+        status->instruction = workItem->getCurrentInstruction();
+        status->workItem = workItemIndex;
+        status->wasWorkItem = true;
+      }
+    }
   }
 }
 
-void Memory::registerWrite(size_t address, size_t size) const
-{
-  if (!m_checkDataRaces)
-  {
-    return;
-  }
-
-  size_t workItemIndex = -1;
-  const WorkItem *workItem = m_device->getCurrentWorkItem();
-  if (workItem)
-  {
-    workItemIndex = workItem->getGlobalIndex();
-  }
-
-  size_t base = EXTRACT_OFFSET(address);
-  Buffer buffer = m_memory[EXTRACT_BUFFER(address)];
-  for (size_t offset = 0; offset < size; offset++)
-  {
-    if (!buffer.status[base+offset].canWrite &&
-        buffer.status[base+offset].workItem != workItemIndex)
-    {
-      m_device->notifyDataRace(m_addressSpace, address + offset);
-      break; // TODO: remove (granularity)
-    }
-    buffer.status[base+offset].canRead = false;
-    buffer.status[base+offset].canWrite = false;
-    buffer.status[base+offset].workItem = workItemIndex;
-  }
-}
-
-void Memory::synchronize()
+void Memory::synchronize(bool workGroup)
 {
   if (!m_checkDataRaces)
   {
@@ -428,13 +427,19 @@ void Memory::synchronize()
   vector<Buffer>::iterator itr;
   for (itr = m_memory.begin(); itr != m_memory.end(); itr++)
   {
-    if (itr->data)
+    if (!itr->status)
     {
-      for (size_t i = 0; i < itr->size; i++)
+      continue;
+    }
+    for (Status *status = itr->status; status < itr->status+itr->size; status++)
+    {
+      status->workItem = -1;
+      status->wasWorkItem = false;
+      if (!workGroup)
       {
-        itr->status[i].canRead = true;
-        itr->status[i].canWrite = true;
-        itr->status[i].workItem = -1;
+        status->workGroup = -1;
+        status->canRead = true;
+        status->canWrite = true;
       }
     }
   }
@@ -442,7 +447,10 @@ void Memory::synchronize()
 
 Memory::Status::Status()
 {
+  instruction = NULL;
+  workItem = -1;
+  workGroup = -1;
   canRead = true;
   canWrite = true;
-  workItem = -1;
+  wasWorkItem = false;
 }

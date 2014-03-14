@@ -85,6 +85,11 @@ size_t Device::getCurrentLineNumber() const
   return getLineNumber(m_currentWorkItem->getCurrentInstruction());
 }
 
+const WorkGroup* Device::getCurrentWorkGroup() const
+{
+  return m_currentWorkGroup;
+}
+
 const WorkItem* Device::getCurrentWorkItem() const
 {
   return m_currentWorkItem;
@@ -168,6 +173,115 @@ bool Device::nextWorkItem()
   return true;
 }
 
+void Device::notifyDataRace(DataRaceType type, unsigned int addrSpace,
+                            size_t address, size_t lastWorkItem,
+                            const llvm::Instruction *lastInstruction)
+{
+  string memType;
+  switch (addrSpace)
+  {
+  case AddrSpacePrivate:
+    memType = "private";
+    break;
+  case AddrSpaceGlobal:
+    memType = "global";
+    break;
+  case AddrSpaceConstant:
+    memType = "constant";
+    break;
+  case AddrSpaceLocal:
+    memType = "local";
+    break;
+  default:
+    assert(false && "Data race in unsupported address space.");
+    break;
+  }
+
+  // Error info
+  cerr << endl;
+  switch (type)
+  {
+    case ReadWriteRace:
+      cerr << "Read-write";
+      break;
+    case WriteWriteRace:
+      cerr << "Write-write";
+      break;
+    default:
+      cerr << "Unrecognized";
+      break;
+  }
+  cerr << " data race"
+       << " at " << memType
+       << " memory address " << hex << address << endl;
+
+  printErrorContext();
+  cerr << endl;
+
+  // Show details of other entity involved in race
+  if (lastWorkItem == -1)
+  {
+    cerr << "\tRace occured with unknown entity" << endl;
+  }
+  else
+  {
+    size_t gx, gy, gz;
+    gx = lastWorkItem % m_globalSize[0];
+    gy = lastWorkItem / m_globalSize[1] % m_globalSize[1];
+    gz = lastWorkItem / m_globalSize[2];
+    cerr << "\tRace occured with work-item (" << dec
+         << gx << ","
+         << gy << ","
+         << gz << ")" << endl;
+  }
+
+  // Show conflicting instruction
+  if (lastInstruction)
+  {
+    cerr << "\t";
+    printInstruction(lastInstruction);
+  }
+
+  cerr << endl;
+
+  m_forceBreak = true;
+}
+
+void Device::notifyMemoryError(bool read, unsigned int addrSpace,
+                               size_t address, size_t size)
+{
+  string memType;
+  switch (addrSpace)
+  {
+  case AddrSpacePrivate:
+    memType = "private";
+    break;
+  case AddrSpaceGlobal:
+    memType = "global";
+    break;
+  case AddrSpaceConstant:
+    memType = "constant";
+    break;
+  case AddrSpaceLocal:
+    memType = "local";
+    break;
+  default:
+    assert(false && "Memory error in unsupported address space.");
+    break;
+  }
+
+  // Error info
+  cerr << endl << "Invalid " << (read ? "read" : "write")
+       << " of size " << size
+       << " at " << memType
+       << " memory address " << hex << address << endl;
+
+  printErrorContext();
+  cerr << endl;
+
+  m_forceBreak = true;
+}
+
 void Device::printErrorContext() const
 {
   // Work item
@@ -207,95 +321,28 @@ void Device::printErrorContext() const
   if (m_currentWorkItem)
   {
     cerr << "\t";
-    const llvm::Instruction *instruction =
-      m_currentWorkItem->getCurrentInstruction();
-    dumpInstruction(cerr, *instruction);
-    cerr << endl;
-
-    // Output debug information
-    cerr << "\t";
-    llvm::MDNode *md = instruction->getMetadata("dbg");
-    if (!md)
-    {
-      cerr << "Debugging information not available." << endl;
-    }
-    else
-    {
-      llvm::DILocation loc(md);
-      cerr << "At line " << dec << loc.getLineNumber()
-           << " of " << loc.getFilename().str() << endl;
-    }
+    printInstruction(m_currentWorkItem->getCurrentInstruction());
   }
+}
 
+void Device::printInstruction(const llvm::Instruction *instruction) const
+{
+  dumpInstruction(cerr, *instruction);
   cerr << endl;
-}
 
-void Device::notifyDataRace(unsigned int addrSpace,
-                            size_t address)
-{
-  string memType;
-  switch (addrSpace)
+  // Output debug information
+  cerr << "\t";
+  llvm::MDNode *md = instruction->getMetadata("dbg");
+  if (!md)
   {
-  case AddrSpacePrivate:
-    memType = "private";
-    break;
-  case AddrSpaceGlobal:
-    memType = "global";
-    break;
-  case AddrSpaceConstant:
-    memType = "constant";
-    break;
-  case AddrSpaceLocal:
-    memType = "local";
-    break;
-  default:
-    assert(false && "Data race in unsupported address space.");
-    break;
+    cerr << "Debugging information not available." << endl;
   }
-
-  // Error info
-  // TODO: Show type of race and other work-item involved
-  cerr << endl << "Data race"
-       << " at " << memType
-       << " memory address " << hex << address << endl;
-
-  printErrorContext();
-
-  m_forceBreak = true;
-}
-
-void Device::notifyMemoryError(bool read, unsigned int addrSpace,
-                               size_t address, size_t size)
-{
-  string memType;
-  switch (addrSpace)
+  else
   {
-  case AddrSpacePrivate:
-    memType = "private";
-    break;
-  case AddrSpaceGlobal:
-    memType = "global";
-    break;
-  case AddrSpaceConstant:
-    memType = "constant";
-    break;
-  case AddrSpaceLocal:
-    memType = "local";
-    break;
-  default:
-    assert(false && "Memory error in unsupported address space.");
-    break;
+    llvm::DILocation loc(md);
+    cerr << "At line " << dec << loc.getLineNumber()
+         << " of " << loc.getFilename().str() << endl;
   }
-
-  // Error info
-  cerr << endl << "Invalid " << (read ? "read" : "write")
-       << " of size " << size
-       << " at " << memType
-       << " memory address " << hex << address << endl;
-
-  printErrorContext();
-
-  m_forceBreak = true;
 }
 
 void Device::run(Kernel& kernel, unsigned int workDim,
@@ -438,6 +485,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
          << "(" << err.getFile() << ":" << err.getLine() << ")"
          << endl << err.what() << endl;
     printErrorContext();
+    cerr << endl;
   }
 
   // Destroy any remaining work-groups
