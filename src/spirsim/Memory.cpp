@@ -24,6 +24,8 @@
 #define EXTRACT_OFFSET(address) \
   (address ^ (EXTRACT_BUFFER(address) << NUM_ADDRESS_BITS))
 
+#define ENV_DATA_RACES "OCLGRIND_DATA_RACES"
+
 using namespace spirsim;
 using namespace std;
 
@@ -31,6 +33,13 @@ Memory::Memory(unsigned int addrSpace, Device *device)
 {
   m_device = device;
   m_addressSpace = addrSpace;
+
+  m_checkDataRaces = false;
+  if (addrSpace != AddrSpacePrivate)
+  {
+    const char *dataRaces = getenv(ENV_DATA_RACES);
+    m_checkDataRaces = (dataRaces && strcmp(dataRaces, "1") == 0);
+  }
 
   clear();
 }

@@ -55,6 +55,7 @@ namespace spirsim
     std::vector<Buffer> m_memory;
     unsigned int m_addressSpace;
     size_t m_totalAllocated;
+    bool m_checkDataRaces;
 
     int getNextBuffer();
   };
