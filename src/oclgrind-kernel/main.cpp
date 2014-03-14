@@ -124,6 +124,7 @@ bool init(istream& input)
     char *data = new char[sz + 1];
     progFile.read(data, sz+1);
     progFile.close();
+    data[sz] = '\0';
     program = new Program(data);
     delete[] data;
 
