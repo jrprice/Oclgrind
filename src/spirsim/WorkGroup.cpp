@@ -65,6 +65,7 @@ WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,
   }
 
   m_nextEvent = 1;
+  m_barrierFence = 0;
 }
 
 WorkGroup::~WorkGroup()
@@ -159,9 +160,16 @@ void WorkGroup::clearBarrier()
     m_waitEvents.clear();
   }
 
-  // TODO: Check fence flags, global memory fence
-  m_localMemory->synchronize();
-  m_device->getGlobalMemory()->synchronize(true);
+  // Apple memory fences
+  if (m_barrierFence & CLK_LOCAL_MEM_FENCE)
+  {
+    m_localMemory->synchronize();
+  }
+  if (m_barrierFence & CLK_GLOBAL_MEM_FENCE)
+  {
+    m_device->getGlobalMemory()->synchronize(true);
+  }
+  m_barrierFence = 0;
 }
 
 const size_t* WorkGroup::getGlobalOffset() const
@@ -219,10 +227,11 @@ bool WorkGroup::hasBarrier() const
   return !m_barrier.empty();
 }
 
-void WorkGroup::notifyBarrier(WorkItem *workItem)
+void WorkGroup::notifyBarrier(WorkItem *workItem, uint64_t fence)
 {
   m_running.erase(workItem);
   m_barrier.insert(workItem);
+  m_barrierFence = fence;
 }
 
 void WorkGroup::notifyFinished(WorkItem *workItem)

@@ -264,7 +264,7 @@ namespace spirsim
         address += sizeof(uint64_t);
       }
       workItem->m_state = WorkItem::BARRIER;
-      workItem->m_workGroup.notifyBarrier(workItem);
+      workItem->m_workGroup.notifyBarrier(workItem, CLK_LOCAL_MEM_FENCE);
     }
 
     DEFINE_BUILTIN(prefetch)
@@ -2672,7 +2672,7 @@ namespace spirsim
     DEFINE_BUILTIN(barrier)
     {
       workItem->m_state = WorkItem::BARRIER;
-      workItem->m_workGroup.notifyBarrier(workItem);
+      workItem->m_workGroup.notifyBarrier(workItem, UARG(0));
     }
 
     DEFINE_BUILTIN(mem_fence)

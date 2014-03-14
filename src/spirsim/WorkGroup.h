@@ -8,6 +8,9 @@
 
 #include "common.h"
 
+#define CLK_LOCAL_MEM_FENCE  (1<<0)
+#define CLK_GLOBAL_MEM_FENCE (1<<1)
+
 namespace spirsim
 {
   class Device;
@@ -54,7 +57,7 @@ namespace spirsim
     unsigned int getWorkDim() const;
     WorkItem *getWorkItem(size_t localID[3]) const;
     bool hasBarrier() const;
-    void notifyBarrier(WorkItem *workItem);
+    void notifyBarrier(WorkItem *workItem, uint64_t fence);
     void notifyFinished(WorkItem *workItem);
     void wait_event(uint64_t event);
 
@@ -78,6 +81,7 @@ namespace spirsim
     std::set<WorkItem*, WorkItemCmp> m_running;
     std::set<WorkItem*, WorkItemCmp> m_barrier;
 
+    uint64_t m_barrierFence;
     uint64_t m_nextEvent;
     std::map< uint64_t, std::list<AsyncCopy> > m_pendingEvents;
     std::set<uint64_t> m_waitEvents;
