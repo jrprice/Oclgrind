@@ -67,7 +67,10 @@ AC_CHECK_PROG(clang_spir, [clang], `which clang`)
 KERNEL_TESTS=""
 KERNEL_TEST_INPUTS=""
 KERNEL_TEST_OUTPUTS=""
-m4_foreach([name], [[array], [reduce], [vecadd]],
+m4_foreach([name],
+  [[array], [reduce], [vecadd],
+  [broadcast], [global_read_write_race], [global_write_write_race],
+  [increment], [atomic_increment], [global_fence]],
 [
     KERNEL_TESTS="$KERNEL_TESTS tests/kernels/"name"/"name".sim"
     KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".sim"

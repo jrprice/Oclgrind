@@ -1,0 +1,7 @@
+global_write_write_race.cl
+global_write_write_race
+4 1 1
+1 1 1
+
+b 4
+00 00 00 00

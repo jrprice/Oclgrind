@@ -19,6 +19,7 @@ then
   DIFF=tests/kernels/$NAME/$DIFF
 fi
 
+export OCLGRIND_DATA_RACES=1
 (cd $(dirname $1); $EXE -g $SIM ) >$OUT 2>&1
 
 RET=$?
