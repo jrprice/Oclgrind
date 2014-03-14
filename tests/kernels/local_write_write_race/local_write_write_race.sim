@@ -1,0 +1,12 @@
+local_write_write_race.cl
+local_write_write_race
+4 1 1
+4 1 1
+
+b 16
+00 00 00 00
+00 00 00 00
+00 00 00 00
+00 00 00 00
+
+l 4
