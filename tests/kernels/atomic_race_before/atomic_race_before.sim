@@ -1,0 +1,7 @@
+atomic_race_before.cl
+atomic_race_before
+4 1 1
+4 1 1
+
+b 4
+00 00 00 00
