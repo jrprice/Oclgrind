@@ -159,6 +159,7 @@ namespace spirsim
     void icmp(const llvm::Instruction& instruction, TypedValue& result);
     void insertelem(const llvm::Instruction& instruction, TypedValue& result);
     void insertval(const llvm::Instruction& instruction, TypedValue& result);
+    void inttoptr(const llvm::Instruction& instruction, TypedValue& result);
     void itrunc(const llvm::Instruction& instruction, TypedValue& result);
     void load(const llvm::Instruction& instruction, TypedValue& result);
     void lshr(const llvm::Instruction& instruction, TypedValue& result);

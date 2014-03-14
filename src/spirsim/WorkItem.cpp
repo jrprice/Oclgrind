@@ -192,6 +192,9 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
   case llvm::Instruction::InsertValue:
     insertval(instruction, result);
     break;
+  case llvm::Instruction::IntToPtr:
+    inttoptr(instruction, result);
+    break;
   case llvm::Instruction::Load:
     load(instruction, result);
     break;
@@ -1427,6 +1430,16 @@ void WorkItem::insertval(const llvm::Instruction& instruction,
   {
     memcpy(result.data + offset, get(value).data,
            getTypeSize(value->getType()));
+  }
+}
+
+void WorkItem::inttoptr(const llvm::Instruction& instruction, TypedValue& result)
+{
+  const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t r = getUnsignedInt(instruction.getOperand(0), i);
+    setIntResult(result, r, i);
   }
 }
 
