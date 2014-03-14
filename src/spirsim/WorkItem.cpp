@@ -41,6 +41,11 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
   m_globalID[1] = lid_y + groupID[1]*groupSize[1] + globalOffset[1];
   m_globalID[2] = lid_z + groupID[2]*groupSize[2] + globalOffset[2];
 
+  const size_t *globalSize = workGroup.getGlobalSize();
+  m_globalIndex = (m_globalID[0] +
+                  (m_globalID[1] +
+                   m_globalID[2]*globalSize[1]) * globalSize[0]);
+
   // Load or create cached interpreter state
   m_cache = InterpreterCache::get(kernel.getProgram().getUID());
   assert(m_cache);
@@ -325,6 +330,11 @@ const llvm::Instruction* WorkItem::getCurrentInstruction() const
 const size_t* WorkItem::getGlobalID() const
 {
   return m_globalID;
+}
+
+size_t WorkItem::getGlobalIndex() const
+{
+  return m_globalIndex;
 }
 
 double WorkItem::getFloatValue(const llvm::Value *operand,

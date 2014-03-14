@@ -39,15 +39,26 @@ namespace spirsim
     unsigned char* mapBuffer(size_t address, size_t offset, size_t size);
     void setDevice(Device *device);
     bool store(const unsigned char *source, size_t address, size_t size=1);
+    void synchronize();
 
     static size_t getMaxAllocSize();
 
   private:
+    struct Status
+    {
+      bool canRead;
+      bool canWrite;
+      size_t workItem;
+
+      Status();
+    };
+
     typedef struct
     {
       bool hostPtr;
       size_t size;
       unsigned char *data;
+      Status *status;
     } Buffer;
 
     Device *m_device;
@@ -58,5 +69,7 @@ namespace spirsim
     bool m_checkDataRaces;
 
     int getNextBuffer();
+    void registerRead(size_t address, size_t size) const;
+    void registerWrite(size_t address, size_t size) const;
   };
 }

@@ -153,6 +153,9 @@ void WorkGroup::clearBarrier()
     }
     m_waitEvents.clear();
   }
+
+  // TODO: Check fence flags, global memory fence
+  m_localMemory->synchronize();
 }
 
 const size_t* WorkGroup::getGlobalOffset() const

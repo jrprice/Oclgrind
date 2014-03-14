@@ -85,6 +85,11 @@ size_t Device::getCurrentLineNumber() const
   return getLineNumber(m_currentWorkItem->getCurrentInstruction());
 }
 
+const WorkItem* Device::getCurrentWorkItem() const
+{
+  return m_currentWorkItem;
+}
+
 Memory* Device::getGlobalMemory() const
 {
   return m_globalMemory;
@@ -108,6 +113,7 @@ bool Device::isInteractive() const
 
 bool Device::nextWorkItem()
 {
+  m_currentWorkItem = NULL;
   if (m_currentWorkGroup)
   {
     // Switch to next ready work-item
@@ -224,6 +230,40 @@ void Device::printErrorContext() const
   cerr << endl;
 }
 
+void Device::notifyDataRace(unsigned int addrSpace,
+                            size_t address)
+{
+  string memType;
+  switch (addrSpace)
+  {
+  case AddrSpacePrivate:
+    memType = "private";
+    break;
+  case AddrSpaceGlobal:
+    memType = "global";
+    break;
+  case AddrSpaceConstant:
+    memType = "constant";
+    break;
+  case AddrSpaceLocal:
+    memType = "local";
+    break;
+  default:
+    assert(false && "Data race in unsupported address space.");
+    break;
+  }
+
+  // Error info
+  // TODO: Show type of race and other work-item involved
+  cerr << endl << "Data race"
+       << " at " << memType
+       << " memory address " << hex << address << endl;
+
+  printErrorContext();
+
+  m_forceBreak = true;
+}
+
 void Device::notifyMemoryError(bool read, unsigned int addrSpace,
                                size_t address, size_t size)
 {
@@ -321,6 +361,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   m_listPosition = 0;
   m_currentWorkGroup = NULL;
   m_currentWorkItem = NULL;
+  m_globalMemory->synchronize();
   nextWorkItem();
 
   try
@@ -414,6 +455,8 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   // Deallocate constant memory
   kernel.deallocateConstants(m_globalMemory);
   m_kernel = NULL;
+
+  m_globalMemory->synchronize();
 }
 
 void Device::printCurrentLine() const

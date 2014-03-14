@@ -108,6 +108,7 @@ namespace spirsim
     const std::stack<ReturnAddress>& getCallStack() const;
     const llvm::Instruction* getCurrentInstruction() const;
     const size_t* getGlobalID() const;
+    size_t getGlobalIndex() const;
     double getFloatValue(const llvm::Value *operand,
                          unsigned int index = 0);
     const size_t* getLocalID() const;
@@ -181,6 +182,7 @@ namespace spirsim
     void zext(const llvm::Instruction& instruction, TypedValue& result);
 
   private:
+    size_t m_globalIndex;
     size_t m_globalID[3];
     size_t m_localID[3];
     TypedValueMap m_phiTemps;

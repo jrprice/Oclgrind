@@ -13,6 +13,7 @@
 
 #include "Device.h"
 #include "Memory.h"
+#include "WorkItem.h"
 
 #define NUM_BUFFER_BITS 16
 #define MAX_NUM_BUFFERS ((size_t)1 << NUM_BUFFER_BITS)
@@ -68,11 +69,11 @@ size_t Memory::allocateBuffer(size_t size)
   Buffer buffer = {
     false,
     size,
-    new unsigned char[size]
+    new unsigned char[size],
+    m_checkDataRaces ? new Status[size] : NULL
   };
 
   // Initialize contents to 0
-  // TODO: Solution to catch use of uninitialised data
   memset(buffer.data, 0, size);
 
   if (b >= m_memory.size())
@@ -94,9 +95,16 @@ void Memory::clear()
   vector<Buffer>::iterator itr;
   for (itr = m_memory.begin(); itr != m_memory.end(); itr++)
   {
-    if (!itr->hostPtr && itr->data)
+    if (itr->data)
     {
-      delete[] itr->data;
+      if (!itr->hostPtr)
+      {
+        delete[] itr->data;
+      }
+      if (itr->status)
+      {
+        delete[] itr->status;
+      }
     }
   }
   m_memory.resize(1);
@@ -116,7 +124,8 @@ Memory* Memory::clone() const
     Buffer dest = {
       src.hostPtr,
       src.size,
-      src.hostPtr ? src.data : new unsigned char[src.size]
+      src.hostPtr ? src.data : new unsigned char[src.size],
+      m_checkDataRaces ? new Status[src.size] : NULL
     };
     memcpy(dest.data, src.data, src.size);
     mem->m_memory[i] = dest;
@@ -148,7 +157,8 @@ size_t Memory::createHostBuffer(size_t size, void *ptr)
   Buffer buffer = {
     true,
     size,
-    (unsigned char*)ptr
+    (unsigned char*)ptr,
+    m_checkDataRaces ? new Status[size] : NULL
   };
 
   if (b >= m_memory.size())
@@ -185,9 +195,14 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
   }
 
   // Copy data
-  memcpy(m_memory.at(dest_buffer).data + dest_offset,
-         m_memory.at(src_buffer).data + src_offset,
+  Buffer srcBuffer = m_memory.at(src_buffer);
+  Buffer destBuffer = m_memory.at(dest_buffer);
+  memcpy(destBuffer.data + dest_offset,
+         srcBuffer.data + src_offset,
          size);
+
+  registerRead(src, size);
+  registerWrite(dest, size);
 
   return true;
 }
@@ -201,6 +216,11 @@ void Memory::deallocateBuffer(size_t address)
   {
     delete[] m_memory[buffer].data;
   }
+  if (m_memory[buffer].status)
+  {
+    delete[] m_memory[buffer].status;
+  }
+
   m_memory[buffer].data = NULL;
   m_totalAllocated -= m_memory[buffer].size;
   m_freeBuffers.push(buffer);
@@ -294,7 +314,10 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   }
 
   // Load data
-  memcpy(dest, m_memory.at(buffer).data + offset, size);
+  Buffer src = m_memory[buffer];
+  memcpy(dest, src.data + offset, size);
+  registerRead(address, size);
+
   return true;
 }
 
@@ -329,7 +352,97 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
   }
 
   // Store data
-  memcpy(m_memory[buffer].data + offset, source, size);
+  Buffer dest = m_memory[buffer];
+  memcpy(dest.data + offset, source, size);
+  registerWrite(address, size);
 
   return true;
+}
+
+void Memory::registerRead(size_t address, size_t size) const
+{
+  if (!m_checkDataRaces)
+  {
+    return;
+  }
+
+  size_t workItemIndex = -1;
+  const WorkItem *workItem = m_device->getCurrentWorkItem();
+  if (workItem)
+  {
+    workItemIndex = workItem->getGlobalIndex();
+  }
+
+  size_t base = EXTRACT_OFFSET(address);
+  Buffer buffer = m_memory[EXTRACT_BUFFER(address)];
+  for (size_t offset = 0; offset < size; offset++)
+  {
+    if (!buffer.status[base+offset].canRead &&
+        buffer.status[base+offset].workItem != workItemIndex)
+    {
+      m_device->notifyDataRace(m_addressSpace, address + offset);
+      break; // TODO: remove (granualirty)
+    }
+    buffer.status[base+offset].canWrite = false;
+    buffer.status[base+offset].workItem = workItemIndex;
+  }
+}
+
+void Memory::registerWrite(size_t address, size_t size) const
+{
+  if (!m_checkDataRaces)
+  {
+    return;
+  }
+
+  size_t workItemIndex = -1;
+  const WorkItem *workItem = m_device->getCurrentWorkItem();
+  if (workItem)
+  {
+    workItemIndex = workItem->getGlobalIndex();
+  }
+
+  size_t base = EXTRACT_OFFSET(address);
+  Buffer buffer = m_memory[EXTRACT_BUFFER(address)];
+  for (size_t offset = 0; offset < size; offset++)
+  {
+    if (!buffer.status[base+offset].canWrite &&
+        buffer.status[base+offset].workItem != workItemIndex)
+    {
+      m_device->notifyDataRace(m_addressSpace, address + offset);
+      break; // TODO: remove (granularity)
+    }
+    buffer.status[base+offset].canRead = false;
+    buffer.status[base+offset].canWrite = false;
+    buffer.status[base+offset].workItem = workItemIndex;
+  }
+}
+
+void Memory::synchronize()
+{
+  if (!m_checkDataRaces)
+  {
+    return;
+  }
+
+  vector<Buffer>::iterator itr;
+  for (itr = m_memory.begin(); itr != m_memory.end(); itr++)
+  {
+    if (itr->data)
+    {
+      for (size_t i = 0; i < itr->size; i++)
+      {
+        itr->status[i].canRead = true;
+        itr->status[i].canWrite = true;
+        itr->status[i].workItem = -1;
+      }
+    }
+  }
+}
+
+Memory::Status::Status()
+{
+  canRead = true;
+  canWrite = true;
+  workItem = -1;
 }

@@ -23,7 +23,9 @@ namespace spirsim
     virtual ~Device();
 
     Memory *getGlobalMemory() const;
+    const WorkItem* getCurrentWorkItem() const;
     bool isInteractive() const;
+    void notifyDataRace(unsigned int addrSpace, size_t address);
     void notifyMemoryError(bool read, unsigned int addrSpace,
                            size_t address, size_t size);
     void run(Kernel& kernel, unsigned int workDim,
