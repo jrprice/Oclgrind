@@ -73,6 +73,7 @@ m4_foreach([name],
   [broadcast], [global_read_write_race], [global_write_write_race],
   [local_read_write_race], [local_write_write_race], [increment],
   [atomic_increment], [global_fence], [intergroup_race],
+  [async_copy], [async_copy_local_race], [async_copy_global_race],
   [local_only_fence], [global_only_fence], [barrier_divergence]],
 [
     KERNEL_TESTS="$KERNEL_TESTS tests/kernels/"name"/"name".sim"
