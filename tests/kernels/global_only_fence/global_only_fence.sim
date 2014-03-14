@@ -1,0 +1,12 @@
+global_only_fence.cl
+global_only_fence
+4 1 1
+4 1 1
+
+l 16
+
+b 16
+00 00 00 00
+00 00 00 00
+00 00 00 00
+00 00 00 00
