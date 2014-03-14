@@ -35,6 +35,8 @@ Device::Device()
   m_kernel = NULL;
   m_interactive = false;
   m_nextBreakpoint = 1;
+  m_currentWorkGroup = NULL;
+  m_currentWorkItem = NULL;
 
   // Check for interactive environment variable
   const char *env = getenv("OCLGRIND_INTERACTIVE");
