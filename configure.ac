@@ -69,6 +69,7 @@ KERNEL_TEST_INPUTS=""
 KERNEL_TEST_OUTPUTS=""
 m4_foreach([name],
   [[array], [reduce], [vecadd],
+  [read_out_of_bounds], [write_out_of_bounds], [dereference_null],
   [broadcast], [global_read_write_race], [global_write_write_race],
   [local_read_write_race], [local_write_write_race], [increment],
   [atomic_increment], [global_fence], [local_only_fence], [intergroup_race]],
