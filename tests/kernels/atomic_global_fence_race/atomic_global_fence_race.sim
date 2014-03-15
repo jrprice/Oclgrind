@@ -1,0 +1,11 @@
+atomic_global_fence_race.cl
+atomic_global_fence_race
+8 1 1
+4 1 1
+
+b 8
+00 00 00 00
+00 00 00 00
+
+b 4
+00 00 00 00

@@ -1,0 +1,12 @@
+atomic_global_fence.cl
+atomic_global_fence
+8 1 1
+4 1 1
+
+b 8
+00 00 00 00
+00 00 00 00
+
+b 8
+FF FF FF FF
+FF FF FF FF
