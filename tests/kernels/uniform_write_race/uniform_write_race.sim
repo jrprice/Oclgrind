@@ -1,0 +1,7 @@
+uniform_write_race.cl
+uniform_write_race
+4 1 1
+4 1 1
+
+b 4
+FF FF FF FF

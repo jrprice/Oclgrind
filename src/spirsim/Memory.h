@@ -85,6 +85,7 @@ namespace spirsim
 
     uint32_t* atomic(size_t address);
     int getNextBuffer();
-    void registerAccess(bool read, size_t address, size_t size) const;
+    void registerAccess(size_t address, size_t size,
+                        const uint8_t *data = NULL) const;
   };
 }

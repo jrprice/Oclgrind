@@ -357,11 +357,6 @@ size_t Memory::createHostBuffer(size_t size, void *ptr)
 
 bool Memory::copy(size_t dest, size_t src, size_t size)
 {
-  size_t src_buffer = EXTRACT_BUFFER(src);
-  size_t src_offset = EXTRACT_OFFSET(src);
-  size_t dest_buffer = EXTRACT_BUFFER(dest);
-  size_t dest_offset = EXTRACT_OFFSET(dest);
-
   // Bounds checks
   if (!isAddressValid(src, size))
   {
@@ -374,15 +369,18 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
     return false;
   }
 
-  // Copy data
-  Buffer srcBuffer = m_memory.at(src_buffer);
-  Buffer destBuffer = m_memory.at(dest_buffer);
-  memcpy(destBuffer.data + dest_offset,
-         srcBuffer.data + src_offset,
-         size);
+  // Get buffers and register accesses
+  size_t src_offset = EXTRACT_OFFSET(src);
+  size_t dest_offset = EXTRACT_OFFSET(dest);
+  Buffer src_buffer = m_memory.at(EXTRACT_BUFFER(src));
+  Buffer dest_buffer = m_memory.at(EXTRACT_BUFFER(dest));
+  registerAccess(src, size);
+  registerAccess(dest, size, src_buffer.data + src_offset);
 
-  registerAccess(true, src, size);
-  registerAccess(false, dest, size);
+  // Copy data
+  memcpy(dest_buffer.data + dest_offset,
+         src_buffer.data + src_offset,
+         size);
 
   return true;
 }
@@ -484,9 +482,6 @@ bool Memory::isAddressValid(size_t address, size_t size) const
 
 bool Memory::load(unsigned char *dest, size_t address, size_t size) const
 {
-  size_t buffer = EXTRACT_BUFFER(address);
-  size_t offset = EXTRACT_OFFSET(address);
-
   // Bounds check
   if (!isAddressValid(address, size))
   {
@@ -494,10 +489,13 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
     return false;
   }
 
+  // Get buffer and register access
+  size_t offset = EXTRACT_OFFSET(address);
+  Buffer src = m_memory[EXTRACT_BUFFER(address)];
+  registerAccess(address, size);
+
   // Load data
-  Buffer src = m_memory[buffer];
   memcpy(dest, src.data + offset, size);
-  registerAccess(true, address, size);
 
   return true;
 }
@@ -522,9 +520,6 @@ void Memory::setDevice(Device *device)
 
 bool Memory::store(const unsigned char *source, size_t address, size_t size)
 {
-  size_t buffer = EXTRACT_BUFFER(address);
-  size_t offset = EXTRACT_OFFSET(address);
-
   // Bounds check
   if (!isAddressValid(address, size))
   {
@@ -532,20 +527,27 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
     return false;
   }
 
+  // Get buffer and register access
+  size_t offset = EXTRACT_OFFSET(address);
+  Buffer dest = m_memory[EXTRACT_BUFFER(address)];
+  registerAccess(address, size, source);
+
   // Store data
-  Buffer dest = m_memory[buffer];
   memcpy(dest.data + offset, source, size);
-  registerAccess(false, address, size);
 
   return true;
 }
 
-void Memory::registerAccess(bool read, size_t address, size_t size) const
+void Memory::registerAccess(size_t address, size_t size,
+                            const uint8_t *data) const
 {
   if (!m_checkDataRaces)
   {
     return;
   }
+
+  bool load = !data;
+  bool store = data;
 
   // Get index of work-item and work-group performing access
   size_t workItemIndex = -1, workGroupIndex = -1;
@@ -566,7 +568,12 @@ void Memory::registerAccess(bool read, size_t address, size_t size) const
   Status *status = buffer.status + base;
   for (size_t offset = 0; offset < size; offset++, status++)
   {
-    bool conflict = read ? !status->canRead : !status->canWrite;
+    bool conflict = store ? !status->canWrite : !status->canRead;
+    if (data)
+    {
+      conflict &= (buffer.data[base + offset] != data[offset]);
+    }
+
     if (!race && conflict &&
         (status->wasWorkItem ?                // If status set by work-item,
          status->workItem != workItemIndex :  // must be same work-item,
@@ -574,7 +581,7 @@ void Memory::registerAccess(bool read, size_t address, size_t size) const
         )
     {
       // Report data-race
-      DataRaceType type = read|status->canRead ? ReadWriteRace : WriteWriteRace;
+      DataRaceType type = load|status->canRead ? ReadWriteRace : WriteWriteRace;
       m_device->notifyDataRace(type, m_addressSpace,
                                address + offset, status->workItem,
                                status->instruction);
@@ -584,7 +591,7 @@ void Memory::registerAccess(bool read, size_t address, size_t size) const
     {
       // Update status
       status->canAtomic = false;
-      status->canRead &= read;
+      status->canRead &= load;
       status->canWrite = false;
       status->workGroup = workGroupIndex;
       if (workItem)
