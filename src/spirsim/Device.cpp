@@ -229,8 +229,8 @@ void Device::notifyDataRace(DataRaceType type, unsigned int addrSpace,
   {
     size_t gx, gy, gz;
     gx = lastWorkItem % m_globalSize[0];
-    gy = lastWorkItem / m_globalSize[1] % m_globalSize[1];
-    gz = lastWorkItem / m_globalSize[2];
+    gy = (lastWorkItem - gx) / m_globalSize[1];
+    gz = (lastWorkItem - gy - gx) / m_globalSize[2];
     cerr << "\tRace occured with work-item (" << dec
          << gx << ","
          << gy << ","
