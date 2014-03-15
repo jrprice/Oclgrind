@@ -279,216 +279,101 @@ namespace spirsim
 
     DEFINE_BUILTIN(atomic_add)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicAdd(PARG(0), UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      old += UARG(1);
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_and)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicAnd(PARG(0), UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      old &= UARG(1);
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_cmpxchg)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicCmpxchg(PARG(0), UARG(1), UARG(2));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      if (old == UARG(1))
-      {
-        old = UARG(2);
-      }
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_dec)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicDec(PARG(0));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      old--;
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_inc)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicInc(PARG(0));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      old++;
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_max)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicMax(PARG(0), UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      uint32_t val = UARG(1);
-      old = old > val ? old : val;
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_min)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicMin(PARG(0), UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      uint32_t val = UARG(1);
-      old = old < val ? old : val;
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_or)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicOr(PARG(0), UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      old |= UARG(1);
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_sub)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicSub(PARG(0), UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      old -= UARG(1);
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_xchg)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicXchg(PARG(0), UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      old = UARG(1);
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
     DEFINE_BUILTIN(atomic_xor)
     {
-      // Get address
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      size_t ptr = PARG(0);
 
-      // Load old value
-      uint32_t old;
-      memory->load((unsigned char*)&old, ptr, 4);
-
-      // Store old value in result
+      uint32_t old = memory->atomicXor(PARG(0), UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
-
-      // Compute and store new value
-      old ^= UARG(1);
-      memory->store((unsigned char*)&old, ptr, 4);
     }
 
 
