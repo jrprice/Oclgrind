@@ -106,9 +106,18 @@ uint32_t* Memory::atomic(size_t address)
 
   if (m_checkDataRaces)
   {
-    // Check for races with non-atomic operations
     Status *status = buffer.status + offset;
-    if (!status->canAtomic)
+
+    // Get work-item
+    size_t workItemIndex = status->workItem;
+    const WorkItem *workItem = m_device->getCurrentWorkItem();
+    if (workItem)
+    {
+      workItemIndex = workItem->getGlobalIndex();
+    }
+
+    // Check for races with non-atomic operations
+    if (!status->canAtomic && workItemIndex != status->workItem)
     {
       m_device->notifyDataRace(ReadWriteRace, m_addressSpace, address,
                                status->workItem, status->instruction);
@@ -117,7 +126,6 @@ uint32_t* Memory::atomic(size_t address)
     // Update status
     status->canRead = false;
     status->canWrite = false;
-    const WorkItem *workItem = m_device->getCurrentWorkItem();
     if (!status->wasWorkItem && workItem)
     {
       status->instruction = workItem->getCurrentInstruction();
