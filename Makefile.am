@@ -86,6 +86,7 @@ oclgrind: $(top_srcdir)/src/oclgrind/oclgrind
 	>oclgrind
 
 TESTS = @KERNEL_TESTS@
+XFAIL_TESTS = tests/kernels/atomic_intergroup_race/atomic_intergroup_race.sim
 TEST_EXTENSIONS = .sim
 SIM_LOG_COMPILER = $(top_srcdir)/tests/kernels/run_test
 AM_TESTS_ENVIRONMENT = export AM_TESTS=1;

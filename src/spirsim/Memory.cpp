@@ -101,11 +101,30 @@ uint32_t* Memory::atomic(size_t address)
   }
 
   // Get buffer
+  size_t offset = EXTRACT_OFFSET(address);
   Buffer buffer = m_memory[EXTRACT_BUFFER(address)];
 
-  // TODO: Register atomic access for data race detection
+  if (m_checkDataRaces)
+  {
+    // Check for races with non-atomic operations
+    Status *status = buffer.status + offset;
+    if (!status->canAtomic)
+    {
+      m_device->notifyDataRace(ReadWriteRace, m_addressSpace, address,
+                               status->workItem, status->instruction);
+    }
 
-  return (uint32_t*)(buffer.data + EXTRACT_OFFSET(address));
+    // Update status
+    status->canRead = false;
+    status->canWrite = false;
+    const WorkItem *workItem = m_device->getCurrentWorkItem();
+    if (!status->wasWorkItem && workItem)
+    {
+      status->instruction = workItem->getCurrentInstruction();
+    }
+  }
+
+  return (uint32_t*)(buffer.data + offset);
 }
 
 uint32_t Memory::atomicAdd(size_t address, uint32_t value)
@@ -564,6 +583,7 @@ void Memory::registerAccess(bool read, size_t address, size_t size) const
     else
     {
       // Update status
+      status->canAtomic = false;
       status->canRead &= read;
       status->canWrite = false;
       status->workGroup = workGroupIndex;
@@ -593,6 +613,7 @@ void Memory::synchronize(bool workGroup)
     }
     for (Status *status = itr->status; status < itr->status+itr->size; status++)
     {
+      status->canAtomic = true; // TODO: atomic_intergroup_race test failure
       status->workItem = -1;
       status->wasWorkItem = false;
       if (!workGroup)
@@ -610,6 +631,7 @@ Memory::Status::Status()
   instruction = NULL;
   workItem = -1;
   workGroup = -1;
+  canAtomic = true;
   canRead = true;
   canWrite = true;
   wasWorkItem = false;

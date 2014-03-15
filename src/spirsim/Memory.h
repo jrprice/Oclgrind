@@ -60,6 +60,7 @@ namespace spirsim
       const llvm::Instruction *instruction;
       size_t workItem;
       size_t workGroup;
+      bool canAtomic;
       bool canRead;
       bool canWrite;
       bool wasWorkItem;
