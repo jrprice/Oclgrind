@@ -1,0 +1,10 @@
+atomic_same_workitem.cl
+atomic_same_workitem
+4 1 1
+4 1 1
+
+b 16
+FF FF FF FF
+FF FF FF FF
+FF FF FF FF
+FF FF FF FF
