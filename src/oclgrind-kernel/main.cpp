@@ -29,6 +29,7 @@ static Kernel *kernel = NULL;
 static bool init(istream& input);
 static bool parseArguments(int argc, char *argv[]);
 static void printUsage();
+static void setEnvironment(const char *name, const char *value);
 
 int main(int argc, char *argv[])
 {
@@ -239,19 +240,11 @@ static bool parseArguments(int argc, char *argv[])
   {
     if (!strcmp(argv[i], "--data-races"))
     {
-#if defined(_WIN32) && !defined(__MINGW32__)
-      _putenv("OCLGRIND_DATA_RACES=1");
-#else
-      setenv("OCLGRIND_DATA_RACES", "1", 1);
-#endif
+      setEnvironment("OCLGRIND_DATA_RACES", "1");
     }
     else if (!strcmp(argv[i], "--dump-spir"))
     {
-#if defined(_WIN32) && !defined(__MINGW32__)
-      _putenv("OCLGRIND_DUMP_SPIR=1");
-#else
-      setenv("OCLGRIND_DUMP_SPIR", "1", 1);
-#endif
+      setEnvironment("OCLGRIND_DUMP_SPIR", "1");
     }
     else if (!strcmp(argv[i], "-g") || !strcmp(argv[i], "--global-mem"))
     {
@@ -264,19 +257,11 @@ static bool parseArguments(int argc, char *argv[])
     }
     else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--interactive"))
     {
-#if defined(_WIN32) && !defined(__MINGW32__)
-      _putenv("OCLGRIND_INTERACTIVE=1");
-#else
-      setenv("OCLGRIND_INTERACTIVE", "1", 1);
-#endif
+      setEnvironment("OCLGRIND_INTERACTIVE", "1");
     }
     else if (!strcmp(argv[i], "--uniform-writes"))
     {
-#if defined(_WIN32) && !defined(__MINGW32__)
-      _putenv("OCLGRIND_UNIFORM_WRITES=1");
-#else
-      setenv("OCLGRIND_UNIFORM_WRITES", "1", 1);
-#endif
+      setEnvironment("OCLGRIND_UNIFORM_WRITES", "1");
     }
     else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
     {
@@ -337,4 +322,13 @@ static void printUsage()
     << "For more information, please visit the Oclgrind wiki page:" << endl
     << "-> https://github.com/jrprice/Oclgrind/wiki" << endl
     << endl;
+}
+
+static void setEnvironment(const char *name, const char *value)
+{
+#if defined(_WIN32) && !defined(__MINGW32__)
+  _putenv_s(name, value);
+#else
+  setenv(name, value, 1);
+#endif
 }
