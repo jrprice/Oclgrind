@@ -10,7 +10,7 @@
 function usage
 {
   echo "Usage: "
-  echo "  oclgrind [--dump-spir] [-i] COMMAND"
+  echo "  oclgrind [OPTIONS] COMMAND"
   echo "  oclgrind [--help | --version]"
   echo
   echo "Options:"
