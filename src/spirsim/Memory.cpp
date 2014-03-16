@@ -126,9 +126,14 @@ uint32_t* Memory::atomic(size_t address)
     // Update status
     status->canRead = false;
     status->canWrite = false;
-    if (!status->wasWorkItem && workItem)
+    if (workItem)
     {
-      status->instruction = workItem->getCurrentInstruction();
+      if (!status->wasWorkItem)
+      {
+        status->instruction = workItem->getCurrentInstruction();
+        status->workItem = workItemIndex;
+        status->wasWorkItem = true;
+      }
     }
   }
 
