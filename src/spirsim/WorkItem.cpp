@@ -7,6 +7,7 @@
 // source code.
 
 #include "common.h"
+#include <sstream>
 
 #include "llvm/DebugInfo.h"
 #include "llvm/GlobalVariable.h"
@@ -29,6 +30,7 @@ using namespace std;
 #define COUNTED_STORE_BASE (COUNTED_LOAD_BASE + 8)
 
 vector<size_t> WorkItem::m_instructionCounts;
+vector<size_t> WorkItem::m_memopBytes;
 
 WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
                    size_t lid_x, size_t lid_y, size_t lid_z)
@@ -127,6 +129,9 @@ void WorkItem::clearInstructionCounts()
 {
   m_instructionCounts.clear();
   m_instructionCounts.resize(COUNTED_LOAD_BASE + 8);
+
+  m_memopBytes.clear();
+  m_memopBytes.resize(16);
 }
 
 void WorkItem::countInstruction(const llvm::Instruction& instruction)
@@ -146,6 +151,10 @@ void WorkItem::countInstruction(const llvm::Instruction& instruction)
     const llvm::Type *type = instruction.getOperand(load?0:1)->getType();
     unsigned addrSpace = type->getPointerAddressSpace();
     opcode = (load ? COUNTED_LOAD_BASE : COUNTED_STORE_BASE) + addrSpace;
+
+    // Count total number of bytes loaded/stored
+    size_t bytes = getTypeSize(type->getPointerElementType());
+    m_memopBytes[opcode-COUNTED_LOAD_BASE] += bytes;
   }
 
   if (opcode >= m_instructionCounts.size())
@@ -485,38 +494,50 @@ string WorkItem::getCountedOpcodeName(unsigned opcode)
   // Check for loads and stores
   if (opcode >= COUNTED_LOAD_BASE)
   {
-    string name;
+    // Create stream using default locale
+    ostringstream name;
+    locale defaultLocale("");
+    name.imbue(defaultLocale);
+
+    // Get number of bytes
+    size_t bytes = m_memopBytes[opcode-COUNTED_LOAD_BASE];
+
+    // Get name of operation
     if (opcode >= COUNTED_STORE_BASE)
     {
       opcode -= COUNTED_STORE_BASE;
-      name = "store";
+      name << "store";
     }
     else
     {
       opcode -= COUNTED_LOAD_BASE;
-      name = "load";
+      name << "load";
     }
 
     // Add address space to name
     switch (opcode)
     {
       case AddrSpacePrivate:
-        name += " private";
+        name << " private";
         break;
       case AddrSpaceGlobal:
-        name += " global";
+        name << " global";
         break;
       case AddrSpaceConstant:
-        name += " constant";
+        name << " constant";
         break;
       case AddrSpaceLocal:
-        name += " local";
+        name << " local";
         break;
       default:
-        name += " unknown";
+        name << " unknown";
         break;
     }
-    return name;
+
+    // Add number of bytes to name
+    name << " (" << bytes << " bytes)";
+
+    return name.str();
   }
 
   return llvm::Instruction::getOpcodeName(opcode);

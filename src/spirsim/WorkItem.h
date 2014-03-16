@@ -215,5 +215,6 @@ namespace spirsim
 
     void countInstruction(const llvm::Instruction& instruction);
     static std::vector<size_t> m_instructionCounts;
+    static std::vector<size_t> m_memopBytes;
   };
 }
