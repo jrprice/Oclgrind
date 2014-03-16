@@ -510,12 +510,16 @@ void Device::run(Kernel& kernel, unsigned int workDim,
 
   if (m_showInstCounts)
   {
+    // Load default locale
+    locale previousLocale = cout.getloc();
+    locale defaultLocale("");
+    cout.imbue(defaultLocale);
+
     cout << "Instructions executed for kernel '" << kernel.getName() << "':";
     cout << endl;
 
-    vector<size_t> counts = WorkItem::getInstructionCounts();
-
     // Generate list named instructions and their counts
+    vector<size_t> counts = WorkItem::getInstructionCounts();
     vector< pair<string,size_t> > namedCounts;
     for (int i = 0; i < counts.size(); i++)
     {
@@ -533,11 +537,14 @@ void Device::run(Kernel& kernel, unsigned int workDim,
     // Output sorted instruction counts
     for (int i = 0; i < namedCounts.size(); i++)
     {
-      cout << setw(12) << dec << namedCounts[i].second << " "
+      cout << setw(16) << dec << namedCounts[i].second << " - "
            << namedCounts[i].first << endl;
     }
 
     cout << endl;
+
+    // Restore locale
+    cout.imbue(previousLocale);
   }
 }
 
