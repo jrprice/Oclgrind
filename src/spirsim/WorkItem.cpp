@@ -127,6 +127,11 @@ void WorkItem::clearInstructionCounts()
 
 void WorkItem::countInstruction(const llvm::Instruction& instruction)
 {
+  if (!m_device->isShowingInstructionCounts())
+  {
+    return;
+  }
+
   unsigned opcode = instruction.getOpcode();
   if (opcode >= m_instructionCounts.size())
   {

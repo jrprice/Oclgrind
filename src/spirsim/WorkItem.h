@@ -212,7 +212,7 @@ namespace spirsim
 
     InterpreterState *m_cache;
 
-    static void countInstruction(const llvm::Instruction& instruction);
+    void countInstruction(const llvm::Instruction& instruction);
     static std::vector<size_t> m_instructionCounts;
   };
 }

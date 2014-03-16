@@ -26,6 +26,7 @@ namespace spirsim
     const WorkGroup* getCurrentWorkGroup() const;
     const WorkItem* getCurrentWorkItem() const;
     bool isInteractive() const;
+    bool isShowingInstructionCounts() const;
     void notifyDataRace(DataRaceType type, unsigned int addrSpace,
                         size_t address, size_t lastWorkItem,
                         const llvm::Instruction *lastInstruction);

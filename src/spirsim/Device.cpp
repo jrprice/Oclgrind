@@ -117,6 +117,11 @@ bool Device::isInteractive() const
   return m_interactive;
 }
 
+bool Device::isShowingInstructionCounts() const
+{
+  return m_showInstCounts;
+}
+
 bool Device::nextWorkItem()
 {
   m_currentWorkItem = NULL;
