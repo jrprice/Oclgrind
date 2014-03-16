@@ -168,14 +168,25 @@ uint32_t Memory::atomicAnd(size_t address, uint32_t value)
 
 uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
 {
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
+  // Bounds check
+  if (!isAddressValid(address, 4))
   {
+    m_device->notifyMemoryError(true, m_addressSpace, address, 4);
     return 0;
   }
 
+  // Get buffer
+  size_t offset = EXTRACT_OFFSET(address);
+  Buffer buffer = m_memory[EXTRACT_BUFFER(address)];
+
+  // Perform cmpxchg
+  uint32_t *ptr = (uint32_t*)(buffer.data + offset);
   uint32_t old = *ptr;
-  *ptr = old == cmp ? value : old;
+  bool xchg = (old == cmp);
+  *ptr = xchg ? value : old;
+
+  // TODO: Check for data-races
+
   return old;
 }
 
