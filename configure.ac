@@ -77,7 +77,8 @@ m4_foreach([name],
   [atomic_intergroup_race], [global_fence], [intergroup_race],
   [async_copy], [async_copy_local_race], [async_copy_global_race],
   [local_only_fence], [global_only_fence], [barrier_divergence],
-  [uniform_write_race], [atomic_same_workitem], [atomic_cmpxchg_false_race]],
+  [uniform_write_race], [atomic_same_workitem],
+  [atomic_cmpxchg_race], [atomic_cmpxchg_false_race]],
 [
     KERNEL_TESTS="$KERNEL_TESTS tests/kernels/"name"/"name".sim"
     KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".sim"

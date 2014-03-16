@@ -1,0 +1,7 @@
+atomic_cmpxchg_race.cl
+atomic_cmpxchg_race
+2 1 1
+2 1 1
+
+b 4
+FF FF FF FF
