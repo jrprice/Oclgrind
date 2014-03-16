@@ -26,24 +26,23 @@ using namespace std;
 
 #define LIST_LENGTH 10
 
-// Compute flattened 1D index from 3D index and sizes
-#define INDEX(id, num) (id[0] + (id[1] + id[2]*num[1])*num[0])
+static bool compareNamedCount(pair<string,size_t> a, pair<string,size_t> b);
 
 Device::Device()
 {
   m_globalMemory = new Memory(AddrSpaceGlobal, this);
   m_kernel = NULL;
-  m_interactive = false;
   m_nextBreakpoint = 1;
   m_currentWorkGroup = NULL;
   m_currentWorkItem = NULL;
 
+  // Check for instruction counts environment variable
+  const char *instCounts = getenv("OCLGRIND_INST_COUNTS");
+  m_showInstCounts = (instCounts && strcmp(instCounts, "1") == 0);
+
   // Check for interactive environment variable
-  const char *env = getenv("OCLGRIND_INTERACTIVE");
-  if (env && strcmp(env, "1") == 0)
-  {
-    m_interactive = true;
-  }
+  const char *interactive = getenv("OCLGRIND_INTERACTIVE");
+  m_interactive = (interactive && strcmp(interactive, "1") == 0);
 
   // Set-up interactive commands
 #define ADD_CMD(name, sname, func)  \
@@ -405,6 +404,7 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   }
 
   // Prepare kernel invocation
+  WorkItem::clearInstructionCounts();
   m_program = &kernel.getProgram();
   m_kernel = &kernel;
   m_listPosition = 0;
@@ -507,6 +507,38 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   m_kernel = NULL;
 
   m_globalMemory->synchronize();
+
+  if (m_showInstCounts)
+  {
+    cout << "Instructions executed for kernel '" << kernel.getName() << "':";
+    cout << endl;
+
+    vector<size_t> counts = WorkItem::getInstructionCounts();
+
+    // Generate list named instructions and their counts
+    vector< pair<string,size_t> > namedCounts;
+    for (int i = 0; i < counts.size(); i++)
+    {
+      if (counts[i] == 0)
+      {
+        continue;
+      }
+      namedCounts.push_back(make_pair(llvm::Instruction::getOpcodeName(i),
+                                      counts[i]));
+    }
+
+    // Sort named counts
+    sort(namedCounts.begin(), namedCounts.end(), compareNamedCount);
+
+    // Output sorted instruction counts
+    for (int i = 0; i < namedCounts.size(); i++)
+    {
+      cout << setw(12) << dec << namedCounts[i].second << " "
+           << namedCounts[i].first << endl;
+    }
+
+    cout << endl;
+  }
 }
 
 void Device::printCurrentLine() const
@@ -1351,4 +1383,9 @@ void Device::workitem(vector<string> args)
   {
     printCurrentLine();
   }
+}
+
+static bool compareNamedCount(pair<string,size_t> a, pair<string,size_t> b)
+{
+  return a.second > b.second;
 }

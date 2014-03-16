@@ -65,6 +65,8 @@ namespace spirsim
     size_t m_nextBreakpoint;
     std::map<const Program*, std::map<size_t, size_t> > m_breakpoints;
 
+    bool m_showInstCounts;
+
     bool m_interactive;
     bool m_running;
     bool m_forceBreak;

@@ -25,6 +25,8 @@
 using namespace spirsim;
 using namespace std;
 
+vector<size_t> WorkItem::m_instructionCounts;
+
 WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
                    size_t lid_x, size_t lid_y, size_t lid_z)
   : m_device(device), m_workGroup(workGroup), m_kernel(kernel)
@@ -116,6 +118,21 @@ void WorkItem::clearBarrier()
   {
     m_state = READY;
   }
+}
+
+void WorkItem::clearInstructionCounts()
+{
+  m_instructionCounts.clear();
+}
+
+void WorkItem::countInstruction(const llvm::Instruction& instruction)
+{
+  unsigned opcode = instruction.getOpcode();
+  if (opcode >= m_instructionCounts.size())
+  {
+    m_instructionCounts.resize(opcode+1);
+  }
+  m_instructionCounts[opcode]++;
 }
 
 void WorkItem::dispatch(const llvm::Instruction& instruction,
@@ -299,6 +316,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   }
 
   // Execute instruction
+  countInstruction(instruction);
   dispatch(instruction, result);
 
   // Store result
@@ -338,6 +356,11 @@ const size_t* WorkItem::getGlobalID() const
 size_t WorkItem::getGlobalIndex() const
 {
   return m_globalIndex;
+}
+
+vector<size_t> WorkItem::getInstructionCounts()
+{
+  return m_instructionCounts;
 }
 
 double WorkItem::getFloatValue(const llvm::Value *operand,

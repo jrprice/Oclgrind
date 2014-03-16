@@ -103,6 +103,7 @@ namespace spirsim
     virtual ~WorkItem();
 
     void clearBarrier();
+    static void clearInstructionCounts();
     void dispatch(const llvm::Instruction& instruction, TypedValue& result);
     void execute(const llvm::Instruction& instruction);
     const std::stack<ReturnAddress>& getCallStack() const;
@@ -111,6 +112,7 @@ namespace spirsim
     size_t getGlobalIndex() const;
     double getFloatValue(const llvm::Value *operand,
                          unsigned int index = 0);
+    static std::vector<size_t> getInstructionCounts();
     const size_t* getLocalID() const;
     Memory* getPrivateMemory() const;
     size_t getPointer(const llvm::Value *operand, unsigned int index = 0);
@@ -209,5 +211,8 @@ namespace spirsim
     void set(const llvm::Value *key, TypedValue value);
 
     InterpreterState *m_cache;
+
+    static void countInstruction(const llvm::Instruction& instruction);
+    static std::vector<size_t> m_instructionCounts;
   };
 }
