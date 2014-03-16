@@ -237,22 +237,55 @@ static bool parseArguments(int argc, char *argv[])
 {
   for (int i = 1; i < argc; i++)
   {
-    if (argv[i][0] == '-')
+    if (!strcmp(argv[i], "--data-races"))
     {
-      char *opt = argv[i] + 1;
-      while (*opt != '\0')
-      {
-        switch (*opt)
-        {
-        case 'g':
-          outputGlobalMemory = true;
-          break;
-        default:
-          cerr << "Unrecognised option '" << argv[i] << "'" << endl;
-          return false;
-        }
-        opt++;
-      }
+#if defined(_WIN32) && !defined(__MINGW32__)
+      _putenv("OCLGRIND_DATA_RACES=1");
+#else
+      setenv("OCLGRIND_DATA_RACES", "1", 1);
+#endif
+    }
+    else if (!strcmp(argv[i], "--dump-spir"))
+    {
+#if defined(_WIN32) && !defined(__MINGW32__)
+      _putenv("OCLGRIND_DUMP_SPIR=1");
+#else
+      setenv("OCLGRIND_DUMP_SPIR", "1", 1);
+#endif
+    }
+    else if (!strcmp(argv[i], "-g") || !strcmp(argv[i], "--global-mem"))
+    {
+      outputGlobalMemory = true;
+    }
+    else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help"))
+    {
+      printUsage();
+      exit(0);
+    }
+    else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--interactive"))
+    {
+#if defined(_WIN32) && !defined(__MINGW32__)
+      _putenv("OCLGRIND_INTERACTIVE=1");
+#else
+      setenv("OCLGRIND_INTERACTIVE", "1", 1);
+#endif
+    }
+    else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
+    {
+      cout << endl;
+      cout << "Oclgrind " PACKAGE_VERSION << endl;
+      cout << endl;
+      cout << "Copyright (c) 2013-2014" << endl;
+      cout << "James Price and Simon McIntosh-Smith, University of Bristol"
+           << endl;
+      cout << "https://github.com/jrprice/Oclgrind" << endl;
+      cout << endl;
+      exit(0);
+    }
+    else if (argv[i][0] == '-')
+    {
+      cerr << "Unrecognised option '" << argv[i] << "'" << endl;
+      return false;
     }
     else
     {
@@ -279,5 +312,18 @@ static bool parseArguments(int argc, char *argv[])
 
 static void printUsage()
 {
-  cout << "Usage: oclgrind-kernel [-g] simfile" << endl;
+  cout << "Usage: oclgrind-kernel [OPTIONS] simfile" << endl;
+  cout << "       oclgrind-kernel [--help | --version]" << endl;
+  cout << endl;
+  cout << "Options:" << endl;
+  cout << "     --data-races    Enable data-race detection" << endl;
+  cout << "     --dump-spir     Dump SPIR to /tmp/oclgrind_*.{ll,bc}" << endl;
+  cout << "  -g --global-mem    Output global memory at exit" << endl;
+  cout << "  -h --help          Display usage information" << endl;
+  cout << "  -i --interactive   Enable interactive mode" << endl;
+  cout << "  -v --version       Display version information" << endl;
+  cout << endl;
+  cout << "For more information, please visit the Oclgrind wiki page:" << endl;
+  cout << "-> https://github.com/jrprice/Oclgrind/wiki" << endl;
+  cout << endl;
 }
