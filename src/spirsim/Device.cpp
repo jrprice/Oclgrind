@@ -532,7 +532,13 @@ void Device::run(Kernel& kernel, unsigned int workDim,
       {
         continue;
       }
+
       string name = WorkItem::getCountedOpcodeName(i);
+      if (name.compare(0, 14, "call llvm.dbg.") == 0)
+      {
+        continue;
+      }
+
       namedCounts.push_back(make_pair(name, counts[i]));
     }
 
