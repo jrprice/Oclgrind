@@ -532,8 +532,8 @@ void Device::run(Kernel& kernel, unsigned int workDim,
       {
         continue;
       }
-      namedCounts.push_back(make_pair(llvm::Instruction::getOpcodeName(i),
-                                      counts[i]));
+      string name = WorkItem::getCountedOpcodeName(i);
+      namedCounts.push_back(make_pair(name, counts[i]));
     }
 
     // Sort named counts

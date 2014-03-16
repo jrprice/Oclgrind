@@ -114,6 +114,7 @@ namespace spirsim
                          unsigned int index = 0);
     static std::vector<size_t> getInstructionCounts();
     const size_t* getLocalID() const;
+    static std::string getCountedOpcodeName(unsigned opcode);
     Memory* getPrivateMemory() const;
     size_t getPointer(const llvm::Value *operand, unsigned int index = 0);
     int64_t getSignedInt(const llvm::Value *operand,

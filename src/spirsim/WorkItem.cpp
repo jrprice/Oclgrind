@@ -25,6 +25,9 @@
 using namespace spirsim;
 using namespace std;
 
+#define COUNTED_LOAD_BASE  (llvm::Instruction::OtherOpsEnd + 4)
+#define COUNTED_STORE_BASE (COUNTED_LOAD_BASE + 8)
+
 vector<size_t> WorkItem::m_instructionCounts;
 
 WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
@@ -123,6 +126,7 @@ void WorkItem::clearBarrier()
 void WorkItem::clearInstructionCounts()
 {
   m_instructionCounts.clear();
+  m_instructionCounts.resize(COUNTED_LOAD_BASE + 8);
 }
 
 void WorkItem::countInstruction(const llvm::Instruction& instruction)
@@ -133,6 +137,17 @@ void WorkItem::countInstruction(const llvm::Instruction& instruction)
   }
 
   unsigned opcode = instruction.getOpcode();
+
+  // Check for loads and stores
+  if (opcode == llvm::Instruction::Load || opcode == llvm::Instruction::Store)
+  {
+    // Track operations in separate address spaces
+    bool load = (opcode == llvm::Instruction::Load);
+    const llvm::Type *type = instruction.getOperand(load?0:1)->getType();
+    unsigned addrSpace = type->getPointerAddressSpace();
+    opcode = (load ? COUNTED_LOAD_BASE : COUNTED_STORE_BASE) + addrSpace;
+  }
+
   if (opcode >= m_instructionCounts.size())
   {
     m_instructionCounts.resize(opcode+1);
@@ -463,6 +478,48 @@ Memory* WorkItem::getMemory(unsigned int addrSpace)
     default:
       FATAL_ERROR("Unsupported address space: %d", addrSpace);
   }
+}
+
+string WorkItem::getCountedOpcodeName(unsigned opcode)
+{
+  // Check for loads and stores
+  if (opcode >= COUNTED_LOAD_BASE)
+  {
+    string name;
+    if (opcode >= COUNTED_STORE_BASE)
+    {
+      opcode -= COUNTED_STORE_BASE;
+      name = "store";
+    }
+    else
+    {
+      opcode -= COUNTED_LOAD_BASE;
+      name = "load";
+    }
+
+    // Add address space to name
+    switch (opcode)
+    {
+      case AddrSpacePrivate:
+        name += " private";
+        break;
+      case AddrSpaceGlobal:
+        name += " global";
+        break;
+      case AddrSpaceConstant:
+        name += " constant";
+        break;
+      case AddrSpaceLocal:
+        name += " local";
+        break;
+      default:
+        name += " unknown";
+        break;
+    }
+    return name;
+  }
+
+  return llvm::Instruction::getOpcodeName(opcode);
 }
 
 Memory* WorkItem::getPrivateMemory() const
