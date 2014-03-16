@@ -14,11 +14,12 @@ function usage
   echo "  oclgrind [--help | --version]"
   echo
   echo "Options:"
-  echo "     --data-races    Enable data-race detection"
-  echo "     --dump-spir     Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
-  echo "  -h --help          Display usage information"
-  echo "  -i --interactive   Enable interactive mode"
-  echo "  -v --version       Display version information"
+  echo "     --data-races       Enable data-race detection"
+  echo "     --dump-spir        Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
+  echo "  -h --help             Display usage information"
+  echo "  -i --interactive      Enable interactive mode"
+  echo "     --uniform-writes   Don't suppress uniform write-write data-races"
+  echo "  -v --version          Display version information"
   echo
   echo "For more information, please visit the Oclgrind wiki page:"
   echo "-> https://github.com/jrprice/Oclgrind/wiki"
@@ -41,6 +42,9 @@ do
   elif [ "$1" == "-i" -o "$1" == "--interactive" ]
   then
     export OCLGRIND_INTERACTIVE=1
+  elif [ "$1" == "--uniform-writes" ]
+  then
+    export OCLGRIND_UNIFORM_WRITES=1
   elif [ "$1" == "-v" -o "$1" == "--version" ]
   then
     echo

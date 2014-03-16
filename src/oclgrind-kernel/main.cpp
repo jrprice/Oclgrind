@@ -270,6 +270,14 @@ static bool parseArguments(int argc, char *argv[])
       setenv("OCLGRIND_INTERACTIVE", "1", 1);
 #endif
     }
+    else if (!strcmp(argv[i], "--uniform-writes"))
+    {
+#if defined(_WIN32) && !defined(__MINGW32__)
+      _putenv("OCLGRIND_UNIFORM_WRITES=1");
+#else
+      setenv("OCLGRIND_UNIFORM_WRITES", "1", 1);
+#endif
+    }
     else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
     {
       cout << endl;
@@ -312,18 +320,21 @@ static bool parseArguments(int argc, char *argv[])
 
 static void printUsage()
 {
-  cout << "Usage: oclgrind-kernel [OPTIONS] simfile" << endl;
-  cout << "       oclgrind-kernel [--help | --version]" << endl;
-  cout << endl;
-  cout << "Options:" << endl;
-  cout << "     --data-races    Enable data-race detection" << endl;
-  cout << "     --dump-spir     Dump SPIR to /tmp/oclgrind_*.{ll,bc}" << endl;
-  cout << "  -g --global-mem    Output global memory at exit" << endl;
-  cout << "  -h --help          Display usage information" << endl;
-  cout << "  -i --interactive   Enable interactive mode" << endl;
-  cout << "  -v --version       Display version information" << endl;
-  cout << endl;
-  cout << "For more information, please visit the Oclgrind wiki page:" << endl;
-  cout << "-> https://github.com/jrprice/Oclgrind/wiki" << endl;
-  cout << endl;
+  cout
+    << "Usage: oclgrind-kernel [OPTIONS] simfile" << endl
+    << "       oclgrind-kernel [--help | --version]" << endl
+    << endl
+    << "Options:" << endl
+    << "     --data-races       Enable data-race detection" << endl
+    << "     --dump-spir        Dump SPIR to /tmp/oclgrind_*.{ll,bc}" << endl
+    << "  -g --global-mem       Output global memory at exit" << endl
+    << "  -h --help             Display usage information" << endl
+    << "  -i --interactive      Enable interactive mode" << endl
+    << "     --uniform-writes   Don't suppress uniform write-write data-races"
+      << endl
+    << "  -v --version          Display version information" << endl
+    << endl
+    << "For more information, please visit the Oclgrind wiki page:" << endl
+    << "-> https://github.com/jrprice/Oclgrind/wiki" << endl
+    << endl;
 }

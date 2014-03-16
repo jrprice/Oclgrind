@@ -82,6 +82,7 @@ namespace spirsim
     unsigned int m_addressSpace;
     size_t m_totalAllocated;
     bool m_checkDataRaces;
+    bool m_allowUniformWrites;
 
     uint32_t* atomic(size_t address);
     int getNextBuffer();
