@@ -255,6 +255,10 @@ static bool parseArguments(int argc, char *argv[])
       printUsage();
       exit(0);
     }
+    else if (!strcmp(argv[i], "--inst-counts"))
+    {
+      setEnvironment("OCLGRIND_INST_COUNTS", "1");
+    }
     else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--interactive"))
     {
       setEnvironment("OCLGRIND_INTERACTIVE", "1");
@@ -314,6 +318,8 @@ static void printUsage()
     << "     --dump-spir        Dump SPIR to /tmp/oclgrind_*.{ll,bc}" << endl
     << "  -g --global-mem       Output global memory at exit" << endl
     << "  -h --help             Display usage information" << endl
+    << "     --inst-counts      Output histograms of instructions executed"
+      << endl
     << "  -i --interactive      Enable interactive mode" << endl
     << "     --uniform-writes   Don't suppress uniform write-write data-races"
       << endl

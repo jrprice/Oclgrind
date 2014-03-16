@@ -17,6 +17,7 @@ function usage
   echo "     --data-races       Enable data-race detection"
   echo "     --dump-spir        Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
   echo "  -h --help             Display usage information"
+  echo "     --inst-counts      Output histograms of instructions executed"
   echo "  -i --interactive      Enable interactive mode"
   echo "     --uniform-writes   Don't suppress uniform write-write data-races"
   echo "  -v --version          Display version information"
@@ -39,6 +40,9 @@ do
   then
     usage
     exit 0
+  elif [ "$1" == "--inst-counts" ]
+  then
+    export OCLGRIND_INST_COUNTS=1
   elif [ "$1" == "-i" -o "$1" == "--interactive" ]
   then
     export OCLGRIND_INTERACTIVE=1
