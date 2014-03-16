@@ -14,6 +14,11 @@ depcomp
 *.dirstamp
 install-sh
 ltmain.sh
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
 Makefile
 Makefile.in
 missing
@@ -24,6 +29,8 @@ test-driver
 *.o
 *.lo
 .libs
+clc.pch
+clc.noopt.pch
 liboclgrind.la
 liboclgrind-icd.la
 libspirsim.la
@@ -39,5 +46,6 @@ test-suite.log
 *.diff
 
 # Misc
+oclgrind-*.tar.gz
 util/floatval
 util/hexval
