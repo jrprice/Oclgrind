@@ -28,9 +28,11 @@ using namespace std;
 
 #define COUNTED_LOAD_BASE  (llvm::Instruction::OtherOpsEnd + 4)
 #define COUNTED_STORE_BASE (COUNTED_LOAD_BASE + 8)
+#define COUNTED_CALL_BASE  (COUNTED_STORE_BASE + 8)
 
 vector<size_t> WorkItem::m_instructionCounts;
 vector<size_t> WorkItem::m_memopBytes;
+vector<const llvm::Function*> WorkItem::m_countedFunctions;
 
 WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
                    size_t lid_x, size_t lid_y, size_t lid_z)
@@ -132,6 +134,8 @@ void WorkItem::clearInstructionCounts()
 
   m_memopBytes.clear();
   m_memopBytes.resize(16);
+
+  m_countedFunctions.clear();
 }
 
 void WorkItem::countInstruction(const llvm::Instruction& instruction)
@@ -155,6 +159,26 @@ void WorkItem::countInstruction(const llvm::Instruction& instruction)
     // Count total number of bytes loaded/stored
     size_t bytes = getTypeSize(type->getPointerElementType());
     m_memopBytes[opcode-COUNTED_LOAD_BASE] += bytes;
+  }
+  else if (opcode == llvm::Instruction::Call)
+  {
+    // Track distinct function calls
+    const llvm::CallInst *callInst = (const llvm::CallInst*)&instruction;
+    const llvm::Function *function = callInst->getCalledFunction();
+    if (function)
+    {
+      vector<const llvm::Function*>::iterator itr =
+        find(m_countedFunctions.begin(), m_countedFunctions.end(), function);
+      if (itr == m_countedFunctions.end())
+      {
+        opcode = COUNTED_CALL_BASE + m_countedFunctions.size();
+        m_countedFunctions.push_back(function);
+      }
+      else
+      {
+        opcode = COUNTED_CALL_BASE + (itr - m_countedFunctions.begin());
+      }
+    }
   }
 
   if (opcode >= m_instructionCounts.size())
@@ -491,8 +515,14 @@ Memory* WorkItem::getMemory(unsigned int addrSpace)
 
 string WorkItem::getCountedOpcodeName(unsigned opcode)
 {
-  // Check for loads and stores
-  if (opcode >= COUNTED_LOAD_BASE)
+  if (opcode >= COUNTED_CALL_BASE)
+  {
+    // Get functon name
+    unsigned index = opcode - COUNTED_CALL_BASE;
+    assert(index < m_countedFunctions.size());
+    return "call " + m_countedFunctions[index]->getName().str() + "()";
+  }
+  else if (opcode >= COUNTED_LOAD_BASE)
   {
     // Create stream using default locale
     ostringstream name;
