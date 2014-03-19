@@ -617,16 +617,22 @@ void Memory::registerAccess(size_t address, size_t size,
     }
     else
     {
+      // Only update WI info if this operation is stronger than previous one
+      bool updateWI = store || (load && status->canWrite);
+
       // Update status
       status->canAtomic = false;
       status->canRead &= load;
       status->canWrite = false;
-      status->workGroup = workGroupIndex;
-      if (workItem)
+      if (updateWI)
       {
-        status->instruction = workItem->getCurrentInstruction();
-        status->workItem = workItemIndex;
-        status->wasWorkItem = true;
+        status->workGroup = workGroupIndex;
+        if (workItem)
+        {
+          status->instruction = workItem->getCurrentInstruction();
+          status->workItem = workItemIndex;
+          status->wasWorkItem = true;
+        }
       }
     }
   }
