@@ -4,15 +4,15 @@ Oclgrind
 
 About
 -----
-
 This project implements a virtual OpenCL device simulator, including
 an OpenCL runtime with ICD support. The goal is to provide a platform
 for creating tools to aid OpenCL development. In particular, this
 project currently implements utilities for debugging memory access
-errors and for interactive OpenCL kernel debugging. The simulator is
-built on an interpreter for SPIR. This is a side-project is being
-undertaken by James Price (a PhD student at the University of
-Bristol).
+errors, detecting data-races and barrier divergence, collecting
+instruction histograms, and for interactive OpenCL kernel
+debugging. The simulator is built on an interpreter for SPIR. This is
+a side-project is being undertaken by James Price (a PhD student at
+the University of Bristol).
 
 This project is currently in beta, and so you may encounter issues
 when building or running it. If you do, please get in touch using the
@@ -47,6 +47,7 @@ search path, you can specify the location of the generator using the
 Next, build and install with make:
 
 make
+make check
 make install
 
 If installing to a non-default location, you should add the bin/
@@ -120,8 +121,7 @@ flag to the oclgrind command, or export the environment variable
 OCLGRIND_INTERACTIVE=1. This will cause Oclgrind to automatically
 break at the beginning of each kernel invocation, and upon
 encountering an invalid memory access. Type 'help' for details of
-available commands. This feature is currently fairly limited, and will
-likely be improved in the future.
+available commands.
 
 For more detailed information about using Oclgrind please visit the
 GitHub Wiki:
