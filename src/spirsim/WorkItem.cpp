@@ -1267,6 +1267,12 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
     case llvm::CmpInst::FCMP_ULE:
       r = a <= b;
       break;
+    case llvm::CmpInst::FCMP_FALSE:
+      r = false;
+      break;
+    case llvm::CmpInst::FCMP_TRUE:
+      r = true;
+      break;
     default:
       FATAL_ERROR("Unsupported FCmp predicate: %d", pred);
     }
