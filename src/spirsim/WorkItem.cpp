@@ -1244,43 +1244,37 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
     switch (pred)
     {
     case llvm::CmpInst::FCMP_OEQ:
-      r = a == b;
-      break;
-    case llvm::CmpInst::FCMP_ONE:
-      r = a != b;
-      break;
-    case llvm::CmpInst::FCMP_OGT:
-      r = a > b;
-      break;
-    case llvm::CmpInst::FCMP_OGE:
-      r = a >= b;
-      break;
-    case llvm::CmpInst::FCMP_OLT:
-      r = a < b;
-      break;
-    case llvm::CmpInst::FCMP_OLE:
-      r = a <= b;
-      break;
     case llvm::CmpInst::FCMP_UEQ:
       r = a == b;
       break;
+    case llvm::CmpInst::FCMP_ONE:
     case llvm::CmpInst::FCMP_UNE:
       r = a != b;
       break;
+    case llvm::CmpInst::FCMP_OGT:
     case llvm::CmpInst::FCMP_UGT:
       r = a > b;
       break;
+    case llvm::CmpInst::FCMP_OGE:
     case llvm::CmpInst::FCMP_UGE:
       r = a >= b;
       break;
+    case llvm::CmpInst::FCMP_OLT:
     case llvm::CmpInst::FCMP_ULT:
       r = a < b;
       break;
+    case llvm::CmpInst::FCMP_OLE:
     case llvm::CmpInst::FCMP_ULE:
       r = a <= b;
       break;
     default:
       FATAL_ERROR("Unsupported FCmp predicate: %d", pred);
+    }
+
+    // Deal with NaN operands
+    if (isnan(a) || isnan(b))
+    {
+      r = !llvm::CmpInst::isOrdered(pred);
     }
 
     setIntResult(result, r ? t : 0, i);
