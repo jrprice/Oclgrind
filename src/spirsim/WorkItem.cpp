@@ -1278,7 +1278,7 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
     }
 
     // Deal with NaN operands
-    if (isnan(a) || isnan(b))
+    if (::isnan(a) || ::isnan(b))
     {
       r = !llvm::CmpInst::isOrdered(pred);
     }
