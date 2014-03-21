@@ -44,6 +44,10 @@ Device::Device()
   const char *interactive = getenv("OCLGRIND_INTERACTIVE");
   m_interactive = (interactive && strcmp(interactive, "1") == 0);
 
+  // Check for quick-mode environment variable
+  const char *quick = getenv("OCLGRIND_QUICK");
+  m_quickMode = (quick && strcmp(quick, "1") == 0);
+
   // Set-up interactive commands
 #define ADD_CMD(name, sname, func)  \
   m_commands[name] = &Device::func; \
@@ -396,14 +400,30 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   m_numGroups[0] = m_globalSize[0]/m_localSize[0];
   m_numGroups[1] = m_globalSize[1]/m_localSize[1];
   m_numGroups[2] = m_globalSize[2]/m_localSize[2];
-  for (size_t k = 0; k < m_numGroups[2]; k++)
+  if (m_quickMode)
   {
-    for (size_t j = 0; j < m_numGroups[1]; j++)
+    // Only run first and last work-groups in quick-mode
+    PendingWorkGroup firstGroup = {{0, 0, 0}};
+    PendingWorkGroup lastGroup  =
+    {{
+      m_numGroups[0]-1,
+      m_numGroups[1]-1,
+      m_numGroups[2]-1
+    }};
+    m_pendingGroups.push_back(firstGroup);
+    m_pendingGroups.push_back(lastGroup);
+  }
+  else
+  {
+    for (size_t k = 0; k < m_numGroups[2]; k++)
     {
-      for (size_t i = 0; i < m_numGroups[0]; i++)
+      for (size_t j = 0; j < m_numGroups[1]; j++)
       {
-        PendingWorkGroup workGroup = {{i, j, k}};
-        m_pendingGroups.push_back(workGroup);
+        for (size_t i = 0; i < m_numGroups[0]; i++)
+        {
+          PendingWorkGroup workGroup = {{i, j, k}};
+          m_pendingGroups.push_back(workGroup);
+        }
       }
     }
   }

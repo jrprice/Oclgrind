@@ -263,6 +263,10 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_INTERACTIVE", "1");
     }
+    else if (!strcmp(argv[i], "-q") || !strcmp(argv[i], "--quick"))
+    {
+      setEnvironment("OCLGRIND_QUICK", "1");
+    }
     else if (!strcmp(argv[i], "--uniform-writes"))
     {
       setEnvironment("OCLGRIND_UNIFORM_WRITES", "1");
@@ -321,6 +325,7 @@ static void printUsage()
     << "     --inst-counts      Output histograms of instructions executed"
       << endl
     << "  -i --interactive      Enable interactive mode" << endl
+    << "  -q --quick            Only run first and last work-group" << endl
     << "     --uniform-writes   Don't suppress uniform write-write data-races"
       << endl
     << "  -v --version          Display version information" << endl
