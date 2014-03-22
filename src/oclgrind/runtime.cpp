@@ -1629,7 +1629,14 @@ clGetMemObjectInfo
   case CL_MEM_TYPE:
     result_size = sizeof(cl_mem_object_type);
     result_data = malloc(result_size);
-    *(cl_mem_object_type*)result_data = CL_MEM_OBJECT_BUFFER;
+    if (memobj->isImage)
+    {
+      *(cl_mem_object_type*)result_data = ((cl_image*)memobj)->desc.image_type;
+    }
+    else
+    {
+      *(cl_mem_object_type*)result_data = CL_MEM_OBJECT_BUFFER;
+    }
     break;
   case CL_MEM_FLAGS:
     result_size = sizeof(cl_mem_flags);
