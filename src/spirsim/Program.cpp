@@ -41,6 +41,17 @@
 #define CLC_H_PATH REMAP_DIR"clc.h"
 extern const char CLC_H_DATA[];
 
+const char *EXTENSIONS[] =
+{
+  "cl_khr_fp64",
+  "cl_khr_3d_image_writes",
+  "cl_khr_global_int32_base_atomics",
+  "cl_khr_global_int32_extended_atomics",
+  "cl_khr_local_int32_base_atomics",
+  "cl_khr_local_int32_extended_atomics",
+  "cl_khr_byte_addressable_store",
+};
+
 using namespace spirsim;
 using namespace std;
 
@@ -109,11 +120,17 @@ bool Program::build(const char *options, list<Header> headers)
 
   // Set compiler arguments
   vector<const char*> args;
-  args.push_back("-D cl_khr_fp64");
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-triple");
   args.push_back("spir64-unknown-unknown");
   args.push_back("-g");
+
+  // Define extensions
+  for (int i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
+  {
+    args.push_back("-D");
+    args.push_back(EXTENSIONS[i]);
+  }
 
   // Disable optimizations by default due to bugs in Khronos SPIR generator
   bool optimize = false;
