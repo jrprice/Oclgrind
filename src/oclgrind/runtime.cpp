@@ -1547,57 +1547,96 @@ clGetSupportedImageFormats
     return CL_INVALID_VALUE;
   }
 
-  const cl_channel_order orders[] =
+  // TODO: Add support for packed image types
+
+  // Channel orders
+  const cl_channel_order ordersAll[] =
   {
     CL_R, CL_Rx, CL_A,
-    CL_INTENSITY,
-    CL_LUMINANCE,
     CL_RG, CL_RGx, CL_RA,
-    CL_RGB, CL_RGBx,
     CL_RGBA,
-    CL_ARGB, CL_BGRA,
   };
-  const cl_channel_type types[] =
+  const cl_channel_order ordersNormalized[] = {CL_INTENSITY, CL_LUMINANCE};
+  const cl_channel_order ordersByte[] = {CL_ARGB, CL_BGRA};
+  const cl_channel_order ordersPacked[] = {CL_RGB, CL_RGBx};
+  const cl_channel_order *orders[] =
   {
-    CL_SNORM_INT8,
-    CL_SNORM_INT16,
-    CL_UNORM_INT8,
-    CL_UNORM_INT16,
-    CL_SIGNED_INT8,
-    CL_SIGNED_INT16,
-    CL_SIGNED_INT32,
-    CL_UNSIGNED_INT8,
-    CL_UNSIGNED_INT16,
-    CL_UNSIGNED_INT32,
-    CL_HALF_FLOAT,
-    CL_FLOAT,
+    ordersAll, ordersNormalized, ordersByte //, ordersPacked
+  };
+  const size_t numOrders[] =
+  {
+    sizeof(ordersAll)        / sizeof(cl_channel_order),
+    sizeof(ordersNormalized) / sizeof(cl_channel_order),
+    sizeof(ordersByte)       / sizeof(cl_channel_order),
+    //sizeof(ordersPacked)     / sizeof(cl_channel_order),
   };
 
-  // Calculate number of formats
-  size_t numOrders = sizeof(orders)/sizeof(cl_channel_order);
-  size_t numTypes = sizeof(types)/sizeof(cl_channel_type);
-  size_t numFormats = numOrders * numTypes;
+  // Channel types
+  const cl_channel_type typesAll[] =
+  {
+    CL_SNORM_INT8, CL_SNORM_INT16,
+    CL_UNORM_INT8, CL_UNORM_INT16,
+    CL_SIGNED_INT8, CL_SIGNED_INT16, CL_SIGNED_INT32,
+    CL_UNSIGNED_INT8, CL_UNSIGNED_INT16, CL_UNSIGNED_INT32,
+    CL_FLOAT, CL_HALF_FLOAT,
+  };
+  const cl_channel_type typesNormalized[] =
+  {
+    CL_SNORM_INT8, CL_SNORM_INT16,
+    CL_UNORM_INT8, CL_UNORM_INT16,
+    CL_FLOAT, CL_HALF_FLOAT,
+  };
+  const cl_channel_type typesByte[] =
+  {
+    CL_SNORM_INT8, CL_UNORM_INT8,
+    CL_SIGNED_INT8, CL_UNSIGNED_INT8,
+  };
+  const cl_channel_type typesPacked[] =
+  {
+    CL_UNORM_SHORT_565, CL_UNORM_SHORT_555, CL_UNORM_INT_101010
+  };
+  const cl_channel_type *types[] =
+  {
+    typesAll, typesNormalized, typesByte //, typesPacked,
+  };
+  const size_t numTypes[] =
+  {
+    sizeof(typesAll)        / sizeof(cl_channel_order),
+    sizeof(typesNormalized) / sizeof(cl_channel_order),
+    sizeof(typesByte)       / sizeof(cl_channel_order),
+    //sizeof(typesPacked)     / sizeof(cl_channel_order),
+  };
+
+  // Calculate total number of formats
+  size_t numCatagories = sizeof(orders)/sizeof(cl_channel_order*);
+  size_t numFormats = 0;
+  for (int c = 0; c < numCatagories; c++)
+  {
+    numFormats += numOrders[c] * numTypes[c];
+  }
   if (num_image_formats)
   {
     *num_image_formats = numFormats;
   }
 
-  // Generate list of all order/type combinations
-  // TODO: Add support for packed image types
+  // Generate list of all valid order/type combinations
   if (image_formats)
   {
-    for (int o = 0; o < numOrders; o++)
+    int i = 0;
+    for (int c = 0; c < numCatagories; c++)
     {
-      for (int t = 0; t < sizeof(types)/sizeof(cl_channel_type); t++)
+      for (int o = 0; o < numOrders[c]; o++)
       {
-        int i = t + o*numTypes;
-        if (i >= num_entries)
+        for (int t = 0; t < numTypes[c]; t++)
         {
-          return CL_SUCCESS;
-        }
+          if (i++ >= num_entries)
+          {
+            return CL_SUCCESS;
+          }
 
-        cl_image_format format = {orders[o], types[t]};
-        image_formats[i] = format;
+          cl_image_format format = {orders[c][o], types[c][t]};
+          image_formats[i] = format;
+        }
       }
     }
   }
