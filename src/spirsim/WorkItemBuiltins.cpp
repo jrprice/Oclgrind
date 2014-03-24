@@ -989,6 +989,9 @@ namespace spirsim
         case CL_FLOAT:
           color = *(float*)data;
           break;
+        case CL_HALF_FLOAT:
+          color = halfToFloat(*(uint16_t*)data);
+          break;
         default:
           FATAL_ERROR("Unsupported image channel data type: %X",
                       image->format.image_channel_data_type);
@@ -1512,15 +1515,16 @@ namespace spirsim
           case CL_FLOAT:
             *(float*)data = values[i];
             break;
+          case CL_HALF_FLOAT:
+            *(uint16_t*)data = floatToHalf(values[i]);
+            break;
           default:
             FATAL_ERROR("Unsupported image channel data type: %X",
                         image->format.image_channel_data_type);
         }
 
         // Write data
-        if (!memory->store(data, pixelAddress + i*channelSize, channelSize))
-        {
-        }
+        memory->store(data, pixelAddress + i*channelSize, channelSize);
       }
     }
 
