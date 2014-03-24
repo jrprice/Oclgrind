@@ -1198,16 +1198,12 @@ namespace spirsim
       int layer = 0;
       if (image->desc.image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY)
       {
-        float l = noormCoords ? t * image->desc.image_array_size : t;
-        layer = _clamp_<int>(floorf(l + 0.5f),
-                             0, image->desc.image_array_size - 1);
+        layer = _clamp_<int>(rintf(t), 0, image->desc.image_array_size - 1);
         v = t = 0.f;
       }
       else if (image->desc.image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
       {
-        float l = noormCoords ? r * image->desc.image_array_size : r;
-        layer = _clamp_<int>(floorf(l + 0.5f),
-                             0, image->desc.image_array_size - 1);
+        layer = _clamp_<int>(rintf(r), 0, image->desc.image_array_size - 1);
         w = r = 0.f;
       }
 
@@ -1320,16 +1316,12 @@ namespace spirsim
       int layer = 0;
       if (image->desc.image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY)
       {
-        float l = noormCoords ? t * image->desc.image_array_size : t;
-        layer = _clamp_<int>(floorf(l + 0.5f),
-                             0, image->desc.image_array_size - 1);
+        layer = _clamp_<int>(rintf(t), 0, image->desc.image_array_size - 1);
         v = t = 0.f;
       }
       else if (image->desc.image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
       {
-        float l = noormCoords ? r * image->desc.image_array_size : r;
-        layer = _clamp_<int>(floorf(l + 0.5f),
-                             0, image->desc.image_array_size - 1);
+        layer = _clamp_<int>(rintf(r), 0, image->desc.image_array_size - 1);
         w = r = 0.f;
       }
 
@@ -1397,16 +1389,12 @@ namespace spirsim
       int layer = 0;
       if (image->desc.image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY)
       {
-        float l = noormCoords ? t * image->desc.image_array_size : t;
-        layer = _clamp_<int>(floorf(l + 0.5f),
-                             0, image->desc.image_array_size - 1);
+        layer = _clamp_<int>(rintf(t), 0, image->desc.image_array_size - 1);
         v = t = 0.f;
       }
       else if (image->desc.image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
       {
-        float l = noormCoords ? r * image->desc.image_array_size : r;
-        layer = _clamp_<int>(floorf(l + 0.5f),
-                             0, image->desc.image_array_size - 1);
+        layer = _clamp_<int>(rintf(r), 0, image->desc.image_array_size - 1);
         w = r = 0.f;
       }
 
