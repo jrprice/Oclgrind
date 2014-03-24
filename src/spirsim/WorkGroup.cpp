@@ -147,7 +147,6 @@ void WorkGroup::clearBarrier()
         unsigned char *buffer = new unsigned char[itr->size];
         for (int i = 0; i < itr->num; i++)
         {
-          // TODO: Check result of load/store and produce error message
           srcMem->load(buffer, src, itr->size);
           destMem->store(buffer, dest, itr->size);
           src += itr->srcStride * itr->size;
