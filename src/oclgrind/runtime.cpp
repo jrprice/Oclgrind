@@ -1629,13 +1629,13 @@ clGetSupportedImageFormats
       {
         for (int t = 0; t < numTypes[c]; t++)
         {
-          if (i++ >= num_entries)
+          if (i >= num_entries)
           {
             return CL_SUCCESS;
           }
 
           cl_image_format format = {orders[c][o], types[c][t]};
-          image_formats[i] = format;
+          image_formats[i++] = format;
         }
       }
     }
