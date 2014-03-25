@@ -1718,7 +1718,14 @@ void WorkItem::sdiv(const llvm::Instruction& instruction, TypedValue& result)
   {
     int64_t a = getSignedInt(instruction.getOperand(0), i);
     int64_t b = getSignedInt(instruction.getOperand(1), i);
-    setIntResult(result, b ? a / b : 0, i);
+
+    int64_t r = 0;
+    if (b && !(a == INT64_MIN && b == -1))
+    {
+      r = a / b;
+    }
+
+    setIntResult(result, r, i);
   }
 }
 
@@ -1840,7 +1847,14 @@ void WorkItem::srem(const llvm::Instruction& instruction, TypedValue& result)
   {
     int64_t a = getSignedInt(instruction.getOperand(0), i);
     int64_t b = getSignedInt(instruction.getOperand(1), i);
-    setIntResult(result, b ? a % b : 0, i);
+
+    int64_t r = 0;
+    if (b && !(a == INT64_MIN && b == -1))
+    {
+      r = a % b;
+    }
+
+    setIntResult(result, r, i);
   }
 }
 
