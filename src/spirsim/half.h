@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-float halfToFloat(uint16_t half)
+static float halfToFloat(uint16_t half)
 {
   uint16_t h_sign, h_exponent, h_mantissa;
   uint32_t f_sign, f_exponent, f_mantissa;
@@ -59,7 +59,7 @@ float halfToFloat(uint16_t half)
   return *(float*)&result;
 }
 
-uint16_t floatToHalf(float sp)
+static uint16_t floatToHalf(float sp)
 {
   uint16_t h_sign, h_exponent, h_mantissa;
   uint32_t f_sign, f_exponent, f_mantissa;

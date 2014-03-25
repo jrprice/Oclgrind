@@ -16,6 +16,7 @@
 
 #include <spirsim/Device.h>
 #include <spirsim/Kernel.h>
+#include <spirsim/half.h>
 #include <spirsim/Memory.h>
 #include <spirsim/Program.h>
 #include <spirsim/Queue.h>
@@ -4037,6 +4038,9 @@ clEnqueueFillImage
       break;
     case CL_FLOAT:
       ((float*)color)[output] = ((float*)fill_color)[input];
+      break;
+    case CL_HALF_FLOAT:
+      ((uint16_t*)color)[output] = floatToHalf(((float*)fill_color)[input]);
       break;
     case CL_SIGNED_INT8:
       ((int8_t*)color)[output] = ((int32_t*)fill_color)[input];
