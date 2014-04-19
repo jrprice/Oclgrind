@@ -189,68 +189,67 @@ void WorkGroup::clearBarrier()
   }
   m_barrier->workItems.clear();
 
-  // Check if we're waiting on an event
-  if (!m_waitEvents.empty())
+  // Deal with events
+  while (!m_barrier->events.empty())
   {
-    // Perform group copy
-    set<uint64_t>::iterator eItr;
-    for (eItr = m_waitEvents.begin(); eItr != m_waitEvents.end(); eItr++)
+    uint64_t event = m_barrier->events.front();
+
+    // Perform copy
+    list<AsyncCopy> copies = m_events[event];
+    list<AsyncCopy>::iterator itr;
+    for (itr = copies.begin(); itr != copies.end(); itr++)
     {
-      list<AsyncCopy> copies = m_events[*eItr];
-      list<AsyncCopy>::iterator itr;
-      for (itr = copies.begin(); itr != copies.end(); itr++)
+      Memory *destMem, *srcMem;
+      if (itr->type == GLOBAL_TO_LOCAL)
       {
-        Memory *destMem, *srcMem;
-        if (itr->type == GLOBAL_TO_LOCAL)
-        {
-          destMem = m_localMemory;
-          srcMem = m_device->getGlobalMemory();
-        }
-        else
-        {
-          destMem = m_device->getGlobalMemory();
-          srcMem = m_localMemory;
-        }
-
-        size_t src = itr->src;
-        size_t dest = itr->dest;
-        unsigned char *buffer = new unsigned char[itr->size];
-        for (int i = 0; i < itr->num; i++)
-        {
-          srcMem->load(buffer, src, itr->size);
-          destMem->store(buffer, dest, itr->size);
-          src += itr->srcStride * itr->size;
-          dest += itr->destStride * itr->size;
-        }
-        delete[] buffer;
+        destMem = m_localMemory;
+        srcMem = m_device->getGlobalMemory();
       }
-      m_events.erase(*eItr);
-
-      // Remove copies from list for this event
-      list< pair<AsyncCopy,set<const WorkItem*> > >::iterator cItr;
-      for (cItr = m_asyncCopies.begin(); cItr != m_asyncCopies.end();)
+      else
       {
-        if (cItr->first.event == *eItr)
-        {
-          // Check that all work-items registered the copy
-          if (cItr->second.size() != m_workItems.size())
-          {
-            ostringstream info;
-            info << "Only " << dec << cItr->second.size() << " out of "
-                 << m_workItems.size() << " work-items executed copy";
-            m_device->notifyDivergence(cItr->first.instruction, "async_copy",
-                                       info.str());
-          }
+        destMem = m_device->getGlobalMemory();
+        srcMem = m_localMemory;
+      }
 
-          cItr = m_asyncCopies.erase(cItr);
-        }
-        else
+      size_t src = itr->src;
+      size_t dest = itr->dest;
+      unsigned char *buffer = new unsigned char[itr->size];
+      for (int i = 0; i < itr->num; i++)
+      {
+        srcMem->load(buffer, src, itr->size);
+        destMem->store(buffer, dest, itr->size);
+        src += itr->srcStride * itr->size;
+        dest += itr->destStride * itr->size;
+      }
+      delete[] buffer;
+    }
+    m_events.erase(event);
+
+    // Remove copies from list for this event
+    list< pair<AsyncCopy,set<const WorkItem*> > >::iterator cItr;
+    for (cItr = m_asyncCopies.begin(); cItr != m_asyncCopies.end();)
+    {
+      if (cItr->first.event == event)
+      {
+        // Check that all work-items registered the copy
+        if (cItr->second.size() != m_workItems.size())
         {
-          cItr++;
+          ostringstream info;
+          info << "Only " << dec << cItr->second.size() << " out of "
+               << m_workItems.size() << " work-items executed copy";
+          m_device->notifyDivergence(cItr->first.instruction, "async_copy",
+                                     info.str());
         }
+
+        cItr = m_asyncCopies.erase(cItr);
+      }
+      else
+      {
+        cItr++;
       }
     }
-    m_waitEvents.clear();
+
+    m_barrier->events.remove(event);
   }
 
   // Apple memory fences
@@ -323,7 +322,7 @@ bool WorkGroup::hasBarrier() const
 
 void WorkGroup::notifyBarrier(WorkItem *workItem,
                               const llvm::Instruction *instruction,
-                              uint64_t fence)
+                              uint64_t fence, list<uint64_t> events)
 {
   if (!m_barrier)
   {
@@ -331,16 +330,55 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
     m_barrier = new Barrier;
     m_barrier->instruction = instruction;
     m_barrier->fence = fence;
+
+    m_barrier->events = events;
+
+    // Check for invalid events
+    list<uint64_t>::iterator itr;
+    for (itr = events.begin(); itr != events.end(); itr++)
+    {
+      if (!m_events.count(*itr))
+      {
+        m_device->notifyError("Invalid wait event");
+      }
+    }
   }
   else
   {
     // Check for divergence
+    bool divergence = false;
+    ostringstream current, previous;
     if (instruction != m_barrier->instruction ||
-        fence != m_barrier->fence)
+        fence != m_barrier->fence ||
+        events.size() != m_barrier->events.size())
     {
-      ostringstream current, previous;
-      current << "fence=0x" << hex << fence;
-      previous << "fence=0x" << hex << m_barrier->fence;
+      current << "fence=0x" << hex << fence << ", ";
+      current << "num_events=" << dec << events.size();
+      previous << "fence=0x" << hex << m_barrier->fence << ", ";
+      previous << "num_events=" << dec << m_barrier->events.size();
+      divergence = true;
+    }
+
+    // Check events are all the same
+    if (!divergence)
+    {
+      int i = 0;
+      list<uint64_t>::iterator cItr = events.begin();
+      list<uint64_t>::iterator pItr = m_barrier->events.begin();
+      for (; cItr != events.end(); cItr++, pItr++, i++)
+      {
+        if (*cItr != *pItr)
+        {
+          current << "events[" << dec << i << "]=" << *cItr;
+          previous << "events[" << dec << i << "]=" << *pItr;
+          divergence = true;
+          break;
+        }
+      }
+    }
+
+    if (divergence)
+    {
       m_device->notifyDivergence(m_barrier->instruction, "barrier",
                                  current.str(), previous.str());
     }
@@ -359,18 +397,6 @@ void WorkGroup::notifyFinished(WorkItem *workItem)
   {
     m_device->notifyError("Work-group finished without waiting for events");
   }
-}
-
-void WorkGroup::wait_event(uint64_t event)
-{
-  // Ensure event is valid
-  if (!m_events.count(event))
-  {
-    m_device->notifyError("Invalid wait event");
-  }
-
-  // TODO: Ensure all work-items hit same wait at same time?
-  m_waitEvents.insert(event);
 }
 
 bool WorkGroup::WorkItemCmp::operator()(const WorkItem *lhs,

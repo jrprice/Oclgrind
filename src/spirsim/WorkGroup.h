@@ -51,6 +51,7 @@ namespace spirsim
       std::set<WorkItem*, WorkItemCmp> workItems;
 
       uint64_t fence;
+      std::list<uint64_t> events;
     } Barrier;
 
   public:
@@ -85,9 +86,9 @@ namespace spirsim
     WorkItem *getWorkItem(size_t localID[3]) const;
     bool hasBarrier() const;
     void notifyBarrier(WorkItem *workItem, const llvm::Instruction *instruction,
-                       uint64_t fence);
+                       uint64_t fence,
+                       std::list<uint64_t> events=std::list<uint64_t>());
     void notifyFinished(WorkItem *workItem);
-    void wait_event(uint64_t event);
 
   private:
     unsigned int m_workDim;
@@ -105,6 +106,5 @@ namespace spirsim
     uint64_t m_nextEvent;
     std::list< std::pair<AsyncCopy,std::set<const WorkItem*> > > m_asyncCopies;
     std::map < uint64_t, std::list<AsyncCopy> > m_events;
-    std::set<uint64_t> m_waitEvents;
   };
 }

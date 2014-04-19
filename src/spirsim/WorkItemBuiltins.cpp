@@ -250,21 +250,21 @@ namespace spirsim
       uint64_t num = UARG(0);
       const llvm::Value *ptrOp = ARG(1);
       size_t address = *(size_t*)(workItem->get(ptrOp).data);
+      list<uint64_t> events;
       for (int i = 0; i < num; i++)
       {
-        // TODO: Can we safely assume this is private/stack data?
         uint64_t event;
         if (!workItem->m_privateMemory->load((unsigned char*)&event,
          address, sizeof(uint64_t)))
         {
           return;
         }
-        workItem->m_workGroup.wait_event(event);
+        events.push_back(event);
         address += sizeof(uint64_t);
       }
       workItem->m_state = WorkItem::BARRIER;
       workItem->m_workGroup.notifyBarrier(workItem, callInst,
-                                          CLK_LOCAL_MEM_FENCE);
+                                          CLK_LOCAL_MEM_FENCE, events);
     }
 
     DEFINE_BUILTIN(prefetch)
