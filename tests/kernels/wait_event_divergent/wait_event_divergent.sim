@@ -1,0 +1,10 @@
+wait_event_divergent.cl
+wait_event_divergent
+2 1 1
+2 1 1
+
+b 8
+00 00 00 00
+01 00 00 00
+
+l 8
