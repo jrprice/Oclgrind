@@ -357,8 +357,13 @@ void WorkGroup::notifyFinished(WorkItem *workItem)
 
 void WorkGroup::wait_event(uint64_t event)
 {
+  // Ensure event is valid
+  if (!m_events.count(event))
+  {
+    m_device->notifyError("Invalid wait event");
+  }
+
   // TODO: Ensure all work-items hit same wait at same time?
-  assert(m_events.count(event));
   m_waitEvents.insert(event);
 }
 
