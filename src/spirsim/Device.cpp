@@ -257,6 +257,36 @@ void Device::notifyDataRace(DataRaceType type, unsigned int addrSpace,
   m_forceBreak = true;
 }
 
+void Device::notifyDivergence(const llvm::Instruction *instruction,
+                              string divergence,
+                              string currentInfo, string previousInfo)
+{
+  // Error info
+  cerr << endl
+       << "Work-group divergence detected ("
+       << divergence
+       << "):" << endl;
+  printErrorContext();
+  if (!currentInfo.empty())
+  {
+    cout << "\t" << currentInfo << endl;
+  }
+  cerr << endl;
+
+  // Show divergent instruction/info
+  cerr << "Previous work-items executed this instruction:" << endl;
+  cerr << "\t";
+  printInstruction(instruction);
+  if (!previousInfo.empty())
+  {
+    cout << "\t" << previousInfo << endl;
+  }
+
+  cerr << endl;
+
+  m_forceBreak = true;
+}
+
 void Device::notifyMemoryError(bool read, unsigned int addrSpace,
                                size_t address, size_t size)
 {

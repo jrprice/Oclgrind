@@ -231,8 +231,8 @@ namespace spirsim
       }
 
       // Register copy
-      WorkGroup::AsyncCopy copy =
-      {
+      event = workItem->m_workGroup.async_copy(
+        workItem,
         callInst,
         type,
         dest,
@@ -240,9 +240,8 @@ namespace spirsim
         elemSize,
         num,
         srcStride,
-        destStride
-      };
-      event = workItem->m_workGroup.async_copy(copy, event);
+        destStride,
+        event);
       WorkItem::setIntResult(result, event);
     }
 

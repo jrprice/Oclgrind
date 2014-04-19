@@ -30,6 +30,10 @@ namespace spirsim
     void notifyDataRace(DataRaceType type, unsigned int addrSpace,
                         size_t address, size_t lastWorkItem,
                         const llvm::Instruction *lastInstruction);
+    void notifyDivergence(const llvm::Instruction *instruction,
+                          std::string divergence,
+                          std::string currentInfo="",
+                          std::string lastInfo="");
     void notifyMemoryError(bool read, unsigned int addrSpace,
                            size_t address, size_t size);
     void run(Kernel& kernel, unsigned int workDim,

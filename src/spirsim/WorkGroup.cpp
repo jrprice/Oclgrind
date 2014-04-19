@@ -7,6 +7,7 @@
 // source code.
 
 #include "common.h"
+#include <sstream>
 
 #include "llvm/Module.h"
 
@@ -79,27 +80,88 @@ WorkGroup::~WorkGroup()
   delete m_localMemory;
 }
 
-uint64_t WorkGroup::async_copy(AsyncCopy copy, uint64_t event)
+uint64_t WorkGroup::async_copy(
+  const WorkItem *workItem,
+  const llvm::Instruction *instruction,
+  AsyncCopyType type,
+  size_t dest,
+  size_t src,
+  size_t size,
+  size_t num,
+  size_t srcStride,
+  size_t destStride,
+  uint64_t event)
 {
-  // TODO: Ensure all work-items hit same async_copy at same time?
-  map< uint64_t, list<AsyncCopy> >::iterator eItr;
-  for (eItr = m_pendingEvents.begin(); eItr != m_pendingEvents.end(); eItr++)
+  AsyncCopy copy =
   {
-    list<AsyncCopy>::iterator cItr;
-    for (cItr = eItr->second.begin(); cItr != eItr->second.end(); cItr++)
+    instruction,
+    type,
+    dest,
+    src,
+    size,
+    num,
+    srcStride,
+    destStride,
+
+    event
+  };
+
+  // Check if copy has already been registered by another work-item
+  list< pair<AsyncCopy,set<const WorkItem*> > >::iterator itr;
+  for (itr = m_asyncCopies.begin(); itr != m_asyncCopies.end(); itr++)
+  {
+    if (itr->second.count(workItem))
     {
-      if (*cItr == copy)
-      {
-        return eItr->first;
-      }
+      continue;
     }
+
+    // Check for divergence
+    if ((itr->first.instruction != copy.instruction) ||
+        (itr->first.type != copy.type) ||
+        (itr->first.dest != copy.dest) ||
+        (itr->first.src != copy.src) ||
+        (itr->first.size != copy.size) ||
+        (itr->first.num != copy.num) ||
+        (itr->first.srcStride != copy.srcStride) ||
+        (itr->first.destStride != copy.destStride))
+    {
+      ostringstream current, previous;
+      current << "dest=0x" << hex << copy.dest << ", ";
+      current << "src=0x" << hex << copy.src << endl << "\t";
+      current << "elem_size=" << dec << copy.size << ", ";
+      current << "num_elems=" << dec << copy.num << ", ";
+      current << "src_stride=" << dec << copy.srcStride << ", ";
+      current << "dest_stride=" << dec << copy.destStride;
+      previous << "dest=0x" << hex << itr->first.dest << ", ";
+      previous << "src=0x" << hex << itr->first.src << endl << "\t";
+      previous << "elem_size=" << dec << itr->first.size << ", ";
+      previous << "num_elems=" << dec << itr->first.num << ", ";
+      previous << "src_stride=" << dec << itr->first.srcStride << ", ";
+      previous << "dest_stride=" << dec << itr->first.destStride;
+      m_device->notifyDivergence(copy.instruction, "async copy",
+                                 current.str(), previous.str());
+    }
+
+    itr->second.insert(workItem);
+    return itr->first.event;
   }
 
-  event = m_nextEvent++;
-  m_pendingEvents[event] = list<AsyncCopy>();
-  m_pendingEvents[event].push_back(copy);
+  // Create new event if necessary
+  if (copy.event == 0)
+  {
+    copy.event = m_nextEvent++;
+  }
 
-  return event;
+  // Register new copy and event
+  m_asyncCopies.push_back(make_pair(copy, set<const WorkItem*>()));
+  m_asyncCopies.back().second.insert(workItem);
+  if (!m_events.count(event))
+  {
+    m_events[copy.event] = list<AsyncCopy>();
+  }
+  m_events[copy.event].push_back(copy);
+
+  return copy.event;
 }
 
 void WorkGroup::clearBarrier()
@@ -126,7 +188,7 @@ void WorkGroup::clearBarrier()
     set<uint64_t>::iterator eItr;
     for (eItr = m_waitEvents.begin(); eItr != m_waitEvents.end(); eItr++)
     {
-      list<AsyncCopy> copies = m_pendingEvents[*eItr];
+      list<AsyncCopy> copies = m_events[*eItr];
       list<AsyncCopy>::iterator itr;
       for (itr = copies.begin(); itr != copies.end(); itr++)
       {
@@ -154,7 +216,31 @@ void WorkGroup::clearBarrier()
         }
         delete[] buffer;
       }
-      m_pendingEvents.erase(*eItr);
+      m_events.erase(*eItr);
+
+      // Remove copies from list for this event
+      list< pair<AsyncCopy,set<const WorkItem*> > >::iterator cItr;
+      for (cItr = m_asyncCopies.begin(); cItr != m_asyncCopies.end();)
+      {
+        if (cItr->first.event == *eItr)
+        {
+          // Check that all work-items registered the copy
+          if (cItr->second.size() != m_workItems.size())
+          {
+            ostringstream info;
+            info << "Only " << dec << cItr->second.size() << " out of "
+                 << m_workItems.size() << " work-items executed copy";
+            m_device->notifyDivergence(cItr->first.instruction, "async_copy",
+                                       info.str());
+          }
+
+          cItr = m_asyncCopies.erase(cItr);
+        }
+        else
+        {
+          cItr++;
+        }
+      }
     }
     m_waitEvents.clear();
   }
@@ -241,18 +327,8 @@ void WorkGroup::notifyFinished(WorkItem *workItem)
 void WorkGroup::wait_event(uint64_t event)
 {
   // TODO: Ensure all work-items hit same wait at same time?
-  assert(m_pendingEvents.count(event));
+  assert(m_events.count(event));
   m_waitEvents.insert(event);
-}
-
-bool WorkGroup::AsyncCopy::operator==(AsyncCopy copy) const
-{
-  return
-    (instruction == copy.instruction) &&
-    (type == copy.type) &&
-    (dest == copy.dest) &&
-    (src == copy.src) &&
-    (size == copy.size);
 }
 
 bool WorkGroup::WorkItemCmp::operator()(const WorkItem *lhs,

@@ -22,6 +22,8 @@ namespace spirsim
   {
   public:
     enum AsyncCopyType{GLOBAL_TO_LOCAL, LOCAL_TO_GLOBAL};
+
+  private:
     typedef struct _AsyncCopy
     {
       const llvm::Instruction *instruction;
@@ -33,7 +35,7 @@ namespace spirsim
       size_t srcStride;
       size_t destStride;
 
-      bool operator== (_AsyncCopy) const;
+      uint64_t event;
     } AsyncCopy;
 
   public:
@@ -45,7 +47,17 @@ namespace spirsim
               const size_t wgsize[3]);
     virtual ~WorkGroup();
 
-    uint64_t async_copy(AsyncCopy copy, uint64_t event);
+    uint64_t async_copy(
+      const WorkItem *workItem,
+      const llvm::Instruction *instruction,
+      AsyncCopyType type,
+      size_t dest,
+      size_t src,
+      size_t size,
+      size_t num,
+      size_t srcStride,
+      size_t destStride,
+      uint64_t event);
     void clearBarrier();
     const size_t* getGlobalOffset() const;
     const size_t* getGlobalSize() const;
@@ -83,7 +95,8 @@ namespace spirsim
 
     uint64_t m_barrierFence;
     uint64_t m_nextEvent;
-    std::map< uint64_t, std::list<AsyncCopy> > m_pendingEvents;
+    std::list< std::pair<AsyncCopy,std::set<const WorkItem*> > > m_asyncCopies;
+    std::map < uint64_t, std::list<AsyncCopy> > m_events;
     std::set<uint64_t> m_waitEvents;
   };
 }
