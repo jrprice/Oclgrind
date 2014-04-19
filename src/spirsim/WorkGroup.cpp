@@ -353,6 +353,12 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
 void WorkGroup::notifyFinished(WorkItem *workItem)
 {
   m_running.erase(workItem);
+
+  // Check if work-group finished without waiting for all events
+  if (m_running.empty() && !m_barrier && !m_events.empty())
+  {
+    m_device->notifyError("Work-group finished without waiting for events");
+  }
 }
 
 void WorkGroup::wait_event(uint64_t event)
