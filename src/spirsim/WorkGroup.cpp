@@ -66,7 +66,7 @@ WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,
   }
 
   m_nextEvent = 1;
-  m_barrierFence = 0;
+  m_barrier = NULL;
 }
 
 WorkGroup::~WorkGroup()
@@ -166,20 +166,28 @@ uint64_t WorkGroup::async_copy(
 
 void WorkGroup::clearBarrier()
 {
+  assert(m_barrier);
+
   // Check for divergence
-  if (m_barrier.size() != m_workItems.size())
+  if (m_barrier->workItems.size() != m_workItems.size())
   {
-    FATAL_ERROR("Barrier divergence detected");
+    ostringstream info;
+            info << "Only " << dec << m_barrier->workItems.size() << " out of "
+                 << m_workItems.size() << " work-items executed barrier";
+    m_device->notifyDivergence(m_barrier->instruction, "barrier",
+                               info.str());
   }
 
   // Move work-items to running state
   set<WorkItem*>::iterator itr;
-  for (itr = m_barrier.begin(); itr != m_barrier.end(); itr++)
+  for (itr = m_barrier->workItems.begin();
+       itr != m_barrier->workItems.end();
+       itr++)
   {
     (*itr)->clearBarrier();
     m_running.insert(*itr);
   }
-  m_barrier.clear();
+  m_barrier->workItems.clear();
 
   // Check if we're waiting on an event
   if (!m_waitEvents.empty())
@@ -246,15 +254,16 @@ void WorkGroup::clearBarrier()
   }
 
   // Apple memory fences
-  if (m_barrierFence & CLK_LOCAL_MEM_FENCE)
+  if (m_barrier->fence & CLK_LOCAL_MEM_FENCE)
   {
     m_localMemory->synchronize();
   }
-  if (m_barrierFence & CLK_GLOBAL_MEM_FENCE)
+  if (m_barrier->fence & CLK_GLOBAL_MEM_FENCE)
   {
     m_device->getGlobalMemory()->synchronize(true);
   }
-  m_barrierFence = 0;
+  delete m_barrier;
+  m_barrier = NULL;
 }
 
 const size_t* WorkGroup::getGlobalOffset() const
@@ -309,14 +318,36 @@ WorkItem* WorkGroup::getWorkItem(size_t localID[3]) const
 
 bool WorkGroup::hasBarrier() const
 {
-  return !m_barrier.empty();
+  return m_barrier;
 }
 
-void WorkGroup::notifyBarrier(WorkItem *workItem, uint64_t fence)
+void WorkGroup::notifyBarrier(WorkItem *workItem,
+                              const llvm::Instruction *instruction,
+                              uint64_t fence)
 {
+  if (!m_barrier)
+  {
+    // Create new barrier
+    m_barrier = new Barrier;
+    m_barrier->instruction = instruction;
+    m_barrier->fence = fence;
+  }
+  else
+  {
+    // Check for divergence
+    if (instruction != m_barrier->instruction ||
+        fence != m_barrier->fence)
+    {
+      ostringstream current, previous;
+      current << "fence=0x" << hex << fence;
+      previous << "fence=0x" << hex << m_barrier->fence;
+      m_device->notifyDivergence(m_barrier->instruction, "barrier",
+                                 current.str(), previous.str());
+    }
+  }
+
   m_running.erase(workItem);
-  m_barrier.insert(workItem);
-  m_barrierFence = fence;
+  m_barrier->workItems.insert(workItem);
 }
 
 void WorkGroup::notifyFinished(WorkItem *workItem)

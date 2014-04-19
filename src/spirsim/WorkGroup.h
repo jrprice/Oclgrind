@@ -24,7 +24,14 @@ namespace spirsim
     enum AsyncCopyType{GLOBAL_TO_LOCAL, LOCAL_TO_GLOBAL};
 
   private:
-    typedef struct _AsyncCopy
+    // Comparator for ordering work-items
+    struct WorkItemCmp
+    {
+      bool operator()(const WorkItem *lhs, const WorkItem *rhs) const;
+    };
+    std::set<WorkItem*, WorkItemCmp> m_running;
+
+    typedef struct
     {
       const llvm::Instruction *instruction;
       AsyncCopyType type;
@@ -37,6 +44,14 @@ namespace spirsim
 
       uint64_t event;
     } AsyncCopy;
+
+    typedef struct
+    {
+      const llvm::Instruction *instruction;
+      std::set<WorkItem*, WorkItemCmp> workItems;
+
+      uint64_t fence;
+    } Barrier;
 
   public:
     WorkGroup(Device *device, const Kernel& kernel, Memory &globalMem,
@@ -69,7 +84,8 @@ namespace spirsim
     unsigned int getWorkDim() const;
     WorkItem *getWorkItem(size_t localID[3]) const;
     bool hasBarrier() const;
-    void notifyBarrier(WorkItem *workItem, uint64_t fence);
+    void notifyBarrier(WorkItem *workItem, const llvm::Instruction *instruction,
+                       uint64_t fence);
     void notifyFinished(WorkItem *workItem);
     void wait_event(uint64_t event);
 
@@ -85,15 +101,7 @@ namespace spirsim
     Memory *m_localMemory;
     std::vector<WorkItem*> m_workItems;
 
-    // Comparator for ordering work-items
-    struct WorkItemCmp
-    {
-      bool operator()(const WorkItem *lhs, const WorkItem *rhs) const;
-    };
-    std::set<WorkItem*, WorkItemCmp> m_running;
-    std::set<WorkItem*, WorkItemCmp> m_barrier;
-
-    uint64_t m_barrierFence;
+    Barrier *m_barrier;
     uint64_t m_nextEvent;
     std::list< std::pair<AsyncCopy,std::set<const WorkItem*> > > m_asyncCopies;
     std::map < uint64_t, std::list<AsyncCopy> > m_events;
