@@ -34,6 +34,7 @@ namespace spirsim
                           std::string divergence,
                           std::string currentInfo="",
                           std::string lastInfo="");
+    void notifyError(std::string error, std::string info="");
     void notifyMemoryError(bool read, unsigned int addrSpace,
                            size_t address, size_t size);
     void run(Kernel& kernel, unsigned int workDim,

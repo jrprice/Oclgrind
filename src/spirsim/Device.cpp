@@ -287,6 +287,20 @@ void Device::notifyDivergence(const llvm::Instruction *instruction,
   m_forceBreak = true;
 }
 
+void Device::notifyError(string error, string info)
+{
+  // Error info
+  cerr << endl << error << ":" << endl;
+  printErrorContext();
+  if (!info.empty())
+  {
+    cout << "\t" << info << endl;
+  }
+  cerr << endl;
+
+  m_forceBreak = true;
+}
+
 void Device::notifyMemoryError(bool read, unsigned int addrSpace,
                                size_t address, size_t size)
 {
