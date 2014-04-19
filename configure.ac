@@ -81,7 +81,8 @@ m4_foreach([name],
   [intergroup_hidden_race], [atomic_same_workitem], [atomic_cmpxchg_race],
   [atomic_cmpxchg_false_race], [async_copy_divergent], [async_copy_loop],
   [async_copy_loop_divergent], [async_copy_unwaited], [async_copy_single_wi],
-  [wait_event_divergent], [wait_event_invalid]],
+  [wait_event_divergent], [wait_event_invalid], [wait_event_duplicates],
+  [wait_event_chained]],
 [
     KERNEL_TESTS="$KERNEL_TESTS tests/kernels/"name"/"name".sim"
     KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".sim"
