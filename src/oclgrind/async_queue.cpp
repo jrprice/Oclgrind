@@ -16,7 +16,7 @@
 #include <spirsim/Kernel.h>
 #include <spirsim/Queue.h>
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 // Maps to keep track of retained objects

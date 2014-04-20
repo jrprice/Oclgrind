@@ -11,7 +11,7 @@
 #define CLK_LOCAL_MEM_FENCE  (1<<0)
 #define CLK_GLOBAL_MEM_FENCE (1<<1)
 
-namespace spirsim
+namespace oclgrind
 {
   class Device;
   class Memory;

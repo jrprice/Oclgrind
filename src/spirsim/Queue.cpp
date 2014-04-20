@@ -13,7 +13,7 @@
 #include "Memory.h"
 #include "Queue.h"
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 Queue::Queue(Device& device)

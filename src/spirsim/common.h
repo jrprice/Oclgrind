@@ -42,7 +42,7 @@ namespace llvm
   class Value;
 }
 
-namespace spirsim
+namespace oclgrind
 {
   // Enumeration for address spaces
   enum AddressSpace {

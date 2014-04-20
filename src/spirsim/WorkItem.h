@@ -23,7 +23,7 @@ namespace llvm
   class CallInst;
 }
 
-namespace spirsim
+namespace oclgrind
 {
   class Device;
   class Kernel;

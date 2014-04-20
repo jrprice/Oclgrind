@@ -52,7 +52,7 @@ const char *EXTENSIONS[] =
   "cl_khr_byte_addressable_store",
 };
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 Program::Program(llvm::Module *module)

@@ -17,7 +17,7 @@
 #include "Kernel.h"
 #include "Memory.h"
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 Kernel::Kernel(const Program& program,

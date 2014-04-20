@@ -12,10 +12,10 @@
 
 extern void asyncEnqueue(cl_command_queue queue,
                          cl_command_type type,
-                         spirsim::Queue::Command *cmd,
+                         oclgrind::Queue::Command *cmd,
                          cl_uint numEvents,
                          const cl_event *waitList,
                          cl_event *eventOut);
-extern void asyncQueueRetain(spirsim::Queue::Command *cmd, cl_mem mem);
-extern void asyncQueueRetain(spirsim::Queue::Command *cmd, cl_kernel);
-extern void asyncQueueRelease(spirsim::Queue::Command *cmd);
+extern void asyncQueueRetain(oclgrind::Queue::Command *cmd, cl_mem mem);
+extern void asyncQueueRetain(oclgrind::Queue::Command *cmd, cl_kernel);
+extern void asyncQueueRelease(oclgrind::Queue::Command *cmd);

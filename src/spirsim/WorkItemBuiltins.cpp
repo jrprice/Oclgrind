@@ -23,7 +23,7 @@
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 #define CLK_NORMALIZED_COORDS_TRUE 0x0001
@@ -42,7 +42,7 @@ using namespace std;
 #define M_PI 3.1415926535897932384626433832795
 #endif
 
-namespace spirsim
+namespace oclgrind
 {
   class WorkItemBuiltins
   {

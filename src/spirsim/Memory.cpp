@@ -29,7 +29,7 @@
 #define ENV_DATA_RACES "OCLGRIND_DATA_RACES"
 #define ENV_UNIFORM_WRITES "OCLGRIND_UNIFORM_WRITES"
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 Memory::Memory(unsigned int addrSpace, Device *device)

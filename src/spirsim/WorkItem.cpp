@@ -23,7 +23,7 @@
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 #define COUNTED_LOAD_BASE  (llvm::Instruction::OtherOpsEnd + 4)

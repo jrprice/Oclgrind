@@ -18,7 +18,7 @@ namespace llvm
   class Module;
 }
 
-namespace spirsim
+namespace oclgrind
 {
   class Memory;
   class Program;

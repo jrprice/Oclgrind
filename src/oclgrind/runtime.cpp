@@ -714,7 +714,7 @@ clCreateContext
   // Create context object
   cl_context context = new _cl_context;
   context->dispatch = m_dispatchTable;
-  context->device = new spirsim::Device();
+  context->device = new oclgrind::Device();
   context->notify = pfn_notify;
   context->data = user_data;
   context->properties = NULL;
@@ -768,7 +768,7 @@ clCreateContextFromType
   // Create context object
   cl_context context = new _cl_context;
   context->dispatch = m_dispatchTable;
-  context->device = new spirsim::Device();
+  context->device = new oclgrind::Device();
   context->notify = pfn_notify;
   context->data = user_data;
   context->properties = NULL;
@@ -926,7 +926,7 @@ clCreateCommandQueue
   // Create command-queue object
   cl_command_queue queue;
   queue = new _cl_command_queue;
-  queue->queue = new spirsim::Queue(*context->device);
+  queue->queue = new oclgrind::Queue(*context->device);
   queue->dispatch = m_dispatchTable;
   queue->properties = properties;
   queue->context = context;
@@ -2091,7 +2091,7 @@ clCreateProgramWithSource
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = new spirsim::Program(source);
+  prog->program = new oclgrind::Program(source);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
@@ -2137,7 +2137,7 @@ clCreateProgramWithBinary
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = spirsim::Program::createFromBitcode(binaries[0], lengths[0]);
+  prog->program = oclgrind::Program::createFromBitcode(binaries[0], lengths[0]);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
@@ -2301,7 +2301,7 @@ clCompileProgram
   }
 
   // Prepare headers
-  list<spirsim::Program::Header> headers;
+  list<oclgrind::Program::Header> headers;
   for (int i = 0; i < num_input_headers; i++)
   {
     headers.push_back(make_pair(header_include_names[i],
@@ -2366,7 +2366,7 @@ clLinkProgram
   }
 
   // Prepare programs
-  list<const spirsim::Program*> programs;
+  list<const oclgrind::Program*> programs;
   for (int i = 0; i < num_input_programs; i++)
   {
     programs.push_back(input_programs[i]->program);
@@ -2375,7 +2375,7 @@ clLinkProgram
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = spirsim::Program::createFromPrograms(programs);
+  prog->program = oclgrind::Program::createFromPrograms(programs);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
@@ -2747,7 +2747,7 @@ clSetKernelArg
   }
 
   // Prepare argument value
-  spirsim::TypedValue value;
+  oclgrind::TypedValue value;
   value.data = new unsigned char[arg_size];
   value.size = arg_size;
   value.num = 1;
@@ -2775,11 +2775,11 @@ clSetKernelArg
       if (mem->isImage)
       {
         // Create Image struct
-        spirsim::Image *image = new spirsim::Image;
+        oclgrind::Image *image = new oclgrind::Image;
         image->address = mem->address;
         image->format = ((cl_image*)mem)->format;
         image->desc = ((cl_image*)mem)->desc;
-        *(spirsim::Image**)value.data = image;
+        *(oclgrind::Image**)value.data = image;
       }
       else
       {
@@ -3092,7 +3092,7 @@ clWaitForEvents
       // If it's not a user event, update the queue
       if (event_list[i]->queue)
       {
-        spirsim::Queue::Command *cmd = event_list[i]->queue->queue->update();
+        oclgrind::Queue::Command *cmd = event_list[i]->queue->queue->update();
         if (cmd)
         {
           asyncQueueRelease(cmd);
@@ -3218,7 +3218,7 @@ clCreateUserEvent
   event->context = context;
   event->queue = 0;
   event->type = CL_COMMAND_USER;
-  event->event = new spirsim::Event();
+  event->event = new oclgrind::Event();
   event->event->state = CL_SUBMITTED;
   event->refCount = 1;
 
@@ -3431,7 +3431,7 @@ clFinish
   while (!command_queue->queue->isEmpty())
   {
     // TODO: Move this update to async thread?
-    spirsim::Queue::Command *cmd = command_queue->queue->update();
+    oclgrind::Queue::Command *cmd = command_queue->queue->update();
     if (cmd)
     {
       asyncQueueRelease(cmd);
@@ -3479,8 +3479,8 @@ clEnqueueReadBuffer
   }
 
   // Enqueue command
-  spirsim::Queue::BufferCommand *cmd =
-    new spirsim::Queue::BufferCommand(spirsim::Queue::READ);
+  oclgrind::Queue::BufferCommand *cmd =
+    new oclgrind::Queue::BufferCommand(oclgrind::Queue::READ);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address + offset;
   cmd->size = cb;
@@ -3572,8 +3572,8 @@ clEnqueueReadBufferRect
   }
 
   // Enqueue command
-  spirsim::Queue::BufferRectCommand *cmd =
-    new spirsim::Queue::BufferRectCommand(spirsim::Queue::READ_RECT);
+  oclgrind::Queue::BufferRectCommand *cmd =
+    new oclgrind::Queue::BufferRectCommand(oclgrind::Queue::READ_RECT);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address;
   cmd->buffer_offset[0] = buffer_offset;
@@ -3632,8 +3632,8 @@ clEnqueueWriteBuffer
   }
 
   // Enqueue command
-  spirsim::Queue::BufferCommand *cmd =
-    new spirsim::Queue::BufferCommand(spirsim::Queue::WRITE);
+  oclgrind::Queue::BufferCommand *cmd =
+    new oclgrind::Queue::BufferCommand(oclgrind::Queue::WRITE);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address + offset;
   cmd->size = cb;
@@ -3725,8 +3725,8 @@ clEnqueueWriteBufferRect
   }
 
   // Enqueue command
-  spirsim::Queue::BufferRectCommand *cmd =
-    new spirsim::Queue::BufferRectCommand(spirsim::Queue::WRITE_RECT);
+  oclgrind::Queue::BufferRectCommand *cmd =
+    new oclgrind::Queue::BufferRectCommand(oclgrind::Queue::WRITE_RECT);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address;
   cmd->buffer_offset[0] = buffer_offset;
@@ -3778,7 +3778,7 @@ clEnqueueCopyBuffer
   }
 
   // Enqueue command
-  spirsim::Queue::CopyCommand *cmd = new spirsim::Queue::CopyCommand();
+  oclgrind::Queue::CopyCommand *cmd = new oclgrind::Queue::CopyCommand();
   cmd->dst = dst_buffer->address + dst_offset;
   cmd->src = src_buffer->address + src_offset;
   cmd->size = cb;
@@ -3862,7 +3862,7 @@ clEnqueueCopyBufferRect
   }
 
   // Enqueue command
-  spirsim::Queue::CopyRectCommand *cmd = new spirsim::Queue::CopyRectCommand();
+  oclgrind::Queue::CopyRectCommand *cmd = new oclgrind::Queue::CopyRectCommand();
   cmd->src = src_buffer->address;
   cmd->dst = dst_buffer->address;
   cmd->src_offset[0] = src_offset;
@@ -3917,8 +3917,8 @@ clEnqueueFillBuffer
   }
 
   // Enqueue command
-  spirsim::Queue::FillBufferCommand *cmd =
-    new spirsim::Queue::FillBufferCommand((const unsigned char*)pattern,
+  oclgrind::Queue::FillBufferCommand *cmd =
+    new oclgrind::Queue::FillBufferCommand((const unsigned char*)pattern,
                                           pattern_size);
   cmd->address = buffer->address + offset;
   cmd->size = cb;
@@ -4066,8 +4066,8 @@ clEnqueueFillImage
   }
 
   // Enqueue command
-  spirsim::Queue::FillImageCommand *cmd =
-    new spirsim::Queue::FillImageCommand(image->address, origin, region,
+  oclgrind::Queue::FillImageCommand *cmd =
+    new oclgrind::Queue::FillImageCommand(image->address, origin, region,
                                          row_pitch, slice_pitch,
                                          pixelSize, color);
   asyncQueueRetain(cmd, image);
@@ -4375,7 +4375,7 @@ clEnqueueMapBuffer
   }
 
   // Enqueue command
-  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
   asyncQueueRetain(cmd, buffer);
   asyncEnqueue(command_queue, CL_COMMAND_MAP_BUFFER, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4468,7 +4468,7 @@ clEnqueueMapImage
   }
 
   // Enqueue command
-  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
   asyncQueueRetain(cmd, image);
   asyncEnqueue(command_queue, CL_COMMAND_MAP_IMAGE, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4504,7 +4504,7 @@ clEnqueueUnmapMemObject
   }
 
   // Enqueue command
-  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
   asyncQueueRetain(cmd, memobj);
   asyncEnqueue(command_queue, CL_COMMAND_UNMAP_MEM_OBJECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4531,7 +4531,7 @@ clEnqueueMigrateMemObjects
   }
 
   // Enqueue command
-  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
   asyncEnqueue(command_queue, CL_COMMAND_MIGRATE_MEM_OBJECTS, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
@@ -4586,8 +4586,8 @@ clEnqueueNDRangeKernel
   }
 
   // Enqueue command
-  spirsim::Queue::KernelCommand *cmd = new spirsim::Queue::KernelCommand();
-  cmd->kernel = new spirsim::Kernel(*kernel->kernel);
+  oclgrind::Queue::KernelCommand *cmd = new oclgrind::Queue::KernelCommand();
+  cmd->kernel = new oclgrind::Kernel(*kernel->kernel);
   cmd->work_dim = work_dim;
   memcpy(cmd->global_size, global_work_size, work_dim*sizeof(size_t));
   memset(cmd->global_offset, 0, 3*sizeof(size_t));
@@ -4664,7 +4664,7 @@ clEnqueueNativeKernel
   }
 
   // Replace mem objects with real pointers
-  spirsim::Memory *memory = command_queue->context->device->getGlobalMemory();
+  oclgrind::Memory *memory = command_queue->context->device->getGlobalMemory();
   for (int i = 0; i < num_mem_objects; i++)
   {
     void *addr = memory->getPointer(mem_list[i]->address);
@@ -4676,8 +4676,8 @@ clEnqueueNativeKernel
   }
 
   // Create command
-  spirsim::Queue::NativeKernelCommand *cmd =
-    new spirsim::Queue::NativeKernelCommand(user_func, args, cb_args);
+  oclgrind::Queue::NativeKernelCommand *cmd =
+    new oclgrind::Queue::NativeKernelCommand(user_func, args, cb_args);
 
   // Retain memory objects
   for (int i = 0; i < num_mem_objects; i++)
@@ -4718,7 +4718,7 @@ clEnqueueMarkerWithWaitList
   }
 
   // Enqueue command
-  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
   asyncEnqueue(command_queue, CL_COMMAND_MARKER, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
@@ -4741,7 +4741,7 @@ clEnqueueBarrierWithWaitList
   }
 
   // Enqueue command
-  spirsim::Queue::Command *cmd = new spirsim::Queue::Command();
+  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
   asyncEnqueue(command_queue, CL_COMMAND_BARRIER, cmd,
                num_events_in_wait_list, event_wait_list, event);
 

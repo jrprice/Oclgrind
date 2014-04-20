@@ -14,7 +14,7 @@
 #include "spirsim/Memory.h"
 #include "spirsim/Program.h"
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 static bool outputGlobalMemory = false;

@@ -18,10 +18,10 @@
 #include "llvm/Operator.h"
 #include "llvm/Support/raw_os_ostream.h"
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
-namespace spirsim
+namespace oclgrind
 {
   TypedValue clone(const TypedValue& source)
   {

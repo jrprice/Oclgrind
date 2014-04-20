@@ -128,7 +128,7 @@
 #include "CL/cl_dx9_media_sharing.h"
 #endif
 
-namespace spirsim
+namespace oclgrind
 {
   class Device;
   class Kernel;
@@ -156,7 +156,7 @@ struct _cl_device_id
 struct _cl_context
 {
   void *dispatch;
-  spirsim::Device *device;
+  oclgrind::Device *device;
   void (CL_CALLBACK *notify)(const char *, const void *, size_t, void *);
   void *data;
   cl_context_properties *properties;
@@ -169,7 +169,7 @@ struct _cl_command_queue
   void *dispatch;
   cl_command_queue_properties properties;
   cl_context context;
-  spirsim::Queue *queue;
+  oclgrind::Queue *queue;
   unsigned int refCount;
 };
 
@@ -197,7 +197,7 @@ struct cl_image : _cl_mem
 struct _cl_program
 {
   void *dispatch;
-  spirsim::Program *program;
+  oclgrind::Program *program;
   cl_context context;
   unsigned int refCount;
 };
@@ -205,7 +205,7 @@ struct _cl_program
 struct _cl_kernel
 {
   void *dispatch;
-  spirsim::Kernel *kernel;
+  oclgrind::Kernel *kernel;
   cl_program program;
   std::map<cl_uint, cl_mem> memArgs;
   unsigned int refCount;
@@ -217,7 +217,7 @@ struct _cl_event
   cl_context context;
   cl_command_queue queue;
   cl_command_type type;
-  spirsim::Event *event;
+  oclgrind::Event *event;
   std::list< std::pair<void (CL_CALLBACK*)(cl_event, cl_int, void*), void*> > callbacks;
   unsigned int refCount;
 };

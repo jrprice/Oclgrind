@@ -17,7 +17,7 @@
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,

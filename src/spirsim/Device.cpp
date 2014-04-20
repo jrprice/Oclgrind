@@ -21,7 +21,7 @@
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
-using namespace spirsim;
+using namespace oclgrind;
 using namespace std;
 
 #define LIST_LENGTH 10

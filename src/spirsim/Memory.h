@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-namespace spirsim
+namespace oclgrind
 {
   class Device;
 

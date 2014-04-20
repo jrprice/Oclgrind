@@ -19,7 +19,7 @@ namespace llvm
   template<typename T> class OwningPtr;
 }
 
-namespace spirsim
+namespace oclgrind
 {
   class Kernel;
 

@@ -9,7 +9,7 @@
 #pragma once
 #include "common.h"
 
-namespace spirsim
+namespace oclgrind
 {
   class Device;
   class Kernel;
