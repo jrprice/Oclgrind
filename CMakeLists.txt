@@ -110,7 +110,10 @@ add_library(oclgrind-icd SHARED ${OCLGRIND_SOURCES})
 set_target_properties(oclgrind-icd PROPERTIES COMPILE_FLAGS -DOCLGRIND_ICD)
 target_link_libraries(oclgrind-icd ${CMAKE_DL_LIBS} spirsim)
 
-add_executable(oclgrind-kernel src/oclgrind-kernel/main.cpp)
+add_executable(oclgrind-kernel
+  src/oclgrind-kernel/main.cpp
+  src/oclgrind-kernel/Simulation.h
+  src/oclgrind-kernel/Simulation.cpp)
 target_link_libraries(oclgrind-kernel spirsim)
 
 # Install oclgrind script if not on Windows
