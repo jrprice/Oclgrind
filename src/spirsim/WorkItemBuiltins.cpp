@@ -1479,41 +1479,42 @@ namespace spirsim
                             + (x + (y + z*image->desc.image_height)
                             * image->desc.image_width) * pixelSize;
 
-      // Write channel values
+      // Generate channel values
       Memory *memory = workItem->getMemory(AddrSpaceGlobal);
+      unsigned char *data = workItem->m_pool.alloc(channelSize*numChannels);
       for (int i = 0; i < numChannels; i++)
       {
-        // Compute normalized color value
-        unsigned char *data = workItem->m_pool.alloc(channelSize);
         switch (image->format.image_channel_data_type)
         {
           case CL_SNORM_INT8:
-            *(int8_t*)data = rint(_clamp_(values[i] * 127.f, -128.f, 127.f));
+            ((int8_t*)data)[i] = rint(_clamp_(values[i] * 127.f,
+                                              -128.f, 127.f));
             break;
           case CL_UNORM_INT8:
-            *data = rint(_clamp_(values[i] * 255.f, 0.f, 255.f));
+            data[i] = rint(_clamp_(values[i] * 255.f, 0.f, 255.f));
             break;
           case CL_SNORM_INT16:
-            *(int16_t*)data = rint(_clamp_(values[i] * 32767.f,
-                                           -32768.f, 32767.f));
+            ((int16_t*)data)[i] = rint(_clamp_(values[i] * 32767.f,
+                                               -32768.f, 32767.f));
             break;
           case CL_UNORM_INT16:
-            *(uint16_t*)data = rint(_clamp_(values[i] * 65535.f, 0.f, 65535.f));
+            ((uint16_t*)data)[i] = rint(_clamp_(values[i] * 65535.f,
+                                                0.f, 65535.f));
             break;
           case CL_FLOAT:
-            *(float*)data = values[i];
+            ((float*)data)[i] = values[i];
             break;
           case CL_HALF_FLOAT:
-            *(uint16_t*)data = floatToHalf(values[i]);
+            ((uint16_t*)data)[i] = floatToHalf(values[i]);
             break;
           default:
             FATAL_ERROR("Unsupported image channel data type: %X",
                         image->format.image_channel_data_type);
         }
-
-        // Write data
-        memory->store(data, pixelAddress + i*channelSize, channelSize);
       }
+
+      // Write pixel data
+      memory->store(data, pixelAddress, channelSize*numChannels);
     }
 
     DEFINE_BUILTIN(write_imagei)
@@ -1580,31 +1581,30 @@ namespace spirsim
                             + (x + (y + z*image->desc.image_height)
                             * image->desc.image_width) * pixelSize;
 
-      // Write channel values
+      // Generate channel values
       Memory *memory = workItem->getMemory(AddrSpaceGlobal);
+      unsigned char *data = workItem->m_pool.alloc(channelSize*numChannels);
       for (int i = 0; i < numChannels; i++)
       {
-        // Compute normalized color value
-        unsigned char *data = workItem->m_pool.alloc(channelSize);
         switch (image->format.image_channel_data_type)
         {
           case CL_SIGNED_INT8:
-            *(int8_t*)data = _clamp_(values[i], -128, 127);
+            ((int8_t*)data)[i] = _clamp_(values[i], -128, 127);
             break;
           case CL_SIGNED_INT16:
-            *(int16_t*)data = _clamp_(values[i], -32768, 32767);
+            ((int16_t*)data)[i] = _clamp_(values[i], -32768, 32767);
             break;
           case CL_SIGNED_INT32:
-            *(int32_t*)data = values[i];
+            ((int32_t*)data)[i] = values[i];
             break;
           default:
             FATAL_ERROR("Unsupported image channel data type: %X",
                         image->format.image_channel_data_type);
         }
-
-        // Write data
-        memory->store(data, pixelAddress + i*channelSize, channelSize);
       }
+
+      // Write pixel data
+      memory->store(data, pixelAddress, channelSize*numChannels);
     }
 
     DEFINE_BUILTIN(write_imageui)
@@ -1671,31 +1671,30 @@ namespace spirsim
                             + (x + (y + z*image->desc.image_height)
                             * image->desc.image_width) * pixelSize;
 
-      // Write channel values
+      // Generate channel values
       Memory *memory = workItem->getMemory(AddrSpaceGlobal);
+      unsigned char *data = workItem->m_pool.alloc(channelSize*numChannels);
       for (int i = 0; i < numChannels; i++)
       {
-        // Compute normalized color value
-        unsigned char *data = workItem->m_pool.alloc(channelSize);
         switch (image->format.image_channel_data_type)
         {
           case CL_UNSIGNED_INT8:
-            *(uint8_t*)data = _min_<uint32_t>(values[i], UINT8_MAX);
+            ((uint8_t*)data)[i] = _min_<uint32_t>(values[i], UINT8_MAX);
             break;
           case CL_UNSIGNED_INT16:
-            *(uint16_t*)data = _min_<uint32_t>(values[i], UINT16_MAX);
+            ((uint16_t*)data)[i] = _min_<uint32_t>(values[i], UINT16_MAX);
             break;
           case CL_UNSIGNED_INT32:
-            *(uint32_t*)data = values[i];
+            ((uint32_t*)data)[i] = values[i];
             break;
           default:
             FATAL_ERROR("Unsupported image channel data type: %X",
                         image->format.image_channel_data_type);
         }
-
-        // Write data
-        memory->store(data, pixelAddress + i*channelSize, channelSize);
       }
+
+      // Write pixel data
+      memory->store(data, pixelAddress, channelSize*numChannels);
     }
 
 
