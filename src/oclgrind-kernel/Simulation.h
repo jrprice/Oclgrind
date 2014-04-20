@@ -7,6 +7,7 @@
 // source code.
 
 #include "config.h"
+#include <fstream>
 #include <string>
 
 namespace oclgrind
@@ -32,4 +33,9 @@ class Simulation
 
     size_t m_ndrange[3];
     size_t m_wgsize[3];
+
+    std::ifstream m_simfile;
+    std::string m_parsing;
+    void get(std::string& result);
+    template<typename T> void get(T& result);
 };
