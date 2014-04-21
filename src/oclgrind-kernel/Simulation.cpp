@@ -86,7 +86,7 @@ void Simulation::get(string& result)
   while (result.empty());
 }
 
-bool Simulation::load(string filename)
+bool Simulation::load(const char *filename)
 {
   // Open simulator file
   m_simfile.open(filename);

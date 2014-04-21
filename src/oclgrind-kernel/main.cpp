@@ -6,6 +6,9 @@
 // license terms please see the LICENSE file distributed with this
 // source code.
 
+#include "config.h"
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 

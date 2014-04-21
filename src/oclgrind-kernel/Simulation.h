@@ -23,7 +23,7 @@ class Simulation
     Simulation();
     virtual ~Simulation();
 
-    bool load(std::string filename);
+    bool load(const char *filename);
     void run(bool dumpGlobalMemory=false);
 
   private:
