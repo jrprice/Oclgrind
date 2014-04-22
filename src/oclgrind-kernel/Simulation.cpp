@@ -506,6 +506,7 @@ void Simulation::parseArgument(size_t index)
       throw "Argument size doesn't match kernel.";
     }
     value.data = new unsigned char[value.size];
+    memcpy(value.data, data, value.size);
     break;
   case CL_KERNEL_ARG_ADDRESS_GLOBAL:
   case CL_KERNEL_ARG_ADDRESS_CONSTANT:
