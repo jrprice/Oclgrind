@@ -252,6 +252,7 @@ void Simulation::parseArgument(size_t index)
   size_t size = -1;
   unsigned int type = -1;
   size_t typeSize = 0;
+  bool null = false;
   string fill = "";
   string range = "";
 
@@ -343,6 +344,15 @@ void Simulation::parseArgument(size_t index)
       m_lineBuffer.setf(ios_base::hex);
       m_lineBuffer.unsetf(ios_base::dec | ios_base::oct);
     }
+    else if (token == "null")
+    {
+      if (addrSpace != CL_KERNEL_ARG_ADDRESS_GLOBAL &&
+          addrSpace != CL_KERNEL_ARG_ADDRESS_CONSTANT)
+      {
+        throw "'null' only valid for buffer arguments";
+      }
+      null = true;
+    }
     else if (token.compare(0, 5, "range") == 0)
     {
       if (token.size() < 7 || token[5] != '=')
@@ -377,7 +387,15 @@ void Simulation::parseArgument(size_t index)
   }
 
   // Ensure size given
-  if (size == -1)
+  if (null)
+  {
+    if (size != -1 || !fill.empty() || !range.empty())
+    {
+      throw "'null' not valid with other argument descriptors";
+    }
+    size = 0;
+  }
+  else if (size == -1)
   {
     throw "size required";
   }
@@ -416,115 +434,117 @@ void Simulation::parseArgument(size_t index)
     throw "Initialiser type must exactly divide argument size";
   }
 
-  // Parse argument data
-  unsigned char *data = new unsigned char[size];
-  if (!fill.empty())
+  // Generate argument data
+  TypedValue value;
+  value.size = argSize;
+  value.num = 1;
+  if (addrSpace == CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
-    istringstream fillStream(fill);
-    fillStream.copyfmt(m_lineBuffer);
-
-#define FILL_TYPE(type, T)                \
-  case type:                              \
-    parseFill<T>(data, size, fillStream); \
-    break;
-
-    switch (type)
-    {
-      FILL_TYPE(TYPE_CHAR, int8_t);
-      FILL_TYPE(TYPE_UCHAR, uint8_t);
-      FILL_TYPE(TYPE_SHORT, int16_t);
-      FILL_TYPE(TYPE_USHORT, uint16_t);
-      FILL_TYPE(TYPE_INT, int32_t);
-      FILL_TYPE(TYPE_UINT, uint32_t);
-      FILL_TYPE(TYPE_LONG, int64_t);
-      FILL_TYPE(TYPE_ULONG, uint64_t);
-      FILL_TYPE(TYPE_FLOAT, float);
-      FILL_TYPE(TYPE_DOUBLE, double);
-      default:
-        throw "Invalid argument data type";
-    }
+    value.size = size;
+    value.data = NULL;
   }
-  else if (!range.empty())
+  else if (null)
   {
-    istringstream rangeStream(range);
-    rangeStream.copyfmt(m_lineBuffer);
-
-#define RANGE_TYPE(type, T)                 \
-  case type:                                \
-    parseRange<T>(data, size, rangeStream); \
-    break;
-
-    switch (type)
-    {
-      RANGE_TYPE(TYPE_CHAR, int8_t);
-      RANGE_TYPE(TYPE_UCHAR, uint8_t);
-      RANGE_TYPE(TYPE_SHORT, int16_t);
-      RANGE_TYPE(TYPE_USHORT, uint16_t);
-      RANGE_TYPE(TYPE_INT, int32_t);
-      RANGE_TYPE(TYPE_UINT, uint32_t);
-      RANGE_TYPE(TYPE_LONG, int64_t);
-      RANGE_TYPE(TYPE_ULONG, uint64_t);
-      RANGE_TYPE(TYPE_FLOAT, float);
-      RANGE_TYPE(TYPE_DOUBLE, double);
-      default:
-        throw "Invalid argument data type";
-    }
+    value.data = new unsigned char[value.size];
+    memset(value.data, 0, value.size);
   }
-  else if (addrSpace != CL_KERNEL_ARG_ADDRESS_LOCAL)
+  else
   {
-#define PARSE_TYPE(type, T)           \
-  case type:                          \
-    parseArgumentData<T>(data, size); \
-    break;
-
-    switch (type)
+    // Parse argument data
+    unsigned char *data = new unsigned char[size];
+    if (!fill.empty())
     {
-      PARSE_TYPE(TYPE_CHAR, int8_t);
-      PARSE_TYPE(TYPE_UCHAR, uint8_t);
-      PARSE_TYPE(TYPE_SHORT, int16_t);
-      PARSE_TYPE(TYPE_USHORT, uint16_t);
-      PARSE_TYPE(TYPE_INT, int32_t);
-      PARSE_TYPE(TYPE_UINT, uint32_t);
-      PARSE_TYPE(TYPE_LONG, int64_t);
-      PARSE_TYPE(TYPE_ULONG, uint64_t);
-      PARSE_TYPE(TYPE_FLOAT, float);
-      PARSE_TYPE(TYPE_DOUBLE, double);
-      default:
-        throw "Invalid argument data type";
+      istringstream fillStream(fill);
+      fillStream.copyfmt(m_lineBuffer);
+
+  #define FILL_TYPE(type, T)                \
+    case type:                              \
+      parseFill<T>(data, size, fillStream); \
+      break;
+
+      switch (type)
+      {
+        FILL_TYPE(TYPE_CHAR, int8_t);
+        FILL_TYPE(TYPE_UCHAR, uint8_t);
+        FILL_TYPE(TYPE_SHORT, int16_t);
+        FILL_TYPE(TYPE_USHORT, uint16_t);
+        FILL_TYPE(TYPE_INT, int32_t);
+        FILL_TYPE(TYPE_UINT, uint32_t);
+        FILL_TYPE(TYPE_LONG, int64_t);
+        FILL_TYPE(TYPE_ULONG, uint64_t);
+        FILL_TYPE(TYPE_FLOAT, float);
+        FILL_TYPE(TYPE_DOUBLE, double);
+        default:
+          throw "Invalid argument data type";
+      }
+    }
+    else if (!range.empty())
+    {
+      istringstream rangeStream(range);
+      rangeStream.copyfmt(m_lineBuffer);
+
+  #define RANGE_TYPE(type, T)                 \
+    case type:                                \
+      parseRange<T>(data, size, rangeStream); \
+      break;
+
+      switch (type)
+      {
+        RANGE_TYPE(TYPE_CHAR, int8_t);
+        RANGE_TYPE(TYPE_UCHAR, uint8_t);
+        RANGE_TYPE(TYPE_SHORT, int16_t);
+        RANGE_TYPE(TYPE_USHORT, uint16_t);
+        RANGE_TYPE(TYPE_INT, int32_t);
+        RANGE_TYPE(TYPE_UINT, uint32_t);
+        RANGE_TYPE(TYPE_LONG, int64_t);
+        RANGE_TYPE(TYPE_ULONG, uint64_t);
+        RANGE_TYPE(TYPE_FLOAT, float);
+        RANGE_TYPE(TYPE_DOUBLE, double);
+        default:
+          throw "Invalid argument data type";
+      }
+    }
+    else if (addrSpace != CL_KERNEL_ARG_ADDRESS_LOCAL)
+    {
+  #define PARSE_TYPE(type, T)           \
+    case type:                          \
+      parseArgumentData<T>(data, size); \
+      break;
+
+      switch (type)
+      {
+        PARSE_TYPE(TYPE_CHAR, int8_t);
+        PARSE_TYPE(TYPE_UCHAR, uint8_t);
+        PARSE_TYPE(TYPE_SHORT, int16_t);
+        PARSE_TYPE(TYPE_USHORT, uint16_t);
+        PARSE_TYPE(TYPE_INT, int32_t);
+        PARSE_TYPE(TYPE_UINT, uint32_t);
+        PARSE_TYPE(TYPE_LONG, int64_t);
+        PARSE_TYPE(TYPE_ULONG, uint64_t);
+        PARSE_TYPE(TYPE_FLOAT, float);
+        PARSE_TYPE(TYPE_DOUBLE, double);
+        default:
+          throw "Invalid argument data type";
+      }
+    }
+
+    if (addrSpace == CL_KERNEL_ARG_ADDRESS_PRIVATE)
+    {
+      value.data = data;
+    }
+    else
+    {
+      // Allocate buffer and store content
+      Memory *globalMemory = m_device->getGlobalMemory();
+      size_t address = globalMemory->allocateBuffer(size);
+      globalMemory->store((unsigned char*)&data[0], address, size);
+      value.data = new unsigned char[value.size];
+      *((size_t*)value.data) = address;
+      delete[] data;
     }
   }
 
   // Set argument value
-  TypedValue value;
-  value.size = argSize;
-  value.num = 1;
-  switch (addrSpace)
-  {
-  case CL_KERNEL_ARG_ADDRESS_PRIVATE:
-    if (size != argSize)
-    {
-      throw "Argument size doesn't match kernel.";
-    }
-    value.data = new unsigned char[value.size];
-    memcpy(value.data, data, value.size);
-    break;
-  case CL_KERNEL_ARG_ADDRESS_GLOBAL:
-  case CL_KERNEL_ARG_ADDRESS_CONSTANT:
-  {
-    // Allocate buffer and store content
-    Memory *globalMemory = m_device->getGlobalMemory();
-    size_t address = globalMemory->allocateBuffer(size);
-    globalMemory->store((unsigned char*)&data[0], address, size);
-    value.data = new unsigned char[value.size];
-    *((size_t*)value.data) = address;
-    break;
-  }
-  case CL_KERNEL_ARG_ADDRESS_LOCAL:
-    value.size = size;
-    value.data = NULL;
-    break;
-  }
-
   m_kernel->setArgument(index, value);
   if (value.data)
   {
