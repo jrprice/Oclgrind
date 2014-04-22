@@ -8,6 +8,7 @@
 
 #include "config.h"
 #include <fstream>
+#include <sstream>
 #include <string>
 
 namespace oclgrind
@@ -36,6 +37,18 @@ class Simulation
 
     std::ifstream m_simfile;
     std::string m_parsing;
-    void get(std::string& result);
-    template<typename T> void get(T& result);
+    size_t m_lineNumber;
+    std::istringstream m_lineBuffer;
+
+    template<typename T>
+    void get(T& result);
+    void parseArgument(size_t index);
+    template<typename T>
+    void parseArgumentData(unsigned char *result, size_t size);
+    template<typename T>
+    void parseFill(unsigned char *result, size_t size,
+                   std::istringstream& fill);
+    template<typename T>
+    void parseRange(unsigned char *result, size_t size,
+                    std::istringstream& range);
 };

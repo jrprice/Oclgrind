@@ -3,8 +3,5 @@ wait_event_divergent
 2 1 1
 2 1 1
 
-b 8
-00 00 00 00
-01 00 00 00
-
-l 8
+<size=8 range=0:1:1>
+<size=8>

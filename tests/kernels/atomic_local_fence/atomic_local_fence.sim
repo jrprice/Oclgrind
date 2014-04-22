@@ -3,8 +3,5 @@ atomic_local_fence
 8 1 1
 4 1 1
 
-b 8
-00 00 00 00
-00 00 00 00
-
-l 4
+<size=8 fill=0>
+<size=4>

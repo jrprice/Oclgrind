@@ -8,7 +8,9 @@
 
 #include "config.h"
 #include <cassert>
+#include <cmath>
 #include <iostream>
+#include <sstream>
 
 #include "oclgrind-kernel/Simulation.h"
 #include "spirsim/Device.h"
@@ -16,14 +18,32 @@
 #include "spirsim/Memory.h"
 #include "spirsim/Program.h"
 
-#define PARSING(parsing) m_parsing = parsing;
-#define PARSING_ARG(arg)                 \
-  char parsing[256];                     \
-  sprintf(parsing, "argument %d", arg);  \
-  PARSING(parsing);
-
 using namespace oclgrind;
 using namespace std;
+
+#define PARSING(parsing) m_parsing = parsing;
+
+#define TYPE_CHAR   0
+#define TYPE_UCHAR  1
+#define TYPE_SHORT  2
+#define TYPE_USHORT 3
+#define TYPE_INT    4
+#define TYPE_UINT   5
+#define TYPE_LONG   6
+#define TYPE_ULONG  7
+#define TYPE_FLOAT  8
+#define TYPE_DOUBLE 9
+
+// Convert an integer to char/uchar, checking if the value is valid
+#define INT_TO_CHAR(intval, result) \
+  result = intval;                  \
+  if (result != intval)             \
+  {                                 \
+    throw "Invalid char value";     \
+  }
+
+// Utility to read a typed value from a stream
+template<typename T> T readValue(istream& stream);
 
 Simulation::Simulation()
 {
@@ -39,56 +59,58 @@ Simulation::~Simulation()
   delete m_program;
 }
 
-template<typename T> void Simulation::get(T& result)
-{
-  while (m_simfile.good())
-  {
-    // Attempt to read value
-    m_simfile >> result;
-    if (m_simfile.good())
-    {
-      break;
-    }
-
-    // Skip comments
-    m_simfile.clear();
-    if (m_simfile.peek() == '#')
-    {
-      m_simfile.ignore(UINT32_MAX, '\n');
-    }
-    else
-    {
-      throw ifstream::failbit;
-    }
-
-    // Throw exception at end of file
-    if (m_simfile.eof())
-    {
-      throw ifstream::eofbit;
-    }
-  }
-}
-
-void Simulation::get(string& result)
+template<typename T>
+void Simulation::get(T& result)
 {
   do
   {
-    get<string>(result);
+    // Check if line buffer has content
+    streampos pos = m_lineBuffer.tellg();
+    string token;
+    m_lineBuffer >> token;
+    if (!m_lineBuffer.fail())
+    {
+      // Line has content, rewind line buffer
+      m_lineBuffer.clear();
+      m_lineBuffer.seekg(pos);
 
-    // Remove comment from string
-    size_t comment = result.find_first_of('#');
+      // Read value from line buffer
+      m_lineBuffer >> result;
+      if (m_lineBuffer.fail())
+      {
+        throw ifstream::failbit;
+      }
+
+      return;
+    }
+
+    // Get next line
+    string line;
+    getline(m_simfile, line);
+    m_lineNumber++;
+
+    // Remove comments
+    size_t comment = line.find_first_of('#');
     if (comment != string::npos)
     {
-      result = result.substr(0, comment);
-      m_simfile.ignore(UINT32_MAX, '\n');
+      line = line.substr(0, comment);
     }
+
+    // Update line buffer
+    m_lineBuffer.clear();
+    m_lineBuffer.str(line);
   }
-  while (result.empty());
+  while (m_simfile.good());
+
+  // Couldn't read data from file, throw exception
+  throw m_simfile.eof() ? ifstream::eofbit : ifstream::failbit;
 }
 
 bool Simulation::load(const char *filename)
 {
   // Open simulator file
+  m_lineNumber = 0;
+  m_lineBuffer.setstate(ios_base::eofbit);
   m_simfile.open(filename);
   if (m_simfile.fail())
   {
@@ -181,77 +203,10 @@ bool Simulation::load(const char *filename)
     Memory *globalMemory = m_device->getGlobalMemory();
     globalMemory->clear();
 
-    // Set kernel arguments
-    for (int idx = 0; idx < m_kernel->getNumArguments(); idx++)
+    // Parse kernel arguments
+    for (int index = 0; index < m_kernel->getNumArguments(); index++)
     {
-      char type;
-      size_t size;
-      size_t address;
-      int i;
-      int byte;
-      TypedValue value;
-
-      PARSING_ARG(idx);
-      get(type);
-      m_simfile >> dec;
-      get(size);
-
-      switch (type)
-      {
-      case 'b':
-        // Allocate buffer
-        address = globalMemory->allocateBuffer(size);
-        if (!address)
-        {
-          cerr << "Failed to allocate buffer" << endl;
-          return false;
-        }
-
-        // Initialise buffer
-        for (i = 0; i < size; i++)
-        {
-          m_simfile >> hex;
-          get(byte);
-          globalMemory->store((unsigned char*)&byte, address + i);
-        }
-
-        // Set argument value
-        value.size = sizeof(size_t);
-        value.num = 1;
-        value.data = new unsigned char[value.size];
-        *((size_t*)value.data) = address;
-
-        break;
-      case 'l':
-        // Allocate local memory argument
-        value.size = size;
-        value.num = 1;
-        value.data = NULL;
-
-        break;
-      case 's':
-        // Create scalar argument
-        value.size = size;
-        value.num = 1;
-        value.data = new unsigned char[value.size];
-        for (i = 0; i < size; i++)
-        {
-          m_simfile >> hex;
-          get(byte);
-          value.data[i] = (unsigned char)byte;
-        }
-
-        break;
-      default:
-        cerr << "Unrecognised argument type '" << type << "'" << endl;
-        return false;
-      }
-
-      m_kernel->setArgument(idx, value);
-      if (value.data)
-      {
-        delete[] value.data;
-      }
+      parseArgument(index);
     }
 
     // Make sure there is no more input
@@ -263,6 +218,12 @@ bool Simulation::load(const char *filename)
       return false;
     }
   }
+  catch (const char *err)
+  {
+    cerr << "Line " << m_lineNumber << ": " << err
+         << " (" << m_parsing << ")" << endl;
+    return false;
+  }
   catch (ifstream::iostate e)
   {
     if (e == ifstream::eofbit)
@@ -272,7 +233,8 @@ bool Simulation::load(const char *filename)
     }
     else if (e == ifstream::failbit)
     {
-      cerr << "Data parsing error for " << m_parsing << endl;
+      cerr << "Line " << m_lineNumber
+           << ": Failed to parse " << m_parsing << endl;
       return false;
     }
     else
@@ -282,6 +244,372 @@ bool Simulation::load(const char *filename)
   }
 
   return true;
+}
+
+void Simulation::parseArgument(size_t index)
+{
+  // Argument parsing parameters
+  size_t size = -1;
+  unsigned int type = -1;
+  size_t typeSize = 0;
+  string fill = "";
+  string range = "";
+
+  // Set meaningful parsing status for error messages
+  char *name = m_kernel->getArgumentName(index);
+  int sz = snprintf(NULL, 0, "argument %lu: '%s'", index, name) + 1;
+  char *parsing = new char[sz];
+  sprintf(parsing, "argument %lu: '%s'", index, name);
+  PARSING(parsing);
+  delete[] parsing;
+  free(name);
+
+  // Get argument info
+  size_t argSize = m_kernel->getArgumentSize(index);
+  unsigned int addrSpace = m_kernel->getArgumentAddressQualifier(index);
+  char *argType = m_kernel->getArgumentTypeName(index);
+
+  // Ensure we have an argument header
+  char c;
+  get(c);
+  if (c != '<')
+  {
+    throw "Expected argument header <...>";
+  }
+
+  // Get header
+  streampos startpos = m_lineBuffer.tellg();
+  string headerStr;
+  getline(m_lineBuffer, headerStr);
+  size_t end = headerStr.find_last_of('>');
+  if (end == string::npos)
+  {
+    throw "Missing '>' at end of argument header";
+  }
+  headerStr = headerStr.substr(0, end);
+
+  // Move line buffer to end of header
+  m_lineBuffer.clear();
+  m_lineBuffer.seekg((int)startpos + headerStr.size() + 1);
+
+  // Save format flags
+  ios_base::fmtflags previousFormat = m_lineBuffer.flags();
+
+  // Parse header
+  istringstream header(headerStr);
+  while (!header.eof())
+  {
+    // Get next header token
+    string token;
+    header >> token;
+    if (header.fail())
+    {
+      break;
+    }
+
+#define MATCH_TYPE(str, value, sz)                  \
+  else if (token == str)                            \
+  {                                                 \
+    if (type != -1)                                 \
+    {                                               \
+      throw "Argument type defined multiple times"; \
+    }                                               \
+    type = value;                                   \
+    typeSize = sz;                                  \
+  }
+
+    // Parse token
+    if (false);
+    MATCH_TYPE("char", TYPE_CHAR, 1)
+    MATCH_TYPE("uchar", TYPE_UCHAR, 1)
+    MATCH_TYPE("short", TYPE_SHORT, 2)
+    MATCH_TYPE("ushort", TYPE_USHORT, 2)
+    MATCH_TYPE("int", TYPE_INT, 4)
+    MATCH_TYPE("uint", TYPE_UINT, 4)
+    MATCH_TYPE("long", TYPE_LONG, 8)
+    MATCH_TYPE("ulong", TYPE_ULONG, 8)
+    MATCH_TYPE("float", TYPE_FLOAT, 4)
+    MATCH_TYPE("double", TYPE_DOUBLE, 8)
+    else if (token.compare(0, 4, "fill") == 0)
+    {
+      if (token.size() < 6 || token[4] != '=')
+      {
+        throw "Expected =VALUE after 'fill";
+      }
+      fill = token.substr(5);
+    }
+    else if (token == "hex")
+    {
+      m_lineBuffer.setf(ios_base::hex);
+      m_lineBuffer.unsetf(ios_base::dec | ios_base::oct);
+    }
+    else if (token.compare(0, 5, "range") == 0)
+    {
+      if (token.size() < 7 || token[5] != '=')
+      {
+        throw "Expected =START:INC:END after 'range";
+      }
+      range = token.substr(6);
+    }
+    else if (token.compare(0, 4, "size") == 0)
+    {
+      istringstream value(token.substr(4));
+      char equals = 0;
+      value >> equals;
+      if (equals != '=')
+      {
+        throw "Expected = after 'size'";
+      }
+
+      value >> dec >> size;
+      if (value.fail() || !value.eof())
+      {
+        throw "Invalid value for 'size'";
+      }
+    }
+    else
+    {
+      string err = "Unrecognised header token '";
+      err += token;
+      err += "'";
+      throw err.c_str();
+    }
+  }
+
+  // Ensure size given
+  if (size == -1)
+  {
+    throw "size required";
+  }
+
+  if (type == -1)
+  {
+#define MATCH_TYPE_PREFIX(str, value, sz)       \
+  else if (!strncmp(argType, str, strlen(str))) \
+  {                                             \
+    type = value;                               \
+    typeSize = sz;                              \
+  }
+
+    // Set default type using kernel introspection
+    if (false);
+    MATCH_TYPE_PREFIX("char", TYPE_CHAR, 1)
+    MATCH_TYPE_PREFIX("uchar", TYPE_UCHAR, 1)
+    MATCH_TYPE_PREFIX("short", TYPE_SHORT, 2)
+    MATCH_TYPE_PREFIX("ushort", TYPE_USHORT, 2)
+    MATCH_TYPE_PREFIX("int", TYPE_INT, 4)
+    MATCH_TYPE_PREFIX("uint", TYPE_UINT, 4)
+    MATCH_TYPE_PREFIX("long", TYPE_LONG, 8)
+    MATCH_TYPE_PREFIX("ulong", TYPE_ULONG, 8)
+    MATCH_TYPE_PREFIX("float", TYPE_FLOAT, 4)
+    MATCH_TYPE_PREFIX("double", TYPE_DOUBLE, 8)
+    MATCH_TYPE_PREFIX("void*", TYPE_UCHAR, 1)
+    else
+    {
+      throw "Invalid default kernel argument type";
+    }
+  }
+
+  // Ensure argument data size is a multiple of format type size
+  if (size % typeSize)
+  {
+    throw "Initialiser type must exactly divide argument size";
+  }
+
+  // Parse argument data
+  unsigned char *data = new unsigned char[size];
+  if (!fill.empty())
+  {
+    istringstream fillStream(fill);
+    fillStream.copyfmt(m_lineBuffer);
+
+#define FILL_TYPE(type, T)                \
+  case type:                              \
+    parseFill<T>(data, size, fillStream); \
+    break;
+
+    switch (type)
+    {
+      FILL_TYPE(TYPE_CHAR, int8_t);
+      FILL_TYPE(TYPE_UCHAR, uint8_t);
+      FILL_TYPE(TYPE_SHORT, int16_t);
+      FILL_TYPE(TYPE_USHORT, uint16_t);
+      FILL_TYPE(TYPE_INT, int32_t);
+      FILL_TYPE(TYPE_UINT, uint32_t);
+      FILL_TYPE(TYPE_LONG, int64_t);
+      FILL_TYPE(TYPE_ULONG, uint64_t);
+      FILL_TYPE(TYPE_FLOAT, float);
+      FILL_TYPE(TYPE_DOUBLE, double);
+      default:
+        throw "Invalid argument data type";
+    }
+  }
+  else if (!range.empty())
+  {
+    istringstream rangeStream(range);
+    rangeStream.copyfmt(m_lineBuffer);
+
+#define RANGE_TYPE(type, T)                 \
+  case type:                                \
+    parseRange<T>(data, size, rangeStream); \
+    break;
+
+    switch (type)
+    {
+      RANGE_TYPE(TYPE_CHAR, int8_t);
+      RANGE_TYPE(TYPE_UCHAR, uint8_t);
+      RANGE_TYPE(TYPE_SHORT, int16_t);
+      RANGE_TYPE(TYPE_USHORT, uint16_t);
+      RANGE_TYPE(TYPE_INT, int32_t);
+      RANGE_TYPE(TYPE_UINT, uint32_t);
+      RANGE_TYPE(TYPE_LONG, int64_t);
+      RANGE_TYPE(TYPE_ULONG, uint64_t);
+      RANGE_TYPE(TYPE_FLOAT, float);
+      RANGE_TYPE(TYPE_DOUBLE, double);
+      default:
+        throw "Invalid argument data type";
+    }
+  }
+  else if (addrSpace != CL_KERNEL_ARG_ADDRESS_LOCAL)
+  {
+#define PARSE_TYPE(type, T)           \
+  case type:                          \
+    parseArgumentData<T>(data, size); \
+    break;
+
+    switch (type)
+    {
+      PARSE_TYPE(TYPE_CHAR, int8_t);
+      PARSE_TYPE(TYPE_UCHAR, uint8_t);
+      PARSE_TYPE(TYPE_SHORT, int16_t);
+      PARSE_TYPE(TYPE_USHORT, uint16_t);
+      PARSE_TYPE(TYPE_INT, int32_t);
+      PARSE_TYPE(TYPE_UINT, uint32_t);
+      PARSE_TYPE(TYPE_LONG, int64_t);
+      PARSE_TYPE(TYPE_ULONG, uint64_t);
+      PARSE_TYPE(TYPE_FLOAT, float);
+      PARSE_TYPE(TYPE_DOUBLE, double);
+      default:
+        throw "Invalid argument data type";
+    }
+  }
+
+  // Set argument value
+  TypedValue value;
+  value.size = argSize;
+  value.num = 1;
+  switch (addrSpace)
+  {
+  case CL_KERNEL_ARG_ADDRESS_PRIVATE:
+    if (size != argSize)
+    {
+      throw "Argument size doesn't match kernel.";
+    }
+    value.data = new unsigned char[value.size];
+    break;
+  case CL_KERNEL_ARG_ADDRESS_GLOBAL:
+  case CL_KERNEL_ARG_ADDRESS_CONSTANT:
+  {
+    // Allocate buffer and store content
+    Memory *globalMemory = m_device->getGlobalMemory();
+    size_t address = globalMemory->allocateBuffer(size);
+    globalMemory->store((unsigned char*)&data[0], address, size);
+    value.data = new unsigned char[value.size];
+    *((size_t*)value.data) = address;
+    break;
+  }
+  case CL_KERNEL_ARG_ADDRESS_LOCAL:
+    value.size = size;
+    value.data = NULL;
+    break;
+  }
+
+  m_kernel->setArgument(index, value);
+  if (value.data)
+  {
+    delete[] value.data;
+  }
+
+  // Reset parsing format
+  m_lineBuffer.flags(previousFormat);
+}
+
+template<typename T>
+void Simulation::parseArgumentData(unsigned char *result, size_t size)
+{
+  vector<T> data;
+  for (int i = 0; i < size / sizeof(T); i++)
+  {
+    T value;
+    if (sizeof(T) == 1)
+    {
+      int intval;
+      get(intval);
+      INT_TO_CHAR(intval, value);
+    }
+    else
+    {
+      get(value);
+    }
+    data.push_back(value);
+  }
+  memcpy(result, &data[0], size);
+}
+
+template<typename T>
+void Simulation::parseFill(unsigned char *result, size_t size,
+                           istringstream& fill)
+{
+  T value = readValue<T>(fill);
+  for (int i = 0; i < size/sizeof(T); i++)
+  {
+    ((T*)result)[i] = value;
+  }
+
+  if (fill.fail() || !fill.eof())
+  {
+    throw "Invalid fill value";
+  }
+}
+
+template<typename T>
+void Simulation::parseRange(unsigned char *result, size_t size,
+                            istringstream& range)
+{
+  // Parse range format
+  T values[3];
+  for (int i = 0; i < 3; i++)
+  {
+    values[i] = readValue<T>(range);
+    if (i < 2)
+    {
+      char colon = 0;
+      range >> colon;
+      if (range.fail() || colon != ':')
+      {
+        throw "Invalid range format";
+      }
+    }
+  }
+  if (range.fail() || !range.eof())
+  {
+    throw "Invalid range format";
+  }
+
+  // Ensure range is value
+  double num = (values[2] - values[0] + values[1]) / (double)values[1];
+  if (ceil(num) != num || num*sizeof(T) != size)
+  {
+    throw "Range doesn't produce correct buffer size";
+  }
+
+  // Produce range values
+  T value = values[0];
+  for (size_t i = 0; i < num; i++)
+  {
+    ((T*)result)[i] = value;
+    value += values[1];
+  }
 }
 
 void Simulation::run(bool dumpGlobalMemory)
@@ -297,4 +625,21 @@ void Simulation::run(bool dumpGlobalMemory)
     cout << "Global Memory:" << endl;
     m_device->getGlobalMemory()->dump();
   }
+}
+
+template<typename T>
+T readValue(istream& stream)
+{
+  T value;
+  if (sizeof(T) == 1)
+  {
+    int intval;
+    stream >> intval;
+    INT_TO_CHAR(intval, value);
+  }
+  else
+  {
+    stream >> value;
+  }
+  return value;
 }

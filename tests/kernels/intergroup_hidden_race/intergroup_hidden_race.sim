@@ -3,9 +3,5 @@ intergroup_hidden_race
 2 1 1
 1 1 1
 
-b 4
-00 00 00 00
-
-b 8
-00 00 00 00
-00 00 00 00
+<size=4 fill=0>
+<size=8 fill=0>
