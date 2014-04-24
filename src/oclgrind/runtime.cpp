@@ -464,12 +464,12 @@ clGetDeviceInfo
     *(cl_command_queue_properties*)result_data = CL_QUEUE_PROFILING_ENABLE;
     break;
   case CL_DEVICE_NAME:
-    result_size = strlen(DEVICE_NAME) + 1;
+    result_size = sizeof(DEVICE_NAME);
     result_data = malloc(result_size);
     strcpy((char*)result_data, DEVICE_NAME);
     break;
   case CL_DEVICE_VENDOR:
-    result_size = strlen(DEVICE_VENDOR) + 1;
+    result_size = sizeof(DEVICE_VENDOR);
     result_data = malloc(result_size);
     strcpy((char*)result_data, DEVICE_VENDOR);
     break;
@@ -489,7 +489,7 @@ clGetDeviceInfo
     strcpy((char*)result_data, DEVICE_VERSION);
     break;
   case CL_DEVICE_EXTENSIONS:
-    result_size = strlen(DEVICE_EXTENSIONS) + 1;
+    result_size = sizeof(DEVICE_EXTENSIONS);
     result_data = malloc(result_size);
     strcpy((char*)result_data, DEVICE_EXTENSIONS);
     break;
