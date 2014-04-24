@@ -327,7 +327,7 @@ clGetDeviceInfo
     *(cl_uint*)result_data = 8;
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
-    result_size = sizeof(size_t);
+    result_size = sizeof(cl_ulong);
     result_data = malloc(result_size);
     *(cl_ulong*)result_data = MAX_GLOBAL_MEM_SIZE;
     break;
