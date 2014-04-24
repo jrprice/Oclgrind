@@ -127,58 +127,54 @@ clGetPlatformInfo
   size_t *          param_value_size_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  cl_int return_value = CL_SUCCESS;
-  const char *returnString = NULL;
-  size_t returnStringLength = 0;
-
-  // validate the arguments
-  if (param_value_size == 0 && param_value != NULL)
-  {
-    return CL_INVALID_VALUE;
-  }
-  // select the string to return
+  // Select platform info string
+  const char *result = NULL;
   switch(param_name)
   {
   case CL_PLATFORM_PROFILE:
-    returnString = platform->profile;
+    result = platform->profile;
     break;
   case CL_PLATFORM_VERSION:
-    returnString = platform->version;
+    result = platform->version;
     break;
   case CL_PLATFORM_NAME:
-    returnString = platform->name;
+    result = platform->name;
     break;
   case CL_PLATFORM_VENDOR:
-    returnString = platform->vendor;
+    result = platform->vendor;
     break;
   case CL_PLATFORM_EXTENSIONS:
-    returnString = platform->extensions;
+    result = platform->extensions;
     break;
   case CL_PLATFORM_ICD_SUFFIX_KHR:
-    returnString = platform->suffix;
+    result = platform->suffix;
     break;
   default:
     return CL_INVALID_VALUE;
   }
 
-  // make sure the buffer passed in is big enough for the result
-  returnStringLength = strlen(returnString)+1;
-  if (param_value_size && param_value_size < returnStringLength)
-  {
-    return CL_INVALID_VALUE;
-  }
-
-  // pass the data back to the user
-  if (param_value)
-  {
-    memcpy(param_value, returnString, returnStringLength);
-  }
+  // Compute size of result
+  size_t result_size = strlen(result) + 1;
   if (param_value_size_ret)
   {
-    *param_value_size_ret = returnStringLength;
+    *param_value_size_ret = result_size;
   }
 
-  return return_value;
+  // Return result
+  if (param_value)
+  {
+    // Check destination is large enough
+    if (param_value_size < result_size)
+    {
+      return CL_INVALID_VALUE;
+    }
+    else
+    {
+      memcpy(param_value, result, result_size);
+    }
+  }
+
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
