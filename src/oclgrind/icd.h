@@ -140,12 +140,6 @@ namespace oclgrind
 struct _cl_platform_id
 {
   void *dispatch;
-  const char *profile;
-  const char *version;
-  const char *name;
-  const char *vendor;
-  const char *extensions;
-  const char *suffix;
 };
 
 struct _cl_device_id

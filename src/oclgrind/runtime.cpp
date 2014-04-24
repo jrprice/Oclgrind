@@ -23,24 +23,41 @@
 
 using namespace std;
 
-#define ERRCODE(err) if(errcode_ret){*errcode_ret = err;}
-#define MAX_GLOBAL_MEM_SIZE 128 * 1048576 // 128 MB
-#define MAX_CONSTANT_BUFFER_SIZE 1 * 1048576 // 1 MB
-#define MAX_LOCAL_MEM_SIZE 32768 // 32 KB
-#define MAX_WI_SIZE 65536
+#define MAX_GLOBAL_MEM_SIZE      (128 * 1048576)
+#define MAX_CONSTANT_BUFFER_SIZE (1048576)
+#define MAX_LOCAL_MEM_SIZE       (32768)
+#define MAX_WI_SIZE              (65536)
 
-#define DEVICE_NAME "SPIR Simulator"
-#define DEVICE_VENDOR "James Price, University of Bristol"
-#define DEVICE_VENDOR_ID 0x0042
-#define DEVICE_VERSION "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
-#define DEVICE_LANG_VERSION "OpenCL C 1.2 (Oclgrind " PACKAGE_VERSION ")"
-#define DRIVER_VERSION PACKAGE_VERSION
-#define DEVICE_PROFILE "FULL_PROFILE"
-#define DEVICE_EXTENSIONS "cl_khr_spir cl_khr_3d_image_writes \
-  cl_khr_global_int32_base_atomics cl_khr_global_int32_extended_atomics \
-  cl_khr_local_int32_base_atomics cl_khr_local_int32_extended_atomics \
-  cl_khr_byte_addressable_store cl_khr_fp64"
+#define PLATFORM_NAME       "Oclgrind"
+#define PLATFORM_VENDOR     "University of Bristol"
+#define PLATFORM_VERSION    "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
+#define PLATFORM_PROFILE    "FULL_PROFILE"
+#define PLATFORM_SUFFIX     "oclg"
+#define PLATFORM_EXTENSIONS "cl_khr_icd"
+
+#define DEVICE_NAME          "SPIR Simulator"
+#define DEVICE_VENDOR        "University of Bristol"
+#define DEVICE_VENDOR_ID     0x0042
+#define DEVICE_VERSION       "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
+#define DEVICE_LANG_VERSION  "OpenCL C 1.2 (Oclgrind " PACKAGE_VERSION ")"
+#define DRIVER_VERSION       "Oclgrind " PACKAGE_VERSION
+#define DEVICE_PROFILE       "FULL_PROFILE"
 #define DEVICE_SPIR_VERSIONS "1.2"
+#define DEVICE_EXTENSIONS    "         \
+  cl_khr_spir                          \
+  cl_khr_3d_image_writes               \
+  cl_khr_global_int32_base_atomics     \
+  cl_khr_global_int32_extended_atomics \
+  cl_khr_local_int32_base_atomics      \
+  cl_khr_local_int32_extended_atomics  \
+  cl_khr_byte_addressable_store        \
+  cl_khr_fp64"
+
+#define ERRCODE(err)    \
+  if (errcode_ret)      \
+  {                     \
+    *errcode_ret = err; \
+  }
 
 static struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
@@ -56,12 +73,6 @@ clIcdGetPlatformIDsKHR
   if (!m_platform)
   {
     m_platform = (cl_platform_id)malloc(sizeof(struct _cl_platform_id));
-    m_platform->version = "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")";
-    m_platform->vendor = "James Price, University of Bristol";
-    m_platform->profile = "FULL_PROFILE";
-    m_platform->name = "Oclgrind";
-    m_platform->extensions = "cl_khr_icd";
-    m_platform->suffix = "oclg";
     m_platform->dispatch = m_dispatchTable;
   }
 
@@ -132,22 +143,22 @@ clGetPlatformInfo
   switch(param_name)
   {
   case CL_PLATFORM_PROFILE:
-    result = platform->profile;
+    result = PLATFORM_PROFILE;
     break;
   case CL_PLATFORM_VERSION:
-    result = platform->version;
+    result = PLATFORM_VERSION;
     break;
   case CL_PLATFORM_NAME:
-    result = platform->name;
+    result = PLATFORM_NAME;
     break;
   case CL_PLATFORM_VENDOR:
-    result = platform->vendor;
+    result = PLATFORM_VENDOR;
     break;
   case CL_PLATFORM_EXTENSIONS:
-    result = platform->extensions;
+    result = PLATFORM_EXTENSIONS;
     break;
   case CL_PLATFORM_ICD_SUFFIX_KHR:
-    result = platform->suffix;
+    result = PLATFORM_SUFFIX;
     break;
   default:
     return CL_INVALID_VALUE;
