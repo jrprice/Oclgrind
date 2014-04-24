@@ -35,7 +35,7 @@ using namespace std;
 #define PLATFORM_SUFFIX     "oclg"
 #define PLATFORM_EXTENSIONS "cl_khr_icd"
 
-#define DEVICE_NAME          "SPIR Simulator"
+#define DEVICE_NAME          "Oclgrind Simulator"
 #define DEVICE_VENDOR        "University of Bristol"
 #define DEVICE_VENDOR_ID     0x0042
 #define DEVICE_VERSION       "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
