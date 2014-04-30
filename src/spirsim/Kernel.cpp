@@ -66,7 +66,7 @@ Kernel::Kernel(const Program& program,
     for (int i = 0; i < md->getNumOperands(); i++)
     {
       llvm::MDNode *node = md->getOperand(i);
-      if (node->getOperand(0)->getName().str() == m_name)
+      if (node->getOperand(0)->getName() == m_name)
       {
         m_metadata = node;
         break;
