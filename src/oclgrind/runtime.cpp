@@ -2902,9 +2902,6 @@ clGetKernelArgInfo
   size_t *            param_value_size_ret
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  size_t result_size = 0;
-  void *result_data = NULL;
-
   // Check parameters are valid
   if (!kernel)
   {
@@ -2915,68 +2912,54 @@ clGetKernelArgInfo
     return CL_INVALID_ARG_INDEX;
   }
 
+  size_t dummy = 0;
+  size_t& result_size = param_value_size_ret == NULL ?
+    dummy : *param_value_size_ret;
+  cl_uint return_integer;
+  const void* return_data = &return_integer;
+
   switch (param_name)
   {
   case CL_KERNEL_ARG_ADDRESS_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_address_qualifier);
-    result_data = malloc(result_size);
-    *(cl_kernel_arg_address_qualifier*)result_data =
-      kernel->kernel->getArgumentAddressQualifier(arg_indx);
+    if (param_value_size < result_size) return CL_INVALID_VALUE;
+    return_integer =
+        kernel->kernel->getArgumentAddressQualifier(arg_indx);
     break;
+
   case CL_KERNEL_ARG_ACCESS_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_access_qualifier);
-    result_data = malloc(result_size);
-    *(cl_kernel_arg_access_qualifier*)result_data =
-      kernel->kernel->getArgumentAccessQualifier(arg_indx);
+    if (param_value_size < result_size) return CL_INVALID_VALUE;
+    return_integer =
+        kernel->kernel->getArgumentAddressQualifier(arg_indx);
     break;
+
   case CL_KERNEL_ARG_TYPE_NAME:
-    result_data = kernel->kernel->getArgumentTypeName(arg_indx);
-    if (!result_data)
-    {
-      return CL_INVALID_VALUE;
-    }
-    result_size = strlen((char*)result_data) + 1;
+    return_data = kernel->kernel->getArgumentTypeName(arg_indx);
+    result_size = strlen((const char*)return_data) + 1;
+    if (param_value_size < result_size) return CL_INVALID_VALUE;
     break;
+
   case CL_KERNEL_ARG_TYPE_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_type_qualifier);
-    result_data = malloc(result_size);
-    *(cl_kernel_arg_type_qualifier*)result_data =
-      kernel->kernel->getArgumentTypeQualifier(arg_indx);
+    if (param_value_size < result_size) return CL_INVALID_VALUE;
+    return_integer = kernel->kernel->getArgumentTypeQualifier(arg_indx);
     break;
+
   case CL_KERNEL_ARG_NAME:
-    result_data = strdup(kernel->kernel->getArgumentName(arg_indx));
-    if (!result_data)
-    {
-      return CL_INVALID_VALUE;
-    }
-    result_size = strlen((char*)result_data) + 1;
+    return_data = kernel->kernel->getArgumentName(arg_indx);
+    result_size = strlen((const char*)return_data) + 1;
+    if (param_value_size < result_size) return CL_INVALID_VALUE;
     break;
+
   default:
     return CL_INVALID_VALUE;
   }
 
-  cl_int return_value = CL_SUCCESS;
   if (param_value)
-  {
-    // Check destination is large enough
-    if (param_value_size < result_size)
-    {
-      return_value = CL_INVALID_VALUE;
-    }
-    else
-    {
-      memcpy(param_value, result_data, result_size);
-    }
-  }
+    memcpy(param_value, return_data, result_size);
 
-  if (param_value_size_ret)
-  {
-    *param_value_size_ret = result_size;
-  }
-
-  free(result_data);
-
-  return return_value;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
