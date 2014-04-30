@@ -36,6 +36,10 @@ CMAKE_BUILD_TYPE to RelWithDebInfo).
 
 Building on Linux and OS X
 --------------------------
+If you are building directly from the GitHub repository, you need to
+run 'autoreconf -i' to generate the necessary build files. This is not
+required if you are using a released source package.
+
 Run ./configure to generate the Makefile, optionally using
 --prefix=PATH to specify the target installation directory. If you
 don't have the Clang/SPIR generator includes and libraries on your
