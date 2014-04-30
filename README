@@ -46,7 +46,10 @@ don't have the Clang/SPIR generator includes and libraries on your
 search path, you can specify the location of the generator using the
 --with-spir=PATH option. For example:
 
-./configure --prefix=$PWD/build/ --with-spir=PATH/TO/CLANG/SPIR/BUILD
+./configure --prefix=$PWD/build/ --with-spir=PATH/TO/CLANG/SPIR/INSTALL
+
+This path should be the directory in which the Clang/SPIR generator is
+installed (e.g. the path specified to --prefix or CMAKE_INSTALL_PATH).
 
 Next, build and install with make:
 
@@ -73,8 +76,8 @@ Windows 7.
 
 When configuring the CMake build, you will be prompted to supply a
 value for the SPIR_ROOT parameter. This should be set to the root
-directory of the Clang/SPIR generator, (for example C:\Program
-Files\LLVM).
+directory of the Clang/SPIR generator installation, (for example
+C:\Program Files\LLVM).
 
 If you wish to use Oclgrind via the OpenCL ICD (optional), then you
 should also create an ICD loading point. To do this, you should add a
