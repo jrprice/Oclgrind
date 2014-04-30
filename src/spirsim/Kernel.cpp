@@ -22,13 +22,9 @@ using namespace std;
 
 Kernel::Kernel(const Program& program,
                const llvm::Function *function, const llvm::Module *module)
- : m_program(program)
+ : m_program(program), m_function(function), m_name(function->getName())
 {
-  m_function = function;
   m_localMemory = new Memory(AddrSpaceLocal, NULL);
-
-  // Get name
-  m_name = function->getName().str();
 
   // Set-up global variables
   llvm::Module::const_global_iterator itr;
