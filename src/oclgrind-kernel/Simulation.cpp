@@ -257,13 +257,10 @@ void Simulation::parseArgument(size_t index)
   string range = "";
 
   // Set meaningful parsing status for error messages
-  char *name = m_kernel->getArgumentName(index);
-  int sz = snprintf(NULL, 0, "argument %lu: '%s'", index, name) + 1;
-  char *parsing = new char[sz];
-  sprintf(parsing, "argument %lu: '%s'", index, name);
-  PARSING(parsing);
-  delete[] parsing;
-  free(name);
+  ostringstream stringstream;
+  stringstream << "argument " << index << ": " << m_kernel->getArgumentName(index);
+  string formatted = stringstream.str();
+  PARSING(formatted.c_str());
 
   // Get argument info
   size_t argSize = m_kernel->getArgumentSize(index);

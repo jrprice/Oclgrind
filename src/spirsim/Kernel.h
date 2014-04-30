@@ -41,7 +41,7 @@ namespace oclgrind
     size_t getArgumentSize(unsigned int index) const;
     unsigned int getArgumentAccessQualifier(unsigned int index) const;
     unsigned int getArgumentAddressQualifier(unsigned int index) const;
-    char* getArgumentName(unsigned int index) const;
+    const char* getArgumentName(unsigned int index) const;
     char* getArgumentTypeName(unsigned int index) const;
     unsigned int getArgumentTypeQualifier(unsigned int index) const;
     std::string getAttributes() const;

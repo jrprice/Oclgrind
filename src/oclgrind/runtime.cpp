@@ -2944,7 +2944,7 @@ clGetKernelArgInfo
       kernel->kernel->getArgumentTypeQualifier(arg_indx);
     break;
   case CL_KERNEL_ARG_NAME:
-    result_data = kernel->kernel->getArgumentName(arg_indx);
+    result_data = strdup(kernel->kernel->getArgumentName(arg_indx));
     if (!result_data)
     {
       return CL_INVALID_VALUE;

@@ -241,9 +241,9 @@ const llvm::MDNode* Kernel::getArgumentMetadata(string name) const
   return NULL;
 }
 
-char* Kernel::getArgumentName(unsigned int index) const
+const char* Kernel::getArgumentName(unsigned int index) const
 {
-  return strdup(getArgument(index)->getName().str().c_str());
+  return getArgument(index)->getName().str().c_str();
 }
 
 char* Kernel::getArgumentTypeName(unsigned int index) const
