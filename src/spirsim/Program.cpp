@@ -18,6 +18,7 @@
 #include "llvm/Support/system_error.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Scalar.h"
+#include "llvm/Metadata.h"
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
@@ -372,16 +373,28 @@ Kernel* Program::createKernel(const string name)
 {
   // Iterate over functions in module to find kernel
   llvm::Function *function = NULL;
-  llvm::Module::iterator funcItr;
-  for(funcItr = m_module->begin(); funcItr != m_module->end(); funcItr++)
-  {
-    // Check kernel name
-    if (funcItr->getName().str() != name)
+
+  // Query the SPIR kernel list
+  llvm::NamedMDNode* Tuple = m_module->getNamedMetadata("opencl.kernels");
+  // No kernels in module
+  if (!Tuple) return NULL;
+
+  for (unsigned i = 0; i < Tuple->getNumOperands(); ++i) {
+    llvm::MDNode* Kernel = Tuple->getOperand(i);
+    llvm::Function* KernelFunction =
+      llvm::dyn_cast<llvm::Function>(Kernel->getOperand(0));
+
+    // Shouldn't really happen - this would mean an invalid Module as input
+    if (!KernelFunction)
       continue;
 
-    function = funcItr;
-    break;
+    // Is this the kernel we want?
+    if (KernelFunction->getName() == name) {
+      function = KernelFunction;
+      break;
+    }
   }
+
   if (function == NULL)
   {
     return NULL;
@@ -462,15 +475,20 @@ list<string> Program::getKernelNames() const
 {
   list<string> names;
 
-  // Iterate over functions in module to find kernels
-  unsigned int num = 0;
-  llvm::Function *function = NULL;
-  llvm::Module::iterator funcItr;
-  for(funcItr = m_module->begin(); funcItr != m_module->end(); funcItr++)
-  {
-    if (funcItr->getCallingConv() == llvm::CallingConv::SPIR_KERNEL)
-    {
-      names.push_back(funcItr->getName().str());
+  // Query the SPIR kernel list
+  llvm::NamedMDNode* Tuple = m_module->getNamedMetadata("opencl.kernels");
+
+  if (Tuple) {
+    for (unsigned i = 0; i < Tuple->getNumOperands(); ++i) {
+      llvm::MDNode* Kernel = Tuple->getOperand(i);
+      llvm::Function* KernelFunction =
+        llvm::dyn_cast<llvm::Function>(Kernel->getOperand(0));
+
+      // Shouldn't really happen - this would mean an invalid Module as input
+      if (!KernelFunction)
+        continue;
+
+      names.push_back(KernelFunction->getName());
     }
   }
 
@@ -483,17 +501,11 @@ unsigned int Program::getNumKernels() const
 
   // Iterate over functions in module to find kernels
   unsigned int num = 0;
-  llvm::Function *function = NULL;
-  llvm::Module::iterator funcItr;
-  for(funcItr = m_module->begin(); funcItr != m_module->end(); funcItr++)
-  {
-    if (funcItr->getCallingConv() == llvm::CallingConv::SPIR_KERNEL)
-    {
-      num++;
-    }
-  }
+  llvm::NamedMDNode* Tuple = m_module->getNamedMetadata("opencl.kernels");
+  // No kernels in module
+  if (!Tuple) return 0;
 
-  return num;
+  return Tuple->getNumOperands();
 }
 
 const string& Program::getSource() const
