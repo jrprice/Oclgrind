@@ -72,8 +72,11 @@ clIcdGetPlatformIDsKHR
 {
   if (!m_platform)
   {
-    m_platform = (cl_platform_id)malloc(sizeof(struct _cl_platform_id));
+    m_platform = new _cl_platform_id;
     m_platform->dispatch = m_dispatchTable;
+
+    m_device = new _cl_device_id;
+    m_device->dispatch = m_dispatchTable;
   }
 
   if (num_entries > 0)
@@ -213,12 +216,6 @@ clGetDeviceIDs
   }
   else if (devices)
   {
-    // Create device if haven't already
-    if (!m_device)
-    {
-      m_device = new _cl_device_id;
-      m_device->dispatch = m_dispatchTable;
-    }
     *devices = m_device;
   }
 
