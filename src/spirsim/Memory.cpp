@@ -124,7 +124,9 @@ uint32_t* Memory::atomic(size_t address)
     if (!status->canAtomic && workItemIndex != status->workItem)
     {
       m_device->notifyDataRace(ReadWriteRace, m_addressSpace, address,
-                               status->workItem, status->instruction);
+                               status->workItem,
+                               status->workGroup,
+                               status->instruction);
     }
 
     // Update status
@@ -610,8 +612,9 @@ void Memory::registerAccess(size_t address, size_t size,
     {
       // Report data-race
       DataRaceType type = load|status->canRead ? ReadWriteRace : WriteWriteRace;
-      m_device->notifyDataRace(type, m_addressSpace,
-                               address + offset, status->workItem,
+      m_device->notifyDataRace(type, m_addressSpace, address + offset,
+                               status->workItem,
+                               status->workGroup,
                                status->instruction);
       race = true;
     }

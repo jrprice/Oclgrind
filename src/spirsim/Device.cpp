@@ -184,7 +184,9 @@ bool Device::nextWorkItem()
 }
 
 void Device::notifyDataRace(DataRaceType type, unsigned int addrSpace,
-                            size_t address, size_t lastWorkItem,
+                            size_t address,
+                            size_t lastWorkItem,
+                            size_t lastWorkGroup,
                             const llvm::Instruction *lastInstruction)
 {
   string memType;
@@ -229,11 +231,7 @@ void Device::notifyDataRace(DataRaceType type, unsigned int addrSpace,
   cerr << endl;
 
   // Show details of other entity involved in race
-  if (lastWorkItem == -1)
-  {
-    cerr << "\tRace occured with unknown entity" << endl;
-  }
-  else
+  if (lastWorkItem != -1)
   {
     size_t gx, gy, gz;
     gx = lastWorkItem % m_globalSize[0];
@@ -243,6 +241,21 @@ void Device::notifyDataRace(DataRaceType type, unsigned int addrSpace,
          << gx << ","
          << gy << ","
          << gz << ")" << endl;
+  }
+  else if (lastWorkGroup != -1)
+  {
+    size_t gx, gy, gz;
+    gx = lastWorkGroup % m_numGroups[0];
+    gy = (lastWorkGroup - gx) / m_numGroups[1];
+    gz = (lastWorkGroup - gy - gx) / m_numGroups[2];
+    cerr << "\tRace occured with work-group (" << dec
+         << gx << ","
+         << gy << ","
+         << gz << ")" << endl;
+  }
+  else
+  {
+    cerr << "\tRace occured with unknown entity" << endl;
   }
 
   // Show conflicting instruction

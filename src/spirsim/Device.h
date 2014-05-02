@@ -28,7 +28,9 @@ namespace oclgrind
     bool isInteractive() const;
     bool isShowingInstructionCounts() const;
     void notifyDataRace(DataRaceType type, unsigned int addrSpace,
-                        size_t address, size_t lastWorkItem,
+                        size_t address,
+                        size_t lastWorkGroup,
+                        size_t lastWorkItem,
                         const llvm::Instruction *lastInstruction);
     void notifyDivergence(const llvm::Instruction *instruction,
                           std::string divergence,
