@@ -49,7 +49,7 @@ namespace oclgrind
     // Utility macros for creating builtins
 #define DEFINE_BUILTIN(name)                                           \
   static void name(WorkItem *workItem, const llvm::CallInst *callInst, \
-                   std::string fnName, std::string overload,           \
+                   const string& fnName, const string& overload,       \
                    TypedValue& result, void *)
 #define ARG(i) (callInst->getArgOperand(i))
 #define UARG(i) workItem->getUnsignedInt(callInst->getArgOperand(i))
@@ -62,8 +62,8 @@ namespace oclgrind
 
     // Functions that apply generic builtins to each component of a vector
     static void f1arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      double (*func)(double))
+                      const string& name, const string& overload,
+                      TypedValue& result, double (*func)(double))
     {
       for (int i = 0; i < result.num; i++)
       {
@@ -72,8 +72,8 @@ namespace oclgrind
       }
     }
     static void f2arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      double (*func)(double, double))
+                      const string& name, const string& overload,
+                      TypedValue& result, double (*func)(double, double))
     {
       for (int i = 0; i < result.num; i++)
       {
@@ -82,8 +82,8 @@ namespace oclgrind
       }
     }
     static void f3arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      double (*func)(double, double, double))
+                      const string& name, const string& overload,
+                      TypedValue& result, double (*func)(double, double, double))
     {
       for (int i = 0; i < result.num; i++)
       {
@@ -92,8 +92,8 @@ namespace oclgrind
       }
     }
     static void u1arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      uint64_t (*func)(uint64_t))
+                      const string& name, const string& overload,
+                      TypedValue& result, uint64_t (*func)(uint64_t))
     {
       for (int i = 0; i < result.num; i++)
       {
@@ -102,8 +102,8 @@ namespace oclgrind
       }
     }
     static void u2arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      uint64_t (*func)(uint64_t, uint64_t))
+                      const string& name, const string& overload,
+                      TypedValue& result, uint64_t (*func)(uint64_t, uint64_t))
     {
       for (int i = 0; i < result.num; i++)
       {
@@ -112,8 +112,8 @@ namespace oclgrind
       }
     }
     static void u3arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      uint64_t (*func)(uint64_t, uint64_t, uint64_t))
+                      const string& name, const string& overload,
+                      TypedValue& result, uint64_t (*func)(uint64_t, uint64_t, uint64_t))
     {
       for (int i = 0; i < result.num; i++)
       {
@@ -122,8 +122,8 @@ namespace oclgrind
       }
     }
     static void s1arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      int64_t (*func)(int64_t))
+                      const string& name, const string& overload,
+                      TypedValue& result, int64_t (*func)(int64_t))
     {
       for (int i = 0; i < result.num; i++)
       {
@@ -132,8 +132,8 @@ namespace oclgrind
       }
     }
     static void s2arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      int64_t (*func)(int64_t, int64_t))
+                      const string& name, const string& overload,
+                      TypedValue& result, int64_t (*func)(int64_t, int64_t))
     {
       for (int i = 0; i < result.num; i++)
       {
@@ -142,8 +142,8 @@ namespace oclgrind
       }
     }
     static void s3arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      int64_t (*func)(int64_t, int64_t, int64_t))
+                      const string& name, const string& overload,
+                      TypedValue& result, int64_t (*func)(int64_t, int64_t, int64_t))
     {
       for (int i = 0; i < result.num; i++)
       {
@@ -152,8 +152,8 @@ namespace oclgrind
       }
     }
     static void rel1arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      int64_t (*func)(double))
+                        const string& name, const string& overload,
+                        TypedValue& result, int64_t (*func)(double))
     {
       int64_t t = result.num > 1 ? -1 : 1;
       for (int i = 0; i < result.num; i++)
@@ -163,8 +163,8 @@ namespace oclgrind
       }
     }
     static void rel2arg(WorkItem *workItem, const llvm::CallInst *callInst,
-                      string name, string overload, TypedValue& result,
-                      int64_t (*func)(double, double))
+                        const string& name, const string& overload,
+                        TypedValue& result, int64_t (*func)(double, double))
     {
       int64_t t = result.num > 1 ? -1 : 1;
       for (int i = 0; i < result.num; i++)
@@ -175,7 +175,7 @@ namespace oclgrind
     }
 
     // Extract the (first) argument type from an overload string
-    static char getOverloadArgType(string overload)
+    static char getOverloadArgType(const string& overload)
     {
       char type = overload[0];
       if (type == 'D')
@@ -2658,11 +2658,11 @@ namespace oclgrind
       size = num*sizeof(cl_half);
       uint16_t *halfData = (uint16_t*)workItem->m_pool.alloc(2*num);
       HalfRoundMode rmode = Half_RTE; //  The Oclgrind device's round mode
-      if (fnName.find("_rtz") != std:::string::npos)
+      if (fnName.find("_rtz") != std::string::npos)
         rmode = Half_RTZ;
-      else if (fnName.find("_rtn") != std:::string::npos)
+      else if (fnName.find("_rtn") != std::string::npos)
         rmode = Half_RTN;
-      else if (fnName.find("_rtp") != std:::string::npos)
+      else if (fnName.find("_rtp") != std::string::npos)
         rmode = Half_RTP;
 
       for (int i = 0; i < num; i++)
@@ -2782,7 +2782,7 @@ namespace oclgrind
       }
     }
 
-    static void setConvertRoundingMode(string name)
+    static void setConvertRoundingMode(const string& name)
     {
       size_t rpos = name.find("_rt");
       if (rpos != string::npos)
