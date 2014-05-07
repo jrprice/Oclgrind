@@ -49,3 +49,4 @@ test-suite.log
 oclgrind-*.tar.gz
 util/floatval
 util/hexval
+*.kdev4
