@@ -2657,10 +2657,17 @@ namespace oclgrind
       size_t num = size / sizeof(float);
       size = num*sizeof(cl_half);
       uint16_t *halfData = (uint16_t*)workItem->m_pool.alloc(2*num);
+      HalfRoundMode rmode = Half_RTE; //  The Oclgrind device's round mode
+      if (fnName.find("_rtz") != std:::string::npos)
+        rmode = Half_RTZ;
+      else if (fnName.find("_rtn") != std:::string::npos)
+        rmode = Half_RTN;
+      else if (fnName.find("_rtp") != std:::string::npos)
+        rmode = Half_RTP;
+
       for (int i = 0; i < num; i++)
       {
-        // TODO: Pass rounding mode
-        halfData[i] = floatToHalf(((float*)data)[i]);
+        halfData[i] = floatToHalf(((float*)data)[i], rmode);
       }
 
       size_t address;
