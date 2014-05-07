@@ -196,7 +196,8 @@ unsigned int Kernel::getArgumentAddressQualifier(unsigned int index) const
   }
 
   // TODO: Remove this when kernel arg info metadata fixed in compiler
-  if (strncmp(getArgumentTypeName(index), "image", 5) == 0)
+  // This has been fixed by Pedro's clang patch in r198868, llvm bug 18419
+  if (getArgumentTypeName(index).startswith("image"))
   {
     return CL_KERNEL_ARG_ADDRESS_GLOBAL;
   }
@@ -241,12 +242,12 @@ const llvm::MDNode* Kernel::getArgumentMetadata(string name) const
   return NULL;
 }
 
-const char* Kernel::getArgumentName(unsigned int index) const
+const llvm::StringRef Kernel::getArgumentName(unsigned int index) const
 {
-  return getArgument(index)->getName().str().c_str();
+  return getArgument(index)->getName();
 }
 
-char* Kernel::getArgumentTypeName(unsigned int index) const
+const llvm::StringRef Kernel::getArgumentTypeName(unsigned int index) const
 {
   assert(index < getNumArguments());
 
@@ -254,11 +255,10 @@ char* Kernel::getArgumentTypeName(unsigned int index) const
   const llvm::MDNode *node = getArgumentMetadata("kernel_arg_type");
   if (!node)
   {
-    return NULL;
+    return "";
   }
 
-  // Return copy of string
-  return strdup(node->getOperand(index+1)->getName().str().c_str());
+  return node->getOperand(index+1)->getName();
 }
 
 unsigned int Kernel::getArgumentTypeQualifier(unsigned int index) const

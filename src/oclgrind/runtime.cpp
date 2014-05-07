@@ -2597,8 +2597,8 @@ clSetKernelArg
   }
 
   unsigned int addr = kernel->kernel->getArgumentAddressQualifier(arg_index);
-  bool isSampler = strcmp(kernel->kernel->getArgumentTypeName(arg_index),
-                          "sampler_t") == 0;
+  bool isSampler =
+    kernel->kernel->getArgumentTypeName(arg_index) == "sampler_t";
 
   if (kernel->kernel->getArgumentSize(arg_index) != arg_size
       && !isSampler
@@ -2764,6 +2764,7 @@ clGetKernelArgInfo
     dummy : *param_value_size_ret;
   cl_uint return_integer;
   const void* return_data = &return_integer;
+  std::string str_data;
 
   switch (param_name)
   {
@@ -2782,8 +2783,8 @@ clGetKernelArgInfo
     break;
 
   case CL_KERNEL_ARG_TYPE_NAME:
-    return_data = kernel->kernel->getArgumentTypeName(arg_indx);
-    result_size = strlen((const char*)return_data) + 1;
+    str_data = kernel->kernel->getArgumentTypeName(arg_indx).str();
+    result_size = str_data.size() + 1;
     if (param_value_size < result_size) return CL_INVALID_VALUE;
     break;
 
@@ -2794,8 +2795,8 @@ clGetKernelArgInfo
     break;
 
   case CL_KERNEL_ARG_NAME:
-    return_data = kernel->kernel->getArgumentName(arg_indx);
-    result_size = strlen((const char*)return_data) + 1;
+    str_data = kernel->kernel->getArgumentName(arg_indx).str();
+    result_size = str_data.size() + 1;
     if (param_value_size < result_size) return CL_INVALID_VALUE;
     break;
 
@@ -2803,8 +2804,12 @@ clGetKernelArgInfo
     return CL_INVALID_VALUE;
   }
 
-  if (param_value)
-    memcpy(param_value, return_data, result_size);
+  if (param_value) {
+    if (str_data.size())
+      memcpy(param_value, str_data.c_str(), result_size);
+    else
+      memcpy(param_value, return_data, result_size);
+  }
 
   return CL_SUCCESS;
 }

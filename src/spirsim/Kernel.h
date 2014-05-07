@@ -8,6 +8,8 @@
 
 #include "common.h"
 
+#include "llvm/ADT/StringRef.h"
+
 namespace llvm
 {
   class Argument;
@@ -41,8 +43,8 @@ namespace oclgrind
     size_t getArgumentSize(unsigned int index) const;
     unsigned int getArgumentAccessQualifier(unsigned int index) const;
     unsigned int getArgumentAddressQualifier(unsigned int index) const;
-    const char* getArgumentName(unsigned int index) const;
-    char* getArgumentTypeName(unsigned int index) const;
+    const llvm::StringRef getArgumentName(unsigned int index) const;
+    const llvm::StringRef getArgumentTypeName(unsigned int index) const;
     unsigned int getArgumentTypeQualifier(unsigned int index) const;
     std::string getAttributes() const;
     const llvm::Function* getFunction() const;
