@@ -2782,6 +2782,42 @@ namespace oclgrind
       }
     }
 
+    DEFINE_BUILTIN(convert_half)
+    {
+      float f;
+      HalfRoundMode rmode = Half_RTE;
+      if (fnName.find("_rtz") != std::string::npos)
+        rmode = Half_RTZ;
+      else if (fnName.find("_rtn") != std::string::npos)
+        rmode = Half_RTN;
+      else if (fnName.find("_rtp") != std::string::npos)
+        rmode = Half_RTP;
+      const char srcType = getOverloadArgType(overload);
+      for (int i = 0; i < result.num; i++) {
+        switch (srcType) {
+          case 'h':
+          case 't':
+          case 'j':
+          case 'm':
+            f = (float)UARGV(0, i);
+            break;
+          case 'c':
+          case 's':
+          case 'i':
+          case 'l':
+            f = (float)SARGV(0, i);
+            break;
+          case 'd':
+          case 'f':
+            f = FARGV(0, i);
+          default:
+            FATAL_ERROR("Unsupported argument type: %c",
+                        getOverloadArgType(overload));
+        }
+        WorkItem::setIntResult(result, (uint64_t)floatToHalf(f, rmode), i);
+      }
+    }
+
     static void setConvertRoundingMode(const string& name)
     {
       size_t rpos = name.find("_rt");
@@ -3368,6 +3404,7 @@ namespace oclgrind
     ADD_BUILTIN("get_work_dim", get_work_dim, NULL);
 
     // Other Functions
+    ADD_PREFIX_BUILTIN("convert_half",   convert_half, NULL);
     ADD_PREFIX_BUILTIN("convert_float",  convert_float, NULL);
     ADD_PREFIX_BUILTIN("convert_double", convert_float, NULL);
     ADD_PREFIX_BUILTIN("convert_u",      convert_uint, NULL);
