@@ -122,6 +122,7 @@
 #include "CL/cl_ext.h"
 #include "CL/cl_gl.h"
 #include "CL/cl_gl_ext.h"
+#include "CL/icd_dispatch.h"
 #if defined(_WIN32) && !defined(__MINGW32__)
 #include "CL/cl_d3d11.h"
 #include "CL/cl_d3d10.h"
@@ -139,17 +140,17 @@ namespace oclgrind
 
 struct _cl_platform_id
 {
-  void *dispatch;
+  KHRicdVendorDispatch *dispatch;
 };
 
 struct _cl_device_id
 {
-  void **dispatch;
+  KHRicdVendorDispatch *dispatch;
 };
 
 struct _cl_context
 {
-  void *dispatch;
+  KHRicdVendorDispatch *dispatch;
   oclgrind::Device *device;
   void (CL_CALLBACK *notify)(const char *, const void *, size_t, void *);
   void *data;
@@ -160,7 +161,7 @@ struct _cl_context
 
 struct _cl_command_queue
 {
-  void *dispatch;
+  KHRicdVendorDispatch *dispatch;
   cl_command_queue_properties properties;
   cl_context context;
   oclgrind::Queue *queue;
@@ -169,7 +170,7 @@ struct _cl_command_queue
 
 struct _cl_mem
 {
-  void *dispatch;
+  KHRicdVendorDispatch *dispatch;
   cl_context context;
   cl_mem parent;
   size_t address;
@@ -190,7 +191,7 @@ struct cl_image : _cl_mem
 
 struct _cl_program
 {
-  void *dispatch;
+  KHRicdVendorDispatch *dispatch;
   oclgrind::Program *program;
   cl_context context;
   unsigned int refCount;
@@ -198,7 +199,7 @@ struct _cl_program
 
 struct _cl_kernel
 {
-  void *dispatch;
+  KHRicdVendorDispatch *dispatch;
   oclgrind::Kernel *kernel;
   cl_program program;
   std::map<cl_uint, cl_mem> memArgs;
@@ -207,7 +208,7 @@ struct _cl_kernel
 
 struct _cl_event
 {
-  void *dispatch;
+  KHRicdVendorDispatch *dispatch;
   cl_context context;
   cl_command_queue queue;
   cl_command_type type;
@@ -218,7 +219,7 @@ struct _cl_event
 
 struct _cl_sampler
 {
-  void *dispatch;
+  KHRicdVendorDispatch *dispatch;
   cl_context context;
   cl_bool normCoords;
   cl_addressing_mode addressMode;
@@ -227,6 +228,6 @@ struct _cl_sampler
   unsigned int refCount;
 };
 
-extern void *m_dispatchTable[256];
+extern KHRicdVendorDispatch m_dispatchTable;
 
 #endif // _ICD_H_
