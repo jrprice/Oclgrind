@@ -14,12 +14,12 @@
 #include "async_queue.h"
 #include "icd.h"
 
-#include <spirsim/Device.h>
-#include <spirsim/Kernel.h>
-#include <spirsim/half.h>
-#include <spirsim/Memory.h>
-#include <spirsim/Program.h>
-#include <spirsim/Queue.h>
+#include "spirsim/Device.h"
+#include "spirsim/Kernel.h"
+#include "spirsim/half.h"
+#include "spirsim/Memory.h"
+#include "spirsim/Program.h"
+#include "spirsim/Queue.h"
 
 using namespace std;
 
