@@ -257,18 +257,16 @@ void Simulation::parseArgument(size_t index)
   string range = "";
 
   // Set meaningful parsing status for error messages
-  char *name = m_kernel->getArgumentName(index);
-  int sz = snprintf(NULL, 0, "argument %lu: '%s'", index, name) + 1;
-  char *parsing = new char[sz];
-  sprintf(parsing, "argument %lu: '%s'", index, name);
-  PARSING(parsing);
-  delete[] parsing;
-  free(name);
+  ostringstream stringstream;
+  stringstream << "argument " << index << ": " <<
+    m_kernel->getArgumentName(index).str();
+  string formatted = stringstream.str();
+  PARSING(formatted.c_str());
 
   // Get argument info
   size_t argSize = m_kernel->getArgumentSize(index);
   unsigned int addrSpace = m_kernel->getArgumentAddressQualifier(index);
-  char *argType = m_kernel->getArgumentTypeName(index);
+  const llvm::StringRef argType = m_kernel->getArgumentTypeName(index);
 
   // Ensure we have an argument header
   char c;
@@ -403,7 +401,7 @@ void Simulation::parseArgument(size_t index)
   if (type == -1)
   {
 #define MATCH_TYPE_PREFIX(str, value, sz)       \
-  else if (!strncmp(argType, str, strlen(str))) \
+  else if (argType == str)                      \
   {                                             \
     type = value;                               \
     typeSize = sz;                              \

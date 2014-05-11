@@ -71,41 +71,41 @@ namespace oclgrind
   typedef std::map<const llvm::Value*,TypedValue> TypedValueMap;
 
   // Clone a TypedValue
-  extern TypedValue clone(const TypedValue& source);
+  TypedValue clone(const TypedValue& source);
 
   // Output an instruction in human-readable format
-  extern void dumpInstruction(std::ostream& out,
+  void dumpInstruction(std::ostream& out,
                               const llvm::Instruction& instruction);
 
   // Retrieve the raw data for a constant
-  extern void getConstantData(unsigned char *data,
+  void getConstantData(unsigned char *data,
                               const llvm::Constant *constant);
 
   // Creates an instruction from a constant expression
-  extern llvm::Instruction* getConstExprAsInstruction(
+  llvm::Instruction* getConstExprAsInstruction(
     const llvm::ConstantExpr *expr);
 
   // Get the byte offset of a struct member
-  extern size_t getStructMemberOffset(const llvm::StructType *type,
+  size_t getStructMemberOffset(const llvm::StructType *type,
                                       size_t index);
 
   // Returns the size of a type
-  extern size_t getTypeSize(const llvm::Type *type);
+  size_t getTypeSize(const llvm::Type *type);
 
   // Returns the size of a value
-  extern std::pair<size_t,size_t> getValueSize(const llvm::Value *value);
+  std::pair<size_t,size_t> getValueSize(const llvm::Value *value);
 
   // Returns true if the operand is a constant value
-  extern bool isConstantOperand(const llvm::Value *operand);
+  bool isConstantOperand(const llvm::Value *operand);
 
   // Returns true if the value is a 3-element vector
-  extern bool isVector3(const llvm::Value *value);
+  bool isVector3(const llvm::Value *value);
 
   // Return the current time in nanoseconds since the epoch
-  extern double now();
+  double now();
 
   // Print data in a human readable format (according to its type)
-  extern void printTypedData(const llvm::Type *type, const unsigned char *data);
+  void printTypedData(const llvm::Type *type, const unsigned char *data);
 
   // Exception class for raising fatal errors
   class FatalError : std::runtime_error
