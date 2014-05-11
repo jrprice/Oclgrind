@@ -369,11 +369,11 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_GLOBAL_MEM_CACHE_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.cluint = 0;
+    result_data.clulong = 0;
     break;
   case CL_DEVICE_GLOBAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.cluint = MAX_GLOBAL_MEM_SIZE;
+    result_data.clulong = MAX_GLOBAL_MEM_SIZE;
     break;
   case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
     result_size = sizeof(cl_ulong);
