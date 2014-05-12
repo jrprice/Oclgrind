@@ -131,7 +131,7 @@ static uint16_t floatToHalf(float sp, HalfRoundMode round = Half_RTZ)
     else
     {
       // Normalized
-      h_exponent = 0 << 10;
+      h_exponent = e << 10;
       h_mantissa = f_mantissa >> 13;
       // The current f_mantissa is done in RTZ
       if (round == Half_RTE && (f & 0x00001000) != 0) {
