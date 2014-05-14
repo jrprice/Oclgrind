@@ -53,12 +53,6 @@ using namespace std;
   cl_khr_byte_addressable_store        \
   cl_khr_fp64"
 
-#define ERRCODE(err)    \
-  if (errcode_ret)      \
-  {                     \
-    *errcode_ret = err; \
-  }
-
 
 namespace
 {
@@ -134,7 +128,7 @@ namespace
   void notifyAPIError(const char* function, cl_int err,
                       const char* argument = NULL)
   {
-    cerr << endl << "Function " << function << " returned ";
+    cerr << endl << "Function " << function << " generated error ";
     cerr << CLErrorToString(err);
     if (argument)
     {
@@ -144,8 +138,22 @@ namespace
   }
 }
 
-#define ReturnError(X) notifyAPIError(__FUNCTION__, X); return X
-#define ReturnErrorArg(X, Y) notifyAPIError(__FUNCTION__, X, #Y); return X
+#define ReturnError(err) notifyAPIError(__func__, err); return err
+#define ReturnErrorArg(err, arg) notifyAPIError(__func__, err, #arg); return err
+
+#define SetError(err) \
+  if (err != CL_SUCCESS) notifyAPIError(__func__, err); \
+  if (errcode_ret)      \
+  {                     \
+    *errcode_ret = err; \
+  }
+
+#define SetErrorArg(err, arg) \
+  if (err != CL_SUCCESS) notifyAPIError(__func__, err, #arg); \
+  if (errcode_ret)      \
+  {                     \
+    *errcode_ret = err; \
+  }
 
 
 static struct _cl_platform_id *m_platform = NULL;
@@ -686,17 +694,17 @@ clCreateContext
   // Check parameters
   if (num_devices != 1 || !devices)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (devices[0] != m_device)
   {
-    ERRCODE(CL_INVALID_DEVICE);
+    SetError(CL_INVALID_DEVICE);
     return NULL;
   }
   if (!pfn_notify && user_data)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -723,7 +731,7 @@ clCreateContext
     memcpy(context->properties, properties, sz);
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return context;
 }
 
@@ -743,14 +751,14 @@ clCreateContextFromType
   // Check parameters
   if (!pfn_notify && user_data)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (device_type != CL_DEVICE_TYPE_CPU &&
       device_type != CL_DEVICE_TYPE_DEFAULT &&
       device_type != CL_DEVICE_TYPE_ALL)
   {
-    ERRCODE(CL_DEVICE_NOT_FOUND);
+    SetErrorArg(CL_DEVICE_NOT_FOUND, device_type);
     return NULL;
   }
 
@@ -777,7 +785,7 @@ clCreateContextFromType
     memcpy(context->properties, properties, sz);
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return context;
 }
 
@@ -893,17 +901,17 @@ clCreateCommandQueue
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (device != m_device)
   {
-    ERRCODE(CL_INVALID_DEVICE);
+    SetErrorArg(CL_INVALID_DEVICE, device);
     return NULL;
   }
   if (properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE)
   {
-    ERRCODE(CL_INVALID_QUEUE_PROPERTIES);
+    SetErrorArg(CL_INVALID_QUEUE_PROPERTIES, properties);
     return NULL;
   }
 
@@ -918,7 +926,7 @@ clCreateCommandQueue
 
   clRetainContext(context);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return queue;
 }
 
@@ -1053,25 +1061,25 @@ clCreateBuffer
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (size == 0)
   {
-    ERRCODE(CL_INVALID_BUFFER_SIZE);
+    SetErrorArg(CL_INVALID_BUFFER_SIZE, size);
     return NULL;
   }
   if ((host_ptr == NULL) ==
       ((flags & CL_MEM_COPY_HOST_PTR) ||
         flags & CL_MEM_USE_HOST_PTR))
   {
-    ERRCODE(CL_INVALID_HOST_PTR);
+    SetError(CL_INVALID_HOST_PTR);
     return NULL;
   }
   if ((flags & CL_MEM_USE_HOST_PTR) &&
       (flags & (CL_MEM_COPY_HOST_PTR | CL_MEM_ALLOC_HOST_PTR)))
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetErrorArg(CL_INVALID_VALUE, flags);
     return NULL;
   }
 
@@ -1098,7 +1106,7 @@ clCreateBuffer
   }
   if (!mem->address)
   {
-    ERRCODE(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    SetError(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     delete mem;
     return NULL;
   }
@@ -1110,7 +1118,7 @@ clCreateBuffer
                                               mem->address, size);
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return mem;
 }
 
@@ -1127,13 +1135,13 @@ clCreateSubBuffer
   // Check parameters
   if (!buffer || buffer->parent)
   {
-    ERRCODE(CL_INVALID_MEM_OBJECT);
+    SetErrorArg(CL_INVALID_MEM_OBJECT, buffer);
     return NULL;
   }
   if (buffer_create_type != CL_BUFFER_CREATE_TYPE_REGION
      || !buffer_create_info)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -1141,7 +1149,7 @@ clCreateSubBuffer
   if (region.origin + region.size > buffer->size
       || region.size == 0)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -1185,7 +1193,7 @@ clCreateSubBuffer
   mem->address = buffer->address + region.origin;
   clRetainMemObject(buffer);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return mem;
 }
 
@@ -1293,17 +1301,17 @@ clCreateImage
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (!image_format)
   {
-    ERRCODE(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
+    SetErrorArg(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR, image_format);
     return NULL;
   }
   if (!image_desc)
   {
-    ERRCODE(CL_INVALID_IMAGE_DESCRIPTOR);
+    SetErrorArg(CL_INVALID_IMAGE_DESCRIPTOR, image_desc);
     return NULL;
   }
 
@@ -1311,7 +1319,7 @@ clCreateImage
   size_t pixelSize = getPixelSize(image_format);
   if (!pixelSize)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetErrorArg(CL_INVALID_VALUE, image_format);
     return NULL;
   }
 
@@ -1333,7 +1341,7 @@ clCreateImage
     arraySize = image_desc->image_array_size;
   }
 
-  // Calculate total size of iamge
+  // Calculate total size of image
   size_t size = width * height * depth * arraySize * pixelSize;
 
   cl_mem mem;
@@ -1343,7 +1351,7 @@ clCreateImage
     // Use existing buffer
     if (!image_desc->buffer)
     {
-      ERRCODE(CL_INVALID_VALUE);
+      SetError(CL_INVALID_VALUE);
       return NULL;
     }
     mem = image_desc->buffer;
@@ -1356,6 +1364,7 @@ clCreateImage
     mem = clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
     if (!mem)
     {
+      SetError(CL_OUT_OF_HOST_MEMORY);
       return NULL;
     }
   }
@@ -1376,7 +1385,7 @@ clCreateImage
     delete mem;
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return image;
 }
 
@@ -1842,7 +1851,7 @@ clCreateSampler
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
 
@@ -1871,7 +1880,7 @@ clCreateSampler
       bitfield |= 0x0008;
       break;
     default:
-      ERRCODE(CL_INVALID_VALUE);
+      SetErrorArg(CL_INVALID_VALUE, addressing_mode);
       return NULL;
   }
 
@@ -1884,7 +1893,7 @@ clCreateSampler
       bitfield |= 0x0020;
       break;
     default:
-      ERRCODE(CL_INVALID_VALUE);
+      SetErrorArg(CL_INVALID_VALUE, filter_mode);
       return NULL;
   }
 
@@ -1897,7 +1906,7 @@ clCreateSampler
   sampler->filterMode = filter_mode;
   sampler->sampler = bitfield;
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return sampler;
 }
 
@@ -2017,12 +2026,12 @@ clCreateProgramWithSource
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (count == 0 || !strings || !strings[0])
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -2042,12 +2051,12 @@ clCreateProgramWithSource
   prog->refCount = 1;
   if (!prog->program)
   {
-    ERRCODE(CL_OUT_OF_HOST_MEMORY);
+    SetError(CL_OUT_OF_HOST_MEMORY);
     delete prog;
     return NULL;
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return prog;
 }
 
@@ -2066,17 +2075,17 @@ clCreateProgramWithBinary
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (num_devices != 1 || !device_list || !lengths || !binaries)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (device_list[0] != m_device)
   {
-    ERRCODE(CL_INVALID_DEVICE);
+    SetErrorArg(CL_INVALID_DEVICE, device_list);
     return NULL;
   }
 
@@ -2088,7 +2097,7 @@ clCreateProgramWithBinary
   prog->refCount = 1;
   if (!prog->program)
   {
-    ERRCODE(CL_INVALID_BINARY);
+    SetError(CL_INVALID_BINARY);
     if (binary_status)
     {
       binary_status[0] = CL_INVALID_BINARY;
@@ -2101,7 +2110,7 @@ clCreateProgramWithBinary
     binary_status[0] = CL_SUCCESS;
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return prog;
 }
 
@@ -2115,7 +2124,7 @@ clCreateProgramWithBuiltInKernels
   cl_int *              errcode_ret
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  ERRCODE(CL_INVALID_VALUE);
+  SetError(CL_INVALID_VALUE);
   return NULL;
 }
 
@@ -2286,28 +2295,28 @@ clLinkProgram
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if ((num_devices > 0 && !device_list) ||
       (num_devices == 0 && device_list))
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (!num_input_programs || !input_programs)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (!pfn_notify && user_data)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (device_list && !device_list[0])
   {
-    ERRCODE(CL_INVALID_DEVICE);
+    SetError(CL_INVALID_DEVICE);
     return NULL;
   }
 
@@ -2326,7 +2335,7 @@ clLinkProgram
   prog->refCount = 1;
   if (!prog->program)
   {
-    ERRCODE(CL_INVALID_BINARY);
+    SetError(CL_INVALID_BINARY);
     delete prog;
     return NULL;
   }
@@ -2337,7 +2346,7 @@ clLinkProgram
     pfn_notify(prog, user_data);
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return prog;
 }
 
@@ -2552,12 +2561,12 @@ clCreateKernel
   // Check parameters
   if (program->dispatch != &m_dispatchTable)
   {
-    ERRCODE(CL_INVALID_PROGRAM);
+    SetError(CL_INVALID_PROGRAM);
     return NULL;
   }
   if (!kernel_name)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetErrorArg(CL_INVALID_VALUE, kernel_name);
     return NULL;
   }
 
@@ -2569,14 +2578,14 @@ clCreateKernel
   kernel->refCount = 1;
   if (!kernel->kernel)
   {
-    ERRCODE(CL_INVALID_KERNEL_NAME);
+    SetError(CL_INVALID_KERNEL_NAME);
     delete kernel;
     return NULL;
   }
 
   clRetainProgram(program);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return kernel;
 }
 
@@ -3137,7 +3146,7 @@ clCreateUserEvent
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
 
@@ -3151,7 +3160,7 @@ clCreateUserEvent
   event->event->state = CL_SUBMITTED;
   event->refCount = 1;
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return event;
 }
 
@@ -4263,24 +4272,24 @@ clEnqueueMapBuffer
   // Check parameters
   if (!command_queue)
   {
-    ERRCODE(CL_INVALID_COMMAND_QUEUE);
+    SetErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
     return NULL;
   }
   if (!buffer)
   {
-    ERRCODE(CL_INVALID_MEM_OBJECT);
+    SetErrorArg(CL_INVALID_MEM_OBJECT, buffer);
     return NULL;
   }
   if (map_flags & CL_MAP_WRITE &&
       buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
   {
-    ERRCODE(CL_INVALID_OPERATION);
+    SetError(CL_INVALID_OPERATION);
     return NULL;
   }
   if (map_flags & CL_MAP_READ &&
       buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
   {
-    ERRCODE(CL_INVALID_OPERATION);
+    SetError(CL_INVALID_OPERATION);
     return NULL;
   }
 
@@ -4289,7 +4298,7 @@ clEnqueueMapBuffer
     buffer->address, offset, cb);
   if (ptr == NULL)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -4299,10 +4308,10 @@ clEnqueueMapBuffer
   asyncEnqueue(command_queue, CL_COMMAND_MAP_BUFFER, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   if (blocking_map)
   {
-    ERRCODE(clFinish(command_queue));
+    SetError(clFinish(command_queue));
   }
 
   return ptr;
@@ -4328,29 +4337,29 @@ clEnqueueMapImage
   // Check parameters
   if (!command_queue)
   {
-    ERRCODE(CL_INVALID_COMMAND_QUEUE);
+    SetErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
     return NULL;
   }
   if (!image)
   {
-    ERRCODE(CL_INVALID_MEM_OBJECT);
+    SetErrorArg(CL_INVALID_MEM_OBJECT, image);
     return NULL;
   }
   if (!image_row_pitch)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetErrorArg(CL_INVALID_VALUE, image_row_pitch);
     return NULL;
   }
   if (map_flags & CL_MAP_WRITE &&
       image->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
   {
-    ERRCODE(CL_INVALID_OPERATION);
+    SetError(CL_INVALID_OPERATION);
     return NULL;
   }
   if (map_flags & CL_MAP_READ &&
       image->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
   {
-    ERRCODE(CL_INVALID_OPERATION);
+    SetError(CL_INVALID_OPERATION);
     return NULL;
   }
 
@@ -4376,7 +4385,7 @@ clEnqueueMapImage
         image->address, offset, size);
   if (ptr == NULL)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -4392,10 +4401,10 @@ clEnqueueMapImage
   asyncEnqueue(command_queue, CL_COMMAND_MAP_IMAGE, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   if (blocking_map)
   {
-    ERRCODE(clFinish(command_queue));
+    SetError(clFinish(command_queue));
   }
 
   return ptr;
@@ -4722,7 +4731,7 @@ clCreateFromGLBuffer
   int *         errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4737,7 +4746,7 @@ clCreateFromGLTexture
   cl_int *      errcode_ret
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4752,7 +4761,7 @@ clCreateFromGLTexture2D
   cl_int *      errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4767,7 +4776,7 @@ clCreateFromGLTexture3D
   cl_int *      errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4780,7 +4789,7 @@ clCreateFromGLRenderbuffer
   cl_int *      errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4857,7 +4866,7 @@ clCreateEventFromGLsyncKHR
   cl_int *    errcode_ret
 ) CL_EXT_SUFFIX__VERSION_1_1
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4887,7 +4896,7 @@ clCreateFromD3D10BufferKHR
   cl_int *        errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4901,7 +4910,7 @@ clCreateFromD3D10Texture2DKHR
   cl_int *           errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
+  SetError(CL_INVALID_OPERATION);
   return NULL;
 }
 
@@ -4915,7 +4924,7 @@ clCreateFromD3D10Texture3DKHR
   cl_int *           errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
+  SetError(CL_INVALID_OPERATION);
   return NULL;
 }
 
@@ -4971,7 +4980,7 @@ clCreateFromD3D11BufferKHR
   cl_int *        errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4985,7 +4994,7 @@ clCreateFromD3D11Texture2DKHR
   cl_int *           errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
+  SetError(CL_INVALID_OPERATION);
   return NULL;
 }
 
@@ -4999,7 +5008,7 @@ clCreateFromD3D11Texture3DKHR
   cl_int *           errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
+  SetError(CL_INVALID_OPERATION);
   return NULL;
 }
 
@@ -5058,7 +5067,7 @@ clCreateFromDX9MediaSurfaceKHR
   cl_int *                       errcode_ret
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
