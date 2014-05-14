@@ -375,22 +375,25 @@ Kernel* Program::createKernel(const string name)
   llvm::Function *function = NULL;
 
   // Query the SPIR kernel list
-  llvm::NamedMDNode* Tuple = m_module->getNamedMetadata("opencl.kernels");
+  llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
   // No kernels in module
-  if (!Tuple) return NULL;
+  if (!tuple)
+    return NULL;
 
-  for (unsigned i = 0; i < Tuple->getNumOperands(); ++i) {
-    llvm::MDNode* Kernel = Tuple->getOperand(i);
-    llvm::Function* KernelFunction =
-      llvm::dyn_cast<llvm::Function>(Kernel->getOperand(0));
+  for (unsigned i = 0; i < tuple->getNumOperands(); ++i)
+  {
+    llvm::MDNode* kernel = tuple->getOperand(i);
+    llvm::Function* kernelFunction =
+      llvm::dyn_cast<llvm::Function>(kernel->getOperand(0));
 
     // Shouldn't really happen - this would mean an invalid Module as input
-    if (!KernelFunction)
+    if (!kernelFunction)
       continue;
 
     // Is this the kernel we want?
-    if (KernelFunction->getName() == name) {
-      function = KernelFunction;
+    if (kernelFunction->getName() == name)
+    {
+      function = kernelFunction;
       break;
     }
   }
@@ -476,11 +479,13 @@ list<string> Program::getKernelNames() const
   list<string> names;
 
   // Query the SPIR kernel list
-  llvm::NamedMDNode* Tuple = m_module->getNamedMetadata("opencl.kernels");
+  llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
 
-  if (Tuple) {
-    for (unsigned i = 0; i < Tuple->getNumOperands(); ++i) {
-      llvm::MDNode* Kernel = Tuple->getOperand(i);
+  if (tuple)
+  {
+    for (unsigned i = 0; i < tuple->getNumOperands(); ++i)
+    {
+      llvm::MDNode* Kernel = tuple->getOperand(i);
       llvm::Function* KernelFunction =
         llvm::dyn_cast<llvm::Function>(Kernel->getOperand(0));
 
@@ -501,11 +506,12 @@ unsigned int Program::getNumKernels() const
 
   // Iterate over functions in module to find kernels
   unsigned int num = 0;
-  llvm::NamedMDNode* Tuple = m_module->getNamedMetadata("opencl.kernels");
+  llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
   // No kernels in module
-  if (!Tuple) return 0;
+  if (!tuple)
+    return 0;
 
-  return Tuple->getNumOperands();
+  return tuple->getNumOperands();
 }
 
 const string& Program::getSource() const

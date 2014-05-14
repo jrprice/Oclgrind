@@ -246,7 +246,8 @@ clGetDeviceInfo
   size_t dummy;
   size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
   // All possible return types
-  union {
+  union
+  {
     cl_uint cluint;
     size_t sizet;
     size_t sizet3[3];
@@ -748,7 +749,8 @@ clGetContextInfo
   size_t dummy = 0;
   size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
 
-  union {
+  union
+  {
     cl_uint cluint;
     cl_device_id cldevid;
   } result_data;
@@ -785,8 +787,10 @@ clGetContextInfo
     }
     else
     {
-      if (properties) memcpy(param_value, properties, result_size);
-      else memcpy(param_value, &result_data, result_size);
+      if (properties)
+        memcpy(param_value, properties, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
@@ -907,7 +911,8 @@ clGetCommandQueueInfo
   size_t dummy = 0;
   size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
 
-  union {
+  union
+  {
     cl_uint cluint;
     cl_context context;
     cl_device_id cldevid;
@@ -1554,7 +1559,8 @@ clGetMemObjectInfo
 
   size_t dummy = 0;
   size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
-  union {
+  union
+  {
     cl_mem_object_type clmemobjty;
     cl_mem_flags clmemflags;
     cl_context context;
@@ -1642,7 +1648,8 @@ clGetImageInfo
 
   size_t dummy = 0;
   size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
-  union {
+  union
+  {
     cl_image_format climgfmt;
     size_t sizet;
     cl_mem clmem;
@@ -1866,7 +1873,8 @@ clGetSamplerInfo
 
   size_t dummy = 0;
   size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
-  union {
+  union
+  {
     cl_uint cluint;
     cl_context clcontext;
     cl_bool clbool;
@@ -2681,7 +2689,8 @@ clGetKernelInfo
 
   size_t dummy;
   size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
-  union {
+  union
+  {
     cl_uint cluint;
     cl_context context;
     cl_program program;
@@ -2767,41 +2776,45 @@ clGetKernelArgInfo
   {
   case CL_KERNEL_ARG_ADDRESS_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_address_qualifier);
-    if (param_value_size < result_size) return CL_INVALID_VALUE;
-    return_integer =
-        kernel->kernel->getArgumentAddressQualifier(arg_indx);
+    if (param_value_size < result_size)
+      return CL_INVALID_VALUE;
+    return_integer = kernel->kernel->getArgumentAddressQualifier(arg_indx);
     break;
 
   case CL_KERNEL_ARG_ACCESS_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_access_qualifier);
-    if (param_value_size < result_size) return CL_INVALID_VALUE;
-    return_integer =
-        kernel->kernel->getArgumentAddressQualifier(arg_indx);
+    if (param_value_size < result_size)
+      return CL_INVALID_VALUE;
+    return_integer = kernel->kernel->getArgumentAddressQualifier(arg_indx);
     break;
 
   case CL_KERNEL_ARG_TYPE_NAME:
     str_data = kernel->kernel->getArgumentTypeName(arg_indx).str();
     result_size = str_data.size() + 1;
-    if (param_value_size < result_size) return CL_INVALID_VALUE;
+    if (param_value_size < result_size)
+      return CL_INVALID_VALUE;
     break;
 
   case CL_KERNEL_ARG_TYPE_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_type_qualifier);
-    if (param_value_size < result_size) return CL_INVALID_VALUE;
+    if (param_value_size < result_size)
+      return CL_INVALID_VALUE;
     return_integer = kernel->kernel->getArgumentTypeQualifier(arg_indx);
     break;
 
   case CL_KERNEL_ARG_NAME:
     str_data = kernel->kernel->getArgumentName(arg_indx).str();
     result_size = str_data.size() + 1;
-    if (param_value_size < result_size) return CL_INVALID_VALUE;
+    if (param_value_size < result_size)
+      return CL_INVALID_VALUE;
     break;
 
   default:
     return CL_INVALID_VALUE;
   }
 
-  if (param_value) {
+  if (param_value)
+  {
     if (str_data.size())
       memcpy(param_value, str_data.c_str(), result_size);
     else
@@ -2894,12 +2907,13 @@ clGetKernelWorkGroupInfo
 
 /* Event Object APIs  */
 
-namespace {
-// Utility to check if an event has completed (or terminated)
-inline bool isComplete(cl_event event)
+namespace
 {
-  return (event->event->state == CL_COMPLETE || event->event->state < 0);
-}
+  // Utility to check if an event has completed (or terminated)
+  inline bool isComplete(cl_event event)
+  {
+    return (event->event->state == CL_COMPLETE || event->event->state < 0);
+  }
 }
 
 CL_API_ENTRY cl_int CL_API_CALL

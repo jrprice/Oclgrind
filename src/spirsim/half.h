@@ -59,7 +59,8 @@ static float halfToFloat(uint16_t half)
   return *(float*)&result;
 }
 
-enum HalfRoundMode {
+enum HalfRoundMode
+{
   // Towards negative infinity
   Half_RTN,
   // Towards zero
@@ -75,7 +76,8 @@ static uint16_t floatToHalf(float sp, HalfRoundMode round = Half_RTZ)
   uint16_t h_sign, h_exponent, h_mantissa;
   uint32_t f_sign, f_exponent, f_mantissa;
 
-  union {
+  union
+  {
     float f;
     uint32_t ui;
   } FtoUI;
@@ -134,16 +136,19 @@ static uint16_t floatToHalf(float sp, HalfRoundMode round = Half_RTZ)
       h_exponent = e << 10;
       h_mantissa = f_mantissa >> 13;
       // The current f_mantissa is done in RTZ
-      if (round == Half_RTE && (f & 0x00001000) != 0) {
+      if (round == Half_RTE && (f & 0x00001000) != 0)
+      {
         if ((f & 0x00002FFF) != 0)
           h_mantissa += 1;
       }
-      else if (round == Half_RTP) {
+      else if (round == Half_RTP)
+      {
         FtoUI.ui &= 0xFFFFE000;
         if (FtoUI.f < sp)
           h_mantissa += 1;
       }
-      else if (round == Half_RTN) {
+      else if (round == Half_RTN)
+      {
         FtoUI.ui &= 0xFFFFE000;
         if (sp < FtoUI.f)
           h_mantissa += 1;

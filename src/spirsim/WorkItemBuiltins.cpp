@@ -2793,8 +2793,10 @@ namespace oclgrind
       else if (fnName.find("_rtp") != std::string::npos)
         rmode = Half_RTP;
       const char srcType = getOverloadArgType(overload);
-      for (int i = 0; i < result.num; i++) {
-        switch (srcType) {
+      for (int i = 0; i < result.num; i++)
+      {
+        switch (srcType)
+        {
           case 'h':
           case 't':
           case 'j':

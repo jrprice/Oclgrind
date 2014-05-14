@@ -74,20 +74,16 @@ namespace oclgrind
   TypedValue clone(const TypedValue& source);
 
   // Output an instruction in human-readable format
-  void dumpInstruction(std::ostream& out,
-                              const llvm::Instruction& instruction);
+  void dumpInstruction(std::ostream& out, const llvm::Instruction& instruction);
 
   // Retrieve the raw data for a constant
-  void getConstantData(unsigned char *data,
-                              const llvm::Constant *constant);
+  void getConstantData(unsigned char *data, const llvm::Constant *constant);
 
   // Creates an instruction from a constant expression
-  llvm::Instruction* getConstExprAsInstruction(
-    const llvm::ConstantExpr *expr);
+  llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr *expr);
 
   // Get the byte offset of a struct member
-  size_t getStructMemberOffset(const llvm::StructType *type,
-                                      size_t index);
+  size_t getStructMemberOffset(const llvm::StructType *type, size_t index);
 
   // Returns the size of a type
   size_t getTypeSize(const llvm::Type *type);
