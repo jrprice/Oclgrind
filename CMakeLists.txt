@@ -188,3 +188,9 @@ foreach(test ${KERNEL_TESTS})
     ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/kernels/run_kernel_test.py
     ${CMAKE_SOURCE_DIR}/tests/kernels/${test}/${test}.sim)
 endforeach(${test})
+
+# Expected failures
+set_tests_properties(
+  atomic_intergroup_race
+  atomic_cmpxchg_race
+  PROPERTIES WILL_FAIL TRUE)
