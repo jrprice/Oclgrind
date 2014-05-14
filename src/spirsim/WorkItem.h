@@ -36,11 +36,12 @@ namespace oclgrind
   typedef struct _BuiltinFunction
   {
     void (*func)(WorkItem*, const llvm::CallInst*,
-                 std::string, std::string, TypedValue&, void*);
+                 const std::string&, const std::string&, TypedValue&, void*);
     void *op;
     _BuiltinFunction(){};
     _BuiltinFunction(void (*f)(WorkItem*, const llvm::CallInst*,
-                     std::string, std::string, TypedValue&, void*),
+                     const std::string&, const std::string&, TypedValue&,
+                     void*),
                      void *o) : func(f), op(o) {};
   } BuiltinFunction;
   extern std::MAP<std::string,BuiltinFunction> workItemBuiltins;

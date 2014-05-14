@@ -3156,7 +3156,7 @@ namespace oclgrind
   // Utility macros for generating builtin function map
 #define CAST                                \
   void(*)(WorkItem*, const llvm::CallInst*, \
-  std::string, std::string, TypedValue& result, void*)
+  const std::string&, const std::string&, TypedValue& result, void*)
 #define F1ARG(name) (double(*)(double))name
 #define F2ARG(name) (double(*)(double,double))name
 #define F3ARG(name) (double(*)(double,double,double))name
