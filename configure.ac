@@ -71,29 +71,13 @@ AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 KERNEL_TESTS=""
 KERNEL_TEST_INPUTS=""
 KERNEL_TEST_OUTPUTS=""
-m4_foreach([name],
-  [[array], [reduce], [vecadd],
-  [read_out_of_bounds], [write_out_of_bounds], [dereference_null],
-  [broadcast], [global_read_write_race], [global_write_write_race],
-  [local_read_write_race], [local_write_write_race], [increment],
-  [atomic_increment], [atomic_race_before], [atomic_race_after],
-  [atomic_global_fence], [atomic_local_fence], [atomic_global_fence_race],
-  [atomic_intergroup_race], [global_fence], [intergroup_race],
-  [async_copy], [async_copy_local_race], [async_copy_global_race],
-  [local_only_fence], [global_only_fence], [barrier_divergence],
-  [barrier_different_instructions], [uniform_write_race],
-  [intergroup_hidden_race], [atomic_same_workitem], [atomic_cmpxchg_race],
-  [atomic_cmpxchg_false_race], [async_copy_divergent], [async_copy_loop],
-  [async_copy_loop_divergent], [async_copy_unwaited], [async_copy_single_wi],
-  [wait_event_divergent], [wait_event_invalid], [wait_event_duplicates],
-  [wait_event_chained]],
+m4_foreach([name], m4_split(m4_include(tests/kernels/TESTS), m4_newline),
 [
     KERNEL_TESTS="$KERNEL_TESTS tests/kernels/"name"/"name".sim"
     KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".sim"
     KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".cl"
     KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".ref"
     KERNEL_TEST_OUTPUTS="$KERNEL_TEST_OUTPUTS tests/kernels/"name"/"name".out"
-    KERNEL_TEST_OUTPUTS="$KERNEL_TEST_OUTPUTS tests/kernels/"name"/"name".diff"
 ])
 AC_SUBST(KERNEL_TESTS, $KERNEL_TESTS)
 AC_SUBST(KERNEL_TEST_INPUTS, $KERNEL_TEST_INPUTS)

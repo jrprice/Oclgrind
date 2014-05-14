@@ -105,6 +105,6 @@ EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h			\
  src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
  CMakeLists.txt cmake_config.h.in src/spirsim/gen_clc_h.cmake		\
  src/oclgrind/icd.def tests/kernels/run_kernel_test.py \
- $(KERNEL_TEST_INPUTS)
+ tests/kernels/TESTS $(KERNEL_TEST_INPUTS)
 CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS) \
  $(KERNEL_TEST_OUTPUTS)

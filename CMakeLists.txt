@@ -172,59 +172,17 @@ install(CODE "execute_process(COMMAND
 
 # Tests
 
+# Check for Python
 find_package(PythonInterp)
-
 if (PYTHONINTERP_FOUND)
   enable_testing()
 else()
   add_custom_target(test COMMENT "Python required for running tests.")
 endif()
 
-# TODO: Central file with list of tests, read by CMake/autoconf
-set(KERNEL_TESTS
-  array
-  reduce
-  vecadd
-  read_out_of_bounds
-  write_out_of_bounds
-  dereference_null
-  broadcast
-  global_read_write_race
-  global_write_write_race
-  local_read_write_race
-  local_write_write_race
-  increment
-  atomic_increment
-  atomic_race_before
-  atomic_race_after
-  atomic_global_fence
-  atomic_local_fence
-  atomic_global_fence_race
-  atomic_intergroup_race
-  global_fence
-  intergroup_race
-  async_copy
-  async_copy_local_race
-  async_copy_global_race
-  local_only_fence
-  global_only_fence
-  barrier_divergence
-  barrier_different_instructions
-  uniform_write_race
-  intergroup_hidden_race
-  atomic_same_workitem
-  atomic_cmpxchg_race
-  atomic_cmpxchg_false_race
-  async_copy_divergent
-  async_copy_loop
-  async_copy_loop_divergent
-  async_copy_unwaited
-  async_copy_single_wi
-  wait_event_divergent
-  wait_event_invalid
-  wait_event_duplicates
-  wait_event_chained)
-
+# Add kernel tests
+file(READ tests/kernels/TESTS KERNEL_TESTS)
+string(REPLACE "\n" ";" KERNEL_TESTS ${KERNEL_TESTS})
 foreach(test ${KERNEL_TESTS})
   add_test(${test}
     ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/kernels/run_kernel_test.py
