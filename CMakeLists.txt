@@ -71,18 +71,30 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   endif()
 endif()
 
-add_library(spirsim ${SPIRSIM_LIB_TYPE}
-  src/spirsim/clc_h.cpp
-  src/spirsim/common.h src/spirsim/common.cpp
-  src/spirsim/Device.h src/spirsim/Device.cpp
+set(SPIRSIM_HEADERS
+  src/spirsim/clc.h
+  src/spirsim/common.h
+  src/spirsim/Device.h
   src/spirsim/half.h
-  src/spirsim/Kernel.h src/spirsim/Kernel.cpp
-  src/spirsim/Memory.h src/spirsim/Memory.cpp
-  src/spirsim/Program.h src/spirsim/Program.cpp
-  src/spirsim/Queue.h src/spirsim/Queue.cpp
-  src/spirsim/WorkItem.h src/spirsim/WorkItem.cpp
+  src/spirsim/Kernel.h
+  src/spirsim/Memory.h
+  src/spirsim/Program.h
+  src/spirsim/Queue.h
+  src/spirsim/WorkItem.h
+  src/spirsim/WorkGroup.h)
+
+add_library(spirsim ${SPIRSIM_LIB_TYPE}
+  ${SPIRSIM_HEADERS}
+  src/spirsim/clc_h.cpp
+  src/spirsim/common.cpp
+  src/spirsim/Device.cpp
+  src/spirsim/Kernel.cpp
+  src/spirsim/Memory.cpp
+  src/spirsim/Program.cpp
+  src/spirsim/Queue.cpp
+  src/spirsim/WorkItem.cpp
   src/spirsim/WorkItemBuiltins.cpp
-  src/spirsim/WorkGroup.h src/spirsim/WorkGroup.cpp)
+  src/spirsim/WorkGroup.cpp)
 target_link_libraries(spirsim ${SPIRSIM_EXTRA_LIBS}
   clangAnalysis clangAST clangBasic clangCodeGen clangDriver clangEdit
   clangFrontend clangLex clangParse clangSema clangSerialization
@@ -139,7 +151,7 @@ install(TARGETS
   oclgrind oclgrind-icd spirsim
   DESTINATION lib)
 install(FILES
-  src/spirsim/clc.h
+  ${SPIRSIM_HEADERS}
   DESTINATION include/spirsim
 )
 

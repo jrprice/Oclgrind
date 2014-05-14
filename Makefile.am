@@ -76,7 +76,7 @@ liboclgrind_icd_la_LDFLAGS = -shared
 
 bin_PROGRAMS = oclgrind-kernel
 oclgrind_kernel_SOURCES = src/oclgrind-kernel/main.cpp			\
-src/oclgrind-kernel/Simulation.h src/oclgrind-kernel/Simulation.cpp
+ src/oclgrind-kernel/Simulation.h src/oclgrind-kernel/Simulation.cpp
 oclgrind_kernel_LDADD = libspirsim.la
 
 bin_SCRIPTS = oclgrind
