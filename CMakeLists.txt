@@ -36,6 +36,11 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin" AND
 "DYLD_LIBRARY_PATH.")
 endif()
 
+# Disable min/max macros on Windows
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  add_definitions(-DNOMINMAX)
+endif()
+
 # Add LLVM required macro definitions
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
