@@ -63,6 +63,10 @@ AC_CHECK_LIB(
 # Find Clang/SPIR binary (assume clang on PATH if --with-spir not used)
 AC_CHECK_PROG(clang_spir, [clang], `which clang`)
 
+# Check if Python is available (required to run tests)
+AM_PATH_PYTHON(,,[:])
+AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
+
 # Kernel tests
 KERNEL_TESTS=""
 KERNEL_TEST_INPUTS=""
