@@ -180,12 +180,15 @@ else()
   add_custom_target(test COMMENT "Python required for running tests.")
 endif()
 
+get_property(OCLGRIND_EXE TARGET oclgrind-kernel PROPERTY LOCATION)
+
 # Add kernel tests
 file(READ tests/kernels/TESTS KERNEL_TESTS)
 string(REPLACE "\n" ";" KERNEL_TESTS ${KERNEL_TESTS})
 foreach(test ${KERNEL_TESTS})
   add_test(${test}
     ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/kernels/run_kernel_test.py
+    ${OCLGRIND_EXE}
     ${CMAKE_SOURCE_DIR}/tests/kernels/${test}/${test}.sim)
 endforeach(${test})
 

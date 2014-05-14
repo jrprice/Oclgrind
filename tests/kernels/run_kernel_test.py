@@ -3,27 +3,25 @@ import subprocess
 import sys
 
 # Check arguments
-if len(sys.argv) != 2:
-  print 'Usage: python run_kernel_test.py SIMFILE'
+if len(sys.argv) != 3:
+  print 'Usage: python run_kernel_test.py EXE SIMFILE'
   sys.exit(1)
-if not os.path.isfile(sys.argv[1]):
+if not os.path.isfile(sys.argv[2]):
   print 'Test file not found'
   sys.exit(1)
 
 # Construct paths to test inputs/outputs
-test_file   = sys.argv[1]
+test_exe    = sys.argv[1]
+test_file   = sys.argv[2]
 test_dir    = os.path.dirname(os.path.realpath(test_file))
 test_file   = os.path.basename(test_file)
 test_name   = os.path.splitext(test_file)[0]
 test_out    = test_name + '.out'
 test_ref    = test_dir + os.path.sep + test_name + '.ref'
-test_exe    = 'oclgrind-kernel'
 current_dir = os.getcwd()
 
 if os.environ.get('AM_TESTS') == '1':
-  # If running via automake, use build directory for oclgrind-kernel
-  # and output file
-  test_exe = current_dir + os.path.sep + test_exe
+  # If running via automake, use build directory for output file
   test_out = 'tests' + os.path.sep + 'kernels' + os.path.sep + \
              test_name + os.path.sep + test_out
 else:
@@ -37,7 +35,7 @@ retval = subprocess.call([test_exe, '-g', '--data-races', test_file],
                          stdout=out, stderr=out)
 out.close()
 if retval != 0:
-  print 'oclgrind-kernel returned non-zero value (' + retval + ')'
+  print 'oclgrind-kernel returned non-zero value (' + str(retval) + ')'
   sys.exit(retval)
 
 # Open output and reference files
