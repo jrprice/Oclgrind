@@ -2401,64 +2401,60 @@ clGetProgramBuildInfo
   size_t *               param_value_size_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  size_t result_size = 0;
-  void *result_data = NULL;
-
   // Check program is valid
   if (!program)
   {
     return CL_INVALID_PROGRAM;
   }
 
+  size_t dummy;
+  size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
+  union
+  {
+    cl_build_status status;
+    cl_program_binary_type type;
+  } result_data;
+  const char* str = 0;
+
   switch (param_name)
   {
   case CL_PROGRAM_BUILD_STATUS:
     result_size = sizeof(cl_build_status);
-    result_data = malloc(result_size);
-    *(cl_build_status*)result_data = program->program->getBuildStatus();
+    result_data.status = program->program->getBuildStatus();
     break;
   case CL_PROGRAM_BUILD_OPTIONS:
-    result_size = strlen(program->program->getBuildOptions().c_str()) + 1;
-    result_data = malloc(result_size);
-    strcpy((char*)result_data, program->program->getBuildOptions().c_str());
+    str = program->program->getBuildOptions().c_str();
+    result_size = strlen(str) + 1;
     break;
   case CL_PROGRAM_BUILD_LOG:
-    result_size = strlen(program->program->getBuildLog().c_str()) + 1;
-    result_data = malloc(result_size);
-    strcpy((char*)result_data, program->program->getBuildLog().c_str());
+    str = program->program->getBuildLog().c_str();
+    result_size = strlen(str) + 1;
     break;
   case CL_PROGRAM_BINARY_TYPE:
     result_size = sizeof(cl_program_binary_type);
-    result_data = malloc(result_size);
-    *(cl_program_binary_type*)result_data =
-      CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
+    result_data.type = CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
     break;
   default:
     return CL_INVALID_VALUE;
   }
 
-  cl_int return_value = CL_SUCCESS;
   if (param_value)
   {
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return_value = CL_INVALID_VALUE;
+      return CL_INVALID_VALUE;
     }
     else
     {
-      memcpy(param_value, result_data, result_size);
+      if (str)
+        memcpy(param_value, str, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
-  if (param_value_size_ret)
-  {
-    *param_value_size_ret = result_size;
-  }
-
-  free(result_data);
-
-  return return_value;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_kernel CL_API_CALL
@@ -2736,8 +2732,10 @@ clGetKernelInfo
     }
     else
     {
-      if (str) memcpy(param_value, str, result_size);
-      else memcpy(param_value, &result_data, result_size);
+      if (str)
+        memcpy(param_value, str, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
@@ -2835,9 +2833,6 @@ clGetKernelWorkGroupInfo
   size_t *                   param_value_size_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  size_t result_size = 0;
-  void *result_data = NULL;
-
   // Check parameters are valid
   if (!kernel)
   {
@@ -2848,61 +2843,57 @@ clGetKernelWorkGroupInfo
     return CL_INVALID_DEVICE;
   }
 
+  size_t dummy;
+  size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
+  union
+  {
+    size_t sizet;
+    size_t sizet3[3];
+    cl_ulong clulong;
+  } result_data;
+
   switch (param_name)
   {
   case CL_KERNEL_GLOBAL_WORK_SIZE:
     return CL_INVALID_VALUE;
   case CL_KERNEL_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
-    result_data = malloc(result_size);
-    *(size_t*)result_data = MAX_WI_SIZE;
+    result_data.sizet = MAX_WI_SIZE;
     break;
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
     result_size = sizeof(size_t[3]);
-    result_data = malloc(result_size);
-    kernel->kernel->getRequiredWorkGroupSize((size_t*)result_data);
+    kernel->kernel->getRequiredWorkGroupSize(result_data.sizet3);
     break;
   case CL_KERNEL_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = malloc(result_size);
-    *(cl_ulong*)result_data = kernel->kernel->getLocalMemorySize();
+    result_data.clulong = kernel->kernel->getLocalMemorySize();
     break;
   case CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
     result_size = sizeof(size_t);
-    result_data = malloc(result_size);
-    *(size_t*)result_data = 1;
+    result_data.sizet = 1;
     break;
   case CL_KERNEL_PRIVATE_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data = malloc(result_size);
-    *(cl_ulong*)result_data = 0; // TODO: Real value
+    result_data.clulong = 0;
     break;
   default:
     return CL_INVALID_VALUE;
   }
 
-  cl_int return_value = CL_SUCCESS;
   if (param_value)
   {
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return_value = CL_INVALID_VALUE;
+      return CL_INVALID_VALUE;
     }
     else
     {
-      memcpy(param_value, result_data, result_size);
+      memcpy(param_value, &result_data, result_size);
     }
   }
 
-  if (param_value_size_ret)
-  {
-    *param_value_size_ret = result_size;
-  }
-
-  free(result_data);
-
-  return return_value;
+  return CL_SUCCESS;
 }
 
 /* Event Object APIs  */
@@ -2989,68 +2980,65 @@ clGetEventInfo
   size_t *       param_value_size_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  size_t result_size = 0;
-  void *result_data = NULL;
-
   // Check event is valid
   if (!event)
   {
     return CL_INVALID_EVENT;
   }
 
+  size_t dummy;
+  size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
+  union
+  {
+    cl_command_queue queue;
+    cl_context context;
+    cl_command_type type;
+    cl_int clint;
+    cl_uint cluint;
+    size_t sizet;
+    size_t sizet3[3];
+  } result_data;
+
   switch (param_name)
   {
   case CL_EVENT_COMMAND_QUEUE:
     result_size = sizeof(cl_command_queue);
-    result_data = malloc(result_size);
-    *(cl_command_queue*)result_data = event->queue;
+    result_data.queue = event->queue;
     break;
   case CL_EVENT_CONTEXT:
     result_size = sizeof(cl_context);
-    result_data = malloc(result_size);
-    *(cl_context*)result_data = event->context;
+    result_data.context = event->context;
     break;
   case CL_EVENT_COMMAND_TYPE:
     result_size = sizeof(cl_command_type);
-    result_data = malloc(result_size);
-    *(cl_command_type*)result_data = event->type;
+    result_data.type = event->type;
     break;
   case CL_EVENT_COMMAND_EXECUTION_STATUS:
     result_size = sizeof(cl_int);
-    result_data = malloc(result_size);
-    *(cl_int*)result_data = event->event->state;
+    result_data.clint = event->event->state;
     break;
   case CL_EVENT_REFERENCE_COUNT:
     result_size = sizeof(cl_uint);
-    result_data = malloc(result_size);
-    *(cl_uint*)result_data = event->refCount;
+    result_data.cluint = event->refCount;
     break;
   default:
     return CL_INVALID_VALUE;
   }
 
-  cl_int return_value = CL_SUCCESS;
   if (param_value)
   {
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return_value = CL_INVALID_VALUE;
+      return CL_INVALID_VALUE;
     }
     else
     {
-      memcpy(param_value, result_data, result_size);
+      memcpy(param_value, &result_data, result_size);
     }
   }
 
-  if (param_value_size_ret)
-  {
-    *param_value_size_ret = result_size;
-  }
-
-  free(result_data);
-
-  return return_value;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_event CL_API_CALL
