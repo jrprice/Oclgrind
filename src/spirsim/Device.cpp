@@ -282,7 +282,7 @@ void Device::notifyDivergence(const llvm::Instruction *instruction,
   printErrorContext();
   if (!currentInfo.empty())
   {
-    cout << "\t" << currentInfo << endl;
+    cerr << "\t" << currentInfo << endl;
   }
   cerr << endl;
 
@@ -292,7 +292,7 @@ void Device::notifyDivergence(const llvm::Instruction *instruction,
   printInstruction(instruction);
   if (!previousInfo.empty())
   {
-    cout << "\t" << previousInfo << endl;
+    cerr << "\t" << previousInfo << endl;
   }
 
   cerr << endl;
@@ -307,7 +307,7 @@ void Device::notifyError(string error, string info)
   printErrorContext();
   if (!info.empty())
   {
-    cout << "\t" << info << endl;
+    cerr << "\t" << info << endl;
   }
   cerr << endl;
 
