@@ -10,13 +10,18 @@ typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef unsigned long ulong;
-typedef unsigned long size_t;
 
-// TODO: typeof?
+#if defined(__SPIR32__)
+  typedef uint size_t;
+  typedef int ptrdiff_t;
+#else
+  typedef ulong size_t;
+  typedef long ptrdiff_t;
+#endif
+typedef size_t uintptr_t;
+typedef ptrdiff_t intptr_t;
+
 #define event_t size_t
-typedef long ptrdiff_t;
-typedef unsigned long uintptr_t;
-typedef unsigned long intptr_t;
 
 #define TYPEDEF_VECTOR(type)                                \
   typedef __attribute__((ext_vector_type(2))) type type##2; \
