@@ -42,15 +42,25 @@ src/spirsim/clc_h.cpp: src/spirsim/gen_clc_h.sh	src/spirsim/clc.h
 
 install-data-hook:
 	-$(clang_spir) \
-	-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
-	$(includedir)/spirsim/clc.h \
-	-o $(includedir)/spirsim/clc.noopt.pch
+		-cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown \
+		$(includedir)/spirsim/clc.h \
+		-o $(includedir)/spirsim/clc32.noopt.pch
 	-$(clang_spir) \
-	-cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown \
-	$(includedir)/spirsim/clc.h \
-	-o $(includedir)/spirsim/clc.pch
-	@if [ ! -r $(includedir)/spirsim/clc.pch  \
-	   -o ! -r $(includedir)/spirsim/clc.noopt.pch ]; \
+		-cc1 -x cl -g -emit-pch -triple spir-unknown-unknown \
+		$(includedir)/spirsim/clc.h \
+		-o $(includedir)/spirsim/clc32.pch
+	-$(clang_spir) \
+		-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
+		$(includedir)/spirsim/clc.h \
+		-o $(includedir)/spirsim/clc64.noopt.pch
+	-$(clang_spir) \
+		-cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown \
+		$(includedir)/spirsim/clc.h \
+		-o $(includedir)/spirsim/clc64.pch
+	@if [ ! -r $(includedir)/spirsim/clc32.pch          \
+	   -o ! -r $(includedir)/spirsim/clc32.noopt.pch    \
+	   -o ! -r $(includedir)/spirsim/clc64.pch          \
+	   -o ! -r $(includedir)/spirsim/clc64.noopt.pch ]; \
 	then \
 		echo; \
 		echo "WARNING: Failed to generate precompiled headers."; \
@@ -58,8 +68,10 @@ install-data-hook:
 	fi
 
 uninstall-hook:
-	rm -rf $(includedir)/spirsim/clc.pch
-	rm -rf $(includedir)/spirsim/clc.noopt.pch
+	rm -rf $(includedir)/spirsim/clc32.pch
+	rm -rf $(includedir)/spirsim/clc32.noopt.pch
+	rm -rf $(includedir)/spirsim/clc64.pch
+	rm -rf $(includedir)/spirsim/clc64.noopt.pch
 
 OCLGRIND_SOURCES = src/oclgrind/async_queue.h		\
  src/oclgrind/async_queue.cpp src/oclgrind/icd.h	\

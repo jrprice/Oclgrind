@@ -122,9 +122,12 @@ bool Program::build(const char *options, list<Header> headers)
   // Set compiler arguments
   vector<const char*> args;
   args.push_back("-cl-kernel-arg-info");
-  args.push_back("-triple");
-  args.push_back("spir64-unknown-unknown");
   args.push_back("-g");
+  args.push_back("-triple");
+  if (sizeof(size_t) == 32)
+    args.push_back("spir-unknown-unknown");
+  else
+    args.push_back("spir64-unknown-unknown");
 
   // Define extensions
   for (int i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
@@ -171,11 +174,17 @@ bool Program::build(const char *options, list<Header> headers)
   const char *pch = NULL;
   if (optimize)
   {
-    pch = INSTALL_ROOT"/include/spirsim/clc.pch";
+    if (sizeof(size_t) == 32)
+      pch = INSTALL_ROOT"/include/spirsim/clc32.pch";
+    else
+      pch = INSTALL_ROOT"/include/spirsim/clc64.pch";
   }
   else
   {
-    pch = INSTALL_ROOT"/include/spirsim/clc.noopt.pch";
+    if (sizeof(size_t) == 32)
+      pch = INSTALL_ROOT"/include/spirsim/clc32.noopt.pch";
+    else
+      pch = INSTALL_ROOT"/include/spirsim/clc64.noopt.pch";
   }
 
   // Use precompiled header if it exists, otherwise fall back to embedded clc.h

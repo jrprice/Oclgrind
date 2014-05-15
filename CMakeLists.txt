@@ -163,17 +163,28 @@ install(FILES
 # Generate precompiled headers for clc.h
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
+  -cc1 -x cl -g -emit-pch -triple spir-unknown-unknown
+  \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.h\"
+  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc32.pch\"
+)")
+install(CODE "execute_process(COMMAND
+  \"${SPIR_ROOT}/bin/clang\"
+  -cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown
+  \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.h\"
+  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc32.noopt.pch\"
+)")
+install(CODE "execute_process(COMMAND
+  \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown
   \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.pch\"
+  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc64.pch\"
 )")
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown
   \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.noopt.pch\"
+  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc64.noopt.pch\"
 )")
-
 
 # Tests
 
