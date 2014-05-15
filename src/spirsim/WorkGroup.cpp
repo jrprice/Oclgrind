@@ -80,7 +80,7 @@ WorkGroup::~WorkGroup()
   delete m_localMemory;
 }
 
-uint64_t WorkGroup::async_copy(
+size_t WorkGroup::async_copy(
   const WorkItem *workItem,
   const llvm::Instruction *instruction,
   AsyncCopyType type,
@@ -90,7 +90,7 @@ uint64_t WorkGroup::async_copy(
   size_t num,
   size_t srcStride,
   size_t destStride,
-  uint64_t event)
+  size_t event)
 {
   AsyncCopy copy =
   {
@@ -192,7 +192,7 @@ void WorkGroup::clearBarrier()
   // Deal with events
   while (!m_barrier->events.empty())
   {
-    uint64_t event = m_barrier->events.front();
+    size_t event = m_barrier->events.front();
 
     // Perform copy
     list<AsyncCopy> copies = m_events[event];
@@ -322,7 +322,7 @@ bool WorkGroup::hasBarrier() const
 
 void WorkGroup::notifyBarrier(WorkItem *workItem,
                               const llvm::Instruction *instruction,
-                              uint64_t fence, list<uint64_t> events)
+                              uint64_t fence, list<size_t> events)
 {
   if (!m_barrier)
   {
@@ -334,7 +334,7 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
     m_barrier->events = events;
 
     // Check for invalid events
-    list<uint64_t>::iterator itr;
+    list<size_t>::iterator itr;
     for (itr = events.begin(); itr != events.end(); itr++)
     {
       if (!m_events.count(*itr))
@@ -363,8 +363,8 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
     if (!divergence)
     {
       int i = 0;
-      list<uint64_t>::iterator cItr = events.begin();
-      list<uint64_t>::iterator pItr = m_barrier->events.begin();
+      list<size_t>::iterator cItr = events.begin();
+      list<size_t>::iterator pItr = m_barrier->events.begin();
       for (; cItr != events.end(); cItr++, pItr++, i++)
       {
         if (*cItr != *pItr)

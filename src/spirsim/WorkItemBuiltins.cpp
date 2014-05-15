@@ -215,7 +215,7 @@ namespace oclgrind
         stride = UARG(arg++);
       }
 
-      uint64_t event = UARG(arg++);
+      size_t event = UARG(arg++);
 
       // Get type of copy
       WorkGroup::AsyncCopyType type;
@@ -242,7 +242,7 @@ namespace oclgrind
         srcStride,
         destStride,
         event);
-      WorkItem::setIntResult(result, event);
+      WorkItem::setIntResult(result, (uint64_t)event);
     }
 
     DEFINE_BUILTIN(wait_group_events)
@@ -250,17 +250,17 @@ namespace oclgrind
       uint64_t num = UARG(0);
       const llvm::Value *ptrOp = ARG(1);
       size_t address = *(size_t*)(workItem->get(ptrOp).data);
-      list<uint64_t> events;
+      list<size_t> events;
       for (int i = 0; i < num; i++)
       {
-        uint64_t event;
+        size_t event;
         if (!workItem->m_privateMemory->load((unsigned char*)&event,
-         address, sizeof(uint64_t)))
+            address, sizeof(size_t)))
         {
           return;
         }
         events.push_back(event);
-        address += sizeof(uint64_t);
+        address += sizeof(size_t);
       }
       workItem->m_state = WorkItem::BARRIER;
       workItem->m_workGroup.notifyBarrier(workItem, callInst,

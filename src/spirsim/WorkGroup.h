@@ -42,7 +42,7 @@ namespace oclgrind
       size_t srcStride;
       size_t destStride;
 
-      uint64_t event;
+      size_t event;
     } AsyncCopy;
 
     typedef struct
@@ -51,7 +51,7 @@ namespace oclgrind
       std::set<WorkItem*, WorkItemCmp> workItems;
 
       uint64_t fence;
-      std::list<uint64_t> events;
+      std::list<size_t> events;
     } Barrier;
 
   public:
@@ -63,7 +63,7 @@ namespace oclgrind
               const size_t wgsize[3]);
     virtual ~WorkGroup();
 
-    uint64_t async_copy(
+    size_t async_copy(
       const WorkItem *workItem,
       const llvm::Instruction *instruction,
       AsyncCopyType type,
@@ -73,7 +73,7 @@ namespace oclgrind
       size_t num,
       size_t srcStride,
       size_t destStride,
-      uint64_t event);
+      size_t event);
     void clearBarrier();
     const size_t* getGlobalOffset() const;
     const size_t* getGlobalSize() const;
@@ -87,7 +87,7 @@ namespace oclgrind
     bool hasBarrier() const;
     void notifyBarrier(WorkItem *workItem, const llvm::Instruction *instruction,
                        uint64_t fence,
-                       std::list<uint64_t> events=std::list<uint64_t>());
+                       std::list<size_t> events=std::list<size_t>());
     void notifyFinished(WorkItem *workItem);
 
   private:
@@ -103,8 +103,8 @@ namespace oclgrind
     std::vector<WorkItem*> m_workItems;
 
     Barrier *m_barrier;
-    uint64_t m_nextEvent;
+    size_t m_nextEvent;
     std::list< std::pair<AsyncCopy,std::set<const WorkItem*> > > m_asyncCopies;
-    std::map < uint64_t, std::list<AsyncCopy> > m_events;
+    std::map < size_t, std::list<AsyncCopy> > m_events;
   };
 }
