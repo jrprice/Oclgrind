@@ -124,7 +124,7 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-g");
   args.push_back("-triple");
-  if (sizeof(size_t) == 32)
+  if (sizeof(size_t) == 4)
     args.push_back("spir-unknown-unknown");
   else
     args.push_back("spir64-unknown-unknown");
@@ -174,14 +174,14 @@ bool Program::build(const char *options, list<Header> headers)
   const char *pch = NULL;
   if (optimize)
   {
-    if (sizeof(size_t) == 32)
+    if (sizeof(size_t) == 4)
       pch = INSTALL_ROOT"/include/spirsim/clc32.pch";
     else
       pch = INSTALL_ROOT"/include/spirsim/clc64.pch";
   }
   else
   {
-    if (sizeof(size_t) == 32)
+    if (sizeof(size_t) == 4)
       pch = INSTALL_ROOT"/include/spirsim/clc32.noopt.pch";
     else
       pch = INSTALL_ROOT"/include/spirsim/clc64.noopt.pch";
