@@ -23,17 +23,6 @@ using namespace std;
 
 #define PARSING(parsing) m_parsing = parsing;
 
-#define TYPE_CHAR   0
-#define TYPE_UCHAR  1
-#define TYPE_SHORT  2
-#define TYPE_USHORT 3
-#define TYPE_INT    4
-#define TYPE_UINT   5
-#define TYPE_LONG   6
-#define TYPE_ULONG  7
-#define TYPE_FLOAT  8
-#define TYPE_DOUBLE 9
-
 // Convert an integer to char/uchar, checking if the value is valid
 #define INT_TO_CHAR(intval, result) \
   result = intval;                  \
@@ -57,6 +46,22 @@ Simulation::~Simulation()
   delete m_device;
   delete m_kernel;
   delete m_program;
+}
+
+template<typename T>
+void Simulation::dumpArgument(DumpArg& arg)
+{
+  size_t num = arg.size / sizeof(T);
+  T *data = new T[num];
+  m_device->getGlobalMemory()->load((uint8_t*)data, arg.address, arg.size);
+
+  for (size_t i = 0; i < num; i++)
+  {
+    cout << "  " << arg.name << "[" << i << "] = " << data[i] << endl;
+  }
+  cout << endl;
+
+  delete[] data;
 }
 
 template<typename T>
@@ -204,6 +209,7 @@ bool Simulation::load(const char *filename)
     globalMemory->clear();
 
     // Parse kernel arguments
+    m_dumpArguments.clear();
     for (int index = 0; index < m_kernel->getNumArguments(); index++)
     {
       parseArgument(index);
@@ -250,16 +256,17 @@ void Simulation::parseArgument(size_t index)
 {
   // Argument parsing parameters
   size_t size = -1;
-  unsigned int type = -1;
+  ArgDataType type = TYPE_NONE;
   size_t typeSize = 0;
   bool null = false;
+  bool dump = false;
   string fill = "";
   string range = "";
+  string name = m_kernel->getArgumentName(index).str();
 
   // Set meaningful parsing status for error messages
   ostringstream stringstream;
-  stringstream << "argument " << index << ": " <<
-    m_kernel->getArgumentName(index).str();
+  stringstream << "argument " << index << ": " << name;
   string formatted = stringstream.str();
   PARSING(formatted.c_str());
 
@@ -309,7 +316,7 @@ void Simulation::parseArgument(size_t index)
 #define MATCH_TYPE(str, value, sz)                  \
   else if (token == str)                            \
   {                                                 \
-    if (type != -1)                                 \
+    if (type != TYPE_NONE)                          \
     {                                               \
       throw "Argument type defined multiple times"; \
     }                                               \
@@ -329,6 +336,10 @@ void Simulation::parseArgument(size_t index)
     MATCH_TYPE("ulong", TYPE_ULONG, 8)
     MATCH_TYPE("float", TYPE_FLOAT, 4)
     MATCH_TYPE("double", TYPE_DOUBLE, 8)
+    else if (token.compare(0, 4, "dump") == 0)
+    {
+      dump = true;
+    }
     else if (token.compare(0, 4, "fill") == 0)
     {
       if (token.size() < 6 || token[4] != '=')
@@ -398,7 +409,7 @@ void Simulation::parseArgument(size_t index)
     throw "size required";
   }
 
-  if (type == -1)
+  if (type == TYPE_NONE)
   {
 #define MATCH_TYPE_PREFIX(str, value, sz)       \
   else if (argType.startswith(str))             \
@@ -430,6 +441,20 @@ void Simulation::parseArgument(size_t index)
   if (size % typeSize)
   {
     throw "Initialiser type must exactly divide argument size";
+  }
+
+  // Ensure 'dump' only used with non-null buffers
+  if (dump)
+  {
+    if (addrSpace != CL_KERNEL_ARG_ADDRESS_GLOBAL &&
+        addrSpace != CL_KERNEL_ARG_ADDRESS_CONSTANT)
+    {
+      throw "'dump' only valid for memory objects";
+    }
+    if (null)
+    {
+      throw "'dump' not valid with 'null' specifier";
+    }
   }
 
   // Generate argument data
@@ -539,6 +564,18 @@ void Simulation::parseArgument(size_t index)
       value.data = new unsigned char[value.size];
       *((size_t*)value.data) = address;
       delete[] data;
+
+      if (dump)
+      {
+        DumpArg dump =
+        {
+          address,
+          size,
+          type,
+          name,
+        };
+        m_dumpArguments.push_back(dump);
+      }
     }
   }
 
@@ -639,9 +676,40 @@ void Simulation::run(bool dumpGlobalMemory)
   size_t offset[] = {0, 0, 0};
   m_device->run(*m_kernel, 3, offset, m_ndrange, m_wgsize);
 
+  // Dump individual arguments
+  list<DumpArg>::iterator itr;
+  for (itr = m_dumpArguments.begin(); itr != m_dumpArguments.end(); itr++)
+  {
+    cout << endl
+         << "Argument '" << itr->name << "': "
+         << itr->size << " bytes" << endl;
+
+#define DUMP_TYPE(type, T) \
+  case type:               \
+    dumpArgument<T>(*itr); \
+    break;
+
+    switch (itr->type)
+    {
+      DUMP_TYPE(TYPE_CHAR, char);
+      DUMP_TYPE(TYPE_UCHAR, uint8_t);
+      DUMP_TYPE(TYPE_SHORT, int16_t);
+      DUMP_TYPE(TYPE_USHORT, uint16_t);
+      DUMP_TYPE(TYPE_INT, int32_t);
+      DUMP_TYPE(TYPE_UINT, uint32_t);
+      DUMP_TYPE(TYPE_LONG, int64_t);
+      DUMP_TYPE(TYPE_ULONG, uint64_t);
+      DUMP_TYPE(TYPE_FLOAT, float);
+      DUMP_TYPE(TYPE_DOUBLE, double);
+      default:
+        throw "Invalid argument data type";
+    }
+  }
+
+  // Dump global memory if required
   if (dumpGlobalMemory)
   {
-    cout << "Global Memory:" << endl;
+    cout << endl << "Global Memory:" << endl;
     m_device->getGlobalMemory()->dump();
   }
 }

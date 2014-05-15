@@ -8,6 +8,7 @@
 
 #include "config.h"
 #include <fstream>
+#include <list>
 #include <sstream>
 #include <string>
 
@@ -20,6 +21,21 @@ namespace oclgrind
 
 class Simulation
 {
+  enum ArgDataType
+  {
+    TYPE_NONE,
+    TYPE_CHAR,
+    TYPE_UCHAR,
+    TYPE_SHORT,
+    TYPE_USHORT,
+    TYPE_INT,
+    TYPE_UINT,
+    TYPE_LONG,
+    TYPE_ULONG,
+    TYPE_FLOAT,
+    TYPE_DOUBLE,
+  };
+
   public:
     Simulation();
     virtual ~Simulation();
@@ -40,6 +56,17 @@ class Simulation
     size_t m_lineNumber;
     std::istringstream m_lineBuffer;
 
+    typedef struct
+    {
+      size_t address;
+      size_t size;
+      ArgDataType type;
+      std::string name;
+    } DumpArg;
+    std::list<DumpArg> m_dumpArguments;
+
+    template<typename T>
+    void dumpArgument(DumpArg& arg);
     template<typename T>
     void get(T& result);
     void parseArgument(size_t index);
