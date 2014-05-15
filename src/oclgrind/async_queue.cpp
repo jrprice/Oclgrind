@@ -13,8 +13,8 @@
 #include <list>
 #include <map>
 
-#include <spirsim/Kernel.h>
-#include <spirsim/Queue.h>
+#include "spirsim/Kernel.h"
+#include "spirsim/Queue.h"
 
 using namespace oclgrind;
 using namespace std;

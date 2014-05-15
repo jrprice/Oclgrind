@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 14)
 set(Oclgrind_VERSION_MINOR X)
@@ -36,6 +36,11 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin" AND
 "DYLD_LIBRARY_PATH.")
 endif()
 
+# Disable min/max macros on Windows
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  add_definitions(-DNOMINMAX)
+endif()
+
 # Add LLVM required macro definitions
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
@@ -71,18 +76,30 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   endif()
 endif()
 
-add_library(spirsim ${SPIRSIM_LIB_TYPE}
-  src/spirsim/clc_h.cpp
-  src/spirsim/common.h src/spirsim/common.cpp
-  src/spirsim/Device.h src/spirsim/Device.cpp
+set(SPIRSIM_HEADERS
+  src/spirsim/clc.h
+  src/spirsim/common.h
+  src/spirsim/Device.h
   src/spirsim/half.h
-  src/spirsim/Kernel.h src/spirsim/Kernel.cpp
-  src/spirsim/Memory.h src/spirsim/Memory.cpp
-  src/spirsim/Program.h src/spirsim/Program.cpp
-  src/spirsim/Queue.h src/spirsim/Queue.cpp
-  src/spirsim/WorkItem.h src/spirsim/WorkItem.cpp
+  src/spirsim/Kernel.h
+  src/spirsim/Memory.h
+  src/spirsim/Program.h
+  src/spirsim/Queue.h
+  src/spirsim/WorkItem.h
+  src/spirsim/WorkGroup.h)
+
+add_library(spirsim ${SPIRSIM_LIB_TYPE}
+  ${SPIRSIM_HEADERS}
+  src/spirsim/clc_h.cpp
+  src/spirsim/common.cpp
+  src/spirsim/Device.cpp
+  src/spirsim/Kernel.cpp
+  src/spirsim/Memory.cpp
+  src/spirsim/Program.cpp
+  src/spirsim/Queue.cpp
+  src/spirsim/WorkItem.cpp
   src/spirsim/WorkItemBuiltins.cpp
-  src/spirsim/WorkGroup.h src/spirsim/WorkGroup.cpp)
+  src/spirsim/WorkGroup.cpp)
 target_link_libraries(spirsim ${SPIRSIM_EXTRA_LIBS}
   clangAnalysis clangAST clangBasic clangCodeGen clangDriver clangEdit
   clangFrontend clangLex clangParse clangSema clangSerialization
@@ -139,7 +156,7 @@ install(TARGETS
   oclgrind oclgrind-icd spirsim
   DESTINATION lib)
 install(FILES
-  src/spirsim/clc.h
+  ${SPIRSIM_HEADERS}
   DESTINATION include/spirsim
 )
 
@@ -156,3 +173,32 @@ install(CODE "execute_process(COMMAND
   \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.h\"
   -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.noopt.pch\"
 )")
+
+
+# Tests
+
+# Check for Python
+find_package(PythonInterp)
+if (PYTHONINTERP_FOUND)
+  enable_testing()
+else()
+  add_custom_target(test COMMENT "Python required for running tests.")
+endif()
+
+# Add kernel tests
+file(READ tests/kernels/TESTS KERNEL_TESTS)
+string(REPLACE "\n" ";" KERNEL_TESTS ${KERNEL_TESTS})
+foreach(test ${KERNEL_TESTS})
+  add_test(
+    NAME ${test}
+    COMMAND
+    ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/kernels/run_kernel_test.py
+    $<TARGET_FILE:oclgrind-kernel>
+    ${CMAKE_SOURCE_DIR}/tests/kernels/${test}/${test}.sim)
+endforeach(${test})
+
+# Expected failures
+set_tests_properties(
+  atomic_intergroup_race
+  atomic_cmpxchg_race
+  PROPERTIES WILL_FAIL TRUE)

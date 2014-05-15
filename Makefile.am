@@ -41,11 +41,11 @@ src/spirsim/clc_h.cpp: src/spirsim/gen_clc_h.sh	src/spirsim/clc.h
 	$(top_srcdir)/src/spirsim/gen_clc_h.sh $(top_srcdir)/src/spirsim/clc.h $@
 
 install-data-hook:
-	-@clang_spir@ \
+	-$(clang_spir) \
 	-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
 	$(includedir)/spirsim/clc.h \
 	-o $(includedir)/spirsim/clc.noopt.pch
-	-@clang_spir@ \
+	-$(clang_spir) \
 	-cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown \
 	$(includedir)/spirsim/clc.h \
 	-o $(includedir)/spirsim/clc.pch
@@ -76,7 +76,7 @@ liboclgrind_icd_la_LDFLAGS = -shared
 
 bin_PROGRAMS = oclgrind-kernel
 oclgrind_kernel_SOURCES = src/oclgrind-kernel/main.cpp			\
-src/oclgrind-kernel/Simulation.h src/oclgrind-kernel/Simulation.cpp
+ src/oclgrind-kernel/Simulation.h src/oclgrind-kernel/Simulation.cpp
 oclgrind_kernel_LDADD = libspirsim.la
 
 bin_SCRIPTS = oclgrind
@@ -86,12 +86,18 @@ oclgrind: $(top_srcdir)/src/oclgrind/oclgrind
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>oclgrind
 
-TESTS = @KERNEL_TESTS@
+if !HAVE_PYTHON
+check-TESTS:
+	@echo "ERROR: Python required for running tests."
+endif
+
+TESTS = $(KERNEL_TESTS)
 XFAIL_TESTS = \
 	tests/kernels/atomic_intergroup_race/atomic_intergroup_race.sim \
 	tests/kernels/atomic_cmpxchg_race/atomic_cmpxchg_race.sim
 TEST_EXTENSIONS = .sim
-SIM_LOG_COMPILER = $(top_srcdir)/tests/kernels/run_test
+SIM_LOG_COMPILER = $(PYTHON) $(top_srcdir)/tests/kernels/run_kernel_test.py \
+  ${abs_top_builddir}/oclgrind-kernel
 AM_TESTS_ENVIRONMENT = export AM_TESTS=1;
 
 EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h			\
@@ -99,7 +105,7 @@ EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h			\
  src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_d3d10.h			\
  src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
  CMakeLists.txt cmake_config.h.in src/spirsim/gen_clc_h.cmake		\
- src/oclgrind/icd.def tests/kernels/run_test \
- @KERNEL_TEST_INPUTS@
+ src/oclgrind/icd.def tests/kernels/run_kernel_test.py \
+ tests/kernels/TESTS $(KERNEL_TEST_INPUTS)
 CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS) \
- @KERNEL_TEST_OUTPUTS@
+ $(KERNEL_TEST_OUTPUTS)

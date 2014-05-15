@@ -2793,8 +2793,10 @@ namespace oclgrind
       else if (fnName.find("_rtp") != std::string::npos)
         rmode = Half_RTP;
       const char srcType = getOverloadArgType(overload);
-      for (int i = 0; i < result.num; i++) {
-        switch (srcType) {
+      for (int i = 0; i < result.num; i++)
+      {
+        switch (srcType)
+        {
           case 'h':
           case 't':
           case 'j':
@@ -3154,7 +3156,7 @@ namespace oclgrind
   // Utility macros for generating builtin function map
 #define CAST                                \
   void(*)(WorkItem*, const llvm::CallInst*, \
-  std::string, std::string, TypedValue& result, void*)
+  const std::string&, const std::string&, TypedValue& result, void*)
 #define F1ARG(name) (double(*)(double))name
 #define F2ARG(name) (double(*)(double,double))name
 #define F3ARG(name) (double(*)(double,double,double))name
