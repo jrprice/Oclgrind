@@ -1,3 +1,4 @@
-Global Memory:
 
-   1000000000000: 00 00 00 00
+Argument 'data': 4 bytes
+  data[0] = 0
+

@@ -7,5 +7,5 @@ reduce
 16
 
 <size=64 range=0:1:15>
-<size=4 fill=0>
+<size=4 fill=0 dump>
 <size=16>

@@ -1,8 +1,8 @@
 ERROR EXPECTED
 
-Global Memory:
+Argument 'data': 16 bytes
+  data[0] = 3
+  data[1] = 2
+  data[2] = 1
+  data[3] = 0
 
-   1000000000000: 03 00 00 00
-   1000000000004: 02 00 00 00
-   1000000000008: 01 00 00 00
-   100000000000C: 00 00 00 00

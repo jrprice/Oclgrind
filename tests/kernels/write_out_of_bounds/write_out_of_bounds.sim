@@ -5,4 +5,4 @@ write_out_of_bounds
 
 <size=20 range=0:1:4>
 <size=20 range=0:1:4>
-<size=16 fill=0>
+<size=16 fill=0 dump>

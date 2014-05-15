@@ -1,5 +1,5 @@
-kernel void vecadd(global int *a, global int *b, global int *c)
+kernel void vecadd(global float *a, global float *b, global float *c)
 {
-  int i = get_global_id(0);
+  size_t i = get_global_id(0);
   c[i] = a[i] + b[i];
 }

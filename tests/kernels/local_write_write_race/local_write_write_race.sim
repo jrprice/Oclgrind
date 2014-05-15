@@ -3,5 +3,5 @@ local_write_write_race
 4 1 1
 4 1 1
 
-<size=16 fill=0>
+<size=16 fill=0 dump>
 <size=4>

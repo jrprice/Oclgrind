@@ -3,5 +3,5 @@ atomic_cmpxchg_false_race
 4 1 1
 4 1 1
 
-<size=20 fill=0>
+<size=20 fill=0 dump>
 <size=4>

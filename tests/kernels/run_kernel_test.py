@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 
@@ -31,7 +32,7 @@ else:
 # Run oclgrind-kernel
 out = open(test_out, 'w')
 os.chdir(test_dir)
-retval = subprocess.call([test_exe, '-g', '--data-races', test_file],
+retval = subprocess.call([test_exe, '--data-races', test_file],
                          stdout=out, stderr=out)
 out.close()
 if retval != 0:
@@ -43,26 +44,26 @@ os.chdir(current_dir)
 out = open(test_out).read().splitlines()
 ref = open(test_ref).read().splitlines()
 
-# Scan through file to reach global memory dump
+# Scan through file to reach argument data
 oi = 0
 ri = 0
 try:
-  while out[oi] != 'Global Memory:':
+  while re.match('Argument \'.*\': [0-9]+ *bytes', out[oi]) == None:
     oi += 1
-  while ref[ri] != 'Global Memory:':
+  while re.match('Argument \'.*\': [0-9]+ *bytes', ref[ri]) == None:
     ri += 1
 except:
-  print 'Error searching for global memory dump'
+  print 'Error searching for argument data'
   sys.exit(1)
 
 # Check that an error was produced iff an error was expected
 # An error occured if global memory dump isn't at start of file
 # TODO: Improve this so that more details about the error are checked
-should_error = ri > 0
-if should_error and oi < 1:
+should_error = ri > 1
+if should_error and oi < 2:
   print 'Error expected, but no error reported'
   sys.exit(1)
-if not should_error and oi > 0:
+if not should_error and oi > 1:
   print 'Error reported, but no error expected'
   sys.exit(1)
 

@@ -1,5 +1,5 @@
 ERROR EXPECTED
 
-Global Memory:
+Argument 'data': 4 bytes
+  data[0] = 5
 
-   1000000000000: 05 00 00 00
