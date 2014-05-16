@@ -53,11 +53,112 @@ using namespace std;
   cl_khr_byte_addressable_store        \
   cl_khr_fp64"
 
-#define ERRCODE(err)    \
+
+namespace
+{
+#define CASE(X) case X: return #X;
+  const char* CLErrorToString(cl_int err)
+  {
+    switch (err)
+    {
+      CASE(CL_SUCCESS)
+      CASE(CL_DEVICE_NOT_FOUND)
+      CASE(CL_DEVICE_NOT_AVAILABLE)
+      CASE(CL_COMPILER_NOT_AVAILABLE)
+      CASE(CL_MEM_OBJECT_ALLOCATION_FAILURE)
+      CASE(CL_OUT_OF_RESOURCES)
+      CASE(CL_OUT_OF_HOST_MEMORY)
+      CASE(CL_PROFILING_INFO_NOT_AVAILABLE)
+      CASE(CL_MEM_COPY_OVERLAP)
+      CASE(CL_IMAGE_FORMAT_MISMATCH)
+      CASE(CL_IMAGE_FORMAT_NOT_SUPPORTED)
+      CASE(CL_BUILD_PROGRAM_FAILURE)
+      CASE(CL_MAP_FAILURE)
+      CASE(CL_MISALIGNED_SUB_BUFFER_OFFSET)
+      CASE(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST)
+      CASE(CL_COMPILE_PROGRAM_FAILURE)
+      CASE(CL_LINKER_NOT_AVAILABLE)
+      CASE(CL_LINK_PROGRAM_FAILURE)
+      CASE(CL_DEVICE_PARTITION_FAILED)
+      CASE(CL_KERNEL_ARG_INFO_NOT_AVAILABLE)
+      CASE(CL_INVALID_VALUE)
+      CASE(CL_INVALID_DEVICE_TYPE)
+      CASE(CL_INVALID_PLATFORM)
+      CASE(CL_INVALID_DEVICE)
+      CASE(CL_INVALID_CONTEXT)
+      CASE(CL_INVALID_QUEUE_PROPERTIES)
+      CASE(CL_INVALID_COMMAND_QUEUE)
+      CASE(CL_INVALID_HOST_PTR)
+      CASE(CL_INVALID_MEM_OBJECT)
+      CASE(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR)
+      CASE(CL_INVALID_IMAGE_SIZE)
+      CASE(CL_INVALID_SAMPLER)
+      CASE(CL_INVALID_BINARY)
+      CASE(CL_INVALID_BUILD_OPTIONS)
+      CASE(CL_INVALID_PROGRAM)
+      CASE(CL_INVALID_PROGRAM_EXECUTABLE)
+      CASE(CL_INVALID_KERNEL_NAME)
+      CASE(CL_INVALID_KERNEL_DEFINITION)
+      CASE(CL_INVALID_KERNEL)
+      CASE(CL_INVALID_ARG_INDEX)
+      CASE(CL_INVALID_ARG_VALUE)
+      CASE(CL_INVALID_ARG_SIZE)
+      CASE(CL_INVALID_KERNEL_ARGS)
+      CASE(CL_INVALID_WORK_DIMENSION)
+      CASE(CL_INVALID_WORK_GROUP_SIZE)
+      CASE(CL_INVALID_WORK_ITEM_SIZE)
+      CASE(CL_INVALID_GLOBAL_OFFSET)
+      CASE(CL_INVALID_EVENT_WAIT_LIST)
+      CASE(CL_INVALID_EVENT)
+      CASE(CL_INVALID_OPERATION)
+      CASE(CL_INVALID_GL_OBJECT)
+      CASE(CL_INVALID_BUFFER_SIZE)
+      CASE(CL_INVALID_MIP_LEVEL)
+      CASE(CL_INVALID_GLOBAL_WORK_SIZE)
+      CASE(CL_INVALID_PROPERTY)
+      CASE(CL_INVALID_IMAGE_DESCRIPTOR)
+      CASE(CL_INVALID_COMPILER_OPTIONS)
+      CASE(CL_INVALID_LINKER_OPTIONS)
+      CASE(CL_INVALID_DEVICE_PARTITION_COUNT)
+    }
+    return "Unknown";
+  }
+#undef CASE
+
+  void notifyAPIError(const char* function, cl_int err,
+                      const char* argument = NULL)
+  {
+    const char *checkAPI = getenv("OCLGRIND_CHECK_API");
+    if (checkAPI && strcmp(checkAPI, "1") == 0)
+    {
+      cerr << endl << "Function " << function << " generated error ";
+      cerr << CLErrorToString(err);
+      if (argument)
+      {
+        cerr << " for argument " << argument;
+      }
+      cerr << endl;
+    }
+  }
+}
+
+#define ReturnError(err) notifyAPIError(__func__, err); return err
+#define ReturnErrorArg(err, arg) notifyAPIError(__func__, err, #arg); return err
+
+#define SetError(err) \
+  if (err != CL_SUCCESS) notifyAPIError(__func__, err); \
   if (errcode_ret)      \
   {                     \
     *errcode_ret = err; \
   }
+
+#define SetErrorArg(err, arg) \
+  if (err != CL_SUCCESS) notifyAPIError(__func__, err, #arg); \
+  if (errcode_ret)      \
+  {                     \
+    *errcode_ret = err; \
+  }
+
 
 static struct _cl_platform_id *m_platform = NULL;
 static struct _cl_device_id *m_device = NULL;
@@ -164,7 +265,7 @@ clGetPlatformInfo
     result = PLATFORM_SUFFIX;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnErrorArg(CL_INVALID_VALUE, param_name);
   }
 
   // Compute size of result
@@ -180,7 +281,7 @@ clGetPlatformInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnErrorArg(CL_INVALID_VALUE, param_value_size);
     }
     else
     {
@@ -204,7 +305,7 @@ clGetDeviceIDs
   // Check parameters
   if (devices && num_entries < 1)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   cl_int return_value = CL_SUCCESS;
@@ -240,7 +341,7 @@ clGetDeviceInfo
   // Check device is valid
   if (device != m_device)
   {
-    return CL_INVALID_DEVICE;
+    ReturnErrorArg(CL_INVALID_DEVICE, device);
   }
 
   size_t dummy;
@@ -530,16 +631,15 @@ clGetDeviceInfo
     str = DEVICE_SPIR_VERSIONS;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnErrorArg(CL_INVALID_VALUE, param_name);
   }
 
-  cl_int return_value = CL_SUCCESS;
   if (param_value)
   {
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return_value = CL_INVALID_VALUE;
+      ReturnErrorArg(CL_INVALID_VALUE, param_value_size);
     }
     else
     {
@@ -548,7 +648,7 @@ clGetDeviceInfo
     }
   }
 
-  return return_value;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -561,7 +661,7 @@ clCreateSubDevices
   cl_uint *                             num_devices
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  return CL_INVALID_VALUE;
+  ReturnError(CL_INVALID_VALUE);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -599,17 +699,17 @@ clCreateContext
   // Check parameters
   if (num_devices != 1 || !devices)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (devices[0] != m_device)
   {
-    ERRCODE(CL_INVALID_DEVICE);
+    SetError(CL_INVALID_DEVICE);
     return NULL;
   }
   if (!pfn_notify && user_data)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -636,7 +736,7 @@ clCreateContext
     memcpy(context->properties, properties, sz);
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return context;
 }
 
@@ -656,14 +756,14 @@ clCreateContextFromType
   // Check parameters
   if (!pfn_notify && user_data)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (device_type != CL_DEVICE_TYPE_CPU &&
       device_type != CL_DEVICE_TYPE_DEFAULT &&
       device_type != CL_DEVICE_TYPE_ALL)
   {
-    ERRCODE(CL_DEVICE_NOT_FOUND);
+    SetErrorArg(CL_DEVICE_NOT_FOUND, device_type);
     return NULL;
   }
 
@@ -690,7 +790,7 @@ clCreateContextFromType
     memcpy(context->properties, properties, sz);
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return context;
 }
 
@@ -702,7 +802,7 @@ clRetainContext
 {
   if (!context)
   {
-    return CL_INVALID_CONTEXT;
+    ReturnErrorArg(CL_INVALID_CONTEXT, context);
   }
 
   context->refCount++;
@@ -718,7 +818,7 @@ clReleaseContext
 {
   if (!context)
   {
-    return CL_INVALID_CONTEXT;
+    ReturnErrorArg(CL_INVALID_CONTEXT, context);
   }
 
   if (--context->refCount == 0)
@@ -743,7 +843,7 @@ clGetContextInfo
   // Check context is valid
   if (!context)
   {
-    return CL_INVALID_CONTEXT;
+    ReturnErrorArg(CL_INVALID_CONTEXT, context);
   }
 
   size_t dummy = 0;
@@ -775,7 +875,7 @@ clGetContextInfo
     properties = context->properties;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnErrorArg(CL_INVALID_VALUE, param_name);
   }
 
   if (param_value)
@@ -783,7 +883,7 @@ clGetContextInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnErrorArg(CL_INVALID_VALUE, param_value_size);
     }
     else
     {
@@ -809,17 +909,17 @@ clCreateCommandQueue
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (device != m_device)
   {
-    ERRCODE(CL_INVALID_DEVICE);
+    SetErrorArg(CL_INVALID_DEVICE, device);
     return NULL;
   }
   if (properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE)
   {
-    ERRCODE(CL_INVALID_QUEUE_PROPERTIES);
+    SetErrorArg(CL_INVALID_QUEUE_PROPERTIES, properties);
     return NULL;
   }
 
@@ -834,7 +934,7 @@ clCreateCommandQueue
 
   clRetainContext(context);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return queue;
 }
 
@@ -859,7 +959,7 @@ clRetainCommandQueue
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   command_queue->refCount++;
@@ -875,7 +975,7 @@ clReleaseCommandQueue
 {
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   if (--command_queue->refCount == 0)
@@ -905,7 +1005,7 @@ clGetCommandQueueInfo
   // Check queue is valid
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   size_t dummy = 0;
@@ -938,7 +1038,7 @@ clGetCommandQueueInfo
     result_data.properties = command_queue->properties;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   if (param_value)
@@ -946,7 +1046,7 @@ clGetCommandQueueInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnError(CL_INVALID_VALUE);
     }
     else
     {
@@ -970,25 +1070,25 @@ clCreateBuffer
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (size == 0)
   {
-    ERRCODE(CL_INVALID_BUFFER_SIZE);
+    SetErrorArg(CL_INVALID_BUFFER_SIZE, size);
     return NULL;
   }
   if ((host_ptr == NULL) ==
       ((flags & CL_MEM_COPY_HOST_PTR) ||
         flags & CL_MEM_USE_HOST_PTR))
   {
-    ERRCODE(CL_INVALID_HOST_PTR);
+    SetError(CL_INVALID_HOST_PTR);
     return NULL;
   }
   if ((flags & CL_MEM_USE_HOST_PTR) &&
       (flags & (CL_MEM_COPY_HOST_PTR | CL_MEM_ALLOC_HOST_PTR)))
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetErrorArg(CL_INVALID_VALUE, flags);
     return NULL;
   }
 
@@ -1015,7 +1115,7 @@ clCreateBuffer
   }
   if (!mem->address)
   {
-    ERRCODE(CL_MEM_OBJECT_ALLOCATION_FAILURE);
+    SetError(CL_MEM_OBJECT_ALLOCATION_FAILURE);
     delete mem;
     return NULL;
   }
@@ -1027,7 +1127,7 @@ clCreateBuffer
                                               mem->address, size);
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return mem;
 }
 
@@ -1044,13 +1144,13 @@ clCreateSubBuffer
   // Check parameters
   if (!buffer || buffer->parent)
   {
-    ERRCODE(CL_INVALID_MEM_OBJECT);
+    SetErrorArg(CL_INVALID_MEM_OBJECT, buffer);
     return NULL;
   }
   if (buffer_create_type != CL_BUFFER_CREATE_TYPE_REGION
      || !buffer_create_info)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -1058,7 +1158,7 @@ clCreateSubBuffer
   if (region.origin + region.size > buffer->size
       || region.size == 0)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -1102,7 +1202,7 @@ clCreateSubBuffer
   mem->address = buffer->address + region.origin;
   clRetainMemObject(buffer);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return mem;
 }
 
@@ -1210,17 +1310,17 @@ clCreateImage
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (!image_format)
   {
-    ERRCODE(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
+    SetErrorArg(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR, image_format);
     return NULL;
   }
   if (!image_desc)
   {
-    ERRCODE(CL_INVALID_IMAGE_DESCRIPTOR);
+    SetErrorArg(CL_INVALID_IMAGE_DESCRIPTOR, image_desc);
     return NULL;
   }
 
@@ -1228,7 +1328,7 @@ clCreateImage
   size_t pixelSize = getPixelSize(image_format);
   if (!pixelSize)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetErrorArg(CL_INVALID_VALUE, image_format);
     return NULL;
   }
 
@@ -1250,7 +1350,7 @@ clCreateImage
     arraySize = image_desc->image_array_size;
   }
 
-  // Calculate total size of iamge
+  // Calculate total size of image
   size_t size = width * height * depth * arraySize * pixelSize;
 
   cl_mem mem;
@@ -1260,7 +1360,7 @@ clCreateImage
     // Use existing buffer
     if (!image_desc->buffer)
     {
-      ERRCODE(CL_INVALID_VALUE);
+      SetError(CL_INVALID_VALUE);
       return NULL;
     }
     mem = image_desc->buffer;
@@ -1273,6 +1373,7 @@ clCreateImage
     mem = clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
     if (!mem)
     {
+      SetError(CL_OUT_OF_HOST_MEMORY);
       return NULL;
     }
   }
@@ -1293,7 +1394,7 @@ clCreateImage
     delete mem;
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return image;
 }
 
@@ -1370,7 +1471,7 @@ clRetainMemObject
 {
   if (!memobj)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   memobj->refCount++;
@@ -1385,7 +1486,7 @@ clReleaseMemObject
 {
   if (!memobj)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   if (--memobj->refCount == 0)
@@ -1437,11 +1538,11 @@ clGetSupportedImageFormats
   // Check parameters
   if (!context)
   {
-    return CL_INVALID_CONTEXT;
+    ReturnErrorArg(CL_INVALID_CONTEXT, context);
   }
   if (num_entries == 0 && image_formats)
   {
-    return CL_INVALID_VALUE;
+    ReturnErrorArg(CL_INVALID_VALUE, context);
   }
 
   // TODO: Add support for packed image types
@@ -1554,7 +1655,7 @@ clGetMemObjectInfo
   // Check mem object is valid
   if (!memobj)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   size_t dummy = 0;
@@ -1610,7 +1711,7 @@ clGetMemObjectInfo
     result_data.sizet = memobj->offset;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   if (param_value)
@@ -1618,7 +1719,7 @@ clGetMemObjectInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnError(CL_INVALID_VALUE);
     }
     else
     {
@@ -1642,7 +1743,7 @@ clGetImageInfo
   // Check mem object is valid
   if (!image)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, image);
   }
   cl_image *img = (cl_image*)image;
 
@@ -1706,7 +1807,7 @@ clGetImageInfo
     result_data.cluint = 0;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnErrorArg(CL_INVALID_VALUE, param_name);
   }
 
   if (param_value)
@@ -1714,7 +1815,7 @@ clGetImageInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnErrorArg(CL_INVALID_VALUE, param_value_size);
     }
     else
     {
@@ -1736,11 +1837,11 @@ clSetMemObjectDestructorCallback
   // Check parameters
   if (!memobj)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
   if (!pfn_notify)
   {
-    return CL_INVALID_VALUE;
+    ReturnErrorArg(CL_INVALID_VALUE, pfn_notify);
   }
 
   memobj->callbacks.push(make_pair(pfn_notify, user_data));
@@ -1761,7 +1862,7 @@ clCreateSampler
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
 
@@ -1790,7 +1891,7 @@ clCreateSampler
       bitfield |= 0x0008;
       break;
     default:
-      ERRCODE(CL_INVALID_VALUE);
+      SetErrorArg(CL_INVALID_VALUE, addressing_mode);
       return NULL;
   }
 
@@ -1803,7 +1904,7 @@ clCreateSampler
       bitfield |= 0x0020;
       break;
     default:
-      ERRCODE(CL_INVALID_VALUE);
+      SetErrorArg(CL_INVALID_VALUE, filter_mode);
       return NULL;
   }
 
@@ -1816,7 +1917,7 @@ clCreateSampler
   sampler->filterMode = filter_mode;
   sampler->sampler = bitfield;
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return sampler;
 }
 
@@ -1828,7 +1929,7 @@ clRetainSampler
 {
   if (!sampler)
   {
-    return CL_INVALID_SAMPLER;
+    ReturnErrorArg(CL_INVALID_SAMPLER, sampler);
   }
 
   sampler->refCount++;
@@ -1844,7 +1945,7 @@ clReleaseSampler
 {
   if (!sampler)
   {
-    return CL_INVALID_SAMPLER;
+    ReturnErrorArg(CL_INVALID_SAMPLER, sampler);
   }
 
   if (--sampler->refCount == 0)
@@ -1868,7 +1969,7 @@ clGetSamplerInfo
   // Check sampler is valid
   if (!sampler)
   {
-    return CL_INVALID_SAMPLER;
+    ReturnErrorArg(CL_INVALID_SAMPLER, sampler);
   }
 
   size_t dummy = 0;
@@ -1905,7 +2006,7 @@ clGetSamplerInfo
     result_data.clfiltmode = sampler->filterMode;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnErrorArg(CL_INVALID_SAMPLER, param_name);
   }
 
   if (param_value)
@@ -1913,7 +2014,7 @@ clGetSamplerInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnErrorArg(CL_INVALID_SAMPLER, param_value_size);
     }
     else
     {
@@ -1937,12 +2038,12 @@ clCreateProgramWithSource
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (count == 0 || !strings || !strings[0])
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -1962,12 +2063,12 @@ clCreateProgramWithSource
   prog->refCount = 1;
   if (!prog->program)
   {
-    ERRCODE(CL_OUT_OF_HOST_MEMORY);
+    SetError(CL_OUT_OF_HOST_MEMORY);
     delete prog;
     return NULL;
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return prog;
 }
 
@@ -1986,17 +2087,17 @@ clCreateProgramWithBinary
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if (num_devices != 1 || !device_list || !lengths || !binaries)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (device_list[0] != m_device)
   {
-    ERRCODE(CL_INVALID_DEVICE);
+    SetErrorArg(CL_INVALID_DEVICE, device_list);
     return NULL;
   }
 
@@ -2008,7 +2109,7 @@ clCreateProgramWithBinary
   prog->refCount = 1;
   if (!prog->program)
   {
-    ERRCODE(CL_INVALID_BINARY);
+    SetError(CL_INVALID_BINARY);
     if (binary_status)
     {
       binary_status[0] = CL_INVALID_BINARY;
@@ -2021,7 +2122,7 @@ clCreateProgramWithBinary
     binary_status[0] = CL_SUCCESS;
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return prog;
 }
 
@@ -2035,7 +2136,7 @@ clCreateProgramWithBuiltInKernels
   cl_int *              errcode_ret
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  ERRCODE(CL_INVALID_VALUE);
+  SetError(CL_INVALID_VALUE);
   return NULL;
 }
 
@@ -2047,7 +2148,7 @@ clRetainProgram
 {
   if (!program)
   {
-    return CL_INVALID_PROGRAM;
+    ReturnErrorArg(CL_INVALID_PROGRAM, program);
   }
 
   program->refCount++;
@@ -2062,7 +2163,7 @@ clReleaseProgram
 {
   if (!program)
   {
-    return CL_INVALID_PROGRAM;
+    ReturnErrorArg(CL_INVALID_PROGRAM, program);
   }
 
   if (--program->refCount == 0)
@@ -2088,20 +2189,20 @@ clBuildProgram
   // Check parameters
   if (!program || !program->program)
   {
-    return CL_INVALID_PROGRAM;
+    ReturnErrorArg(CL_INVALID_PROGRAM, program);
   }
   if ((num_devices > 0 && !device_list) ||
       (num_devices == 0 && device_list))
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (!pfn_notify && user_data)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (device_list && !device_list[0])
   {
-    return CL_INVALID_DEVICE;
+    ReturnErrorArg(CL_INVALID_DEVICE, device);
   }
 
   // Build program
@@ -2145,25 +2246,25 @@ clCompileProgram
   // Check parameters
   if (!program)
   {
-    return CL_INVALID_PROGRAM;
+    ReturnErrorArg(CL_INVALID_PROGRAM, program);
   }
   if ((num_devices > 0 && !device_list) ||
       (num_devices == 0 && device_list))
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if ((num_input_headers && (!input_headers || !header_include_names)) ||
       (!num_input_headers && (input_headers || header_include_names)))
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (!pfn_notify && user_data)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (device_list && !device_list[0])
   {
-    return CL_INVALID_DEVICE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   // Prepare headers
@@ -2206,28 +2307,28 @@ clLinkProgram
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
   if ((num_devices > 0 && !device_list) ||
       (num_devices == 0 && device_list))
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (!num_input_programs || !input_programs)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (!pfn_notify && user_data)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
   if (device_list && !device_list[0])
   {
-    ERRCODE(CL_INVALID_DEVICE);
+    SetError(CL_INVALID_DEVICE);
     return NULL;
   }
 
@@ -2246,7 +2347,7 @@ clLinkProgram
   prog->refCount = 1;
   if (!prog->program)
   {
-    ERRCODE(CL_INVALID_BINARY);
+    SetError(CL_INVALID_BINARY);
     delete prog;
     return NULL;
   }
@@ -2257,7 +2358,7 @@ clLinkProgram
     pfn_notify(prog, user_data);
   }
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return prog;
 }
 
@@ -2286,13 +2387,13 @@ clGetProgramInfo
   // Check program is valid
   if (!program)
   {
-    return CL_INVALID_PROGRAM;
+    ReturnErrorArg(CL_INVALID_PROGRAM, program);
   }
   if ((param_name == CL_PROGRAM_NUM_KERNELS ||
        param_name == CL_PROGRAM_KERNEL_NAMES) &&
       program->program->getBuildStatus() != CL_BUILD_SUCCESS)
   {
-    return CL_INVALID_PROGRAM_EXECUTABLE;
+    ReturnError(CL_INVALID_PROGRAM_EXECUTABLE);
   }
 
   switch (param_name)
@@ -2355,7 +2456,7 @@ clGetProgramInfo
     break;
   }
   default:
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   cl_int return_value = CL_SUCCESS;
@@ -2404,7 +2505,7 @@ clGetProgramBuildInfo
   // Check program is valid
   if (!program)
   {
-    return CL_INVALID_PROGRAM;
+    ReturnErrorArg(CL_INVALID_PROGRAM, program);
   }
 
   size_t dummy;
@@ -2435,7 +2536,7 @@ clGetProgramBuildInfo
     result_data.type = CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   if (param_value)
@@ -2468,12 +2569,12 @@ clCreateKernel
   // Check parameters
   if (program->dispatch != m_dispatchTable)
   {
-    ERRCODE(CL_INVALID_PROGRAM);
+    SetError(CL_INVALID_PROGRAM);
     return NULL;
   }
   if (!kernel_name)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetErrorArg(CL_INVALID_VALUE, kernel_name);
     return NULL;
   }
 
@@ -2485,14 +2586,14 @@ clCreateKernel
   kernel->refCount = 1;
   if (!kernel->kernel)
   {
-    ERRCODE(CL_INVALID_KERNEL_NAME);
+    SetError(CL_INVALID_KERNEL_NAME);
     delete kernel;
     return NULL;
   }
 
   clRetainProgram(program);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return kernel;
 }
 
@@ -2508,17 +2609,17 @@ clCreateKernelsInProgram
   // Check parameters
   if (!program)
   {
-    return CL_INVALID_PROGRAM;
+    ReturnErrorArg(CL_INVALID_PROGRAM, program);
   }
   if (program->program->getBuildStatus() != CL_BUILD_SUCCESS)
   {
-    return CL_INVALID_PROGRAM_EXECUTABLE;
+    ReturnError(CL_INVALID_PROGRAM_EXECUTABLE);
   }
 
   unsigned int num = program->program->getNumKernels();
   if (kernels && num_kernels < num)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   if (kernels)
@@ -2554,7 +2655,7 @@ clRetainKernel
 {
   if (!kernel)
   {
-    return CL_INVALID_KERNEL;
+    ReturnErrorArg(CL_INVALID_KERNEL, kernel);
   }
 
   kernel->refCount++;
@@ -2569,7 +2670,7 @@ clReleaseKernel
 {
   if (!kernel)
   {
-    return CL_INVALID_KERNEL;
+    ReturnErrorArg(CL_INVALID_KERNEL, kernel);
   }
 
   if (--kernel->refCount == 0)
@@ -2594,7 +2695,7 @@ clSetKernelArg
   // Check parameters
   if (arg_index >= kernel->kernel->getNumArguments())
   {
-    return CL_INVALID_ARG_INDEX;
+    ReturnErrorArg(CL_INVALID_ARG_INDEX, arg_index);
   }
 
   unsigned int addr = kernel->kernel->getArgumentAddressQualifier(arg_index);
@@ -2605,7 +2706,7 @@ clSetKernelArg
       && !isSampler
       && addr != CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
-    return CL_INVALID_ARG_SIZE;
+    ReturnError(CL_INVALID_ARG_SIZE);
   }
 
   // Prepare argument value
@@ -2657,7 +2758,7 @@ clSetKernelArg
     }
     break;
   default:
-    return CL_INVALID_ARG_VALUE;
+    ReturnErrorArg(CL_INVALID_ARG_VALUE, addr);
   }
 
   // Set argument
@@ -2680,7 +2781,7 @@ clGetKernelInfo
   // Check kernel is valid
   if (!kernel)
   {
-    return CL_INVALID_KERNEL;
+    ReturnErrorArg(CL_INVALID_KERNEL, kernel);
   }
 
   size_t dummy;
@@ -2720,7 +2821,7 @@ clGetKernelInfo
     str = kernel->kernel->getAttributes().c_str();
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   if (param_value)
@@ -2728,7 +2829,7 @@ clGetKernelInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnError(CL_INVALID_VALUE);
     }
     else
     {
@@ -2756,11 +2857,11 @@ clGetKernelArgInfo
   // Check parameters are valid
   if (!kernel)
   {
-    return CL_INVALID_KERNEL;
+    ReturnErrorArg(CL_INVALID_KERNEL, kernel);
   }
   if (arg_indx >= kernel->kernel->getNumArguments())
   {
-    return CL_INVALID_ARG_INDEX;
+    ReturnErrorArg(CL_INVALID_ARG_INDEX, arg_index);
   }
 
   size_t dummy = 0;
@@ -2775,14 +2876,14 @@ clGetKernelArgInfo
   case CL_KERNEL_ARG_ADDRESS_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_address_qualifier);
     if (param_value_size < result_size)
-      return CL_INVALID_VALUE;
+      ReturnError(CL_INVALID_VALUE);
     return_integer = kernel->kernel->getArgumentAddressQualifier(arg_indx);
     break;
 
   case CL_KERNEL_ARG_ACCESS_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_access_qualifier);
     if (param_value_size < result_size)
-      return CL_INVALID_VALUE;
+      ReturnError(CL_INVALID_VALUE);
     return_integer = kernel->kernel->getArgumentAddressQualifier(arg_indx);
     break;
 
@@ -2790,13 +2891,13 @@ clGetKernelArgInfo
     str_data = kernel->kernel->getArgumentTypeName(arg_indx).str();
     result_size = str_data.size() + 1;
     if (param_value_size < result_size)
-      return CL_INVALID_VALUE;
+      ReturnError(CL_INVALID_VALUE);
     break;
 
   case CL_KERNEL_ARG_TYPE_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_type_qualifier);
     if (param_value_size < result_size)
-      return CL_INVALID_VALUE;
+      ReturnError(CL_INVALID_VALUE);
     return_integer = kernel->kernel->getArgumentTypeQualifier(arg_indx);
     break;
 
@@ -2804,11 +2905,11 @@ clGetKernelArgInfo
     str_data = kernel->kernel->getArgumentName(arg_indx).str();
     result_size = str_data.size() + 1;
     if (param_value_size < result_size)
-      return CL_INVALID_VALUE;
+      ReturnError(CL_INVALID_VALUE);
     break;
 
   default:
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   if (param_value)
@@ -2836,11 +2937,11 @@ clGetKernelWorkGroupInfo
   // Check parameters are valid
   if (!kernel)
   {
-    return CL_INVALID_KERNEL;
+    ReturnErrorArg(CL_INVALID_KERNEL, kernel);
   }
   if (!device || device != m_device)
   {
-    return CL_INVALID_DEVICE;
+    ReturnErrorArg(CL_INVALID_DEVICE, device);
   }
 
   size_t dummy;
@@ -2855,7 +2956,7 @@ clGetKernelWorkGroupInfo
   switch (param_name)
   {
   case CL_KERNEL_GLOBAL_WORK_SIZE:
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   case CL_KERNEL_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
     result_data.sizet = MAX_WI_SIZE;
@@ -2877,7 +2978,7 @@ clGetKernelWorkGroupInfo
     result_data.clulong = 0;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   if (param_value)
@@ -2917,7 +3018,7 @@ clWaitForEvents
   // Check parameters
   if (!num_events || !event_list)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   cl_int ret = CL_SUCCESS;
@@ -2983,7 +3084,7 @@ clGetEventInfo
   // Check event is valid
   if (!event)
   {
-    return CL_INVALID_EVENT;
+    ReturnErrorArg(CL_INVALID_EVENT, event);
   }
 
   size_t dummy;
@@ -3022,7 +3123,7 @@ clGetEventInfo
     result_data.cluint = event->refCount;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnErrorArg(CL_INVALID_VALUE, param_name);
   }
 
   if (param_value)
@@ -3051,7 +3152,7 @@ clCreateUserEvent
   // Check parameters
   if (!context)
   {
-    ERRCODE(CL_INVALID_CONTEXT);
+    SetErrorArg(CL_INVALID_CONTEXT, context);
     return NULL;
   }
 
@@ -3065,7 +3166,7 @@ clCreateUserEvent
   event->event->state = CL_SUBMITTED;
   event->refCount = 1;
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   return event;
 }
 
@@ -3077,7 +3178,7 @@ clRetainEvent
 {
   if (!event)
   {
-    return CL_INVALID_EVENT;
+    ReturnErrorArg(CL_INVALID_EVENT, event);
   }
 
   event->refCount++;
@@ -3093,7 +3194,7 @@ clReleaseEvent
 {
   if (!event)
   {
-    return CL_INVALID_EVENT;
+    ReturnErrorArg(CL_INVALID_EVENT, event);
   }
 
   if (--event->refCount == 0)
@@ -3118,15 +3219,15 @@ clSetUserEventStatus
   // Check parameters
   if (!event || event->queue)
   {
-    return CL_INVALID_EVENT;
+    ReturnErrorArg(CL_INVALID_EVENT, event);
   }
   if (execution_status != CL_COMPLETE && execution_status >= 0)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (event->event->state == CL_COMPLETE || event->event->state < 0)
   {
-    return CL_INVALID_OPERATION;
+    ReturnError(CL_INVALID_OPERATION);
   }
 
   event->event->state = execution_status;
@@ -3153,14 +3254,14 @@ clSetEventCallback
   // Check parameters
   if (!event)
   {
-    return CL_INVALID_EVENT;
+    ReturnErrorArg(CL_INVALID_EVENT, event);
   }
   if (!pfn_notify ||
       (command_exec_callback_type != CL_COMPLETE &&
        command_exec_callback_type != CL_SUBMITTED &&
        command_exec_callback_type != CL_RUNNING))
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   event->callbacks.push_back(make_pair(pfn_notify, user_data));
@@ -3181,7 +3282,7 @@ clGetEventProfilingInfo
   // Check event is valid
   if (!event)
   {
-    return CL_INVALID_EVENT;
+    ReturnErrorArg(CL_INVALID_EVENT, event);
   }
   if (!event->queue)
   {
@@ -3211,7 +3312,7 @@ clGetEventProfilingInfo
     result = event->event->endTime;
     break;
   default:
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   cl_int return_value = CL_SUCCESS;
@@ -3240,7 +3341,7 @@ clFlush
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   // TODO: Implement properly?
@@ -3258,7 +3359,7 @@ clFinish
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   while (!command_queue->queue->isEmpty())
@@ -3292,23 +3393,23 @@ clEnqueueReadBuffer
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!buffer)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
   if (!ptr)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (offset + cb > buffer->size)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
   {
-    return CL_INVALID_OPERATION;
+    ReturnError(CL_INVALID_OPERATION);
   }
 
   // Enqueue command
@@ -3351,19 +3452,19 @@ clEnqueueReadBufferRect
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!buffer)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
   if (!ptr)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
   {
-    return CL_INVALID_OPERATION;
+    ReturnError(CL_INVALID_OPERATION);
   }
 
   // Compute pitches if neccessary
@@ -3401,7 +3502,7 @@ clEnqueueReadBufferRect
     (region[2]-1) * buffer_slice_pitch;
   if (end > buffer->size)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   // Enqueue command
@@ -3445,23 +3546,23 @@ clEnqueueWriteBuffer
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!buffer)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
   if (!ptr)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (offset + cb > buffer->size)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
   {
-    return CL_INVALID_OPERATION;
+    ReturnError(CL_INVALID_OPERATION);
   }
 
   // Enqueue command
@@ -3504,19 +3605,19 @@ clEnqueueWriteBufferRect
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!buffer)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
   if (!ptr)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
   {
-    return CL_INVALID_OPERATION;
+    ReturnError(CL_INVALID_OPERATION);
   }
 
   // Compute pitches if necessary
@@ -3554,7 +3655,7 @@ clEnqueueWriteBufferRect
     (region[2]-1) * buffer_slice_pitch;
   if (end > buffer->size)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   // Enqueue command
@@ -3598,16 +3699,16 @@ clEnqueueCopyBuffer
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!src_buffer || !dst_buffer)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
   if (dst_offset + cb > dst_buffer->size ||
       src_offset + cb > src_buffer->size)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   // Enqueue command
@@ -3644,11 +3745,11 @@ clEnqueueCopyBufferRect
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!src_buffer || !dst_buffer)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   // Compute pitches if neccessary
@@ -3691,7 +3792,7 @@ clEnqueueCopyBufferRect
   if (src_end > src_buffer->size ||
       dst_end > dst_buffer->size)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   // Enqueue command
@@ -3730,23 +3831,23 @@ clEnqueueFillBuffer
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!buffer)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
   if (offset + cb > buffer->size)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (!pattern || pattern_size == 0)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (offset%pattern_size || cb%pattern_size)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   // Enqueue command
@@ -3778,15 +3879,15 @@ clEnqueueFillImage
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!image)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, image);
   }
   if (!fill_color)
   {
-    return CL_INVALID_VALUE;
+    ReturnErrorArg(CL_INVALID_VALUE, fill_color);
   }
 
   // Get image dimensions
@@ -3807,7 +3908,7 @@ clEnqueueFillImage
               + (region[2]-1) * slice_pitch;
   if (offset + size > image->size)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   // Generate color data with correct order and data type
@@ -3847,7 +3948,7 @@ clEnqueueFillImage
         input = 0;
         break;
       default:
-        return CL_INVALID_IMAGE_FORMAT_DESCRIPTOR;
+        ReturnError(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
     }
 
     // Interpret data
@@ -3894,7 +3995,7 @@ clEnqueueFillImage
       ((uint32_t*)color)[output] = ((uint32_t*)fill_color)[input];
       break;
     default:
-      return CL_INVALID_IMAGE_FORMAT_DESCRIPTOR;
+      ReturnError(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
     }
   }
 
@@ -3930,11 +4031,11 @@ clEnqueueReadImage
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!image)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   cl_image *img = (cl_image*)image;
@@ -3983,11 +4084,11 @@ clEnqueueWriteImage
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!image)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   cl_image *img = (cl_image*)image;
@@ -4034,11 +4135,11 @@ clEnqueueCopyImage
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!src_image || !dst_image)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   cl_image *src = (cl_image*)src_image;
@@ -4046,7 +4147,7 @@ clEnqueueCopyImage
   if (src->format.image_channel_order != dst->format.image_channel_order ||
     src->format.image_channel_data_type != dst->format.image_channel_data_type)
   {
-    return CL_IMAGE_FORMAT_MISMATCH;
+    ReturnError(CL_IMAGE_FORMAT_MISMATCH);
   }
 
   size_t srcPixelSize = getPixelSize(&src->format);
@@ -4090,11 +4191,11 @@ clEnqueueCopyImageToBuffer
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!src_image || !dst_buffer)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   cl_image *src = (cl_image*)src_image;
@@ -4133,11 +4234,11 @@ clEnqueueCopyBufferToImage
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!src_buffer || !dst_image)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   cl_image *dst = (cl_image*)dst_image;
@@ -4177,24 +4278,24 @@ clEnqueueMapBuffer
   // Check parameters
   if (!command_queue)
   {
-    ERRCODE(CL_INVALID_COMMAND_QUEUE);
+    SetErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
     return NULL;
   }
   if (!buffer)
   {
-    ERRCODE(CL_INVALID_MEM_OBJECT);
+    SetErrorArg(CL_INVALID_MEM_OBJECT, buffer);
     return NULL;
   }
   if (map_flags & CL_MAP_WRITE &&
       buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
   {
-    ERRCODE(CL_INVALID_OPERATION);
+    SetError(CL_INVALID_OPERATION);
     return NULL;
   }
   if (map_flags & CL_MAP_READ &&
       buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
   {
-    ERRCODE(CL_INVALID_OPERATION);
+    SetError(CL_INVALID_OPERATION);
     return NULL;
   }
 
@@ -4203,7 +4304,7 @@ clEnqueueMapBuffer
     buffer->address, offset, cb);
   if (ptr == NULL)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -4213,10 +4314,10 @@ clEnqueueMapBuffer
   asyncEnqueue(command_queue, CL_COMMAND_MAP_BUFFER, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   if (blocking_map)
   {
-    ERRCODE(clFinish(command_queue));
+    SetError(clFinish(command_queue));
   }
 
   return ptr;
@@ -4242,29 +4343,29 @@ clEnqueueMapImage
   // Check parameters
   if (!command_queue)
   {
-    ERRCODE(CL_INVALID_COMMAND_QUEUE);
+    SetErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
     return NULL;
   }
   if (!image)
   {
-    ERRCODE(CL_INVALID_MEM_OBJECT);
+    SetErrorArg(CL_INVALID_MEM_OBJECT, image);
     return NULL;
   }
   if (!image_row_pitch)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetErrorArg(CL_INVALID_VALUE, image_row_pitch);
     return NULL;
   }
   if (map_flags & CL_MAP_WRITE &&
       image->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
   {
-    ERRCODE(CL_INVALID_OPERATION);
+    SetError(CL_INVALID_OPERATION);
     return NULL;
   }
   if (map_flags & CL_MAP_READ &&
       image->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
   {
-    ERRCODE(CL_INVALID_OPERATION);
+    SetError(CL_INVALID_OPERATION);
     return NULL;
   }
 
@@ -4290,7 +4391,7 @@ clEnqueueMapImage
         image->address, offset, size);
   if (ptr == NULL)
   {
-    ERRCODE(CL_INVALID_VALUE);
+    SetError(CL_INVALID_VALUE);
     return NULL;
   }
 
@@ -4306,10 +4407,10 @@ clEnqueueMapImage
   asyncEnqueue(command_queue, CL_COMMAND_MAP_IMAGE, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
-  ERRCODE(CL_SUCCESS);
+  SetError(CL_SUCCESS);
   if (blocking_map)
   {
-    ERRCODE(clFinish(command_queue));
+    SetError(clFinish(command_queue));
   }
 
   return ptr;
@@ -4329,11 +4430,11 @@ clEnqueueUnmapMemObject
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!memobj)
   {
-    return CL_INVALID_MEM_OBJECT;
+    ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
   }
 
   // Enqueue command
@@ -4360,7 +4461,7 @@ clEnqueueMigrateMemObjects
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   // Enqueue command
@@ -4388,15 +4489,15 @@ clEnqueueNDRangeKernel
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (work_dim < 1 || work_dim > 3)
   {
-    return CL_INVALID_WORK_DIMENSION;
+    ReturnErrorArg(CL_INVALID_WORK_DIMENSION, work_dim);
   }
   if (!global_work_size)
   {
-    return CL_INVALID_GLOBAL_WORK_SIZE;
+    ReturnErrorArg(CL_INVALID_GLOBAL_WORK_SIZE, global_work_size);
   }
 
   // Check global and local sizes are valid
@@ -4404,18 +4505,18 @@ clEnqueueNDRangeKernel
   {
     if (!global_work_size[i])
     {
-      return CL_INVALID_GLOBAL_WORK_SIZE;
+      ReturnErrorArg(CL_INVALID_GLOBAL_WORK_SIZE, global_work_size);
     }
     if (local_work_size && global_work_size[i] % local_work_size[i])
     {
-      return CL_INVALID_WORK_GROUP_SIZE;
+      ReturnError(CL_INVALID_WORK_GROUP_SIZE);
     }
   }
 
   // Ensure all arguments have been set
   if (!kernel->kernel->allArgumentsSet())
   {
-    return CL_INVALID_KERNEL_ARGS;
+    ReturnError(CL_INVALID_KERNEL_ARGS);
   }
 
   // Enqueue command
@@ -4476,24 +4577,24 @@ clEnqueueNativeKernel
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
   if (!user_func)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (!args && (cb_args > 0 || num_mem_objects > 0))
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if (args && cb_args == 0)
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
   if ((num_mem_objects > 0 && (!mem_list || !args_mem_loc)) ||
       (num_mem_objects == 0 && (mem_list || !args_mem_loc)))
   {
-    return CL_INVALID_VALUE;
+    ReturnError(CL_INVALID_VALUE);
   }
 
   // Replace mem objects with real pointers
@@ -4503,7 +4604,7 @@ clEnqueueNativeKernel
     void *addr = memory->getPointer(mem_list[i]->address);
     if (addr == NULL)
     {
-      return CL_INVALID_VALUE;
+      ReturnError(CL_INVALID_VALUE);
     }
     memcpy((void*)args_mem_loc[i], &addr, sizeof(void*));
   }
@@ -4547,7 +4648,7 @@ clEnqueueMarkerWithWaitList
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   // Enqueue command
@@ -4570,7 +4671,7 @@ clEnqueueBarrierWithWaitList
   // Check parameters
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   // Enqueue command
@@ -4589,7 +4690,7 @@ clSetPrintfCallback
   void *               user_data
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4612,7 +4713,7 @@ clEnqueueWaitForEvents
 {
   if (!command_queue)
   {
-    return CL_INVALID_COMMAND_QUEUE;
+    ReturnErrorArg(CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   return CL_SUCCESS;
@@ -4636,7 +4737,7 @@ clCreateFromGLBuffer
   int *         errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4651,7 +4752,7 @@ clCreateFromGLTexture
   cl_int *      errcode_ret
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4666,7 +4767,7 @@ clCreateFromGLTexture2D
   cl_int *      errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4681,7 +4782,7 @@ clCreateFromGLTexture3D
   cl_int *      errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4694,7 +4795,7 @@ clCreateFromGLRenderbuffer
   cl_int *      errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4706,7 +4807,7 @@ clGetGLObjectInfo
   cl_GLuint *          gl_object_name
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_MEM_OBJECT;
+  ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4719,7 +4820,7 @@ clGetGLTextureInfo
   size_t *            param_value_size_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_MEM_OBJECT;
+  ReturnErrorArg(CL_INVALID_MEM_OBJECT, memobj);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4733,7 +4834,7 @@ clEnqueueAcquireGLObjects
   cl_event *        event
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_CONTEXT;
+  ReturnError(CL_INVALID_CONTEXT);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4747,7 +4848,7 @@ clEnqueueReleaseGLObjects
   cl_event *        event
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_CONTEXT;
+  ReturnError(CL_INVALID_CONTEXT);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4760,7 +4861,7 @@ clGetGLContextInfoKHR
   size_t *                       param_value_size_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_event CL_API_CALL
@@ -4771,7 +4872,7 @@ clCreateEventFromGLsyncKHR
   cl_int *    errcode_ret
 ) CL_EXT_SUFFIX__VERSION_1_1
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4789,7 +4890,7 @@ clGetDeviceIDsFromD3D10KHR
   cl_uint *                   num_devices
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL
@@ -4801,7 +4902,7 @@ clCreateFromD3D10BufferKHR
   cl_int *        errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4815,7 +4916,7 @@ clCreateFromD3D10Texture2DKHR
   cl_int *           errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
+  SetError(CL_INVALID_OPERATION);
   return NULL;
 }
 
@@ -4829,7 +4930,7 @@ clCreateFromD3D10Texture3DKHR
   cl_int *           errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
+  SetError(CL_INVALID_OPERATION);
   return NULL;
 }
 
@@ -4844,7 +4945,7 @@ clEnqueueAcquireD3D10ObjectsKHR
   cl_event *        event
 )CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4858,7 +4959,7 @@ clEnqueueReleaseD3D10ObjectsKHR
   cl_event *        event
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4873,7 +4974,7 @@ clGetDeviceIDsFromD3D11KHR
   cl_uint *                   num_devices
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL
@@ -4885,7 +4986,7 @@ clCreateFromD3D11BufferKHR
   cl_int *        errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4899,7 +5000,7 @@ clCreateFromD3D11Texture2DKHR
   cl_int *           errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
+  SetError(CL_INVALID_OPERATION);
   return NULL;
 }
 
@@ -4913,7 +5014,7 @@ clCreateFromD3D11Texture3DKHR
   cl_int *           errcode_ret
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  ERRCODE(CL_INVALID_OPERATION);
+  SetError(CL_INVALID_OPERATION);
   return NULL;
 }
 
@@ -4928,7 +5029,7 @@ clEnqueueAcquireD3D11ObjectsKHR
   cl_event *        event
 )CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4942,7 +5043,7 @@ clEnqueueReleaseD3D11ObjectsKHR
   cl_event *        event
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4958,7 +5059,7 @@ clGetDeviceIDsFromDX9MediaAdapterKHR
   cl_uint *                        num_devices
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL
@@ -4972,7 +5073,7 @@ clCreateFromDX9MediaSurfaceKHR
   cl_int *                       errcode_ret
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  ERRCODE(CL_INVALID_CONTEXT);
+  SetErrorArg(CL_INVALID_CONTEXT, context);
   return NULL;
 }
 
@@ -4987,7 +5088,7 @@ clEnqueueAcquireDX9MediaSurfacesKHR
   cl_event *       event
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -5001,7 +5102,7 @@ clEnqueueReleaseDX9MediaSurfacesKHR
   cl_event *       event
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  return CL_INVALID_OPERATION;
+  ReturnError(CL_INVALID_OPERATION);
 }
 
 #endif // DX extension functions
