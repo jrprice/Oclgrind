@@ -1,0 +1,18 @@
+For more information, please visit the Oclgrind Wiki:
+https://github.com/jrprice/Oclgrind/wiki
+
+Oclgrind 14.5
+=============
+Initial release (beta).
+
+Implements a SPIR 1.2 interpreter which can be targeted either via an
+OpenCL 1.2 runtime API implementation or using a standalone kernel
+interface.
+
+Provides the following utilities:
+- Memory access error detection
+- Work-group divergence detection (barriers, async-copies)
+- Data-race detection (--data-races)
+- Simple interactive debugger (--interactive)
+- Instruction histograms (--inst-counts)
+- OpenCL runtime API error reporting (--check-api)

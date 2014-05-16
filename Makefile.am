@@ -120,7 +120,7 @@ check-local:
 	@echo
 endif
 
-EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h			\
+EXTRA_DIST = NEWS src/spirsim/gen_clc_h.sh src/spirsim/clc.h		\
  src/oclgrind/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
  src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_d3d10.h			\
  src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
