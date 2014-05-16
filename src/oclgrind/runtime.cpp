@@ -170,10 +170,10 @@ clIcdGetPlatformIDsKHR
   if (!m_platform)
   {
     m_platform = new _cl_platform_id;
-    m_platform->dispatch = &m_dispatchTable;
+    m_platform->dispatch = m_dispatchTable;
 
     m_device = new _cl_device_id;
-    m_device->dispatch = &m_dispatchTable;
+    m_device->dispatch = m_dispatchTable;
   }
 
   if (num_entries > 0)
@@ -711,7 +711,7 @@ clCreateContext
 
   // Create context object
   cl_context context = new _cl_context;
-  context->dispatch = &m_dispatchTable;
+  context->dispatch = m_dispatchTable;
   context->device = new oclgrind::Device();
   context->notify = pfn_notify;
   context->data = user_data;
@@ -765,7 +765,7 @@ clCreateContextFromType
 
   // Create context object
   cl_context context = new _cl_context;
-  context->dispatch = &m_dispatchTable;
+  context->dispatch = m_dispatchTable;
   context->device = new oclgrind::Device();
   context->notify = pfn_notify;
   context->data = user_data;
@@ -923,7 +923,7 @@ clCreateCommandQueue
   cl_command_queue queue;
   queue = new _cl_command_queue;
   queue->queue = new oclgrind::Queue(*context->device);
-  queue->dispatch = &m_dispatchTable;
+  queue->dispatch = m_dispatchTable;
   queue->properties = properties;
   queue->context = context;
   queue->refCount = 1;
@@ -1090,7 +1090,7 @@ clCreateBuffer
 
   // Create memory object
   cl_mem mem = new _cl_mem;
-  mem->dispatch = &m_dispatchTable;
+  mem->dispatch = m_dispatchTable;
   mem->context = context;
   mem->parent = NULL;
   mem->size = size;
@@ -1186,7 +1186,7 @@ clCreateSubBuffer
 
   // Create memory object
   cl_mem mem = new _cl_mem;
-  mem->dispatch = &m_dispatchTable;
+  mem->dispatch = m_dispatchTable;
   mem->context = buffer->context;
   mem->parent = buffer;
   mem->size = region.size;
@@ -1906,7 +1906,7 @@ clCreateSampler
 
   // Create sampler
   cl_sampler sampler = new _cl_sampler;
-  sampler->dispatch = &m_dispatchTable;
+  sampler->dispatch = m_dispatchTable;
   sampler->context = context;
   sampler->normCoords = normalized_coords;
   sampler->addressMode = addressing_mode;
@@ -2053,7 +2053,7 @@ clCreateProgramWithSource
 
   // Create program object
   cl_program prog = new _cl_program;
-  prog->dispatch = &m_dispatchTable;
+  prog->dispatch = m_dispatchTable;
   prog->program = new oclgrind::Program(source);
   prog->context = context;
   prog->refCount = 1;
@@ -2099,7 +2099,7 @@ clCreateProgramWithBinary
 
   // Create program object
   cl_program prog = new _cl_program;
-  prog->dispatch = &m_dispatchTable;
+  prog->dispatch = m_dispatchTable;
   prog->program = oclgrind::Program::createFromBitcode(binaries[0], lengths[0]);
   prog->context = context;
   prog->refCount = 1;
@@ -2337,7 +2337,7 @@ clLinkProgram
 
   // Create program object
   cl_program prog = new _cl_program;
-  prog->dispatch = &m_dispatchTable;
+  prog->dispatch = m_dispatchTable;
   prog->program = oclgrind::Program::createFromPrograms(programs);
   prog->context = context;
   prog->refCount = 1;
@@ -2563,7 +2563,7 @@ clCreateKernel
 ) CL_API_SUFFIX__VERSION_1_0
 {
   // Check parameters
-  if (program->dispatch != &m_dispatchTable)
+  if (program->dispatch != m_dispatchTable)
   {
     SetError(CL_INVALID_PROGRAM);
     return NULL;
@@ -2576,7 +2576,7 @@ clCreateKernel
 
   // Create kernel object
   cl_kernel kernel = new _cl_kernel;
-  kernel->dispatch = &m_dispatchTable;
+  kernel->dispatch = m_dispatchTable;
   kernel->kernel = program->program->createKernel(kernel_name);
   kernel->program = program;
   kernel->refCount = 1;
@@ -2625,7 +2625,7 @@ clCreateKernelsInProgram
     for (list<string>::iterator itr = names.begin(); itr != names.end(); itr++)
     {
       cl_kernel kernel = new _cl_kernel;
-      kernel->dispatch = &m_dispatchTable;
+      kernel->dispatch = m_dispatchTable;
       kernel->kernel = program->program->createKernel(*itr);
       kernel->program = program;
       kernel->refCount = 1;
@@ -3154,7 +3154,7 @@ clCreateUserEvent
 
   /// Create event object
   cl_event event = new _cl_event;
-  event->dispatch = &m_dispatchTable;
+  event->dispatch = m_dispatchTable;
   event->context = context;
   event->queue = 0;
   event->type = CL_COMMAND_USER;
@@ -5108,156 +5108,157 @@ clEnqueueReleaseDX9MediaSurfacesKHR
 ////////////////////
 
 #define _NULL_ NULL
-KHRicdVendorDispatch m_dispatchTable =
+#define DISPATCH_TABLE_ENTRY(FUNCTION) (void*)(FUNCTION)
+void *m_dispatchTable[] =
 {
-  (clGetPlatformIDs),
-  (clGetPlatformInfo),
-  (clGetDeviceIDs),
-  (clGetDeviceInfo),
-  (clCreateContext),
-  (clCreateContextFromType),
-  (clRetainContext),
-  (clReleaseContext),
-  (clGetContextInfo),
-  (clCreateCommandQueue),
-  (clRetainCommandQueue),
-  (clReleaseCommandQueue),
-  (clGetCommandQueueInfo),
-  (clSetCommandQueueProperty),
-  (clCreateBuffer),
-  (clCreateImage2D),
-  (clCreateImage3D),
-  (clRetainMemObject),
-  (clReleaseMemObject),
-  (clGetSupportedImageFormats),
-  (clGetMemObjectInfo),
-  (clGetImageInfo),
-  (clCreateSampler),
-  (clRetainSampler),
-  (clReleaseSampler),
-  (clGetSamplerInfo),
-  (clCreateProgramWithSource),
-  (clCreateProgramWithBinary),
-  (clRetainProgram),
-  (clReleaseProgram),
-  (clBuildProgram),
-  (clUnloadCompiler),
-  (clGetProgramInfo),
-  (clGetProgramBuildInfo),
-  (clCreateKernel),
-  (clCreateKernelsInProgram),
-  (clRetainKernel),
-  (clReleaseKernel),
-  (clSetKernelArg),
-  (clGetKernelInfo),
-  (clGetKernelWorkGroupInfo),
-  (clWaitForEvents),
-  (clGetEventInfo),
-  (clRetainEvent),
-  (clReleaseEvent),
-  (clGetEventProfilingInfo),
-  (clFlush),
-  (clFinish),
-  (clEnqueueReadBuffer),
-  (clEnqueueWriteBuffer),
-  (clEnqueueCopyBuffer),
-  (clEnqueueReadImage),
-  (clEnqueueWriteImage),
-  (clEnqueueCopyImage),
-  (clEnqueueCopyImageToBuffer),
-  (clEnqueueCopyBufferToImage),
-  (clEnqueueMapBuffer),
-  (clEnqueueMapImage),
-  (clEnqueueUnmapMemObject),
-  (clEnqueueNDRangeKernel),
-  (clEnqueueTask),
-  (clEnqueueNativeKernel),
-  (clEnqueueMarker),
-  (clEnqueueWaitForEvents),
-  (clEnqueueBarrier),
-  (clGetExtensionFunctionAddress),
-  (clCreateFromGLBuffer),
-  (clCreateFromGLTexture2D),
-  (clCreateFromGLTexture3D),
-  (clCreateFromGLRenderbuffer),
-  (clGetGLObjectInfo),
-  (clGetGLTextureInfo),
-  (clEnqueueAcquireGLObjects),
-  (clEnqueueReleaseGLObjects),
+  DISPATCH_TABLE_ENTRY(clGetPlatformIDs),
+  DISPATCH_TABLE_ENTRY(clGetPlatformInfo),
+  DISPATCH_TABLE_ENTRY(clGetDeviceIDs),
+  DISPATCH_TABLE_ENTRY(clGetDeviceInfo),
+  DISPATCH_TABLE_ENTRY(clCreateContext),
+  DISPATCH_TABLE_ENTRY(clCreateContextFromType),
+  DISPATCH_TABLE_ENTRY(clRetainContext),
+  DISPATCH_TABLE_ENTRY(clReleaseContext),
+  DISPATCH_TABLE_ENTRY(clGetContextInfo),
+  DISPATCH_TABLE_ENTRY(clCreateCommandQueue),
+  DISPATCH_TABLE_ENTRY(clRetainCommandQueue),
+  DISPATCH_TABLE_ENTRY(clReleaseCommandQueue),
+  DISPATCH_TABLE_ENTRY(clGetCommandQueueInfo),
+  DISPATCH_TABLE_ENTRY(clSetCommandQueueProperty),
+  DISPATCH_TABLE_ENTRY(clCreateBuffer),
+  DISPATCH_TABLE_ENTRY(clCreateImage2D),
+  DISPATCH_TABLE_ENTRY(clCreateImage3D),
+  DISPATCH_TABLE_ENTRY(clRetainMemObject),
+  DISPATCH_TABLE_ENTRY(clReleaseMemObject),
+  DISPATCH_TABLE_ENTRY(clGetSupportedImageFormats),
+  DISPATCH_TABLE_ENTRY(clGetMemObjectInfo),
+  DISPATCH_TABLE_ENTRY(clGetImageInfo),
+  DISPATCH_TABLE_ENTRY(clCreateSampler),
+  DISPATCH_TABLE_ENTRY(clRetainSampler),
+  DISPATCH_TABLE_ENTRY(clReleaseSampler),
+  DISPATCH_TABLE_ENTRY(clGetSamplerInfo),
+  DISPATCH_TABLE_ENTRY(clCreateProgramWithSource),
+  DISPATCH_TABLE_ENTRY(clCreateProgramWithBinary),
+  DISPATCH_TABLE_ENTRY(clRetainProgram),
+  DISPATCH_TABLE_ENTRY(clReleaseProgram),
+  DISPATCH_TABLE_ENTRY(clBuildProgram),
+  DISPATCH_TABLE_ENTRY(clUnloadCompiler),
+  DISPATCH_TABLE_ENTRY(clGetProgramInfo),
+  DISPATCH_TABLE_ENTRY(clGetProgramBuildInfo),
+  DISPATCH_TABLE_ENTRY(clCreateKernel),
+  DISPATCH_TABLE_ENTRY(clCreateKernelsInProgram),
+  DISPATCH_TABLE_ENTRY(clRetainKernel),
+  DISPATCH_TABLE_ENTRY(clReleaseKernel),
+  DISPATCH_TABLE_ENTRY(clSetKernelArg),
+  DISPATCH_TABLE_ENTRY(clGetKernelInfo),
+  DISPATCH_TABLE_ENTRY(clGetKernelWorkGroupInfo),
+  DISPATCH_TABLE_ENTRY(clWaitForEvents),
+  DISPATCH_TABLE_ENTRY(clGetEventInfo),
+  DISPATCH_TABLE_ENTRY(clRetainEvent),
+  DISPATCH_TABLE_ENTRY(clReleaseEvent),
+  DISPATCH_TABLE_ENTRY(clGetEventProfilingInfo),
+  DISPATCH_TABLE_ENTRY(clFlush),
+  DISPATCH_TABLE_ENTRY(clFinish),
+  DISPATCH_TABLE_ENTRY(clEnqueueReadBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueWriteBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueReadImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueWriteImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyImageToBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyBufferToImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueMapBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueMapImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueUnmapMemObject),
+  DISPATCH_TABLE_ENTRY(clEnqueueNDRangeKernel),
+  DISPATCH_TABLE_ENTRY(clEnqueueTask),
+  DISPATCH_TABLE_ENTRY(clEnqueueNativeKernel),
+  DISPATCH_TABLE_ENTRY(clEnqueueMarker),
+  DISPATCH_TABLE_ENTRY(clEnqueueWaitForEvents),
+  DISPATCH_TABLE_ENTRY(clEnqueueBarrier),
+  DISPATCH_TABLE_ENTRY(clGetExtensionFunctionAddress),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLBuffer),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLTexture2D),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLTexture3D),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLRenderbuffer),
+  DISPATCH_TABLE_ENTRY(clGetGLObjectInfo),
+  DISPATCH_TABLE_ENTRY(clGetGLTextureInfo),
+  DISPATCH_TABLE_ENTRY(clEnqueueAcquireGLObjects),
+  DISPATCH_TABLE_ENTRY(clEnqueueReleaseGLObjects),
 
-  (clGetGLContextInfoKHR),
+  DISPATCH_TABLE_ENTRY(clGetGLContextInfoKHR),
 
 #if defined(_WIN32)
-  (clGetDeviceIDsFromD3D10KHR),
-  (clCreateFromD3D10BufferKHR),
-  (clCreateFromD3D10Texture2DKHR),
-  (clCreateFromD3D10Texture3DKHR),
-  (clEnqueueAcquireD3D10ObjectsKHR),
-  (clEnqueueReleaseD3D10ObjectsKHR),
+  DISPATCH_TABLE_ENTRY(clGetDeviceIDsFromD3D10KHR),
+  DISPATCH_TABLE_ENTRY(clCreateFromD3D10BufferKHR),
+  DISPATCH_TABLE_ENTRY(clCreateFromD3D10Texture2DKHR),
+  DISPATCH_TABLE_ENTRY(clCreateFromD3D10Texture3DKHR),
+  DISPATCH_TABLE_ENTRY(clEnqueueAcquireD3D10ObjectsKHR),
+  DISPATCH_TABLE_ENTRY(clEnqueueReleaseD3D10ObjectsKHR),
 #else
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
 #endif
 
   // OpenCL 1.1
-  (clSetEventCallback),
-  (clCreateSubBuffer),
-  (clSetMemObjectDestructorCallback),
-  (clCreateUserEvent),
-  (clSetUserEventStatus),
-  (clEnqueueReadBufferRect),
-  (clEnqueueWriteBufferRect),
-  (clEnqueueCopyBufferRect),
+  DISPATCH_TABLE_ENTRY(clSetEventCallback),
+  DISPATCH_TABLE_ENTRY(clCreateSubBuffer),
+  DISPATCH_TABLE_ENTRY(clSetMemObjectDestructorCallback),
+  DISPATCH_TABLE_ENTRY(clCreateUserEvent),
+  DISPATCH_TABLE_ENTRY(clSetUserEventStatus),
+  DISPATCH_TABLE_ENTRY(clEnqueueReadBufferRect),
+  DISPATCH_TABLE_ENTRY(clEnqueueWriteBufferRect),
+  DISPATCH_TABLE_ENTRY(clEnqueueCopyBufferRect),
 
-  (NULL), // clCreateSubDevicesEXT
-  (NULL), // clRetainDeviceEXT
-  (NULL), // clReleaseDeviceEXT
+  DISPATCH_TABLE_ENTRY(NULL), // clCreateSubDevicesEXT
+  DISPATCH_TABLE_ENTRY(NULL), // clRetainDeviceEXT
+  DISPATCH_TABLE_ENTRY(NULL), // clReleaseDeviceEXT
 
-  (clCreateEventFromGLsyncKHR),
+  DISPATCH_TABLE_ENTRY(clCreateEventFromGLsyncKHR),
 
   // OpenCL 1.2
-  (clCreateSubDevices),
-  (clRetainDevice),
-  (clReleaseDevice),
-  (clCreateImage),
-  (clCreateProgramWithBuiltInKernels),
-  (clCompileProgram),
-  (clLinkProgram),
-  (clUnloadPlatformCompiler),
-  (clGetKernelArgInfo),
-  (clEnqueueFillBuffer),
-  (clEnqueueFillImage),
-  (clEnqueueMigrateMemObjects),
-  (clEnqueueMarkerWithWaitList),
-  (clEnqueueBarrierWithWaitList),
-  (clGetExtensionFunctionAddressForPlatform),
-  (clCreateFromGLTexture),
+  DISPATCH_TABLE_ENTRY(clCreateSubDevices),
+  DISPATCH_TABLE_ENTRY(clRetainDevice),
+  DISPATCH_TABLE_ENTRY(clReleaseDevice),
+  DISPATCH_TABLE_ENTRY(clCreateImage),
+  DISPATCH_TABLE_ENTRY(clCreateProgramWithBuiltInKernels),
+  DISPATCH_TABLE_ENTRY(clCompileProgram),
+  DISPATCH_TABLE_ENTRY(clLinkProgram),
+  DISPATCH_TABLE_ENTRY(clUnloadPlatformCompiler),
+  DISPATCH_TABLE_ENTRY(clGetKernelArgInfo),
+  DISPATCH_TABLE_ENTRY(clEnqueueFillBuffer),
+  DISPATCH_TABLE_ENTRY(clEnqueueFillImage),
+  DISPATCH_TABLE_ENTRY(clEnqueueMigrateMemObjects),
+  DISPATCH_TABLE_ENTRY(clEnqueueMarkerWithWaitList),
+  DISPATCH_TABLE_ENTRY(clEnqueueBarrierWithWaitList),
+  DISPATCH_TABLE_ENTRY(clGetExtensionFunctionAddressForPlatform),
+  DISPATCH_TABLE_ENTRY(clCreateFromGLTexture),
 
 #if defined(_WIN32)
-  (clGetDeviceIDsFromD3D11KHR),
-  (clCreateFromD3D11BufferKHR),
-  (clCreateFromD3D11Texture2DKHR),
-  (clCreateFromD3D11Texture3DKHR),
-  (clCreateFromDX9MediaSurfaceKHR),
-  (clEnqueueAcquireD3D11ObjectsKHR),
-  (clEnqueueReleaseD3D11ObjectsKHR),
-  (clGetDeviceIDsFromDX9MediaAdapterKHR),
-  (clEnqueueAcquireDX9MediaSurfacesKHR),
-  (clEnqueueReleaseDX9MediaSurfacesKHR),
+  DISPATCH_TABLE_ENTRY(clGetDeviceIDsFromD3D11KHR),
+  DISPATCH_TABLE_ENTRY(clCreateFromD3D11BufferKHR),
+  DISPATCH_TABLE_ENTRY(clCreateFromD3D11Texture2DKHR),
+  DISPATCH_TABLE_ENTRY(clCreateFromD3D11Texture3DKHR),
+  DISPATCH_TABLE_ENTRY(clCreateFromDX9MediaSurfaceKHR),
+  DISPATCH_TABLE_ENTRY(clEnqueueAcquireD3D11ObjectsKHR),
+  DISPATCH_TABLE_ENTRY(clEnqueueReleaseD3D11ObjectsKHR),
+  DISPATCH_TABLE_ENTRY(clGetDeviceIDsFromDX9MediaAdapterKHR),
+  DISPATCH_TABLE_ENTRY(clEnqueueAcquireDX9MediaSurfacesKHR),
+  DISPATCH_TABLE_ENTRY(clEnqueueReleaseDX9MediaSurfacesKHR),
 #else
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
-  (NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
 #endif
 };
