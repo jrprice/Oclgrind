@@ -102,16 +102,17 @@ check_PROGRAMS = tests/apps/vecadd/vecadd
 tests_apps_vecadd_vecadd_LDADD = liboclgrind.la
 TESTS = $(check_PROGRAMS)
 
-if HAVE_PYTHON
-TESTS += $(KERNEL_TESTS)
-XFAIL_TESTS =								\
-	tests/kernels/atomics/atomic_intergroup_race.sim	\
-	tests/kernels/atomics/atomic_cmpxchg_race.sim
 TEST_EXTENSIONS = .sim
 SIM_LOG_COMPILER = $(PYTHON)				\
   $(top_srcdir)/tests/kernels/run_kernel_test.py	\
   ${abs_top_builddir}/oclgrind-kernel
 AM_TESTS_ENVIRONMENT = export AM_TESTS=1;
+
+if HAVE_PYTHON
+TESTS += $(KERNEL_TESTS)
+XFAIL_TESTS =								\
+	tests/kernels/atomics/atomic_intergroup_race.sim	\
+	tests/kernels/atomics/atomic_cmpxchg_race.sim
 else
 check-local:
 	@echo
