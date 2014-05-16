@@ -16,6 +16,7 @@ function usage
   echo "Options:"
   echo "     --data-races       Enable data-race detection"
   echo "     --dump-spir        Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
+  echo "     --check-api        Reports errors on API calls"
   echo "  -h --help             Display usage information"
   echo "     --inst-counts      Output histograms of instructions executed"
   echo "  -i --interactive      Enable interactive mode"
@@ -50,6 +51,9 @@ do
   elif [ "$1" == "-q" -o "$1" == "--quick" ]
   then
     export OCLGRIND_QUICK=1
+  elif [ "$1" == "--check-api" ]
+  then
+    export OCLGRIND_CHECK_API=1
   elif [ "$1" == "--uniform-writes" ]
   then
     export OCLGRIND_UNIFORM_WRITES=1

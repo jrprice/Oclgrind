@@ -128,13 +128,17 @@ namespace
   void notifyAPIError(const char* function, cl_int err,
                       const char* argument = NULL)
   {
-    cerr << endl << "Function " << function << " generated error ";
-    cerr << CLErrorToString(err);
-    if (argument)
+    const char *checkAPI = getenv("OCLGRIND_CHECK_API");
+    if (checkAPI && strcmp(checkAPI, "1") == 0)
     {
-      cerr << " for argument " << argument;
+      cerr << endl << "Function " << function << " generated error ";
+      cerr << CLErrorToString(err);
+      if (argument)
+      {
+        cerr << " for argument " << argument;
+      }
+      cerr << endl;
     }
-    cerr << endl;
   }
 }
 
