@@ -1,9 +1,0 @@
-#!/bin/bash
-
-if [ $# -ne 2 ]
-then
-    echo "Usage: genpch INPUT OUTPUT"
-    exit 1
-fi
-
-clang-3.2 -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown $1 -o $2

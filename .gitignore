@@ -48,6 +48,4 @@ tests/apps/vecadd/vecadd
 
 # Misc
 oclgrind-*.tar.gz
-util/floatval
-util/hexval
 *.kdev4
