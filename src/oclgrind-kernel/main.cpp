@@ -68,10 +68,6 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_INST_COUNTS", "1");
     }
-    else if (!strcmp(argv[i], "--check-api"))
-    {
-      setEnvironment("OCLGRIND_CHECK_API", "1");
-    }
     else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--interactive"))
     {
       setEnvironment("OCLGRIND_INTERACTIVE", "1");
