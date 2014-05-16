@@ -192,32 +192,33 @@ install(CODE "execute_process(COMMAND
 )")
 
 # Tests
+enable_testing()
 
 # Check for Python
 find_package(PythonInterp)
 if (PYTHONINTERP_FOUND)
-  enable_testing()
-else()
-  add_custom_target(test COMMENT "Python required for running tests.")
-endif()
 
-# Add kernel tests
-file(READ tests/kernels/TESTS KERNEL_TESTS)
-string(REPLACE "\n" ";" KERNEL_TESTS ${KERNEL_TESTS})
-foreach(test ${KERNEL_TESTS})
-  add_test(
-    NAME ${test}
-    COMMAND
-    ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/kernels/run_kernel_test.py
-    $<TARGET_FILE:oclgrind-kernel>
-    ${CMAKE_SOURCE_DIR}/tests/kernels/${test}.sim)
-endforeach(${test})
+  # Add kernel tests
+  file(READ tests/kernels/TESTS KERNEL_TESTS)
+  string(REPLACE "\n" ";" KERNEL_TESTS ${KERNEL_TESTS})
+  foreach(test ${KERNEL_TESTS})
+    add_test(
+      NAME ${test}
+      COMMAND
+      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/kernels/run_kernel_test.py
+      $<TARGET_FILE:oclgrind-kernel>
+      ${CMAKE_SOURCE_DIR}/tests/kernels/${test}.sim)
+  endforeach(${test})
+
+  # Expected failures
+  set_tests_properties(
+    atomics/atomic_intergroup_race
+    atomics/atomic_cmpxchg_race
+    PROPERTIES WILL_FAIL TRUE)
+
+else()
+  message(WARNING "Kernel tests will not be run (Python required)")
+endif()
 
 # Add app tests
 add_subdirectory(tests/apps)
-
-# Expected failures
-set_tests_properties(
-  atomics/atomic_intergroup_race
-  atomics/atomic_cmpxchg_race
-  PROPERTIES WILL_FAIL TRUE)

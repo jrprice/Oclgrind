@@ -98,15 +98,12 @@ oclgrind: $(top_srcdir)/src/oclgrind/oclgrind
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>oclgrind
 
-if !HAVE_PYTHON
-check-TESTS:
-	@echo "ERROR: Python required for running tests."
-endif
-
 check_PROGRAMS = tests/apps/vecadd/vecadd
 tests_apps_vecadd_vecadd_LDADD = liboclgrind.la
+TESTS = $(check_PROGRAMS)
 
-TESTS = $(KERNEL_TESTS) $(check_PROGRAMS)
+if HAVE_PYTHON
+TESTS += $(KERNEL_TESTS)
 XFAIL_TESTS =								\
 	tests/kernels/atomics/atomic_intergroup_race.sim	\
 	tests/kernels/atomics/atomic_cmpxchg_race.sim
@@ -115,6 +112,12 @@ SIM_LOG_COMPILER = $(PYTHON)				\
   $(top_srcdir)/tests/kernels/run_kernel_test.py	\
   ${abs_top_builddir}/oclgrind-kernel
 AM_TESTS_ENVIRONMENT = export AM_TESTS=1;
+else
+check-local:
+	@echo
+	@echo "WARNING: Kernel tests skipped (Python required)."
+	@echo
+endif
 
 EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h			\
  src/oclgrind/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
