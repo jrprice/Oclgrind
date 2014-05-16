@@ -1373,7 +1373,6 @@ clCreateImage
     mem = clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
     if (!mem)
     {
-      SetError(CL_OUT_OF_HOST_MEMORY);
       return NULL;
     }
   }
