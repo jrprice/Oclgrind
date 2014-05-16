@@ -2006,7 +2006,7 @@ clGetSamplerInfo
     result_data.clfiltmode = sampler->filterMode;
     break;
   default:
-    ReturnErrorArg(CL_INVALID_SAMPLER, param_name);
+    ReturnErrorArg(CL_INVALID_VALUE, param_name);
   }
 
   if (param_value)
@@ -2014,7 +2014,7 @@ clGetSamplerInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      ReturnErrorArg(CL_INVALID_SAMPLER, param_value_size);
+      ReturnErrorArg(CL_INVALID_VALUE, param_value_size);
     }
     else
     {
