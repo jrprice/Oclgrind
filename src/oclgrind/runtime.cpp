@@ -142,6 +142,9 @@ namespace
   }
 }
 
+#if defined(_WIN32) && !defined(__MINGW32__)
+#define __func__ __FUNCTION__
+#endif
 #define ReturnError(err) notifyAPIError(__func__, err); return err
 #define ReturnErrorArg(err, arg) notifyAPIError(__func__, err, #arg); return err
 
