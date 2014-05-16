@@ -1825,7 +1825,7 @@ clGetImageInfo
     }
   }
 
-  return CL_SUCCESS;;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -2210,7 +2210,7 @@ clBuildProgram
   // Build program
   if (!program->program->build(options))
   {
-    return CL_BUILD_PROGRAM_FAILURE;
+    ReturnError(CL_BUILD_PROGRAM_FAILURE);
   }
 
   // Fire callback
@@ -2280,7 +2280,7 @@ clCompileProgram
   // Build program
   if (!program->program->build(options, headers))
   {
-    return CL_BUILD_PROGRAM_FAILURE;
+    ReturnError(CL_BUILD_PROGRAM_FAILURE);
   }
 
   // Fire callback
@@ -2546,7 +2546,7 @@ clGetProgramBuildInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnErrorArg(CL_INVALID_VALUE, param_value_size);
     }
     else
     {
@@ -2988,7 +2988,7 @@ clGetKernelWorkGroupInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnErrorArg(CL_INVALID_VALUE, param_value_size);
     }
     else
     {
@@ -3022,8 +3022,6 @@ clWaitForEvents
   {
     ReturnError(CL_INVALID_VALUE);
   }
-
-  cl_int ret = CL_SUCCESS;
 
   // Loop until all events complete
   bool complete = false;
@@ -3066,11 +3064,11 @@ clWaitForEvents
   {
     if (event_list[i]->event->state < 0)
     {
-      ret = CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST;
+      ReturnError(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST);
     }
   }
 
-  return ret;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -3133,7 +3131,7 @@ clGetEventInfo
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return CL_INVALID_VALUE;
+      ReturnErrorArg(CL_INVALID_VALUE, param_value_size);
     }
     else
     {
@@ -3288,7 +3286,7 @@ clGetEventProfilingInfo
   }
   if (!event->queue)
   {
-    return CL_PROFILING_INFO_NOT_AVAILABLE;
+    ReturnError(CL_PROFILING_INFO_NOT_AVAILABLE);
   }
 
   size_t dummy = 0;
@@ -3317,13 +3315,12 @@ clGetEventProfilingInfo
     ReturnError(CL_INVALID_VALUE);
   }
 
-  cl_int return_value = CL_SUCCESS;
   if (param_value)
   {
     // Check destination is large enough
     if (param_value_size < result_size)
     {
-      return_value = CL_INVALID_VALUE;
+      ReturnErrorArg(CL_INVALID_VALUE, param_value_size);
     }
     else
     {
@@ -3331,7 +3328,7 @@ clGetEventProfilingInfo
     }
   }
 
-  return return_value;
+  return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
