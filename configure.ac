@@ -6,7 +6,7 @@
 # license terms please see the LICENSE file distributed with this
 # source code.
 
-AC_INIT([Oclgrind], [14.X], , [oclgrind], [https://github.com/jrprice/Oclgrind])
+AC_INIT([Oclgrind], [14.5], , [oclgrind], [https://github.com/jrprice/Oclgrind])
 AC_PREREQ([2.63])
 AC_CONFIG_SRCDIR([src/])
 AM_INIT_AUTOMAKE([foreign 1.12])

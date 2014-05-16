@@ -9,7 +9,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 14)
-set(Oclgrind_VERSION_MINOR X)
+set(Oclgrind_VERSION_MINOR 5)
 
 # Warn if not using Windows
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
