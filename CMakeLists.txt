@@ -120,12 +120,17 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   list(APPEND OCLGRIND_SOURCES src/oclgrind/icd.def)
 endif()
 
-add_library(oclgrind SHARED ${OCLGRIND_SOURCES})
-target_link_libraries(oclgrind ${CMAKE_DL_LIBS} spirsim)
-
 add_library(oclgrind-icd SHARED ${OCLGRIND_SOURCES})
 set_target_properties(oclgrind-icd PROPERTIES COMPILE_FLAGS -DOCLGRIND_ICD)
 target_link_libraries(oclgrind-icd ${CMAKE_DL_LIBS} spirsim)
+
+# Add runtime exports on Windows
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  list(APPEND OCLGRIND_SOURCES src/oclgrind/runtime.def)
+endif()
+
+add_library(oclgrind SHARED ${OCLGRIND_SOURCES})
+target_link_libraries(oclgrind ${CMAKE_DL_LIBS} spirsim)
 
 add_executable(oclgrind-kernel
   src/oclgrind-kernel/main.cpp
@@ -207,6 +212,9 @@ foreach(test ${KERNEL_TESTS})
     $<TARGET_FILE:oclgrind-kernel>
     ${CMAKE_SOURCE_DIR}/tests/kernels/${test}/${test}.sim)
 endforeach(${test})
+
+# Add app tests
+add_subdirectory(tests/apps)
 
 # Expected failures
 set_tests_properties(

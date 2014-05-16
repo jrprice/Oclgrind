@@ -44,6 +44,7 @@ test-suite.log
 *.log
 *.out
 *.diff
+tests/apps/vecadd/vecadd
 
 # Misc
 oclgrind-*.tar.gz

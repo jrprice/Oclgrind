@@ -103,12 +103,16 @@ check-TESTS:
 	@echo "ERROR: Python required for running tests."
 endif
 
-TESTS = $(KERNEL_TESTS)
-XFAIL_TESTS = \
-	tests/kernels/atomic_intergroup_race/atomic_intergroup_race.sim \
+check_PROGRAMS = tests/apps/vecadd/vecadd
+tests_apps_vecadd_vecadd_LDADD = liboclgrind.la
+
+TESTS = $(KERNEL_TESTS) $(check_PROGRAMS)
+XFAIL_TESTS =								\
+	tests/kernels/atomic_intergroup_race/atomic_intergroup_race.sim	\
 	tests/kernels/atomic_cmpxchg_race/atomic_cmpxchg_race.sim
 TEST_EXTENSIONS = .sim
-SIM_LOG_COMPILER = $(PYTHON) $(top_srcdir)/tests/kernels/run_kernel_test.py \
+SIM_LOG_COMPILER = $(PYTHON)				\
+  $(top_srcdir)/tests/kernels/run_kernel_test.py	\
   ${abs_top_builddir}/oclgrind-kernel
 AM_TESTS_ENVIRONMENT = export AM_TESTS=1;
 
@@ -116,8 +120,9 @@ EXTRA_DIST = src/spirsim/gen_clc_h.sh src/spirsim/clc.h			\
  src/oclgrind/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
  src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_d3d10.h			\
  src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
- CMakeLists.txt cmake_config.h.in src/spirsim/gen_clc_h.cmake		\
- src/oclgrind/icd.def tests/kernels/run_kernel_test.py \
+ CMakeLists.txt tests/apps/CMakeLists.txt cmake_config.h.in		\
+ src/spirsim/gen_clc_h.cmake src/oclgrind/icd.def			\
+ src/oclgrind/runtime.def tests/kernels/run_kernel_test.py		\
  tests/kernels/TESTS $(KERNEL_TEST_INPUTS)
-CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS) \
+CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS)	\
  $(KERNEL_TEST_OUTPUTS)
