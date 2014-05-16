@@ -1,3 +1,11 @@
+# CMakeLists.txt (Oclgrind)
+# Copyright (c) 2013-2014, James Price and Simon McIntosh-Smith,
+# University of Bristol. All rights reserved.
+#
+# This program is provided under a three-clause BSD license. For full
+# license terms please see the LICENSE file distributed with this
+# source code.
+
 cmake_minimum_required(VERSION 2.8)
 project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 14)
