@@ -73,11 +73,11 @@ KERNEL_TEST_INPUTS=""
 KERNEL_TEST_OUTPUTS=""
 m4_foreach([name], m4_split(m4_include(tests/kernels/TESTS), m4_newline),
 [
-    KERNEL_TESTS="$KERNEL_TESTS tests/kernels/"name"/"name".sim"
-    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".sim"
-    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".cl"
-    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name"/"name".ref"
-    KERNEL_TEST_OUTPUTS="$KERNEL_TEST_OUTPUTS tests/kernels/"name"/"name".out"
+    KERNEL_TESTS="$KERNEL_TESTS tests/kernels/"name".sim"
+    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name".sim"
+    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name".cl"
+    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name".ref"
+    KERNEL_TEST_OUTPUTS="$KERNEL_TEST_OUTPUTS tests/kernels/"name".out"
 ])
 AC_SUBST(KERNEL_TESTS, $KERNEL_TESTS)
 AC_SUBST(KERNEL_TEST_INPUTS, $KERNEL_TEST_INPUTS)

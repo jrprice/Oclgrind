@@ -108,8 +108,8 @@ tests_apps_vecadd_vecadd_LDADD = liboclgrind.la
 
 TESTS = $(KERNEL_TESTS) $(check_PROGRAMS)
 XFAIL_TESTS =								\
-	tests/kernels/atomic_intergroup_race/atomic_intergroup_race.sim	\
-	tests/kernels/atomic_cmpxchg_race/atomic_cmpxchg_race.sim
+	tests/kernels/atomics/atomic_intergroup_race.sim	\
+	tests/kernels/atomics/atomic_cmpxchg_race.sim
 TEST_EXTENSIONS = .sim
 SIM_LOG_COMPILER = $(PYTHON)				\
   $(top_srcdir)/tests/kernels/run_kernel_test.py	\

@@ -24,7 +24,7 @@ current_dir = os.getcwd()
 if os.environ.get('AM_TESTS') == '1':
   # If running via automake, use build directory for output file
   test_out = 'tests' + os.path.sep + 'kernels' + os.path.sep + \
-             test_name + os.path.sep + test_out
+             test_dir.split(os.path.sep)[-1] + os.path.sep + test_out
 else:
   # Otherwise, use test directory for output file
   test_out = test_dir + os.path.sep + test_out

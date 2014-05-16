@@ -210,7 +210,7 @@ foreach(test ${KERNEL_TESTS})
     COMMAND
     ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/kernels/run_kernel_test.py
     $<TARGET_FILE:oclgrind-kernel>
-    ${CMAKE_SOURCE_DIR}/tests/kernels/${test}/${test}.sim)
+    ${CMAKE_SOURCE_DIR}/tests/kernels/${test}.sim)
 endforeach(${test})
 
 # Add app tests
@@ -218,6 +218,6 @@ add_subdirectory(tests/apps)
 
 # Expected failures
 set_tests_properties(
-  atomic_intergroup_race
-  atomic_cmpxchg_race
+  atomics/atomic_intergroup_race
+  atomics/atomic_cmpxchg_race
   PROPERTIES WILL_FAIL TRUE)
