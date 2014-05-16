@@ -131,11 +131,11 @@ namespace
     const char *checkAPI = getenv("OCLGRIND_CHECK_API");
     if (checkAPI && strcmp(checkAPI, "1") == 0)
     {
-      cerr << endl << "Function " << function << " generated error ";
+      cerr << endl << "OCLGRIND: " << function << " generated ";
       cerr << CLErrorToString(err);
       if (argument)
       {
-        cerr << " for argument " << argument;
+        cerr << " for argument '" << argument << "'";
       }
       cerr << endl;
     }
