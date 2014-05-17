@@ -44,6 +44,11 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin" AND
 "DYLD_LIBRARY_PATH.")
 endif()
 
+# Enable C99 for GCC (required for tests)
+if (CMAKE_COMPILER_IS_GNUCC)
+  set(CMAKE_C_FLAGS "-std=c99")
+endif()
+
 # Disable min/max macros on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   add_definitions(-DNOMINMAX)
