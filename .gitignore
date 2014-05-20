@@ -29,14 +29,13 @@ test-driver
 *.o
 *.lo
 .libs
-clc.pch
-clc.noopt.pch
 liboclgrind.la
-liboclgrind-icd.la
-libspirsim.la
+liboclgrind-rt.la
+liboclgrind-rt-icd.la
 libtool
+/oclgrind
 oclgrind-kernel
-src/spirsim/clc_h.cpp
+src/core/clc_h.cpp
 
 # Test output
 test-suite.log
@@ -48,4 +47,7 @@ tests/apps/vecadd/vecadd
 
 # Misc
 oclgrind-*.tar.gz
+oclgrind-*.zip
+.DS_Store
 *.kdev4
+*.sublime-*

@@ -12,7 +12,7 @@
 #include <iostream>
 #include <string>
 
-#include "oclgrind-kernel/Simulation.h"
+#include "kernel/Simulation.h"
 
 using namespace oclgrind;
 using namespace std;

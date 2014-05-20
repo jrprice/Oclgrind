@@ -175,16 +175,16 @@ bool Program::build(const char *options, list<Header> headers)
   if (optimize)
   {
     if (sizeof(size_t) == 4)
-      pch = INSTALL_ROOT"/include/spirsim/clc32.pch";
+      pch = INSTALL_ROOT"/include/oclgrind/clc32.pch";
     else
-      pch = INSTALL_ROOT"/include/spirsim/clc64.pch";
+      pch = INSTALL_ROOT"/include/oclgrind/clc64.pch";
   }
   else
   {
     if (sizeof(size_t) == 4)
-      pch = INSTALL_ROOT"/include/spirsim/clc32.noopt.pch";
+      pch = INSTALL_ROOT"/include/oclgrind/clc32.noopt.pch";
     else
-      pch = INSTALL_ROOT"/include/spirsim/clc64.noopt.pch";
+      pch = INSTALL_ROOT"/include/oclgrind/clc64.noopt.pch";
   }
 
   // Use precompiled header if it exists, otherwise fall back to embedded clc.h

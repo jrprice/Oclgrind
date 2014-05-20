@@ -11,17 +11,17 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
 AM_CPPFLAGS = -DINSTALL_ROOT=\"$(prefix)\" -I$(top_srcdir)/src/
 
-lib_LTLIBRARIES = libspirsim.la liboclgrind.la liboclgrind-icd.la
+lib_LTLIBRARIES = liboclgrind.la liboclgrind-rt.la liboclgrind-rt-icd.la
 
-libspirsim_la_SOURCES = src/spirsim/common.h src/spirsim/common.cpp	\
- src/spirsim/Device.h src/spirsim/Device.cpp src/spirsim/half.h		\
- src/spirsim/Kernel.h src/spirsim/Kernel.cpp src/spirsim/Memory.h	\
- src/spirsim/Memory.cpp src/spirsim/Program.h src/spirsim/Program.cpp	\
- src/spirsim/Queue.h src/spirsim/Queue.cpp src/spirsim/WorkItem.h	\
- src/spirsim/WorkItem.cpp src/spirsim/WorkItemBuiltins.cpp		\
- src/spirsim/WorkGroup.h src/spirsim/WorkGroup.cpp
-nodist_libspirsim_la_SOURCES = src/spirsim/clc_h.cpp
-libspirsim_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
+liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp	\
+ src/core/Device.h src/core/Device.cpp src/core/half.h		\
+ src/core/Kernel.h src/core/Kernel.cpp src/core/Memory.h	\
+ src/core/Memory.cpp src/core/Program.h src/core/Program.cpp	\
+ src/core/Queue.h src/core/Queue.cpp src/core/WorkItem.h	\
+ src/core/WorkItem.cpp src/core/WorkItemBuiltins.cpp		\
+ src/core/WorkGroup.h src/core/WorkGroup.cpp
+nodist_liboclgrind_la_SOURCES = src/core/clc_h.cpp
+liboclgrind_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
 -lclangDriver -lclangSerialization -lclangCodeGen -lclangParse		\
 -lclangSema -lclangStaticAnalyzerFrontend				\
 -lclangStaticAnalyzerCheckers -lclangStaticAnalyzerCore			\
@@ -32,35 +32,35 @@ libspirsim_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
 -lLLVMMCParser -lLLVMScalarOpts -lLLVMTarget -lLLVMTransformUtils	\
 -lLLVMVectorize -lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lpthread	\
 -shared
-spirsimincludedir = $(includedir)/spirsim
-spirsiminclude_HEADERS = src/spirsim/common.h src/spirsim/Device.h	\
- src/spirsim/half.h src/spirsim/Kernel.h src/spirsim/Memory.h		\
- src/spirsim/Program.h src/spirsim/Queue.h src/spirsim/WorkItem.h	\
- src/spirsim/WorkGroup.h src/spirsim/clc.h
-src/spirsim/clc_h.cpp: src/spirsim/gen_clc_h.sh	src/spirsim/clc.h
-	$(top_srcdir)/src/spirsim/gen_clc_h.sh $(top_srcdir)/src/spirsim/clc.h $@
+oclgrind_includedir = $(includedir)/oclgrind
+oclgrind_include_HEADERS = src/core/common.h src/core/Device.h	\
+ src/core/half.h src/core/Kernel.h src/core/Memory.h		\
+ src/core/Program.h src/core/Queue.h src/core/WorkItem.h	\
+ src/core/WorkGroup.h src/core/clc.h
+src/core/clc_h.cpp: src/core/gen_clc_h.sh	src/core/clc.h
+	$(top_srcdir)/src/core/gen_clc_h.sh $(top_srcdir)/src/core/clc.h $@
 
 install-data-hook:
 	-$(clang_spir) \
 		-cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown \
-		$(includedir)/spirsim/clc.h \
-		-o $(includedir)/spirsim/clc32.noopt.pch
+		$(includedir)/oclgrind/clc.h \
+		-o $(includedir)/oclgrind/clc32.noopt.pch
 	-$(clang_spir) \
 		-cc1 -x cl -g -emit-pch -triple spir-unknown-unknown \
-		$(includedir)/spirsim/clc.h \
-		-o $(includedir)/spirsim/clc32.pch
+		$(includedir)/oclgrind/clc.h \
+		-o $(includedir)/oclgrind/clc32.pch
 	-$(clang_spir) \
 		-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
-		$(includedir)/spirsim/clc.h \
-		-o $(includedir)/spirsim/clc64.noopt.pch
+		$(includedir)/oclgrind/clc.h \
+		-o $(includedir)/oclgrind/clc64.noopt.pch
 	-$(clang_spir) \
 		-cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown \
-		$(includedir)/spirsim/clc.h \
-		-o $(includedir)/spirsim/clc64.pch
-	@if [ ! -r $(includedir)/spirsim/clc32.pch          \
-	   -o ! -r $(includedir)/spirsim/clc32.noopt.pch    \
-	   -o ! -r $(includedir)/spirsim/clc64.pch          \
-	   -o ! -r $(includedir)/spirsim/clc64.noopt.pch ]; \
+		$(includedir)/oclgrind/clc.h \
+		-o $(includedir)/oclgrind/clc64.pch
+	@if [ ! -r $(includedir)/oclgrind/clc32.pch          \
+	   -o ! -r $(includedir)/oclgrind/clc32.noopt.pch    \
+	   -o ! -r $(includedir)/oclgrind/clc64.pch          \
+	   -o ! -r $(includedir)/oclgrind/clc64.noopt.pch ]; \
 	then \
 		echo; \
 		echo "WARNING: Failed to generate precompiled headers."; \
@@ -68,38 +68,37 @@ install-data-hook:
 	fi
 
 uninstall-hook:
-	rm -rf $(includedir)/spirsim/clc32.pch
-	rm -rf $(includedir)/spirsim/clc32.noopt.pch
-	rm -rf $(includedir)/spirsim/clc64.pch
-	rm -rf $(includedir)/spirsim/clc64.noopt.pch
+	rm -rf $(includedir)/oclgrind/clc32.pch
+	rm -rf $(includedir)/oclgrind/clc32.noopt.pch
+	rm -rf $(includedir)/oclgrind/clc64.pch
+	rm -rf $(includedir)/oclgrind/clc64.noopt.pch
 
-OCLGRIND_SOURCES = src/oclgrind/async_queue.h		\
- src/oclgrind/async_queue.cpp src/oclgrind/icd.h	\
- src/oclgrind/runtime.cpp
+RUNTIME_SOURCES = src/runtime/async_queue.h				\
+ src/runtime/async_queue.cpp src/runtime/icd.h src/runtime/runtime.cpp
 
-liboclgrind_la_SOURCES = $(OCLGRIND_SOURCES)
-liboclgrind_la_LIBADD = libspirsim.la
-liboclgrind_la_LDFLAGS = -shared
+liboclgrind_rt_la_SOURCES = $(RUNTIME_SOURCES)
+liboclgrind_rt_la_LIBADD = liboclgrind.la
+liboclgrind_rt_la_LDFLAGS = -shared
 
-liboclgrind_icd_la_CPPFLAGS = -DOCLGRIND_ICD $(AM_CPPFLAGS)
-liboclgrind_icd_la_SOURCES = $(OCLGRIND_SOURCES)
-liboclgrind_icd_la_LIBADD = libspirsim.la
-liboclgrind_icd_la_LDFLAGS = -shared
+liboclgrind_rt_icd_la_CPPFLAGS = -DOCLGRIND_ICD $(AM_CPPFLAGS)
+liboclgrind_rt_icd_la_SOURCES = $(RUNTIME_SOURCES)
+liboclgrind_rt_icd_la_LIBADD = liboclgrind.la
+liboclgrind_rt_icd_la_LDFLAGS = -shared
 
 bin_PROGRAMS = oclgrind-kernel
-oclgrind_kernel_SOURCES = src/oclgrind-kernel/main.cpp			\
- src/oclgrind-kernel/Simulation.h src/oclgrind-kernel/Simulation.cpp
-oclgrind_kernel_LDADD = libspirsim.la
+oclgrind_kernel_SOURCES = src/kernel/oclgrind-kernel.cpp src/kernel/Simulation.h	\
+ src/kernel/Simulation.cpp
+oclgrind_kernel_LDADD = liboclgrind.la
 
 bin_SCRIPTS = oclgrind
-oclgrind: $(top_srcdir)/src/oclgrind/oclgrind
-	cat $(top_srcdir)/src/oclgrind/oclgrind \
+oclgrind: $(top_srcdir)/src/runtime/oclgrind
+	cat $(top_srcdir)/src/runtime/oclgrind \
 	| $(SED) 's|__ROOT__|'$(prefix)'|g' \
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>oclgrind
 
 check_PROGRAMS = tests/apps/vecadd/vecadd
-tests_apps_vecadd_vecadd_LDADD = liboclgrind.la
+tests_apps_vecadd_vecadd_LDADD = liboclgrind-rt.la
 TESTS = $(check_PROGRAMS)
 
 TEST_EXTENSIONS = .sim
@@ -110,7 +109,7 @@ AM_TESTS_ENVIRONMENT = export AM_TESTS=1;
 
 if HAVE_PYTHON
 TESTS += $(KERNEL_TESTS)
-XFAIL_TESTS =								\
+XFAIL_TESTS =							\
 	tests/kernels/atomics/atomic_intergroup_race.sim	\
 	tests/kernels/atomics/atomic_cmpxchg_race.sim
 else
@@ -120,13 +119,12 @@ check-local:
 	@echo
 endif
 
-EXTRA_DIST = NEWS src/spirsim/gen_clc_h.sh src/spirsim/clc.h		\
- src/oclgrind/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
+EXTRA_DIST = NEWS src/core/gen_clc_h.sh src/core/clc.h			\
+ src/runtime/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
  src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_d3d10.h			\
  src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
  CMakeLists.txt tests/apps/CMakeLists.txt cmake_config.h.in		\
- src/spirsim/gen_clc_h.cmake src/oclgrind/icd.def			\
- src/oclgrind/runtime.def tests/kernels/run_kernel_test.py		\
- tests/kernels/TESTS $(KERNEL_TEST_INPUTS)
-CLEANFILES = src/spirsim/clc_h.cpp $(bin_SCRIPTS)	\
- $(KERNEL_TEST_OUTPUTS)
+ src/core/gen_clc_h.cmake src/runtime/icd.def src/runtime/runtime.def	\
+ tests/kernels/run_kernel_test.py tests/kernels/TESTS			\
+ $(KERNEL_TEST_INPUTS)
+CLEANFILES = src/core/clc_h.cpp $(bin_SCRIPTS) $(KERNEL_TEST_OUTPUTS)

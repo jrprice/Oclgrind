@@ -1,4 +1,4 @@
-set(OUTPUT src/spirsim/clc_h.cpp)
+set(OUTPUT src/core/clc_h.cpp)
 
 file(WRITE ${OUTPUT} "extern const char CLC_H_DATA[] = \n\"")
 

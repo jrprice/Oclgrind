@@ -57,7 +57,7 @@ endif()
 # Add LLVM required macro definitions
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
-# Set INSTALL_ROOT (used by spirsim::Program for finding PCH files)
+# Set INSTALL_ROOT (used by oclgrind::Program for finding PCH files)
 add_definitions(-DINSTALL_ROOT=\"${CMAKE_INSTALL_PREFIX}\")
 
 # Require that SPIR_ROOT is set and pointing to a Clang/SPIR generator
@@ -72,48 +72,48 @@ link_directories(${SPIR_ROOT}/lib)
 
 # Generate stringified clc.h
 add_custom_command(
-  OUTPUT src/spirsim/clc_h.cpp
-  COMMAND ${CMAKE_COMMAND} -DSOURCE_FILE=${CMAKE_SOURCE_DIR}/src/spirsim/clc.h
-    -P ${CMAKE_SOURCE_DIR}/src/spirsim/gen_clc_h.cmake
-  DEPENDS src/spirsim/clc.h src/spirsim/gen_clc_h.cmake
+  OUTPUT src/core/clc_h.cpp
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_FILE=${CMAKE_SOURCE_DIR}/src/core/clc.h
+    -P ${CMAKE_SOURCE_DIR}/src/core/gen_clc_h.cmake
+  DEPENDS src/core/clc.h src/core/gen_clc_h.cmake
 )
 
 include_directories("src/" "${PROJECT_BINARY_DIR}")
 
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  set(SPIRSIM_LIB_TYPE "SHARED")
-  set(SPIRSIM_EXTRA_LIBS "${CMAKE_DL_LIBS}")
+  set(CORE_LIB_TYPE "SHARED")
+  set(CORE_EXTRA_LIBS "${CMAKE_DL_LIBS}")
 
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    list(APPEND SPIRSIM_EXTRA_LIBS "pthread")
+    list(APPEND CORE_EXTRA_LIBS "pthread")
   endif()
 endif()
 
-set(SPIRSIM_HEADERS
-  src/spirsim/clc.h
-  src/spirsim/common.h
-  src/spirsim/Device.h
-  src/spirsim/half.h
-  src/spirsim/Kernel.h
-  src/spirsim/Memory.h
-  src/spirsim/Program.h
-  src/spirsim/Queue.h
-  src/spirsim/WorkItem.h
-  src/spirsim/WorkGroup.h)
+set(CORE_HEADERS
+  src/core/clc.h
+  src/core/common.h
+  src/core/Device.h
+  src/core/half.h
+  src/core/Kernel.h
+  src/core/Memory.h
+  src/core/Program.h
+  src/core/Queue.h
+  src/core/WorkItem.h
+  src/core/WorkGroup.h)
 
-add_library(spirsim ${SPIRSIM_LIB_TYPE}
-  ${SPIRSIM_HEADERS}
-  src/spirsim/clc_h.cpp
-  src/spirsim/common.cpp
-  src/spirsim/Device.cpp
-  src/spirsim/Kernel.cpp
-  src/spirsim/Memory.cpp
-  src/spirsim/Program.cpp
-  src/spirsim/Queue.cpp
-  src/spirsim/WorkItem.cpp
-  src/spirsim/WorkItemBuiltins.cpp
-  src/spirsim/WorkGroup.cpp)
-target_link_libraries(spirsim ${SPIRSIM_EXTRA_LIBS}
+add_library(oclgrind ${CORE_LIB_TYPE}
+  ${CORE_HEADERS}
+  src/core/clc_h.cpp
+  src/core/common.cpp
+  src/core/Device.cpp
+  src/core/Kernel.cpp
+  src/core/Memory.cpp
+  src/core/Program.cpp
+  src/core/Queue.cpp
+  src/core/WorkItem.cpp
+  src/core/WorkItemBuiltins.cpp
+  src/core/WorkGroup.cpp)
+target_link_libraries(oclgrind ${CORE_EXTRA_LIBS}
   clangAnalysis clangAST clangBasic clangCodeGen clangDriver clangEdit
   clangFrontend clangLex clangParse clangSema clangSerialization
   LLVMBitReader LLVMBitWriter LLVMAsmParser LLVMInstrumentation
@@ -122,38 +122,38 @@ target_link_libraries(spirsim ${SPIRSIM_EXTRA_LIBS}
   LLVMAnalysis LLVMCore LLVMSupport)
 
 # Sources for OpenCL runtime API frontend
-set(OCLGRIND_SOURCES
-  src/oclgrind/async_queue.h
-  src/oclgrind/async_queue.cpp
-  src/oclgrind/icd.h
-  src/oclgrind/runtime.cpp)
+set(RUNTIME_SOURCES
+  src/runtime/async_queue.h
+  src/runtime/async_queue.cpp
+  src/runtime/icd.h
+  src/runtime/runtime.cpp)
 
 # Add ICD exports on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  list(APPEND OCLGRIND_SOURCES src/oclgrind/icd.def)
+  list(APPEND RUNTIME_SOURCES src/runtime/icd.def)
 endif()
 
-add_library(oclgrind-icd SHARED ${OCLGRIND_SOURCES})
-set_target_properties(oclgrind-icd PROPERTIES COMPILE_FLAGS -DOCLGRIND_ICD)
-target_link_libraries(oclgrind-icd ${CMAKE_DL_LIBS} spirsim)
+add_library(oclgrind-rt-icd SHARED ${RUNTIME_SOURCES})
+set_target_properties(oclgrind-rt-icd PROPERTIES COMPILE_FLAGS -DOCLGRIND_ICD)
+target_link_libraries(oclgrind-rt-icd ${CMAKE_DL_LIBS} oclgrind)
 
 # Add runtime exports on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  list(APPEND OCLGRIND_SOURCES src/oclgrind/runtime.def)
+  list(APPEND RUNTIME_SOURCES src/runtime/runtime.def)
 endif()
 
-add_library(oclgrind SHARED ${OCLGRIND_SOURCES})
-target_link_libraries(oclgrind ${CMAKE_DL_LIBS} spirsim)
+add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES})
+target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
 add_executable(oclgrind-kernel
-  src/oclgrind-kernel/main.cpp
-  src/oclgrind-kernel/Simulation.h
-  src/oclgrind-kernel/Simulation.cpp)
-target_link_libraries(oclgrind-kernel spirsim)
+  src/kernel/oclgrind-kernel.cpp
+  src/kernel/Simulation.h
+  src/kernel/Simulation.cpp)
+target_link_libraries(oclgrind-kernel oclgrind)
 
 # Install oclgrind script if not on Windows
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  file(READ src/oclgrind/oclgrind OCLGRIND_SCRIPT)
+  file(READ src/runtime/oclgrind OCLGRIND_SCRIPT)
   string(REGEX REPLACE
     "__ROOT__" "${CMAKE_INSTALL_PREFIX}"
     OCLGRIND_SCRIPT "${OCLGRIND_SCRIPT}")
@@ -171,37 +171,37 @@ install(TARGETS
   oclgrind-kernel
   DESTINATION bin)
 install(TARGETS
-  oclgrind oclgrind-icd spirsim
+  oclgrind oclgrind-rt oclgrind-rt-icd
   DESTINATION lib)
 install(FILES
-  ${SPIRSIM_HEADERS}
-  DESTINATION include/spirsim
+  ${CORE_HEADERS}
+  DESTINATION include/oclgrind
 )
 
 # Generate precompiled headers for clc.h
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -g -emit-pch -triple spir-unknown-unknown
-  \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc32.pch\"
+  \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
+  -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc32.pch\"
 )")
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown
-  \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc32.noopt.pch\"
+  \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
+  -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc32.noopt.pch\"
 )")
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown
-  \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc64.pch\"
+  \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
+  -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc64.pch\"
 )")
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown
-  \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/spirsim/clc64.noopt.pch\"
+  \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
+  -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc64.noopt.pch\"
 )")
 
 # Tests

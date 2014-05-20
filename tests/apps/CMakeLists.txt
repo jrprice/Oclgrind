@@ -11,7 +11,7 @@ foreach(test
   vecadd)
 
   add_executable(${test} ${test}/${test}.c)
-  target_link_libraries(${test} oclgrind)
+  target_link_libraries(${test} oclgrind-rt)
 
   # Generate test binaries in same dir as Oclgrind libraries on Windows
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")

@@ -12,11 +12,11 @@
 #include <iostream>
 #include <sstream>
 
-#include "oclgrind-kernel/Simulation.h"
-#include "spirsim/Device.h"
-#include "spirsim/Kernel.h"
-#include "spirsim/Memory.h"
-#include "spirsim/Program.h"
+#include "core/Device.h"
+#include "core/Kernel.h"
+#include "core/Memory.h"
+#include "core/Program.h"
+#include "kernel/Simulation.h"
 
 using namespace oclgrind;
 using namespace std;

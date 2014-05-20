@@ -8,7 +8,7 @@
 
 #include "icd.h"
 
-#include "spirsim/Queue.h"
+#include "core/Queue.h"
 
 extern void asyncEnqueue(cl_command_queue queue,
                          cl_command_type type,
