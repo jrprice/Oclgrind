@@ -64,8 +64,9 @@ oclgrind command.
 If you wish to use Oclgrind via the OpenCL ICD (optional), then you
 should also create an ICD loading point. To do this, create the text
 file /etc/OpenCL/vendors/oclgrind.icd, which should contain
-lioclgrind-icd.so (.dylib on OS X), or the full path to this library
-if it isn't already covered by your dynamic library search path.
+lioclgrind-rt-icd.so (.dylib on OS X), or the full path to this
+library if it isn't already covered by your dynamic library search
+path.
 
 
 Building on Windows
@@ -83,7 +84,7 @@ If you wish to use Oclgrind via the OpenCL ICD (optional), then you
 should also create an ICD loading point. To do this, you should add a
 REG_DWORD value to the Windows Registry under one or both of the
 registry keys below, with the name set to the absolute path of the
-oclgrind-icd.dll library and the value set to 0.
+oclgrind-rt-icd.dll library and the value set to 0.
 
 Key for 32-bit machines or 64-bit apps on a 64-bit machine:
 HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors
