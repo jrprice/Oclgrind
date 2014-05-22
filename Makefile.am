@@ -86,16 +86,19 @@ liboclgrind_rt_icd_la_LIBADD = liboclgrind.la
 liboclgrind_rt_icd_la_LDFLAGS = -shared
 
 bin_PROGRAMS = oclgrind-kernel
-oclgrind_kernel_SOURCES = src/kernel/oclgrind-kernel.cpp src/kernel/Simulation.h	\
- src/kernel/Simulation.cpp
+oclgrind_kernel_SOURCES = src/kernel/oclgrind-kernel.cpp	\
+ src/kernel/Simulation.h src/kernel/Simulation.cpp
 oclgrind_kernel_LDADD = liboclgrind.la
 
-bin_SCRIPTS = oclgrind
+bin_SCRIPTS = oclgrind oclgrind.icd
 oclgrind: $(top_srcdir)/src/runtime/oclgrind
 	cat $(top_srcdir)/src/runtime/oclgrind \
 	| $(SED) 's|__ROOT__|'$(prefix)'|g' \
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
-	>oclgrind
+	>$@
+oclgrind.icd:
+	printf $(prefix)/lib/ >$@
+	$(GREP) dlname liboclgrind-rt-icd.la | $(AWK) -F "'" '{print $$2}' >>$@
 
 check_PROGRAMS = tests/apps/vecadd/vecadd
 tests_apps_vecadd_vecadd_LDADD = liboclgrind-rt.la

@@ -34,6 +34,7 @@ liboclgrind-rt.la
 liboclgrind-rt-icd.la
 libtool
 /oclgrind
+oclgrind.icd
 oclgrind-kernel
 src/core/clc_h.cpp
 

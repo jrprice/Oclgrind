@@ -59,15 +59,9 @@ make install
 
 If installing to a non-default location, you should add the bin/
 directory to the PATH environment variable in order to make use of the
-oclgrind command.
-
-If you wish to use Oclgrind via the OpenCL ICD (optional), then you
-should also create an ICD loading point. To do this, create the text
-file /etc/OpenCL/vendors/oclgrind.icd, which should contain
-lioclgrind-rt-icd.so (.dylib on OS X), or the full path to this
-library if it isn't already covered by your dynamic library search
-path.
-
+oclgrind command. If you wish to use Oclgrind via the OpenCL ICD
+(optional), then you create an ICD loading point by copying the
+oclgrind.icd file from your the directory to /etc/OpenCL/vendors/.
 
 Building on Windows
 -------------------
