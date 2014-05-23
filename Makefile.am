@@ -97,7 +97,7 @@ oclgrind: $(top_srcdir)/src/runtime/oclgrind
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>$@
 oclgrind.icd: liboclgrind-rt-icd.la
-	printf $(prefix)/lib/ >$@
+	printf $(libdir)/ >$@
 	$(GREP) dlname $< | $(AWK) -F "'" '{print $$2}' >>$@
 
 check_PROGRAMS = tests/apps/vecadd/vecadd
