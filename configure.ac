@@ -33,6 +33,8 @@ AH_BOTTOM([
 
 LT_INIT
 
+oclgrind_extra_libs=
+
 # Enable C++11 if available
 AX_CXX_COMPILE_STDCXX_11(, [optional])
 
@@ -42,8 +44,8 @@ CPPFLAGS="$CPPFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
 # --with-spir option to specify root of Clang/SPIR generator
 AC_ARG_WITH(
         spir,
-        AS_HELP_STRING([--with-spir],
-                       [directory containing Clang/SPIR generator ]),
+        [AS_HELP_STRING([--with-spir],
+                       [directory containing Clang/SPIR generator ])],
         [CPPFLAGS="$CPPFLAGS -I$withval/include";
          LDFLAGS="$LDFLAGS -L$withval/lib";
          AC_SUBST(clang_spir, $withval/bin/clang)])
@@ -52,17 +54,56 @@ AC_ARG_WITH(
 AC_CHECK_HEADERS(
         [llvm/Instruction.h clang/CodeGen/CodeGenAction.h],
         [:],
-        AC_MSG_ERROR([LLVM/Clang includes not found (use --with-spir=)]),
-        $DISABLE_ALIGNAS)
+        [AC_MSG_ERROR([LLVM/Clang includes not found (use --with-spir=)])],
+        [$DISABLE_ALIGNAS])
 
 AC_CHECK_LIB(
         [clang],
         [clang_getClangVersion],
         [:],
-        AC_MSG_ERROR([Clang library not found (use --with-spir)]))
+        [AC_MSG_ERROR([Clang library not found (use --with-spir)])])
 
 # Find Clang/SPIR binary (assume clang on PATH if --with-spir not used)
 AC_CHECK_PROG(clang_spir, [clang], `which clang`)
+
+
+# GNU readline library (for interactive debugger)
+AC_ARG_WITH(
+        [readline],
+        AS_HELP_STRING([--with-readline],
+                       [location of GNU readline library]),
+        [CPPFLAGS="$CPPFLAGS -I$withval/include";
+         LDFLAGS="$LDFLAGS -L$withval/lib"])
+
+have_readline=true
+AC_CHECK_HEADER(
+        [readline/readline.h],
+        [:],
+        [have_readline=false])
+AC_CHECK_HEADER(
+        [readline/history.h],
+        [:],
+        [have_readline=false])
+AC_CHECK_LIB(
+        [readline],
+        [readline],
+        [:],
+        [have_readline=false])
+AC_CHECK_LIB(
+        [readline],
+        [add_history],
+        [:],
+        [have_readline=false])
+if test $have_readline = true; then
+    AC_DEFINE([HAVE_READLINE], [1], [Define to 1 if GNU readline found])
+    oclgrind_extra_libs="$oclgrind_extra_libs -lreadline"
+else
+    AC_MSG_WARN([GNU readline library not found (use --with-readline)])
+fi
+
+
+AC_SUBST([oclgrind_extra_libs], [$oclgrind_extra_libs])
+
 
 # Check if Python is available (required to run tests)
 AM_PATH_PYTHON(,,[:])

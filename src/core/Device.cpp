@@ -11,6 +11,11 @@
 #include <iterator>
 #include <sstream>
 
+#if HAVE_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
+
 #include "llvm/DebugInfo.h"
 #include "llvm/Instructions.h"
 
@@ -529,9 +534,32 @@ void Device::run(Kernel& kernel, unsigned int workDim,
     while (m_running)
     {
       // Prompt for command
+      bool eof = false;
       string cmd;
-      cout << "(oclgrind) " << std::flush;
+#if HAVE_READLINE
+      char *line = readline("(oclgrind) ");
+      if (line)
+      {
+        cmd = line;
+        free(line);
+      }
+      else
+      {
+        eof = true;
+      }
+#else
+      cout << "(oclgrind) " << flush;
       getline(cin, cmd);
+      eof = cin.eof();
+#endif
+
+      // Quit on EOF
+      if (eof)
+      {
+        cout << "(quit)" << endl;
+        quit(vector<string>());
+        break;
+      }
 
       // Split command into tokens
       vector<string> tokens;
@@ -540,16 +568,15 @@ void Device::run(Kernel& kernel, unsigned int workDim,
            istream_iterator<string>(),
            back_inserter< vector<string> >(tokens));
 
-      // Check for end of stream or empty command
-      if (cin.eof())
-      {
-        cout << "(quit)" << endl;
-        quit(tokens);
-      }
+      // Skip empty lines
       if (tokens.size() == 0)
       {
         continue;
       }
+
+#if HAVE_READLINE
+      add_history(cmd.c_str());
+#endif
 
       // Find command in map and execute
       map<string,Command>::iterator itr = m_commands.find(tokens[0]);

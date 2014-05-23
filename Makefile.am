@@ -31,7 +31,7 @@ liboclgrind_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
 -lLLVMipo -lLLVMipa -lLLVMInstCombine -lLLVMLinker -lLLVMMC		\
 -lLLVMMCParser -lLLVMScalarOpts -lLLVMTarget -lLLVMTransformUtils	\
 -lLLVMVectorize -lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lpthread	\
--shared
+$(oclgrind_extra_libs) -shared
 oclgrind_includedir = $(includedir)/oclgrind
 oclgrind_include_HEADERS = src/core/common.h src/core/Device.h	\
  src/core/half.h src/core/Kernel.h src/core/Memory.h		\

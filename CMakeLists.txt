@@ -11,14 +11,15 @@ project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 14)
 set(Oclgrind_VERSION_MINOR 5)
 
+include(CheckIncludeFiles)
+include(CheckLibraryExists)
+
 # Warn if not using Windows
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   message(WARNING
 "CMake build on non-Windows platform detected.\n"
 "Recommended build system for Unix is 'configure' and 'make'.")
 endif()
-
-configure_file("cmake_config.h.in" "config.h")
 
 # Set RPATH
 set(CMAKE_MACOSX_RPATH 1)
@@ -70,6 +71,31 @@ endif()
 include_directories(${SPIR_ROOT}/include)
 link_directories(${SPIR_ROOT}/lib)
 
+# Check for GNU readline library
+if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  set(READLINE_DIR "" CACHE PATH "Location of GNU readline library")
+
+  set(CMAKE_REQUIRED_INCLUDES ${READLINE_DIR}/include)
+  include_directories(${READLINE_DIR}/include)
+  link_directories(${READLINE_DIR}/lib)
+
+  message(STATUS ${CMAKE_REQUIRED_LIBRARIES})
+
+  check_include_files(readline/readline.h HAVE_READLINE_H)
+  check_include_files(readline/history.h HAVE_HISTORY_H)
+  check_library_exists(readline readline "${READLINE_DIR}/lib" HAVE_READLINE_LIB)
+  check_library_exists(readline add_history "${READLINE_DIR}/lib" HAVE_HISTORY_LIB)
+  if (HAVE_READLINE_H AND HAVE_HISTORY_H AND
+      HAVE_READLINE_LIB AND HAVE_HISTORY_LIB)
+    set(HAVE_READLINE 1)
+    list(APPEND CORE_EXTRA_LIBS readline)
+  else()
+    set(HAVE_READLINE 0)
+    message(WARNING "GNU readline library not found (set READLINE_DIR)\n"
+                    "The interactive debugger will not have a command history.")
+  endif()
+endif()
+
 # Generate stringified clc.h
 add_custom_command(
   OUTPUT src/core/clc_h.cpp
@@ -82,7 +108,7 @@ include_directories("src/" "${PROJECT_BINARY_DIR}")
 
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CORE_LIB_TYPE "SHARED")
-  set(CORE_EXTRA_LIBS "${CMAKE_DL_LIBS}")
+  list(APPEND CORE_EXTRA_LIBS "${CMAKE_DL_LIBS}")
 
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     list(APPEND CORE_EXTRA_LIBS "pthread")
@@ -207,6 +233,11 @@ install(CODE "execute_process(COMMAND
   \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
   -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc64.noopt.pch\"
 )")
+
+
+# Generate config.h
+configure_file("cmake_config.h.in" "config.h")
+
 
 # Tests
 enable_testing()
