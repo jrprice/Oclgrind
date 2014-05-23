@@ -131,11 +131,13 @@ namespace
     const char *checkAPI = getenv("OCLGRIND_CHECK_API");
     if (checkAPI && strcmp(checkAPI, "1") == 0)
     {
-      cerr << endl << "OCLGRIND: " << function << " generated ";
-      cerr << CLErrorToString(err);
+      cerr << endl
+           << "Oclgrind - OpenCL runtime error detected" << endl
+           << "\tFunction: " << function << endl
+           << "\tError:    " << CLErrorToString(err) << endl;
       if (argument)
       {
-        cerr << " for argument '" << argument << "'";
+        cerr << "\tFor argument '" << argument << "'" << endl;
       }
       cerr << endl;
     }
