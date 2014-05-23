@@ -4055,13 +4055,17 @@ clEnqueueReadImage
     slice_pitch = pixel_region[1] * row_pitch;
   }
 
-  // TODO: Event should be CL_COMMAND_READ_IMAGE
-  return clEnqueueReadBufferRect(command_queue, image, blocking_read,
-                                 buffer_origin, host_origin, pixel_region,
-                                 img_row_pitch, img_slice_pitch,
-                                 row_pitch, slice_pitch,
-                                 ptr, num_events_in_wait_list,
-                                 event_wait_list, event);
+  // Enqueue read
+  cl_int ret = clEnqueueReadBufferRect(
+    command_queue, image, blocking_read,
+    buffer_origin, host_origin, pixel_region,
+    img_row_pitch, img_slice_pitch, row_pitch, slice_pitch,
+    ptr, num_events_in_wait_list, event_wait_list, event);
+  if (event)
+  {
+    (*event)->type = CL_COMMAND_READ_IMAGE;
+  }
+  return ret;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4108,13 +4112,17 @@ clEnqueueWriteImage
     input_slice_pitch = pixel_region[1] * input_row_pitch;
   }
 
-  // TODO: Event should be CL_COMMAND_WRITE_IMAGE
-  return clEnqueueWriteBufferRect(command_queue, image, blocking_write,
-                                  buffer_origin, host_origin, pixel_region,
-                                  img_row_pitch, img_slice_pitch,
-                                  input_row_pitch, input_slice_pitch,
-                                  ptr, num_events_in_wait_list,
-                                  event_wait_list, event);
+  // Enqueue write
+  cl_int ret = clEnqueueWriteBufferRect(
+    command_queue, image, blocking_write,
+    buffer_origin, host_origin, pixel_region,
+    img_row_pitch, img_slice_pitch, input_row_pitch, input_slice_pitch,
+    ptr, num_events_in_wait_list, event_wait_list, event);
+  if (event)
+  {
+    (*event)->type = CL_COMMAND_WRITE_IMAGE;
+  }
+  return ret;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4163,14 +4171,17 @@ clEnqueueCopyImage
   size_t dst_row_pitch = dst->desc.image_width * dstPixelSize;
   size_t dst_slice_pitch = dst->desc.image_height * dst_row_pitch;
 
-  // TODO: Event should be CL_COMMAND_COPY_IMAGE
-  return clEnqueueCopyBufferRect(command_queue, src_image, dst_image,
-                                 src_pixel_origin, dst_pixel_origin,
-                                 pixel_region,
-                                 src_row_pitch, src_slice_pitch,
-                                 dst_row_pitch, dst_slice_pitch,
-                                 num_events_in_wait_list,
-                                 event_wait_list, event);
+  // Enqueue copy
+  cl_int ret = clEnqueueCopyBufferRect(
+    command_queue, src_image, dst_image,
+    src_pixel_origin, dst_pixel_origin, pixel_region,
+    src_row_pitch, src_slice_pitch, dst_row_pitch, dst_slice_pitch,
+    num_events_in_wait_list, event_wait_list, event);
+  if (event)
+  {
+    (*event)->type = CL_COMMAND_COPY_IMAGE;
+  }
+  return ret;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4207,13 +4218,17 @@ clEnqueueCopyImageToBuffer
   size_t pixel_region[3] = {region[0]*pixel_size, region[1], region[2]};
   size_t dst_origin[3] = {dst_offset, 0, 0};
 
-  // TODO: Event should be CL_COMMAND_COPY_IMAGE_TO_BUFFER
-  return clEnqueueCopyBufferRect(command_queue, src_image, dst_buffer,
-                                 src_pixel_origin, dst_origin,
-                                 pixel_region,
-                                 src_row_pitch, src_slice_pitch, 0, 0,
-                                 num_events_in_wait_list,
-                                 event_wait_list, event);
+  // Enqueue copy
+  cl_int ret = clEnqueueCopyBufferRect(
+    command_queue, src_image, dst_buffer,
+    src_pixel_origin, dst_origin, pixel_region,
+    src_row_pitch, src_slice_pitch, 0, 0,
+    num_events_in_wait_list, event_wait_list, event);
+  if (event)
+  {
+    (*event)->type = CL_COMMAND_COPY_IMAGE_TO_BUFFER;
+  }
+  return ret;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
@@ -4250,13 +4265,17 @@ clEnqueueCopyBufferToImage
   size_t pixel_region[3] = {region[0]*pixel_size, region[1], region[2]};
   size_t src_origin[3] = {src_offset, 0, 0};
 
-  // TODO: Event should be CL_COMMAND_COPY_BUFFER_TO_IMAGE
-  return clEnqueueCopyBufferRect(command_queue, src_buffer, dst_image,
-                                 src_origin, dst_pixel_origin,
-                                 pixel_region,
-                                 0, 0, dst_row_pitch, dst_slice_pitch,
-                                 num_events_in_wait_list,
-                                 event_wait_list, event);
+  // Enqueue copy
+  cl_int ret = clEnqueueCopyBufferRect(
+    command_queue, src_buffer, dst_image,
+    src_origin, dst_pixel_origin, pixel_region,
+    0, 0, dst_row_pitch, dst_slice_pitch,
+    num_events_in_wait_list, event_wait_list, event);
+  if (event)
+  {
+    (*event)->type = CL_COMMAND_COPY_BUFFER_TO_IMAGE;
+  }
+  return ret;
 }
 
 CL_API_ENTRY void* CL_API_CALL
