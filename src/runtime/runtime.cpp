@@ -131,6 +131,12 @@ namespace
     const char *checkAPI = getenv("OCLGRIND_CHECK_API");
     if (checkAPI && strcmp(checkAPI, "1") == 0)
     {
+      // Remove leading underscore from function name if necessary
+      if (!strncmp(function, "_cl", 3))
+      {
+        function++;
+      }
+
       cerr << endl
            << "Oclgrind - OpenCL runtime error detected" << endl
            << "\tFunction: " << function << endl
