@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-#ifdef HAVE_CXX11
+#if HAVE_CXX11
 #include <unordered_map>
 #define MAP unordered_map
 #else
