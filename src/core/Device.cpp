@@ -242,7 +242,7 @@ void Device::notifyDataRace(DataRaceType type, unsigned int addrSpace,
     gx = lastWorkItem % m_globalSize[0];
     gy = (lastWorkItem - gx) / m_globalSize[1];
     gz = (lastWorkItem - gy - gx) / m_globalSize[2];
-    cerr << "\tRace occured with work-item (" << dec
+    cerr << "\tRace occurred with work-item (" << dec
          << gx << ","
          << gy << ","
          << gz << ")" << endl;
@@ -253,14 +253,14 @@ void Device::notifyDataRace(DataRaceType type, unsigned int addrSpace,
     gx = lastWorkGroup % m_numGroups[0];
     gy = (lastWorkGroup - gx) / m_numGroups[1];
     gz = (lastWorkGroup - gy - gx) / m_numGroups[2];
-    cerr << "\tRace occured with work-group (" << dec
+    cerr << "\tRace occurred with work-group (" << dec
          << gx << ","
          << gy << ","
          << gz << ")" << endl;
   }
   else
   {
-    cerr << "\tRace occured with unknown entity" << endl;
+    cerr << "\tRace occurred with unknown entity" << endl;
   }
 
   // Show conflicting instruction
