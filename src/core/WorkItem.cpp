@@ -34,6 +34,92 @@ vector<size_t> WorkItem::m_instructionCounts;
 vector<size_t> WorkItem::m_memopBytes;
 vector<const llvm::Function*> WorkItem::m_countedFunctions;
 
+namespace {
+  /// Calculates the common multiple of two numbers
+  template<typename T>
+  T getCommonMultiple(T a, T b) {
+    T small = std::min(a,b);
+    T large = std::max(a,b);
+
+    // Evenly divisible
+    if (large % small == 0)
+      return large;
+
+    T uRem = large % small;
+    while (uRem != 0) {
+      large = small;
+      small = uRem;
+      uRem = large % small;
+    }
+
+    return (a * b) / small;
+  }
+
+  // Forward declaration
+  unsigned getSizeOf(llvm::Type* type);
+
+  /// Returns the byte alignment of this type
+  unsigned getAlignmentOfType(llvm::Type* type) {
+    using namespace llvm;
+    // Array types are aligned to their element type
+    if (ArrayType* psAT = dyn_cast<ArrayType>(type)) {
+        return getAlignmentOfType(psAT->getElementType());
+    }
+
+    // Struct alignment is the size of its largest contained type
+    if (StructType *structT = dyn_cast<StructType>(type)) {
+        uint32_t uAlign = 0, uMaxAlign = 1;
+        uint32_t uCount = structT->getNumElements();
+        for (uint32_t i = 0; i < uCount; i++) {
+            Type* psElemType = structT->getTypeAtIndex(i);
+            uAlign = getAlignmentOfType(psElemType);
+
+            if (uAlign > uMaxAlign)
+                uMaxAlign = uAlign;
+        }
+
+        return uMaxAlign;
+    }
+
+    return getSizeOf(type);
+  }
+
+  /// Attempts to retrieve the size in bytes of this type
+  unsigned getSizeOf(llvm::Type* type) {
+    using namespace llvm;
+    if (VectorType* vecTy = dyn_cast<VectorType>(type)) {
+        return vecTy->getNumElements() * getSizeOf(vecTy->getElementType());
+    }
+    if (ArrayType *arrayT = dyn_cast<ArrayType>(type)) {
+        return (arrayT->getNumElements() * getSizeOf(arrayT->getElementType()));
+    }
+    if (StructType *structT = dyn_cast<StructType>(type)) {
+      uint32_t largestMember = 0;
+      uint32_t size = getSizeOf(structT->getTypeAtIndex(0u));
+      uint32_t structAlign = getAlignmentOfType(structT->getTypeAtIndex(0u));
+      for (unsigned int i = 1; i < structT->getNumElements(); i++) {
+        Type* psElemType = structT->getTypeAtIndex(i);
+        uint32_t elementSize = getSizeOf(psElemType);
+        uint32_t elementAlign = getAlignmentOfType(psElemType);
+        structAlign = getCommonMultiple(structAlign, elementAlign);
+        // Pad the previous element to make the new one aligned
+        uint32_t uAlign = size % elementAlign;
+        if (uAlign != 0) size += (elementAlign - uAlign);
+        size += elementSize;
+      }
+
+      // Follow C standard for struct alignment
+      uint32_t alignement = size % structAlign;
+      if (alignement != 0) size += (structAlign - alignement);
+
+      return size;
+    }
+
+    // use std::max because the division returns 0 for bool
+    return std::max(type->getScalarSizeInBits() / 8, 1u);
+  }
+}
+
 WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
                    size_t lid_x, size_t lid_y, size_t lid_z)
   : m_device(device), m_workGroup(workGroup), m_kernel(kernel)
@@ -1571,10 +1657,21 @@ void WorkItem::insertval(const llvm::Instruction& instruction,
 
 void WorkItem::inttoptr(const llvm::Instruction& instruction, TypedValue& result)
 {
-  const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
-  for (int i = 0; i < result.num; i++)
-  {
+  // Generate a mask to test pointer alignment
+  const unsigned destSize =
+    getAlignmentOfType(instruction.getType()->getPointerElementType());
+  const unsigned alignment = log2(destSize);
+  const unsigned mask = ~(((unsigned)-1) << alignment);
+
+  for (int i = 0; i < result.num; i++)  {
     uint64_t r = getUnsignedInt(instruction.getOperand(0), i);
+    // Verify that the cast pointer fits the alignment requirements
+    // of the destination type (undefined behaviour in C99)
+    if ((r & mask) != 0) {
+      // The new pointer is not aligned to its base type
+      cerr << "Invalid pointer cast - destination pointer is not aligned "
+        "to the pointed type." << endl;
+    }
     setIntResult(result, r, i);
   }
 }
