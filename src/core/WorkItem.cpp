@@ -1582,9 +1582,8 @@ void WorkItem::inttoptr(const llvm::Instruction& instruction, TypedValue& result
     // Verify that the cast pointer fits the alignment requirements
     // of the destination type (undefined behaviour in C99)
     if ((r & mask) != 0) {
-      // The new pointer is not aligned to its base type
-      cerr << "Invalid pointer cast - destination pointer is not aligned "
-        "to the pointed type." << endl;
+      m_device->notifyError("Invalid pointer cast - destination pointer is"
+        " not aligned to the pointed type.");
     }
     setIntResult(result, r, i);
   }
