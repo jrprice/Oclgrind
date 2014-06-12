@@ -305,12 +305,12 @@ void Device::notifyDivergence(const llvm::Instruction *instruction,
   m_forceBreak = true;
 }
 
-void Device::notifyError(string error, string info)
+void Device::notifyError(const char* error, const char* info)
 {
   // Error info
   cerr << endl << error << ":" << endl;
   printErrorContext();
-  if (!info.empty())
+  if (info)
   {
     cerr << "\t" << info << endl;
   }
