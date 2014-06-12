@@ -282,7 +282,7 @@ namespace oclgrind
         alignment = max(alignment, align);
       }
 
-      // Aligment of struct should match member with largest aligment
+      // Alignment of struct should match member with largest alignment
       if (!packed && size % alignment)
       {
         size += (alignment - (size%alignment));
@@ -303,8 +303,66 @@ namespace oclgrind
     }
     else
     {
-      return ((llvm::Type*)type)->getScalarSizeInBits()>>3;
+      // For some reason, getScalarSizeInBits is not const
+      llvm::Type* nonConstTy = const_cast<llvm::Type*>(type);
+
+      // Round up for types that have a bit size not multiple of 8
+      // like "bool".
+      size_t ret = nonConstTy->getScalarSizeInBits() / 8;
+      if (nonConstTy->getScalarSizeInBits() % 8)
+        ret++;
+
+      return ret;
     }
+  }
+
+  namespace {
+    /// Calculates the common multiple of two numbers
+    template<typename T>
+    T getCommonMultiple(T a, T b) {
+      T small = std::min(a,b);
+      T large = std::max(a,b);
+
+      // Evenly divisible
+      if (large % small == 0)
+        return large;
+
+      T uRem = large % small;
+      while (uRem != 0) {
+        large = small;
+        small = uRem;
+        uRem = large % small;
+      }
+
+      return (a * b) / small;
+    }
+  }
+
+  /// Returns the byte alignment of this type
+  size_t getTypeAlignment(const llvm::Type* type) {
+    using namespace llvm;
+    // Array types are aligned to their element type
+    if (const ArrayType* psAT = dyn_cast<ArrayType>(type)) {
+      return getTypeAlignment(psAT->getElementType());
+    }
+
+    // Struct alignment is the size of its largest contained type
+    if (const StructType* structT = dyn_cast<StructType>(type)) {
+      StructType* nonConstTy = const_cast<StructType*>(structT);
+      uint32_t uAlign = 0, uMaxAlign = 1;
+      uint32_t uCount = structT->getNumElements();
+      for (uint32_t i = 0; i < uCount; i++) {
+          const Type* psElemType = nonConstTy->getTypeAtIndex(i);
+          uAlign = getTypeAlignment(psElemType);
+
+          if (uAlign > uMaxAlign)
+              uMaxAlign = uAlign;
+      }
+
+      return uMaxAlign;
+    }
+
+    return getTypeSize(type);
   }
 
   pair<size_t,size_t> getValueSize(const llvm::Value *value)
