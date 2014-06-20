@@ -1605,6 +1605,15 @@ void WorkItem::load(const llvm::Instruction& instruction,
   unsigned addressSpace = loadInst->getPointerAddressSpace();
   size_t address = getPointer(loadInst->getPointerOperand());
 
+  // Generate a mask to test pointer alignment
+  const unsigned destSize = getTypeAlignment(loadInst->getType());
+  const unsigned alignment = log2(destSize);
+  const unsigned mask = ~(((unsigned)-1) << alignment);
+  if ((address & mask) != 0) {
+    m_device->notifyError("Invalid memory load - source pointer is"
+      " not aligned to the pointed type.");
+  }
+
   // Load data
   size_t size = result.size*result.num;
   getMemory(addressSpace)->load(result.data, address, size);
@@ -1876,8 +1885,16 @@ void WorkItem::store(const llvm::Instruction& instruction)
   unsigned addressSpace = storeInst->getPointerAddressSpace();
   size_t address = getPointer(storeInst->getPointerOperand());
 
+  // Generate a mask to test pointer alignment
+  const unsigned alignment = log2(getTypeAlignment(type));
+  const unsigned mask = ~(((unsigned)-1) << alignment);
+  if ((address & mask) != 0) {
+    m_device->notifyError("Invalid memory load - source pointer is"
+      " not aligned to the pointed type.");
+  }
+
   // Get store operand
-  size_t size = getTypeSize(valOp->getType());
+  size_t size = getTypeSize(type);
   unsigned char *data = m_pool.alloc(size);
   if (isConstantOperand(valOp))
   {
