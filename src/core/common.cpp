@@ -316,28 +316,6 @@ namespace oclgrind
     }
   }
 
-  namespace {
-    /// Calculates the common multiple of two numbers
-    template<typename T>
-    T getCommonMultiple(T a, T b) {
-      T small = std::min(a,b);
-      T large = std::max(a,b);
-
-      // Evenly divisible
-      if (large % small == 0)
-        return large;
-
-      T uRem = large % small;
-      while (uRem != 0) {
-        large = small;
-        small = uRem;
-        uRem = large % small;
-      }
-
-      return (a * b) / small;
-    }
-  }
-
   /// Returns the byte alignment of this type
   size_t getTypeAlignment(const llvm::Type* type) {
     using namespace llvm;
@@ -348,6 +326,7 @@ namespace oclgrind
 
     // Struct alignment is the size of its largest contained type
     if (const StructType* structT = dyn_cast<StructType>(type)) {
+      if (structT->isPacked()) return 1;
       StructType* nonConstTy = const_cast<StructType*>(structT);
       uint32_t uAlign = 0, uMaxAlign = 1;
       uint32_t uCount = structT->getNumElements();
