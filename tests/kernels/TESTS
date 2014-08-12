@@ -1,3 +1,5 @@
+alignment/packed
+alignment/unaligned
 async_copy/async_copy
 async_copy/async_copy_divergent
 async_copy/async_copy_global_race

@@ -1,0 +1,5 @@
+ERROR EXPECTED
+
+Argument 'out': 4 bytes
+  out[0] = 2752512
+
