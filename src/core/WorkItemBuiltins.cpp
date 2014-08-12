@@ -285,7 +285,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic add.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_add");
       }
       uint32_t old = memory->atomicAdd(address, UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
@@ -299,7 +299,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic and.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_and");
       }
       uint32_t old = memory->atomicAnd(address, UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
@@ -314,7 +314,7 @@ namespace oclgrind
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
         workItem->getDevice()->
-          notifyError("Unaligned address on atomic cmpxchg.");
+          notifyError("Unaligned address on atomic_cmpxchg");
       }
       uint32_t old = memory->atomicCmpxchg(address, UARG(1), UARG(2));
       workItem->setIntResult(result, (uint64_t)old);
@@ -328,7 +328,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic dec.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_dec");
       }
       uint32_t old = memory->atomicDec(address);
       workItem->setIntResult(result, (uint64_t)old);
@@ -342,7 +342,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic dec.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_dec");
       }
       uint32_t old = memory->atomicInc(address);
       workItem->setIntResult(result, (uint64_t)old);
@@ -356,7 +356,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic max.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_max");
       }
       uint32_t old = memory->atomicMax(address, UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
@@ -370,7 +370,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic min.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_min");
       }
       uint32_t old = memory->atomicMin(address, UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
@@ -384,7 +384,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic or.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_or");
       }
       uint32_t old = memory->atomicOr(address, UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
@@ -398,7 +398,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic sub.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_sub");
       }
       uint32_t old = memory->atomicSub(address, UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
@@ -412,7 +412,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic xchg.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_xchg");
       }
       uint32_t old = memory->atomicXchg(address, UARG(1));
       workItem->setIntResult(result, (uint64_t)old);
@@ -426,7 +426,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic xor.");
+        workItem->getDevice()->notifyError("Unaligned address on atomic_xor");
       }
       uint32_t old = memory->atomicXor(address, UARG(1));
       workItem->setIntResult(result, (uint64_t)old);

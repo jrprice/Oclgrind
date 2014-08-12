@@ -1583,7 +1583,7 @@ void WorkItem::inttoptr(const llvm::Instruction& instruction, TypedValue& result
     // of the destination type (undefined behaviour in C99)
     if ((r & mask) != 0) {
       m_device->notifyError("Invalid pointer cast - destination pointer is"
-        " not aligned to the pointed type.");
+        " not aligned to the pointed type");
     }
     setIntResult(result, r, i);
   }
@@ -1611,7 +1611,7 @@ void WorkItem::load(const llvm::Instruction& instruction,
   const unsigned mask = ~(((unsigned)-1) << alignment);
   if ((address & mask) != 0) {
     m_device->notifyError("Invalid memory load - source pointer is"
-      " not aligned to the pointed type.");
+      " not aligned to the pointed type");
   }
 
   // Load data
@@ -1889,8 +1889,8 @@ void WorkItem::store(const llvm::Instruction& instruction)
   const unsigned alignment = log2(getTypeAlignment(type));
   const unsigned mask = ~(((unsigned)-1) << alignment);
   if ((address & mask) != 0) {
-    m_device->notifyError("Invalid memory load - source pointer is"
-      " not aligned to the pointed type.");
+    m_device->notifyError("Invalid memory store - source pointer is"
+      " not aligned to the pointed type");
   }
 
   // Get store operand
