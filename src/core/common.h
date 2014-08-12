@@ -88,6 +88,9 @@ namespace oclgrind
   // Returns the size of a type
   size_t getTypeSize(const llvm::Type *type);
 
+  /// Returns the alignment requirements of this type
+  size_t getTypeAlignment(const llvm::Type* type);
+
   // Returns the size of a value
   std::pair<size_t,size_t> getValueSize(const llvm::Value *value);
 

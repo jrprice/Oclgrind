@@ -134,6 +134,7 @@ namespace oclgrind
                              unsigned int index = 0);
     static void setIntResult(TypedValue& result, uint64_t val,
                              unsigned int index = 0);
+    Device* getDevice() {return m_device;}
     State step();
 
     // SPIR instructions

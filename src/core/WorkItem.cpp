@@ -1571,10 +1571,20 @@ void WorkItem::insertval(const llvm::Instruction& instruction,
 
 void WorkItem::inttoptr(const llvm::Instruction& instruction, TypedValue& result)
 {
-  const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
-  for (int i = 0; i < result.num; i++)
-  {
+  // Generate a mask to test pointer alignment
+  const unsigned destSize =
+    getTypeAlignment(instruction.getType()->getPointerElementType());
+  const unsigned alignment = log2(destSize);
+  const unsigned mask = ~(((unsigned)-1) << alignment);
+
+  for (int i = 0; i < result.num; i++)  {
     uint64_t r = getUnsignedInt(instruction.getOperand(0), i);
+    // Verify that the cast pointer fits the alignment requirements
+    // of the destination type (undefined behaviour in C99)
+    if ((r & mask) != 0) {
+      m_device->notifyError("Invalid pointer cast - destination pointer is"
+        " not aligned to the pointed type.");
+    }
     setIntResult(result, r, i);
   }
 }
@@ -1594,6 +1604,15 @@ void WorkItem::load(const llvm::Instruction& instruction,
   const llvm::LoadInst *loadInst = (const llvm::LoadInst*)&instruction;
   unsigned addressSpace = loadInst->getPointerAddressSpace();
   size_t address = getPointer(loadInst->getPointerOperand());
+
+  // Generate a mask to test pointer alignment
+  const unsigned destSize = getTypeAlignment(loadInst->getType());
+  const unsigned alignment = log2(destSize);
+  const unsigned mask = ~(((unsigned)-1) << alignment);
+  if ((address & mask) != 0) {
+    m_device->notifyError("Invalid memory load - source pointer is"
+      " not aligned to the pointed type.");
+  }
 
   // Load data
   size_t size = result.size*result.num;
@@ -1866,8 +1885,16 @@ void WorkItem::store(const llvm::Instruction& instruction)
   unsigned addressSpace = storeInst->getPointerAddressSpace();
   size_t address = getPointer(storeInst->getPointerOperand());
 
+  // Generate a mask to test pointer alignment
+  const unsigned alignment = log2(getTypeAlignment(type));
+  const unsigned mask = ~(((unsigned)-1) << alignment);
+  if ((address & mask) != 0) {
+    m_device->notifyError("Invalid memory load - source pointer is"
+      " not aligned to the pointed type.");
+  }
+
   // Get store operand
-  size_t size = getTypeSize(valOp->getType());
+  size_t size = getTypeSize(type);
   unsigned char *data = m_pool.alloc(size);
   if (isConstantOperand(valOp))
   {
