@@ -57,7 +57,12 @@ void Simulation::dumpArgument(DumpArg& arg)
 
   for (size_t i = 0; i < num; i++)
   {
-    cout << "  " << arg.name << "[" << i << "] = " << data[i] << endl;
+    cout << "  " << arg.name << "[" << i << "] = ";
+    if (sizeof(T) == 1)
+      cout << (int)data[i];
+    else
+      cout << data[i];
+    cout << endl;
   }
   cout << endl;
 
