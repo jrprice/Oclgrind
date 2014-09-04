@@ -85,7 +85,7 @@ fi
 # Inject liboclgrind.{so,dylib} and run command
 if [ "$(uname -s)" == "Darwin" ]
 then
-  DYLD_INSERT_LIBRARIES=__LIBDIR__/liboclgrind-rt.dylib
+  DYLD_INSERT_LIBRARIES=__LIBDIR__/liboclgrind-rt.dylib \
       DYLD_FORCE_FLAT_NAMESPACE=1 $@
 else
   LD_PRELOAD=__LIBDIR__/liboclgrind-rt.so $@
