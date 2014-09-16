@@ -90,12 +90,13 @@ oclgrind_kernel_SOURCES = src/kernel/oclgrind-kernel.cpp	\
  src/kernel/Simulation.h src/kernel/Simulation.cpp
 oclgrind_kernel_LDADD = liboclgrind.la
 
-bin_SCRIPTS = oclgrind oclgrind.icd
+bin_SCRIPTS = oclgrind
 oclgrind: $(top_srcdir)/src/runtime/oclgrind
 	cat $(top_srcdir)/src/runtime/oclgrind \
 	| $(SED) 's|__LIBDIR__|'$(libdir)'|g' \
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>$@
+noinst_SCRIPTS = oclgrind.icd
 oclgrind.icd: liboclgrind-rt-icd.la
 	printf $(libdir)/ >$@
 	$(GREP) dlname $< | $(AWK) -F "'" '{print $$2}' >>$@
