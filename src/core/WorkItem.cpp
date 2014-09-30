@@ -2020,7 +2020,7 @@ WorkItem::InterpreterState* WorkItem::InterpreterCache::get(unsigned long uid)
   InterpreterState *state = new InterpreterState;
   m_cache[uid] = state;
 
-#ifdef HAVE_CXX11
+#if HAVE_CXX11
   state->valueIDs.reserve(1024); // TODO: Determine this number dynamically?
 #endif
 
