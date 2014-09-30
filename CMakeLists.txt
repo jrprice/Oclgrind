@@ -262,6 +262,7 @@ if (PYTHONINTERP_FOUND)
   set_tests_properties(
     atomics/atomic_intergroup_race
     atomics/atomic_cmpxchg_race
+    alignment/packed
     PROPERTIES WILL_FAIL TRUE)
 
 else()

@@ -115,7 +115,8 @@ if HAVE_PYTHON
 TESTS += $(KERNEL_TESTS)
 XFAIL_TESTS =							\
 	tests/kernels/atomics/atomic_intergroup_race.sim	\
-	tests/kernels/atomics/atomic_cmpxchg_race.sim
+	tests/kernels/atomics/atomic_cmpxchg_race.sim \
+	tests/kernels/alignment/packed.sim
 else
 check-local:
 	@echo
