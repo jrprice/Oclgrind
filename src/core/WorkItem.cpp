@@ -138,21 +138,21 @@ void WorkItem::clearInstructionCounts()
   m_countedFunctions.clear();
 }
 
-void WorkItem::countInstruction(const llvm::Instruction& instruction)
+void WorkItem::countInstruction(const llvm::Instruction *instruction)
 {
   if (!m_device->isShowingInstructionCounts())
   {
     return;
   }
 
-  unsigned opcode = instruction.getOpcode();
+  unsigned opcode = instruction->getOpcode();
 
   // Check for loads and stores
   if (opcode == llvm::Instruction::Load || opcode == llvm::Instruction::Store)
   {
     // Track operations in separate address spaces
     bool load = (opcode == llvm::Instruction::Load);
-    const llvm::Type *type = instruction.getOperand(load?0:1)->getType();
+    const llvm::Type *type = instruction->getOperand(load?0:1)->getType();
     unsigned addrSpace = type->getPointerAddressSpace();
     opcode = (load ? COUNTED_LOAD_BASE : COUNTED_STORE_BASE) + addrSpace;
 
@@ -163,7 +163,7 @@ void WorkItem::countInstruction(const llvm::Instruction& instruction)
   else if (opcode == llvm::Instruction::Call)
   {
     // Track distinct function calls
-    const llvm::CallInst *callInst = (const llvm::CallInst*)&instruction;
+    const llvm::CallInst *callInst = (const llvm::CallInst*)instruction;
     const llvm::Function *function = callInst->getCalledFunction();
     if (function)
     {
@@ -188,10 +188,10 @@ void WorkItem::countInstruction(const llvm::Instruction& instruction)
   m_instructionCounts[opcode]++;
 }
 
-void WorkItem::dispatch(const llvm::Instruction& instruction,
+void WorkItem::dispatch(const llvm::Instruction *instruction,
                         TypedValue& result)
 {
-  switch (instruction.getOpcode())
+  switch (instruction->getOpcode())
   {
   case llvm::Instruction::Add:
     add(instruction, result);
@@ -209,7 +209,7 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     bitcast(instruction, result);
     break;
   case llvm::Instruction::Br:
-    br(instruction);
+    br(instruction, result);
     break;
   case llvm::Instruction::Call:
     call(instruction, result);
@@ -308,13 +308,13 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     srem(instruction, result);
     break;
   case llvm::Instruction::Store:
-    store(instruction);
+    store(instruction, result);
     break;
   case llvm::Instruction::Sub:
     sub(instruction, result);
     break;
   case llvm::Instruction::Switch:
-    swtch(instruction);
+    swtch(instruction, result);
     break;
   case llvm::Instruction::Trunc:
     itrunc(instruction, result);
@@ -337,14 +337,14 @@ void WorkItem::dispatch(const llvm::Instruction& instruction,
     zext(instruction, result);
     break;
   default:
-    FATAL_ERROR("Unsupported instruction: %s", instruction.getOpcodeName());
+    FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
   }
 }
 
-void WorkItem::execute(const llvm::Instruction& instruction)
+void WorkItem::execute(const llvm::Instruction *instruction)
 {
   // Prepare private variable for instruction result
-  pair<size_t,size_t> resultSize = getValueSize(&instruction);
+  pair<size_t,size_t> resultSize = getValueSize(instruction);
 
   // Prepare result
   TypedValue result = {
@@ -357,7 +357,7 @@ void WorkItem::execute(const llvm::Instruction& instruction)
     result.data = m_pool.alloc(result.size*result.num);
   }
 
-  if (instruction.getOpcode() != llvm::Instruction::PHI &&
+  if (instruction->getOpcode() != llvm::Instruction::PHI &&
       m_phiTemps.size() > 0)
   {
     TypedValueMap::iterator itr;
@@ -375,13 +375,13 @@ void WorkItem::execute(const llvm::Instruction& instruction)
   // Store result
   if (result.size)
   {
-    if (instruction.getOpcode() != llvm::Instruction::PHI)
+    if (instruction->getOpcode() != llvm::Instruction::PHI)
     {
-      set(&instruction, result);
+      set(instruction, result);
     }
     else
     {
-      m_phiTemps[&instruction] = result;
+      m_phiTemps[instruction] = result;
     }
   }
 }
@@ -801,7 +801,7 @@ bool WorkItem::printVariable(string name)
 
 TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
 {
-  llvm::Instruction *instruction = getConstExprAsInstruction(expr);
+  const llvm::Instruction *instruction = getConstExprAsInstruction(expr);
   pair<size_t,size_t> resultSize = getValueSize(instruction);
   TypedValue result =
     {
@@ -810,7 +810,7 @@ TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
       m_pool.alloc(resultSize.first*resultSize.second)
     };
 
-  dispatch(*instruction, result);
+  dispatch(instruction, result);
 
   delete instruction;
 
@@ -874,7 +874,7 @@ WorkItem::State WorkItem::step()
   }
 
   // Execute the next instruction
-  execute(*m_currInst);
+  execute(m_currInst);
 
   // Check if we've reached the end of the block
   if (++m_currInst == m_currBlock->end() || m_nextBlock)
@@ -893,23 +893,26 @@ WorkItem::State WorkItem::step()
 }
 
 
-////////////////////////////////
-//// Instruction execution  ////
-////////////////////////////////
+///////////////////////////////
+//// Instruction execution ////
+///////////////////////////////
 
-void WorkItem::add(const llvm::Instruction& instruction, TypedValue& result)
+#define INSTRUCTION(name) \
+  void WorkItem::name(const llvm::Instruction *instruction, TypedValue& result)
+
+INSTRUCTION(add)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, a + b, i);
   }
 }
 
-void WorkItem::alloc(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(alloc)
 {
-  const llvm::AllocaInst *allocInst = ((const llvm::AllocaInst*)&instruction);
+  const llvm::AllocaInst *allocInst = ((const llvm::AllocaInst*)instruction);
   const llvm::Type *type = allocInst->getAllocatedType();
 
   // Perform allocation
@@ -920,19 +923,19 @@ void WorkItem::alloc(const llvm::Instruction& instruction, TypedValue& result)
   *((size_t*)result.data) = address;
 }
 
-void WorkItem::ashr(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(ashr)
 {
   for (int i = 0; i < result.num; i++)
   {
-    int64_t a = getSignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    int64_t a = getSignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, a >> b, i);
   }
 }
 
-void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(bitcast)
 {
-  const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
+  const llvm::CastInst *cast = (const llvm::CastInst*)instruction;
   const llvm::Value *operand = cast->getOperand(0);
   switch (operand->getValueID())
   {
@@ -978,56 +981,56 @@ void WorkItem::bitcast(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::br(const llvm::Instruction& instruction)
+INSTRUCTION(br)
 {
-  if (instruction.getNumOperands() == 1)
+  if (instruction->getNumOperands() == 1)
   {
     // Unconditional branch
-    m_nextBlock = (const llvm::BasicBlock*)instruction.getOperand(0);
+    m_nextBlock = (const llvm::BasicBlock*)instruction->getOperand(0);
   }
   else
   {
     // Conditional branch
-    bool pred = *((bool*)get(instruction.getOperand(0)).data);
-    const llvm::Value *iftrue = instruction.getOperand(2);
-    const llvm::Value *iffalse = instruction.getOperand(1);
+    bool pred = *((bool*)get(instruction->getOperand(0)).data);
+    const llvm::Value *iftrue = instruction->getOperand(2);
+    const llvm::Value *iffalse = instruction->getOperand(1);
     m_nextBlock = (const llvm::BasicBlock*)(pred ? iftrue : iffalse);
   }
 }
 
-void WorkItem::bwand(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(bwand)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, a & b, i);
   }
 }
 
-void WorkItem::bwor(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(bwor)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, a | b, i);
   }
 }
 
-void WorkItem::bwxor(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(bwxor)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, a ^ b, i);
   }
 }
 
-void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(call)
 {
-  const llvm::CallInst *callInst = (const llvm::CallInst*)&instruction;
+  const llvm::CallInst *callInst = (const llvm::CallInst*)instruction;
   const llvm::Function *function = callInst->getCalledFunction();
 
   // Check for indirect function calls
@@ -1151,12 +1154,12 @@ void WorkItem::call(const llvm::Instruction& instruction, TypedValue& result)
   FATAL_ERROR("Undefined function: %s", name.c_str());
 }
 
-void WorkItem::extractelem(const llvm::Instruction& instruction,
-                           TypedValue& result)
+INSTRUCTION(extractelem)
 {
-  llvm::ExtractElementInst *extract = (llvm::ExtractElementInst*)&instruction;
+  const llvm::ExtractElementInst *extract =
+    (const llvm::ExtractElementInst*)instruction;
 
-  llvm::Value *vector = extract->getVectorOperand();
+  const llvm::Value *vector = extract->getVectorOperand();
   unsigned int index = getUnsignedInt(extract->getIndexOperand());
   llvm::Type *type = vector->getType()->getVectorElementType();
   switch (type->getTypeID())
@@ -1173,10 +1176,10 @@ void WorkItem::extractelem(const llvm::Instruction& instruction,
   }
 }
 
-void WorkItem::extractval(const llvm::Instruction& instruction,
-                          TypedValue& result)
+INSTRUCTION(extractval)
 {
-  llvm::ExtractValueInst *extract = (llvm::ExtractValueInst*)&instruction;
+  const llvm::ExtractValueInst *extract =
+    (const llvm::ExtractValueInst*)instruction;
   const llvm::Value *agg = extract->getAggregateOperand();
   llvm::ArrayRef<unsigned int> indices = extract->getIndices();
 
@@ -1221,24 +1224,26 @@ void WorkItem::extractval(const llvm::Instruction& instruction,
   }
 }
 
-void WorkItem::fadd(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(fadd)
 {
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction.getOperand(0), i);
-    double b = getFloatValue(instruction.getOperand(1), i);
+    double a = getFloatValue(instruction->getOperand(0), i);
+    double b = getFloatValue(instruction->getOperand(1), i);
     setFloatResult(result, a + b, i);
   }
 }
 
-void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(fcmp)
 {
+  const llvm::CmpInst *cmpInst = (const llvm::CmpInst*)instruction;
+  llvm::CmpInst::Predicate pred = cmpInst->getPredicate();
+
   uint64_t t = result.num > 1 ? -1 : 1;
-  llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction.getOperand(0), i);
-    double b = getFloatValue(instruction.getOperand(1), i);
+    double a = getFloatValue(instruction->getOperand(0), i);
+    double b = getFloatValue(instruction->getOperand(1), i);
 
     uint64_t r;
     switch (pred)
@@ -1287,86 +1292,86 @@ void WorkItem::fcmp(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::fdiv(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(fdiv)
 {
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction.getOperand(0), i);
-    double b = getFloatValue(instruction.getOperand(1), i);
+    double a = getFloatValue(instruction->getOperand(0), i);
+    double b = getFloatValue(instruction->getOperand(1), i);
     setFloatResult(result, a / b, i);
   }
 }
 
-void WorkItem::fmul(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(fmul)
 {
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction.getOperand(0), i);
-    double b = getFloatValue(instruction.getOperand(1), i);
+    double a = getFloatValue(instruction->getOperand(0), i);
+    double b = getFloatValue(instruction->getOperand(1), i);
     setFloatResult(result, a * b, i);
   }
 }
 
-void WorkItem::fpext(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(fpext)
 {
   for (int i = 0; i < result.num; i++)
   {
-    double r = getFloatValue(instruction.getOperand(0), i);
+    double r = getFloatValue(instruction->getOperand(0), i);
     setFloatResult(result, r, i);
   }
 }
 
-void WorkItem::fptosi(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(fptosi)
 {
   for (int i = 0; i < result.num; i++)
   {
-    int64_t r = (int64_t)getFloatValue(instruction.getOperand(0), i);
+    int64_t r = (int64_t)getFloatValue(instruction->getOperand(0), i);
     setIntResult(result, r, i);
   }
 }
 
-void WorkItem::fptoui(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(fptoui)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t r = (uint64_t)getFloatValue(instruction.getOperand(0), i);
+    uint64_t r = (uint64_t)getFloatValue(instruction->getOperand(0), i);
     setIntResult(result, r, i);
   }
 }
 
-void WorkItem::frem(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(frem)
 {
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction.getOperand(0), i);
-    double b = getFloatValue(instruction.getOperand(1), i);
+    double a = getFloatValue(instruction->getOperand(0), i);
+    double b = getFloatValue(instruction->getOperand(1), i);
     setFloatResult(result, fmod(a, b), i);
   }
 }
 
-void WorkItem::fptrunc(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(fptrunc)
 {
   for (int i = 0; i < result.num; i++)
   {
-    double r = getFloatValue(instruction.getOperand(0), i);
+    double r = getFloatValue(instruction->getOperand(0), i);
     setFloatResult(result, r, i);
   }
 }
 
-void WorkItem::fsub(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(fsub)
 {
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction.getOperand(0), i);
-    double b = getFloatValue(instruction.getOperand(1), i);
+    double a = getFloatValue(instruction->getOperand(0), i);
+    double b = getFloatValue(instruction->getOperand(1), i);
     setFloatResult(result, a - b, i);
   }
 }
 
-void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(gep)
 {
   const llvm::GetElementPtrInst *gepInst =
-    (const llvm::GetElementPtrInst*)&instruction;
+    (const llvm::GetElementPtrInst*)instruction;
 
   // Get base address
   size_t address;
@@ -1380,7 +1385,7 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   {
     address = *((size_t*)get(base).data);
   }
-  llvm::Type *ptrType = gepInst->getPointerOperandType();
+  const llvm::Type *ptrType = gepInst->getPointerOperandType();
 
   // Iterate over indices
   llvm::User::const_op_iterator opItr;
@@ -1391,21 +1396,21 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
     if (ptrType->isPointerTy())
     {
       // Get pointer element size
-      llvm::Type *elemType = ptrType->getPointerElementType();
+      const llvm::Type *elemType = ptrType->getPointerElementType();
       address += offset*getTypeSize(elemType);
       ptrType = elemType;
     }
     else if (ptrType->isArrayTy())
     {
       // Get array element size
-      llvm::Type *elemType = ptrType->getArrayElementType();
+      const llvm::Type *elemType = ptrType->getArrayElementType();
       address += offset*getTypeSize(elemType);
       ptrType = elemType;
     }
     else if (ptrType->isVectorTy())
     {
       // Get vector element size
-      llvm::Type *elemType = ptrType->getVectorElementType();
+      const llvm::Type *elemType = ptrType->getVectorElementType();
       address += offset*getTypeSize(elemType);
       ptrType = elemType;
     }
@@ -1424,15 +1429,17 @@ void WorkItem::gep(const llvm::Instruction& instruction, TypedValue& result)
   *((size_t*)result.data) = address;
 }
 
-void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(icmp)
 {
+  const llvm::CmpInst *cmpInst = (const llvm::CmpInst*)instruction;
+  llvm::CmpInst::Predicate pred = cmpInst->getPredicate();
+
   uint64_t t = result.num > 1 ? -1 : 1;
-  llvm::CmpInst::Predicate pred = ((llvm::CmpInst&)instruction).getPredicate();
   for (int i = 0; i < result.num; i++)
   {
     // Load operands
-    llvm::Value *opA = instruction.getOperand(0);
-    llvm::Value *opB = instruction.getOperand(1);
+    const llvm::Value *opA = instruction->getOperand(0);
+    const llvm::Value *opB = instruction->getOperand(1);
     uint64_t ua = getUnsignedInt(opA, i);
     uint64_t ub = getUnsignedInt(opB, i);
     int64_t sa = getSignedInt(opA, i);
@@ -1479,13 +1486,13 @@ void WorkItem::icmp(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::insertelem(const llvm::Instruction& instruction,
-                          TypedValue& result)
+INSTRUCTION(insertelem)
 {
-  llvm::InsertElementInst *insert = (llvm::InsertElementInst*)&instruction;
-  llvm::Value *vector = insert->getOperand(0);
+  const llvm::InsertElementInst *insert =
+    (const llvm::InsertElementInst*)instruction;
+  const llvm::Value *vector = insert->getOperand(0);
   unsigned int index = getUnsignedInt(insert->getOperand(2));
-  llvm::Type *type = vector->getType()->getVectorElementType();
+  const llvm::Type *type = vector->getType()->getVectorElementType();
   for (int i = 0; i < result.num; i++)
   {
     switch (type->getTypeID())
@@ -1517,10 +1524,10 @@ void WorkItem::insertelem(const llvm::Instruction& instruction,
   }
 }
 
-void WorkItem::insertval(const llvm::Instruction& instruction,
-                         TypedValue& result)
+INSTRUCTION(insertval)
 {
-  llvm::InsertValueInst *insert = (llvm::InsertValueInst*)&instruction;
+  const llvm::InsertValueInst *insert =
+    (const llvm::InsertValueInst*)instruction;
 
   // Load original aggregate data
   const llvm::Value *agg = insert->getAggregateOperand();
@@ -1569,16 +1576,16 @@ void WorkItem::insertval(const llvm::Instruction& instruction,
   }
 }
 
-void WorkItem::inttoptr(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(inttoptr)
 {
   // Generate a mask to test pointer alignment
   const unsigned destSize =
-    getTypeAlignment(instruction.getType()->getPointerElementType());
+    getTypeAlignment(instruction->getType()->getPointerElementType());
   const unsigned alignment = log2(destSize);
   const unsigned mask = ~(((unsigned)-1) << alignment);
 
   for (int i = 0; i < result.num; i++)  {
-    uint64_t r = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t r = getUnsignedInt(instruction->getOperand(0), i);
     // Verify that the cast pointer fits the alignment requirements
     // of the destination type (undefined behaviour in C99)
     if ((r & mask) != 0) {
@@ -1589,19 +1596,18 @@ void WorkItem::inttoptr(const llvm::Instruction& instruction, TypedValue& result
   }
 }
 
-void WorkItem::itrunc(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(itrunc)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t val = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t val = getUnsignedInt(instruction->getOperand(0), i);
     setIntResult(result, val, i);
   }
 }
 
-void WorkItem::load(const llvm::Instruction& instruction,
-                    TypedValue& result)
+INSTRUCTION(load)
 {
-  const llvm::LoadInst *loadInst = (const llvm::LoadInst*)&instruction;
+  const llvm::LoadInst *loadInst = (const llvm::LoadInst*)instruction;
   unsigned addressSpace = loadInst->getPointerAddressSpace();
   size_t address = getPointer(loadInst->getPointerOperand());
 
@@ -1619,29 +1625,29 @@ void WorkItem::load(const llvm::Instruction& instruction,
   getMemory(addressSpace)->load(result.data, address, size);
 }
 
-void WorkItem::lshr(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(lshr)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, a >> b, i);
   }
 }
 
-void WorkItem::mul(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(mul)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, a * b, i);
   }
 }
 
-void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(phi)
 {
-  const llvm::PHINode *phiNode = (llvm::PHINode*)&instruction;
+  const llvm::PHINode *phiNode = (const llvm::PHINode*)instruction;
   const llvm::Value *value =
     phiNode->getIncomingValueForBlock((const llvm::BasicBlock*)m_prevBlock);
 
@@ -1671,19 +1677,19 @@ void WorkItem::phi(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::ptrtoint(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(ptrtoint)
 {
-  const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
+  const llvm::CastInst *cast = (const llvm::CastInst*)instruction;
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t r = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t r = getUnsignedInt(instruction->getOperand(0), i);
     setIntResult(result, r, i);
   }
 }
 
-void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(ret)
 {
-  const llvm::ReturnInst *retInst = (const llvm::ReturnInst*)&instruction;
+  const llvm::ReturnInst *retInst = (const llvm::ReturnInst*)instruction;
 
   if (!m_callStack.empty())
   {
@@ -1731,12 +1737,12 @@ void WorkItem::ret(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::sdiv(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(sdiv)
 {
   for (int i = 0; i < result.num; i++)
   {
-    int64_t a = getSignedInt(instruction.getOperand(0), i);
-    int64_t b = getSignedInt(instruction.getOperand(1), i);
+    int64_t a = getSignedInt(instruction->getOperand(0), i);
+    int64_t b = getSignedInt(instruction->getOperand(1), i);
 
     int64_t r = 0;
     if (b && !(a == INT64_MIN && b == -1))
@@ -1748,9 +1754,9 @@ void WorkItem::sdiv(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(select)
 {
-  const llvm::SelectInst *selectInst = (llvm::SelectInst*)&instruction;
+  const llvm::SelectInst *selectInst = (const llvm::SelectInst*)instruction;
 
   for (int i = 0; i < result.num; i++)
   {
@@ -1785,12 +1791,12 @@ void WorkItem::select(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::sext(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(sext)
 {
   for (int i = 0; i < result.num; i++)
   {
-    int64_t val = getSignedInt(instruction.getOperand(0), i);
-    if (instruction.getOperand(0)->getType()->getPrimitiveSizeInBits() == 1)
+    int64_t val = getSignedInt(instruction->getOperand(0), i);
+    if (instruction->getOperand(0)->getType()->getPrimitiveSizeInBits() == 1)
     {
       val = val ? -1 : 0;
     }
@@ -1798,30 +1804,30 @@ void WorkItem::sext(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::shl(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(shl)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, a << b, i);
   }
 }
 
-void WorkItem::shuffle(const llvm::Instruction& instruction,
-                       TypedValue& result)
+INSTRUCTION(shuffle)
 {
-  llvm::ShuffleVectorInst *shuffle = (llvm::ShuffleVectorInst*)&instruction;
+  const llvm::ShuffleVectorInst *shuffle =
+    (const llvm::ShuffleVectorInst*)instruction;
 
-  llvm::Value *v1 = shuffle->getOperand(0);
-  llvm::Value *v2 = shuffle->getOperand(1);
-  llvm::Value *mask = shuffle->getMask();
+  const llvm::Value *v1 = shuffle->getOperand(0);
+  const llvm::Value *v2 = shuffle->getOperand(1);
+  const llvm::Value *mask = shuffle->getMask();
 
   unsigned num = v1->getType()->getVectorNumElements();
-  llvm::Type *type = v1->getType()->getVectorElementType();
+  const llvm::Type *type = v1->getType()->getVectorElementType();
   for (int i = 0; i < result.num; i++)
   {
-    llvm::Value *src = v1;
+    const llvm::Value *src = v1;
     unsigned int index = getUnsignedInt(mask, i);
     if (index == -1)
     {
@@ -1850,22 +1856,22 @@ void WorkItem::shuffle(const llvm::Instruction& instruction,
   }
 }
 
-void WorkItem::sitofp(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(sitofp)
 {
   for (int i = 0; i < result.num; i++)
   {
-    const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
-    double r = (double)getSignedInt(instruction.getOperand(0), i);
+    const llvm::CastInst *cast = (const llvm::CastInst*)instruction;
+    double r = (double)getSignedInt(instruction->getOperand(0), i);
     setFloatResult(result, r, i);
   }
 }
 
-void WorkItem::srem(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(srem)
 {
   for (int i = 0; i < result.num; i++)
   {
-    int64_t a = getSignedInt(instruction.getOperand(0), i);
-    int64_t b = getSignedInt(instruction.getOperand(1), i);
+    int64_t a = getSignedInt(instruction->getOperand(0), i);
+    int64_t b = getSignedInt(instruction->getOperand(1), i);
 
     int64_t r = 0;
     if (b && !(a == INT64_MIN && b == -1))
@@ -1877,9 +1883,9 @@ void WorkItem::srem(const llvm::Instruction& instruction, TypedValue& result)
   }
 }
 
-void WorkItem::store(const llvm::Instruction& instruction)
+INSTRUCTION(store)
 {
-  const llvm::StoreInst *storeInst = (const llvm::StoreInst*)&instruction;
+  const llvm::StoreInst *storeInst = (const llvm::StoreInst*)instruction;
   const llvm::Value *valOp = storeInst->getValueOperand();
   const llvm::Type *type = valOp->getType();
   unsigned addressSpace = storeInst->getPointerAddressSpace();
@@ -1916,7 +1922,7 @@ void WorkItem::store(const llvm::Instruction& instruction)
     }
     else if (valOp->getValueID() >= llvm::Value::InstructionVal)
     {
-      execute(*(llvm::Instruction*)valOp);
+      execute((const llvm::Instruction*)valOp);
       TypedValue result = get(valOp);
       memcpy(data, result.data, result.size*result.num);
     }
@@ -1930,64 +1936,66 @@ void WorkItem::store(const llvm::Instruction& instruction)
   getMemory(addressSpace)->store(data, address, size);
 }
 
-void WorkItem::sub(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(sub)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, a - b, i);
   }
 }
 
-void WorkItem::swtch(const llvm::Instruction& instruction)
+INSTRUCTION(swtch)
 {
-  llvm::SwitchInst *swtch = (llvm::SwitchInst*)&instruction;
-  llvm::Value *cond = swtch->getCondition();
+  const llvm::SwitchInst *swtch = (const llvm::SwitchInst*)instruction;
+  const llvm::Value *cond = swtch->getCondition();
   uint64_t val = getUnsignedInt(cond);
-  llvm::ConstantInt *cval =
-    (llvm::ConstantInt*)llvm::ConstantInt::get(cond->getType(), val);
+  const llvm::ConstantInt *cval =
+    (const llvm::ConstantInt*)llvm::ConstantInt::get(cond->getType(), val);
   m_nextBlock = swtch->findCaseValue(cval).getCaseSuccessor();
 }
 
-void WorkItem::udiv(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(udiv)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, b ? a / b : 0, i);
   }
 }
 
-void WorkItem::uitofp(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(uitofp)
 {
   for (int i = 0; i < result.num; i++)
   {
-    const llvm::CastInst *cast = (const llvm::CastInst*)&instruction;
-    double r = (double)getUnsignedInt(instruction.getOperand(0), i);
+    const llvm::CastInst *cast = (const llvm::CastInst*)instruction;
+    double r = (double)getUnsignedInt(instruction->getOperand(0), i);
     setFloatResult(result, r, i);
   }
 }
 
-void WorkItem::urem(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(urem)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction.getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction.getOperand(1), i);
+    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
+    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
     setIntResult(result, b ? a % b : 0, i);
   }
 }
 
-void WorkItem::zext(const llvm::Instruction& instruction, TypedValue& result)
+INSTRUCTION(zext)
 {
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t val = getUnsignedInt(instruction.getOperand(0), i);
+    uint64_t val = getUnsignedInt(instruction->getOperand(0), i);
     setIntResult(result, val, i);
   }
 }
+
+#undef INSTRUCTION
 
 
 ////////////////////////////////

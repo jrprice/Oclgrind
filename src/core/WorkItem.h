@@ -105,8 +105,8 @@ namespace oclgrind
 
     void clearBarrier();
     static void clearInstructionCounts();
-    void dispatch(const llvm::Instruction& instruction, TypedValue& result);
-    void execute(const llvm::Instruction& instruction);
+    void dispatch(const llvm::Instruction *instruction, TypedValue& result);
+    void execute(const llvm::Instruction *instruction);
     const std::stack<ReturnAddress>& getCallStack() const;
     const llvm::Instruction* getCurrentInstruction() const;
     const size_t* getGlobalID() const;
@@ -139,53 +139,56 @@ namespace oclgrind
 
     // SPIR instructions
   private:
-    void add(const llvm::Instruction& instruction, TypedValue& result);
-    void alloc(const llvm::Instruction& instruction, TypedValue& result);
-    void ashr(const llvm::Instruction& instruction, TypedValue& result);
-    void bitcast(const llvm::Instruction& instruction, TypedValue& result);
-    void br(const llvm::Instruction& instruction);
-    void bwand(const llvm::Instruction& instruction, TypedValue& result);
-    void bwor(const llvm::Instruction& instruction, TypedValue& result);
-    void bwxor(const llvm::Instruction& instruction, TypedValue& result);
-    void call(const llvm::Instruction& instruction, TypedValue& result);
-    void extractelem(const llvm::Instruction& instruction, TypedValue& result);
-    void extractval(const llvm::Instruction& instruction, TypedValue& result);
-    void fadd(const llvm::Instruction& instruction, TypedValue& result);
-    void fcmp(const llvm::Instruction& instruction, TypedValue& result);
-    void fdiv(const llvm::Instruction& instruction, TypedValue& result);
-    void fmul(const llvm::Instruction& instruction, TypedValue& result);
-    void fpext(const llvm::Instruction& instruction, TypedValue& result);
-    void fptosi(const llvm::Instruction& instruction, TypedValue& result);
-    void fptoui(const llvm::Instruction& instruction, TypedValue& result);
-    void fptrunc(const llvm::Instruction& instruction, TypedValue& result);
-    void frem(const llvm::Instruction& instruction, TypedValue& result);
-    void fsub(const llvm::Instruction& instruction, TypedValue& result);
-    void gep(const llvm::Instruction& instruction, TypedValue& result);
-    void icmp(const llvm::Instruction& instruction, TypedValue& result);
-    void insertelem(const llvm::Instruction& instruction, TypedValue& result);
-    void insertval(const llvm::Instruction& instruction, TypedValue& result);
-    void inttoptr(const llvm::Instruction& instruction, TypedValue& result);
-    void itrunc(const llvm::Instruction& instruction, TypedValue& result);
-    void load(const llvm::Instruction& instruction, TypedValue& result);
-    void lshr(const llvm::Instruction& instruction, TypedValue& result);
-    void mul(const llvm::Instruction& instruction, TypedValue& result);
-    void phi(const llvm::Instruction& instruction, TypedValue& result);
-    void ptrtoint(const llvm::Instruction& instruction, TypedValue& result);
-    void ret(const llvm::Instruction& instruction, TypedValue& result);
-    void sdiv(const llvm::Instruction& instruction, TypedValue& result);
-    void select(const llvm::Instruction& instruction, TypedValue& result);
-    void sext(const llvm::Instruction& instruction, TypedValue& result);
-    void shl(const llvm::Instruction& instruction, TypedValue& result);
-    void shuffle(const llvm::Instruction& instruction, TypedValue& result);
-    void sitofp(const llvm::Instruction& instruction, TypedValue& result);
-    void srem(const llvm::Instruction& instruction, TypedValue& result);
-    void store(const llvm::Instruction& instruction);
-    void sub(const llvm::Instruction& instruction, TypedValue& result);
-    void swtch(const llvm::Instruction& instruction);
-    void udiv(const llvm::Instruction& instruction, TypedValue& result);
-    void uitofp(const llvm::Instruction& instruction, TypedValue& result);
-    void urem(const llvm::Instruction& instruction, TypedValue& result);
-    void zext(const llvm::Instruction& instruction, TypedValue& result);
+#define INSTRUCTION(name) \
+  void name(const llvm::Instruction *instruction, TypedValue& result)
+    INSTRUCTION(add);
+    INSTRUCTION(alloc);
+    INSTRUCTION(ashr);
+    INSTRUCTION(bitcast);
+    INSTRUCTION(br);
+    INSTRUCTION(bwand);
+    INSTRUCTION(bwor);
+    INSTRUCTION(bwxor);
+    INSTRUCTION(call);
+    INSTRUCTION(extractelem);
+    INSTRUCTION(extractval);
+    INSTRUCTION(fadd);
+    INSTRUCTION(fcmp);
+    INSTRUCTION(fdiv);
+    INSTRUCTION(fmul);
+    INSTRUCTION(fpext);
+    INSTRUCTION(fptosi);
+    INSTRUCTION(fptoui);
+    INSTRUCTION(fptrunc);
+    INSTRUCTION(frem);
+    INSTRUCTION(fsub);
+    INSTRUCTION(gep);
+    INSTRUCTION(icmp);
+    INSTRUCTION(insertelem);
+    INSTRUCTION(insertval);
+    INSTRUCTION(inttoptr);
+    INSTRUCTION(itrunc);
+    INSTRUCTION(load);
+    INSTRUCTION(lshr);
+    INSTRUCTION(mul);
+    INSTRUCTION(phi);
+    INSTRUCTION(ptrtoint);
+    INSTRUCTION(ret);
+    INSTRUCTION(sdiv);
+    INSTRUCTION(select);
+    INSTRUCTION(sext);
+    INSTRUCTION(shl);
+    INSTRUCTION(shuffle);
+    INSTRUCTION(sitofp);
+    INSTRUCTION(srem);
+    INSTRUCTION(store);
+    INSTRUCTION(sub);
+    INSTRUCTION(swtch);
+    INSTRUCTION(udiv);
+    INSTRUCTION(uitofp);
+    INSTRUCTION(urem);
+    INSTRUCTION(zext);
+#undef INSTRUCTION
 
   private:
     size_t m_globalIndex;
@@ -215,7 +218,7 @@ namespace oclgrind
 
     InterpreterState *m_cache;
 
-    void countInstruction(const llvm::Instruction& instruction);
+    void countInstruction(const llvm::Instruction *instruction);
     static std::vector<size_t> m_instructionCounts;
     static std::vector<size_t> m_memopBytes;
     static std::vector<const llvm::Function*> m_countedFunctions;
