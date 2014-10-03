@@ -89,11 +89,15 @@ namespace oclgrind
       static InterpreterCache* get(unsigned long uid);
 
       std::MAP<const llvm::Value*, size_t> valueIDs;
-      std::map<const llvm::Function*, Builtin> builtins;
-      std::map<const llvm::Value*, TypedValue> constants;
+      std::MAP<const llvm::Function*, Builtin> builtins;
+      TypedValue getConstant(const llvm::Value *operand);
 
     private:
       static std::MAP<unsigned long, InterpreterCache*> m_cache;
+
+      InterpreterCache();
+      ~InterpreterCache();
+      std::MAP<const llvm::Value*, TypedValue> m_constants;
     };
 
   public:

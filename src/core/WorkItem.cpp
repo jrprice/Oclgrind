@@ -536,13 +536,7 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand)
            valID == llvm::Value::ConstantVectorVal        ||
            valID == llvm::Value::ConstantPointerNullVal)
   {
-    // TODO: Cache constant values (malloc instead of pool)
-    TypedValue result;
-    result.size = size.first;
-    result.num  = size.second;
-    result.data = m_pool.alloc(result.size*result.num);
-    getConstantData(result.data, (const llvm::Constant*)operand);
-    return result;
+    return m_cache->getConstant(operand);
   }
   //else if (valID == llvm::Value::MDNodeVal)
   //{
@@ -841,7 +835,7 @@ INSTRUCTION(call)
   }
 
   // Check function cache
-  map<const llvm::Function*, InterpreterCache::Builtin>::iterator fItr;
+  MAP<const llvm::Function*, InterpreterCache::Builtin>::iterator fItr;
   fItr = m_cache->builtins.find(function);
   if (fItr != m_cache->builtins.end())
   {
@@ -1598,6 +1592,41 @@ WorkItem::InterpreterCache* WorkItem::InterpreterCache::get(unsigned long uid)
 #endif
 
   return state;
+}
+
+WorkItem::InterpreterCache::InterpreterCache()
+{
+}
+
+WorkItem::InterpreterCache::~InterpreterCache()
+{
+  std::MAP<const llvm::Value*, TypedValue>::iterator constItr;
+  for (constItr  = m_constants.begin();
+       constItr != m_constants.end(); constItr++)
+  {
+    delete[] constItr->second.data;
+  }
+}
+
+TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand)
+{
+  // Check cache
+  std::MAP<const llvm::Value*, TypedValue>::iterator constItr =
+    m_constants.find(operand);
+  if (constItr != m_constants.end())
+  {
+    return constItr->second;
+  }
+
+  // Create constant and add to cache
+  pair<size_t,size_t> size = getValueSize(operand);
+  TypedValue constant;
+  constant.size = size.first;
+  constant.num  = size.second;
+  constant.data = new unsigned char[constant.size*constant.num];
+  getConstantData(constant.data, (const llvm::Constant*)operand);
+  m_constants[operand] = constant;
+  return constant;
 }
 
 
