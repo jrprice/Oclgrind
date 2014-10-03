@@ -66,7 +66,7 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
   TypedValueMap::const_iterator argItr;
   for (argItr = kernel.args_begin(); argItr != kernel.args_end(); argItr++)
   {
-    set(argItr->first, m_pool.clone(argItr->second));
+    setValue(argItr->first, m_pool.clone(argItr->second));
   }
 
   m_privateMemory = new Memory(AddrSpacePrivate, device);
@@ -103,7 +103,7 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
       m_pool.alloc(sizeof(size_t))
     };
     *(size_t*)var.data = address;
-    set(*varItr, var);
+    setValue(*varItr, var);
   }
 
   m_prevBlock = NULL;
@@ -364,7 +364,7 @@ void WorkItem::execute(const llvm::Instruction *instruction)
     TypedValueMap::iterator itr;
     for (itr = m_phiTemps.begin(); itr != m_phiTemps.end(); itr++)
     {
-      set(itr->first, itr->second);
+      setValue(itr->first, itr->second);
     }
     m_phiTemps.clear();
   }
@@ -378,7 +378,7 @@ void WorkItem::execute(const llvm::Instruction *instruction)
   {
     if (instruction->getOpcode() != llvm::Instruction::PHI)
     {
-      set(instruction, result);
+      setValue(instruction, result);
     }
     else
     {
@@ -387,7 +387,7 @@ void WorkItem::execute(const llvm::Instruction *instruction)
   }
 }
 
-TypedValue WorkItem::get(const llvm::Value *key) const
+TypedValue WorkItem::getValue(const llvm::Value *key) const
 {
   return m_values[m_cache->valueIDs[key]];
 }
@@ -507,7 +507,7 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand)
       valID == llvm::Value::GlobalVariableVal ||
       valID >= llvm::Value::InstructionVal)
   {
-    return get(operand);
+    return getValue(operand);
   }
   //else if (valID == llvm::Value::BasicBlockVal)
   //{
@@ -574,11 +574,11 @@ WorkItem::State WorkItem::getState() const
 
 const unsigned char* WorkItem::getValueData(const llvm::Value *value) const
 {
-  if (!has(value))
+  if (!hasValue(value))
   {
     return NULL;
   }
-  return get(value).data;
+  return getValue(value).data;
 }
 
 const llvm::Value* WorkItem::getVariable(std::string name) const
@@ -592,19 +592,19 @@ const llvm::Value* WorkItem::getVariable(std::string name) const
   return itr->second;
 }
 
-bool WorkItem::has(const llvm::Value *key) const
+bool WorkItem::hasValue(const llvm::Value *key) const
 {
   return m_cache->valueIDs.count(key);
 }
 
 bool WorkItem::printValue(const llvm::Value *value)
 {
-  if (!has(value))
+  if (!hasValue(value))
   {
     return false;
   }
 
-  printTypedData(value->getType(), get(value).data);
+  printTypedData(value->getType(), getValue(value).data);
 
   return true;
 }
@@ -619,7 +619,7 @@ bool WorkItem::printVariable(string name)
   }
 
   // Get variable value
-  TypedValue result = get(value);
+  TypedValue result = getValue(value);
   const llvm::Type *type = value->getType();
 
   if (((const llvm::Instruction*)value)->getOpcode()
@@ -660,7 +660,7 @@ TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
   return result;
 }
 
-void WorkItem::set(const llvm::Value *key, TypedValue value)
+void WorkItem::setValue(const llvm::Value *key, TypedValue value)
 {
   MAP<const llvm::Value*, size_t>::iterator itr = m_cache->valueIDs.find(key);
   if (itr == m_cache->valueIDs.end())
@@ -763,7 +763,7 @@ INSTRUCTION(br)
   else
   {
     // Conditional branch
-    bool pred = *((bool*)get(instruction->getOperand(0)).data);
+    bool pred = *((bool*)getValue(instruction->getOperand(0)).data);
     const llvm::Value *iftrue = instruction->getOperand(2);
     const llvm::Value *iffalse = instruction->getOperand(1);
     m_nextBlock = (const llvm::BasicBlock*)(pred ? iftrue : iffalse);
@@ -828,7 +828,7 @@ INSTRUCTION(call)
          argItr != function->arg_end(); argItr++)
     {
       const llvm::Value *arg = callInst->getArgOperand(argItr->getArgNo());
-      set(argItr, m_pool.clone(getOperand(arg)));
+      setValue(argItr, m_pool.clone(getOperand(arg)));
     }
 
     return;
@@ -1347,7 +1347,7 @@ INSTRUCTION(ret)
     const llvm::Value *returnVal = retInst->getReturnValue();
     if (returnVal)
     {
-      set(m_currInst, m_pool.clone(getOperand(returnVal)));
+      setValue(m_currInst, m_pool.clone(getOperand(returnVal)));
     }
   }
   else

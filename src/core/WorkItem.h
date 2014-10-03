@@ -202,9 +202,9 @@ namespace oclgrind
 
     // Store for instruction results and other operand values
     std::vector<TypedValue> m_values;
-    TypedValue get(const llvm::Value *key) const;
-    bool has(const llvm::Value *key) const;
-    void set(const llvm::Value *key, TypedValue value);
+    TypedValue getValue(const llvm::Value *key) const;
+    bool hasValue(const llvm::Value *key) const;
+    void setValue(const llvm::Value *key, TypedValue value);
 
     InterpreterCache *m_cache;
 

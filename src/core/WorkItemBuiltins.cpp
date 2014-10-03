@@ -238,8 +238,7 @@ namespace oclgrind
     DEFINE_BUILTIN(wait_group_events)
     {
       uint64_t num = UARG(0);
-      const llvm::Value *ptrOp = ARG(1);
-      size_t address = *(size_t*)(workItem->get(ptrOp).data);
+      size_t address = PARG(1);
       list<size_t> events;
       for (int i = 0; i < num; i++)
       {
@@ -766,25 +765,25 @@ namespace oclgrind
 
     DEFINE_BUILTIN(get_image_array_size)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
       result.setSInt(image->desc.image_array_size);
     }
 
     DEFINE_BUILTIN(get_image_channel_data_type)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
       result.setSInt(image->format.image_channel_data_type);
     }
 
     DEFINE_BUILTIN(get_image_channel_order)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
       result.setSInt(image->format.image_channel_order);
     }
 
     DEFINE_BUILTIN(get_image_dim)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
 
       result.setSInt(image->desc.image_width, 0);
       result.setSInt(image->desc.image_height, 1);
@@ -797,19 +796,19 @@ namespace oclgrind
 
     DEFINE_BUILTIN(get_image_depth)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
       result.setSInt(image->desc.image_depth);
     }
 
     DEFINE_BUILTIN(get_image_height)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
       result.setSInt(image->desc.image_height);
     }
 
     DEFINE_BUILTIN(get_image_width)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
       result.setSInt(image->desc.image_width);
     }
 
@@ -1196,7 +1195,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(read_imagef)
     {
-      const Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      const Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
 
       uint32_t sampler = CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
       int coordIndex = 1;
@@ -1314,7 +1313,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(read_imagei)
     {
-      const Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      const Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
 
       uint32_t sampler = CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
       int coordIndex = 1;
@@ -1387,7 +1386,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(read_imageui)
     {
-      const Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      const Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
 
       uint32_t sampler = CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
       int coordIndex = 1;
@@ -1460,7 +1459,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(write_imagef)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
 
       // Get pixel coordinates
       int x, y = 0, z = 0 ;
@@ -1562,7 +1561,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(write_imagei)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
 
       // Get pixel coordinates
       int x, y = 0, z = 0 ;
@@ -1652,7 +1651,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(write_imageui)
     {
-      Image *image = *(Image**)(workItem->get(ARG(0)).data);
+      Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
 
       // Get pixel coordinates
       int x, y = 0, z = 0 ;
@@ -2633,7 +2632,7 @@ namespace oclgrind
       }
       else
       {
-        memcpy(data, workItem->get(value).data, size);
+        memcpy(data, workItem->getValue(value).data, size);
       }
 
       size_t base = PARG(2);
@@ -2689,7 +2688,7 @@ namespace oclgrind
       }
       else
       {
-        memcpy(data, workItem->get(value).data, size);
+        memcpy(data, workItem->getValue(value).data, size);
       }
 
       size_t base = PARG(2);
@@ -3160,10 +3159,8 @@ namespace oclgrind
     DEFINE_BUILTIN(llvm_memcpy)
     {
       const llvm::MemCpyInst *memcpyInst = (const llvm::MemCpyInst*)callInst;
-      size_t dest =
-        *(size_t*)(workItem->get(memcpyInst->getDest()).data);
-      size_t src =
-        *(size_t*)(workItem->get(memcpyInst->getSource()).data);
+      size_t dest = workItem->getOperand(memcpyInst->getDest()).getPointer();
+      size_t src = workItem->getOperand(memcpyInst->getSource()).getPointer();
       size_t size = workItem->getOperand(memcpyInst->getLength()).getUInt();
       unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
       unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
@@ -3176,8 +3173,7 @@ namespace oclgrind
     DEFINE_BUILTIN(llvm_memset)
     {
       const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)callInst;
-      size_t dest =
-        *(size_t*)(workItem->get(memsetInst->getDest()).data);
+      size_t dest = workItem->getOperand(memsetInst->getDest()).getPointer();
       size_t size = workItem->getOperand(memsetInst->getLength()).getUInt();
       unsigned addressSpace = memsetInst->getDestAddressSpace();
 
