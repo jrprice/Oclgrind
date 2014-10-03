@@ -518,15 +518,6 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand)
   //else if (valID == llvm::Value::GlobalAliasVal)
   //{
   //}
-  else if (valID == llvm::Value::UndefValueVal)
-  {
-    TypedValue result;
-    result.size = size.first;
-    result.num  = size.second;
-    result.data = m_pool.alloc(result.size*result.num);
-    memset(result.data, -1, result.size*result.num);
-    return result;
-  }
   //else if (valID == llvm::Value::BlockAddressVal)
   //{
   //}
@@ -534,7 +525,8 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand)
   {
     return resolveConstExpr((const llvm::ConstantExpr*)operand);
   }
-  else if (valID == llvm::Value::ConstantAggregateZeroVal ||
+  else if (valID == llvm::Value::UndefValueVal            ||
+           valID == llvm::Value::ConstantAggregateZeroVal ||
            valID == llvm::Value::ConstantDataArrayVal     ||
            valID == llvm::Value::ConstantDataVectorVal    ||
            valID == llvm::Value::ConstantIntVal           ||
