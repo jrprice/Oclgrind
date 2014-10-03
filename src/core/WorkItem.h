@@ -80,22 +80,20 @@ namespace oclgrind
       std::string name, overload;
     } CachedBuiltin;
 
-    // Per-program interpreter state, shared between all work-items
-    typedef struct
-    {
-      std::MAP<const llvm::Value*, size_t> valueIDs;
-      std::map<const llvm::Function*, CachedBuiltin> builtins;
-    } InterpreterState;
-
   public:
     // Per-program cache for various interpreter state information
     class InterpreterCache
     {
     public:
       static void clear(unsigned long uid);
-      static InterpreterState* get(unsigned long uid);
+      static InterpreterCache* get(unsigned long uid);
+
+      std::MAP<const llvm::Value*, size_t> valueIDs;
+      std::map<const llvm::Function*, CachedBuiltin> builtins;
+      std::map<const llvm::Value*, TypedValue> constants;
+
     private:
-      static std::MAP<unsigned long, InterpreterState*> m_cache;
+      static std::MAP<unsigned long, InterpreterCache*> m_cache;
     };
 
   public:
@@ -204,7 +202,7 @@ namespace oclgrind
     bool has(const llvm::Value *key) const;
     void set(const llvm::Value *key, TypedValue value);
 
-    InterpreterState *m_cache;
+    InterpreterCache *m_cache;
 
     void countInstruction(const llvm::Instruction *instruction);
     static std::vector<size_t> m_instructionCounts;

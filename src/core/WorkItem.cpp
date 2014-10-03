@@ -1575,12 +1575,12 @@ INSTRUCTION(zext)
 // WorkItem::InterpreterCache //
 ////////////////////////////////
 
-MAP<unsigned long, WorkItem::InterpreterState*>
+MAP<unsigned long, WorkItem::InterpreterCache*>
   WorkItem::InterpreterCache::m_cache;
 
 void WorkItem::InterpreterCache::clear(unsigned long uid)
 {
-  MAP<unsigned long, InterpreterState*>::iterator itr = m_cache.find(uid);
+  MAP<unsigned long, InterpreterCache*>::iterator itr = m_cache.find(uid);
   if (itr != m_cache.end())
   {
     delete itr->second;
@@ -1588,17 +1588,17 @@ void WorkItem::InterpreterCache::clear(unsigned long uid)
   }
 }
 
-WorkItem::InterpreterState* WorkItem::InterpreterCache::get(unsigned long uid)
+WorkItem::InterpreterCache* WorkItem::InterpreterCache::get(unsigned long uid)
 {
   // Check for existing state
-  MAP<unsigned long, InterpreterState*>::iterator itr = m_cache.find(uid);
+  MAP<unsigned long, InterpreterCache*>::iterator itr = m_cache.find(uid);
   if (itr != m_cache.end())
   {
     return itr->second;
   }
 
   // Create new state
-  InterpreterState *state = new InterpreterState;
+  InterpreterCache *state = new InterpreterCache;
   m_cache[uid] = state;
 
 #if HAVE_CXX11
