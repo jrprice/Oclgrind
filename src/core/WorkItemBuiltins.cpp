@@ -2618,7 +2618,6 @@ namespace oclgrind
     {
       const llvm::Value *value = ARG(0);
       size_t size = getTypeSize(value->getType());
-      unsigned char *data = workItem->m_pool.alloc(size);
       if (isVector3(value))
       {
         // 3-element vectors are same size as 4-element vectors,
@@ -2626,20 +2625,12 @@ namespace oclgrind
         size = (size/4) * 3;
       }
 
-      if (isConstantOperand(value))
-      {
-        getConstantData(data, (const llvm::Constant*)value);
-      }
-      else
-      {
-        memcpy(data, workItem->getValue(value).data, size);
-      }
-
       size_t base = PARG(2);
       unsigned int addressSpace = ARG(2)->getType()->getPointerAddressSpace();
       uint64_t offset = UARG(1);
 
       size_t address = base + offset*size;
+      unsigned char *data = workItem->getOperand(value).data;
       workItem->getMemory(addressSpace)->store(data, address, size);
     }
 
@@ -2674,7 +2665,6 @@ namespace oclgrind
     {
       const llvm::Value *value = ARG(0);
       size_t size = getTypeSize(value->getType());
-      unsigned char *data = workItem->m_pool.alloc(size);
       if (isVector3(value))
       {
         // 3-element vectors are same size as 4-element vectors,
@@ -2682,20 +2672,13 @@ namespace oclgrind
         size = (size/4) * 3;
       }
 
-      if (isConstantOperand(value))
-      {
-        getConstantData(data, (const llvm::Constant*)value);
-      }
-      else
-      {
-        memcpy(data, workItem->getValue(value).data, size);
-      }
 
       size_t base = PARG(2);
       unsigned int addressSpace = ARG(2)->getType()->getPointerAddressSpace();
       uint64_t offset = UARG(1);
 
       // Convert to halfs
+      unsigned char *data = workItem->getOperand(value).data;
       size_t num = size / sizeof(float);
       size = num*sizeof(cl_half);
       uint16_t *halfData = (uint16_t*)workItem->m_pool.alloc(2*num);
