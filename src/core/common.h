@@ -65,6 +65,16 @@ namespace oclgrind
     size_t size;
     size_t num;
     unsigned char *data;
+
+    double   getFloat(unsigned index = 0) const;
+    size_t   getPointer(unsigned index = 0) const;
+    int64_t  getSInt(unsigned index = 0) const;
+    uint64_t getUInt(unsigned index = 0) const;
+    void     setFloat(double value, unsigned index = 0);
+    void     setPointer(size_t value, unsigned index = 0);
+    void     setSInt(int64_t value, unsigned index = 0);
+    void     setUInt(uint64_t value, unsigned index = 0);
+
   } TypedValue;
 
   // Private memory map type

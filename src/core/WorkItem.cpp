@@ -78,6 +78,7 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
     size_t size = getTypeSize(init->getType());
     size_t address = m_privateMemory->allocateBuffer(size);
 
+    // TODO: Can replace this with getOperand()
     if (init->getValueID() == llvm::Value::ConstantExprVal)
     {
       TypedValue value = resolveConstExpr((const llvm::ConstantExpr*)init);
@@ -396,123 +397,6 @@ const stack<ReturnAddress>& WorkItem::getCallStack() const
   return m_callStack;
 }
 
-const llvm::Instruction* WorkItem::getCurrentInstruction() const
-{
-  return m_currInst;
-}
-
-const size_t* WorkItem::getGlobalID() const
-{
-  return m_globalID;
-}
-
-size_t WorkItem::getGlobalIndex() const
-{
-  return m_globalIndex;
-}
-
-vector<size_t> WorkItem::getInstructionCounts()
-{
-  return m_instructionCounts;
-}
-
-double WorkItem::getFloatValue(const llvm::Value *operand,
-                               unsigned int index)
-{
-  double val = 0;
-  unsigned id = operand->getValueID();
-  if (id == llvm::Value::GlobalVariableVal ||
-      id == llvm::Value::ArgumentVal ||
-      id >= llvm::Value::InstructionVal)
-  {
-    TypedValue op = get(operand);
-    if (op.size == sizeof(float))
-    {
-      val = ((float*)op.data)[index];
-    }
-    else if (op.size == sizeof(double))
-    {
-      val = ((double*)op.data)[index];
-    }
-    else
-    {
-      FATAL_ERROR("Unsupported float size: %lu bytes", op.size);
-    }
-  }
-  else if (operand->getValueID() == llvm::Value::ConstantVectorVal ||
-           operand->getValueID() == llvm::Value::ConstantDataVectorVal)
-  {
-    val = getFloatValue(
-      ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
-  }
-  else if (id == llvm::Value::UndefValueVal)
-  {
-    val = -1;
-  }
-  else if (id == llvm::Value::ConstantAggregateZeroVal)
-  {
-    val = 0;
-  }
-  else if (id == llvm::Value::ConstantExprVal)
-  {
-    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
-    if (result.size == sizeof(float))
-    {
-      val = ((float*)result.data)[index];
-    }
-    else if (result.size == sizeof(double))
-    {
-      val = ((double*)result.data)[index];
-    }
-    else
-    {
-      FATAL_ERROR("Unsupported float size: %lu bytes", result.size);
-    }
-  }
-  else if (isConstantOperand(operand))
-  {
-    llvm::APFloat apf = ((const llvm::ConstantFP*)operand)->getValueAPF();
-    if (&(apf.getSemantics()) == &(llvm::APFloat::IEEEsingle))
-    {
-      val = apf.convertToFloat();
-    }
-    else if (&(apf.getSemantics()) == &(llvm::APFloat::IEEEdouble))
-    {
-      val = apf.convertToDouble();
-    }
-    else
-    {
-      FATAL_ERROR("Unsupported float semantics: %d", operand->getValueID());
-    }
-  }
-  else
-  {
-    FATAL_ERROR("Unsupported float operand type: %d", id);
-  }
-  return val;
-}
-
-const size_t* WorkItem::getLocalID() const
-{
-  return m_localID;
-}
-
-Memory* WorkItem::getMemory(unsigned int addrSpace)
-{
-  switch (addrSpace)
-  {
-    case AddrSpacePrivate:
-      return m_privateMemory;
-    case AddrSpaceGlobal:
-    case AddrSpaceConstant:
-      return m_device->getGlobalMemory();
-    case AddrSpaceLocal:
-      return m_workGroup.getLocalMemory();
-    default:
-      FATAL_ERROR("Unsupported address space: %d", addrSpace);
-  }
-}
-
 string WorkItem::getCountedOpcodeName(unsigned opcode)
 {
   if (opcode >= COUNTED_CALL_BASE)
@@ -573,160 +457,133 @@ string WorkItem::getCountedOpcodeName(unsigned opcode)
   return llvm::Instruction::getOpcodeName(opcode);
 }
 
+const llvm::Instruction* WorkItem::getCurrentInstruction() const
+{
+  return m_currInst;
+}
+
+const size_t* WorkItem::getGlobalID() const
+{
+  return m_globalID;
+}
+
+size_t WorkItem::getGlobalIndex() const
+{
+  return m_globalIndex;
+}
+
+vector<size_t> WorkItem::getInstructionCounts()
+{
+  return m_instructionCounts;
+}
+
+const size_t* WorkItem::getLocalID() const
+{
+  return m_localID;
+}
+
+Memory* WorkItem::getMemory(unsigned int addrSpace)
+{
+  switch (addrSpace)
+  {
+    case AddrSpacePrivate:
+      return m_privateMemory;
+    case AddrSpaceGlobal:
+    case AddrSpaceConstant:
+      return m_device->getGlobalMemory();
+    case AddrSpaceLocal:
+      return m_workGroup.getLocalMemory();
+    default:
+      FATAL_ERROR("Unsupported address space: %d", addrSpace);
+  }
+}
+
+TypedValue WorkItem::getOperand(const llvm::Value *operand)
+{
+  unsigned valID = operand->getValueID();
+  pair<size_t,size_t> size = getValueSize(operand);
+
+  if (valID == llvm::Value::ArgumentVal ||
+      valID == llvm::Value::GlobalVariableVal ||
+      valID >= llvm::Value::InstructionVal)
+  {
+    return get(operand);
+  }
+  //else if (valID == llvm::Value::BasicBlockVal)
+  //{
+  //}
+  //else if (valID == llvm::Value::FunctionVal)
+  //{
+  //}
+  //else if (valID == llvm::Value::GlobalAliasVal)
+  //{
+  //}
+  else if (valID == llvm::Value::UndefValueVal)
+  {
+    TypedValue result;
+    result.size = size.first;
+    result.num  = size.second;
+    result.data = m_pool.alloc(result.size*result.num);
+    memset(result.data, -1, result.size*result.num);
+    return result;
+  }
+  //else if (valID == llvm::Value::BlockAddressVal)
+  //{
+  //}
+  else if (valID == llvm::Value::ConstantExprVal)
+  {
+    return resolveConstExpr((const llvm::ConstantExpr*)operand);
+  }
+  else if (valID == llvm::Value::ConstantAggregateZeroVal ||
+           valID == llvm::Value::ConstantDataArrayVal     ||
+           valID == llvm::Value::ConstantDataVectorVal    ||
+           valID == llvm::Value::ConstantIntVal           ||
+           valID == llvm::Value::ConstantFPVal            ||
+           valID == llvm::Value::ConstantArrayVal         ||
+           valID == llvm::Value::ConstantStructVal        ||
+           valID == llvm::Value::ConstantVectorVal        ||
+           valID == llvm::Value::ConstantPointerNullVal)
+  {
+    // TODO: Cache constant values (malloc instead of pool)
+    TypedValue result;
+    result.size = size.first;
+    result.num  = size.second;
+    result.data = m_pool.alloc(result.size*result.num);
+    getConstantData(result.data, (const llvm::Constant*)operand);
+    return result;
+  }
+  //else if (valID == llvm::Value::MDNodeVal)
+  //{
+  //}
+  //else if (valID == llvm::Value::MDStringVal)
+  //{
+  //}
+  //else if (valID == llvm::Value::InlineAsmVal)
+  //{
+  //}
+  //else if (valID == llvm::Value::PseudoSourceValueVal)
+  //{
+  //}
+  //else if (valID == llvm::Value::FixedStackPseudoSourceValueVal)
+  //{
+  //}
+  else
+  {
+    FATAL_ERROR("Unhandled operand type: %d", valID);
+  }
+
+  // Unreachable
+  assert(false);
+}
+
 Memory* WorkItem::getPrivateMemory() const
 {
   return m_privateMemory;
 }
 
-size_t WorkItem::getPointer(const llvm::Value *operand, unsigned int index)
-{
-  unsigned id = operand->getValueID();
-  if (id == llvm::Value::ArgumentVal ||
-      id == llvm::Value::GlobalVariableVal ||
-      id >= llvm::Value::InstructionVal)
-  {
-    return *(size_t*)get(operand).data;
-  }
-  else if (id == llvm::Value::UndefValueVal)
-  {
-    return -1;
-  }
-  else if (id == llvm::Value::ConstantExprVal)
-  {
-    size_t ptr;
-    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
-    memcpy(&ptr, result.data + index*result.size, result.size);
-    return ptr;
-  }
-  if (id == llvm::Value::ConstantAggregateZeroVal ||
-      id == llvm::Value::ConstantPointerNullVal)
-  {
-    return 0;
-  }
-  if (id == llvm::Value::ConstantDataVectorVal ||
-      id == llvm::Value::ConstantVectorVal)
-  {
-    return getPointer(
-      ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
-  }
-  else
-  {
-    FATAL_ERROR("Unsupported pointer operand type: %d", id);
-  }
-}
-
-int64_t WorkItem::getSignedInt(const llvm::Value *operand,
-                               unsigned int index)
-{
-  int64_t val = 0;
-  unsigned id = operand->getValueID();
-  if (id == llvm::Value::GlobalVariableVal ||
-      id == llvm::Value::ArgumentVal ||
-      id >= llvm::Value::InstructionVal)
-  {
-    TypedValue op = get(operand);
-    switch (op.size)
-    {
-    case 1:
-      val = ((char*)op.data)[index];
-      break;
-    case 2:
-      val = ((short*)op.data)[index];
-      break;
-    case 4:
-      val = ((int*)op.data)[index];
-      break;
-    case 8:
-      val = ((long*)op.data)[index];
-      break;
-    default:
-      FATAL_ERROR("Unsupported signed int size: %lu bytes", op.size);
-    }
-  }
-  else if (id == llvm::Value::ConstantVectorVal ||
-           id == llvm::Value::ConstantDataVectorVal)
-  {
-    val = getSignedInt(
-      ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
-  }
-  else if (id == llvm::Value::ConstantIntVal)
-  {
-    val = ((const llvm::ConstantInt*)operand)->getSExtValue();
-  }
-  else if (id == llvm::Value::UndefValueVal)
-  {
-    val = -1;
-  }
-  else if (id == llvm::Value::ConstantAggregateZeroVal)
-  {
-    val = 0;
-  }
-  else if (id == llvm::Value::ConstantExprVal)
-  {
-    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
-    memcpy(&val, result.data + index*result.size, result.size);
-  }
-  else if (id == llvm::Value::ConstantPointerNullVal)
-  {
-    return 0;
-  }
-  else
-  {
-    FATAL_ERROR("Unsupported signed operand type: %d", id);
-  }
-  return val;
-}
-
 WorkItem::State WorkItem::getState() const
 {
   return m_state;
-}
-
-uint64_t WorkItem::getUnsignedInt(const llvm::Value *operand,
-                                  unsigned int index)
-{
-  uint64_t val = 0;
-  unsigned id = operand->getValueID();
-  if (id == llvm::Value::GlobalVariableVal ||
-      id == llvm::Value::ArgumentVal ||
-      id >= llvm::Value::InstructionVal)
-  {
-    TypedValue op = get(operand);
-    memcpy(&val, op.data + index*op.size, op.size);
-  }
-  else if (id == llvm::Value::ConstantVectorVal ||
-           id == llvm::Value::ConstantDataVectorVal)
-  {
-    val = getUnsignedInt(
-      ((const llvm::ConstantVector*)operand)->getAggregateElement(index));
-  }
-  else if (id == llvm::Value::UndefValueVal)
-  {
-    val = -1;
-  }
-  else if (id == llvm::Value::ConstantAggregateZeroVal)
-  {
-    val = 0;
-  }
-  else if (id == llvm::Value::ConstantIntVal)
-  {
-    val = ((const llvm::ConstantInt*)operand)->getZExtValue();
-  }
-  else if (id == llvm::Value::ConstantExprVal)
-  {
-    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)operand);
-    memcpy(&val, result.data + index*result.size, result.size);
-  }
-  else if (id == llvm::Value::ConstantPointerNullVal)
-  {
-    return 0;
-  }
-  else
-  {
-    FATAL_ERROR("Unsupported unsigned operand type: %d", id);
-  }
-
-  return val;
 }
 
 const unsigned char* WorkItem::getValueData(const llvm::Value *value) const
@@ -837,35 +694,6 @@ void WorkItem::set(const llvm::Value *key, TypedValue value)
   m_values[itr->second] = value;
 }
 
-void WorkItem::setFloatResult(TypedValue& result, double val,
-                              unsigned int index)
-{
-  if (result.size == sizeof(float))
-  {
-    ((float*)result.data)[index] = val;
-  }
-  else if (result.size == sizeof(double))
-  {
-    ((double*)result.data)[index] = val;
-  }
-  else
-  {
-    FATAL_ERROR("Unsupported float size: %lu bytes", result.size);
-  }
-}
-
-void WorkItem::setIntResult(TypedValue& result, int64_t val,
-                            unsigned int index)
-{
-  memcpy(result.data + index*result.size, &val, result.size);
-}
-
-void WorkItem::setIntResult(TypedValue& result, uint64_t val,
-                            unsigned int index)
-{
-  memcpy(result.data + index*result.size, &val, result.size);
-}
-
 WorkItem::State WorkItem::step()
 {
   if (m_state != READY)
@@ -902,11 +730,11 @@ WorkItem::State WorkItem::step()
 
 INSTRUCTION(add)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, a + b, i);
+    result.setUInt(opA.getUInt(i) + opB.getUInt(i), i);
   }
 }
 
@@ -920,65 +748,23 @@ INSTRUCTION(alloc)
   size_t address = m_privateMemory->allocateBuffer(size);
 
   // Create pointer to alloc'd memory
-  *((size_t*)result.data) = address;
+  result.setPointer(address);
 }
 
 INSTRUCTION(ashr)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    int64_t a = getSignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, a >> b, i);
+    result.setUInt(opA.getSInt(i) >> opB.getUInt(i), i);
   }
 }
 
 INSTRUCTION(bitcast)
 {
-  const llvm::CastInst *cast = (const llvm::CastInst*)instruction;
-  const llvm::Value *operand = cast->getOperand(0);
-  switch (operand->getValueID())
-  {
-  case llvm::Value::ConstantExprVal:
-  {
-    TypedValue op = resolveConstExpr((const llvm::ConstantExpr*)operand);
-    memcpy(result.data, op.data, result.size*result.num);
-    break;
-  }
-  case llvm::Value::ConstantVectorVal:
-  {
-    const llvm::Type *type = operand->getType();
-    const llvm::Type *elemType = type->getVectorElementType();
-    size_t num = type->getVectorNumElements();
-    size_t elemSize = getTypeSize(elemType);
-    for (int i = 0; i < num; i++)
-    {
-      if (elemType->isIntegerTy())
-      {
-        uint64_t u = getUnsignedInt(operand, i);
-        memcpy(result.data + elemSize*i, &u, elemSize);
-      }
-      else if (elemType->isFloatTy())
-      {
-        TypedValue tmp = result;
-        tmp.size = elemSize;
-        tmp.num = num;
-        setFloatResult(tmp, getFloatValue(operand, i), i);
-      }
-    }
-    break;
-  }
-  default:
-    if (has(operand))
-    {
-      memcpy(result.data, get(operand).data, result.size*result.num);
-    }
-    else
-    {
-      FATAL_ERROR("Unsupported operand type: %d", operand->getValueID());
-    }
-    break;
-  }
+  TypedValue operand = getOperand(instruction->getOperand(0));
+  memcpy(result.data, operand.data, result.size*result.num);
 }
 
 INSTRUCTION(br)
@@ -1000,31 +786,31 @@ INSTRUCTION(br)
 
 INSTRUCTION(bwand)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, a & b, i);
+    result.setUInt(opA.getUInt(i) & opB.getUInt(i), i);
   }
 }
 
 INSTRUCTION(bwor)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, a | b, i);
+    result.setUInt(opA.getUInt(i) | opB.getUInt(i), i);
   }
 }
 
 INSTRUCTION(bwxor)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, a ^ b, i);
+    result.setUInt(opA.getUInt(i) ^ opB.getUInt(i), i);
   }
 }
 
@@ -1051,42 +837,12 @@ INSTRUCTION(call)
     m_nextBlock = function->begin();
 
     // Set function arguments
-    int i = 0;
     llvm::Function::const_arg_iterator argItr;
     for (argItr = function->arg_begin();
          argItr != function->arg_end(); argItr++)
     {
-      const llvm::Value *arg = callInst->getArgOperand(i++);
-
-      pair<size_t,size_t> argSize = getValueSize(arg);
-      size_t size = argSize.first * argSize.second;
-      TypedValue value = {
-        argSize.first,
-        argSize.second,
-        m_pool.alloc(size)
-      };
-
-      unsigned id = arg->getValueID();
-      if (id == llvm::Value::GlobalVariableVal ||
-          id == llvm::Value::ArgumentVal ||
-          id >= llvm::Value::InstructionVal)
-      {
-        memcpy(value.data, get(arg).data, size);
-      }
-      else if (id == llvm::Value::ConstantFPVal)
-      {
-        setFloatResult(value, getFloatValue(arg));
-      }
-      else if (id == llvm::Value::ConstantIntVal)
-      {
-        setIntResult(value, getUnsignedInt(arg));
-      }
-      else
-      {
-        FATAL_ERROR("Unsupported function argument type: %d", id);
-      }
-
-      set(argItr, value);
+      const llvm::Value *arg = callInst->getArgOperand(argItr->getArgNo());
+      set(argItr, m_pool.clone(getOperand(arg)));
     }
 
     return;
@@ -1158,22 +914,9 @@ INSTRUCTION(extractelem)
 {
   const llvm::ExtractElementInst *extract =
     (const llvm::ExtractElementInst*)instruction;
-
-  const llvm::Value *vector = extract->getVectorOperand();
-  unsigned int index = getUnsignedInt(extract->getIndexOperand());
-  llvm::Type *type = vector->getType()->getVectorElementType();
-  switch (type->getTypeID())
-  {
-  case llvm::Type::FloatTyID:
-  case llvm::Type::DoubleTyID:
-    setFloatResult(result, getFloatValue(vector, index));
-    break;
-  case llvm::Type::IntegerTyID:
-    setIntResult(result, getUnsignedInt(vector, index));
-    break;
-  default:
-    FATAL_ERROR("Unsupported operand type: %d", type->getTypeID());
-  }
+  unsigned index     = getOperand(extract->getIndexOperand()).getUInt();
+  TypedValue operand = getOperand(extract->getVectorOperand());
+  memcpy(result.data, operand.data + result.size*index, result.size);
 }
 
 INSTRUCTION(extractval)
@@ -1183,54 +926,39 @@ INSTRUCTION(extractval)
   const llvm::Value *agg = extract->getAggregateOperand();
   llvm::ArrayRef<unsigned int> indices = extract->getIndices();
 
-  if (isConstantOperand(agg))
+  // Compute offset for target value
+  int offset = 0;
+  const llvm::Type *type = agg->getType();
+  for (int i = 0; i < indices.size(); i++)
   {
-    // Find constant value
-    const llvm::Value *value = agg;
-    for (int i = 0; i < indices.size(); i++)
+    if (type->isArrayTy())
     {
-      value = ((llvm::Constant*)value)->getAggregateElement(indices[i]);
+      type = type->getArrayElementType();
+      offset += getTypeSize(type) * indices[i];
     }
-
-    // Copy constant data to result
-    getConstantData(result.data, (llvm::Constant*)value);
-  }
-  else
-  {
-    // Compute offset for target value
-    int offset = 0;
-    const llvm::Type *type = agg->getType();
-    for (int i = 0; i < indices.size(); i++)
+    else if (type->isStructTy())
     {
-      if (type->isArrayTy())
-      {
-        type = type->getArrayElementType();
-        offset += getTypeSize(type) * indices[i];
-      }
-      else if (type->isStructTy())
-      {
-        offset += getStructMemberOffset((const llvm::StructType*)type,
-                                        indices[i]);
-        type = type->getStructElementType(indices[i]);
-      }
-      else
-      {
-        FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
-      }
+      offset += getStructMemberOffset((const llvm::StructType*)type,
+                                      indices[i]);
+      type = type->getStructElementType(indices[i]);
     }
-
-    // Copy target value to result
-    memcpy(result.data, get(agg).data + offset, result.size);
+    else
+    {
+      FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
+    }
   }
+
+  // Copy target value to result
+  memcpy(result.data, getOperand(agg).data + offset, getTypeSize(type));
 }
 
 INSTRUCTION(fadd)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction->getOperand(0), i);
-    double b = getFloatValue(instruction->getOperand(1), i);
-    setFloatResult(result, a + b, i);
+    result.setFloat(opA.getFloat(i) + opB.getFloat(i), i);
   }
 }
 
@@ -1239,11 +967,14 @@ INSTRUCTION(fcmp)
   const llvm::CmpInst *cmpInst = (const llvm::CmpInst*)instruction;
   llvm::CmpInst::Predicate pred = cmpInst->getPredicate();
 
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
+
   uint64_t t = result.num > 1 ? -1 : 1;
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction->getOperand(0), i);
-    double b = getFloatValue(instruction->getOperand(1), i);
+    double a = opA.getFloat(i);
+    double b = opB.getFloat(i);
 
     uint64_t r;
     switch (pred)
@@ -1288,83 +1019,83 @@ INSTRUCTION(fcmp)
       r = !llvm::CmpInst::isOrdered(pred);
     }
 
-    setIntResult(result, r ? t : 0, i);
+    result.setUInt(r ? t : 0, i);
   }
 }
 
 INSTRUCTION(fdiv)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction->getOperand(0), i);
-    double b = getFloatValue(instruction->getOperand(1), i);
-    setFloatResult(result, a / b, i);
+    result.setFloat(opA.getFloat(i) / opB.getFloat(i), i);
   }
 }
 
 INSTRUCTION(fmul)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction->getOperand(0), i);
-    double b = getFloatValue(instruction->getOperand(1), i);
-    setFloatResult(result, a * b, i);
+    result.setFloat(opA.getFloat(i) * opB.getFloat(i), i);
   }
 }
 
 INSTRUCTION(fpext)
 {
+  TypedValue op = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    double r = getFloatValue(instruction->getOperand(0), i);
-    setFloatResult(result, r, i);
+    result.setFloat(op.getFloat(i), i);
   }
 }
 
 INSTRUCTION(fptosi)
 {
+  TypedValue op = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    int64_t r = (int64_t)getFloatValue(instruction->getOperand(0), i);
-    setIntResult(result, r, i);
+    result.setSInt((int64_t)op.getFloat(i), i);
   }
 }
 
 INSTRUCTION(fptoui)
 {
+  TypedValue op = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t r = (uint64_t)getFloatValue(instruction->getOperand(0), i);
-    setIntResult(result, r, i);
+    result.setUInt((uint64_t)op.getFloat(i), i);
   }
 }
 
 INSTRUCTION(frem)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction->getOperand(0), i);
-    double b = getFloatValue(instruction->getOperand(1), i);
-    setFloatResult(result, fmod(a, b), i);
+    result.setFloat(fmod(opA.getFloat(i), opB.getFloat(i)), i);
   }
 }
 
 INSTRUCTION(fptrunc)
 {
+  TypedValue op = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    double r = getFloatValue(instruction->getOperand(0), i);
-    setFloatResult(result, r, i);
+    result.setFloat(op.getFloat(i), i);
   }
 }
 
 INSTRUCTION(fsub)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    double a = getFloatValue(instruction->getOperand(0), i);
-    double b = getFloatValue(instruction->getOperand(1), i);
-    setFloatResult(result, a - b, i);
+    result.setFloat(opA.getFloat(i) - opB.getFloat(i), i);
   }
 }
 
@@ -1374,24 +1105,15 @@ INSTRUCTION(gep)
     (const llvm::GetElementPtrInst*)instruction;
 
   // Get base address
-  size_t address;
   const llvm::Value *base = gepInst->getPointerOperand();
-  if (base->getValueID() == llvm::Value::ConstantExprVal)
-  {
-    TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)base);
-    address = *(size_t*)result.data;
-  }
-  else
-  {
-    address = *((size_t*)get(base).data);
-  }
+  size_t address = getOperand(base).getPointer();
   const llvm::Type *ptrType = gepInst->getPointerOperandType();
 
   // Iterate over indices
   llvm::User::const_op_iterator opItr;
   for (opItr = gepInst->idx_begin(); opItr != gepInst->idx_end(); opItr++)
   {
-    int64_t offset = getSignedInt(opItr->get());
+    int64_t offset = getOperand(opItr->get()).getSInt();
 
     if (ptrType->isPointerTy())
     {
@@ -1426,7 +1148,7 @@ INSTRUCTION(gep)
     }
   }
 
-  *((size_t*)result.data) = address;
+  result.setPointer(address);
 }
 
 INSTRUCTION(icmp)
@@ -1434,16 +1156,17 @@ INSTRUCTION(icmp)
   const llvm::CmpInst *cmpInst = (const llvm::CmpInst*)instruction;
   llvm::CmpInst::Predicate pred = cmpInst->getPredicate();
 
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
+
   uint64_t t = result.num > 1 ? -1 : 1;
   for (int i = 0; i < result.num; i++)
   {
     // Load operands
-    const llvm::Value *opA = instruction->getOperand(0);
-    const llvm::Value *opB = instruction->getOperand(1);
-    uint64_t ua = getUnsignedInt(opA, i);
-    uint64_t ub = getUnsignedInt(opB, i);
-    int64_t sa = getSignedInt(opA, i);
-    int64_t sb = getSignedInt(opB, i);
+    uint64_t ua = opA.getUInt(i);
+    uint64_t ub = opB.getUInt(i);
+    int64_t  sa = opA.getSInt(i);
+    int64_t  sb = opB.getSInt(i);
 
     uint64_t r;
     switch (pred)
@@ -1482,46 +1205,17 @@ INSTRUCTION(icmp)
       FATAL_ERROR("Unsupported ICmp predicate: %d", pred);
     }
 
-    setIntResult(result, r ? t : 0, i);
+    result.setUInt(r ? t : 0, i);
   }
 }
 
 INSTRUCTION(insertelem)
 {
-  const llvm::InsertElementInst *insert =
-    (const llvm::InsertElementInst*)instruction;
-  const llvm::Value *vector = insert->getOperand(0);
-  unsigned int index = getUnsignedInt(insert->getOperand(2));
-  const llvm::Type *type = vector->getType()->getVectorElementType();
-  for (int i = 0; i < result.num; i++)
-  {
-    switch (type->getTypeID())
-    {
-    case llvm::Type::FloatTyID:
-    case llvm::Type::DoubleTyID:
-      if (i == index)
-      {
-        setFloatResult(result, getFloatValue(insert->getOperand(1)), index);
-      }
-      else
-      {
-        setFloatResult(result, getFloatValue(vector, i), i);
-      }
-      break;
-    case llvm::Type::IntegerTyID:
-      if (i == index)
-      {
-        setIntResult(result, getUnsignedInt(insert->getOperand(1)), index);
-      }
-      else
-      {
-        setIntResult(result, getUnsignedInt(vector, i), i);
-      }
-      break;
-    default:
-      FATAL_ERROR("Unsupported operand type: %d", type->getTypeID());
-    }
-  }
+  TypedValue vector  = getOperand(instruction->getOperand(0));
+  TypedValue element = getOperand(instruction->getOperand(1));
+  unsigned index     = getOperand(instruction->getOperand(2)).getUInt();
+  memcpy(result.data, vector.data, result.size*result.num);
+  memcpy(result.data + index*result.size, element.data, result.size);
 }
 
 INSTRUCTION(insertval)
@@ -1531,14 +1225,7 @@ INSTRUCTION(insertval)
 
   // Load original aggregate data
   const llvm::Value *agg = insert->getAggregateOperand();
-  if (isConstantOperand(agg))
-  {
-    getConstantData(result.data, (llvm::Constant*)agg);
-  }
-  else
-  {
-    memcpy(result.data, get(agg).data, result.size);
-  }
+  memcpy(result.data, getOperand(agg).data, result.size*result.num);
 
   // Compute offset for inserted value
   int offset = 0;
@@ -1565,15 +1252,8 @@ INSTRUCTION(insertval)
 
   // Copy inserted value into result
   const llvm::Value *value = insert->getInsertedValueOperand();
-  if (isConstantOperand(value))
-  {
-    getConstantData(result.data + offset, (const llvm::Constant*)value);
-  }
-  else
-  {
-    memcpy(result.data + offset, get(value).data,
-           getTypeSize(value->getType()));
-  }
+  memcpy(result.data + offset, getOperand(value).data,
+         getTypeSize(value->getType()));
 }
 
 INSTRUCTION(inttoptr)
@@ -1584,24 +1264,28 @@ INSTRUCTION(inttoptr)
   const unsigned alignment = log2(destSize);
   const unsigned mask = ~(((unsigned)-1) << alignment);
 
-  for (int i = 0; i < result.num; i++)  {
-    uint64_t r = getUnsignedInt(instruction->getOperand(0), i);
+  TypedValue op = getOperand(instruction->getOperand(0));
+
+  for (int i = 0; i < result.num; i++)
+  {
+    uint64_t r = op.getUInt(i);
     // Verify that the cast pointer fits the alignment requirements
     // of the destination type (undefined behaviour in C99)
-    if ((r & mask) != 0) {
+    if ((r & mask) != 0)
+    {
       m_device->notifyError("Invalid pointer cast - destination pointer is"
         " not aligned to the pointed type");
     }
-    setIntResult(result, r, i);
+    result.setUInt(r, i);
   }
 }
 
 INSTRUCTION(itrunc)
 {
+  TypedValue op = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t val = getUnsignedInt(instruction->getOperand(0), i);
-    setIntResult(result, val, i);
+    result.setUInt(op.getUInt(i), i);
   }
 }
 
@@ -1609,39 +1293,39 @@ INSTRUCTION(load)
 {
   const llvm::LoadInst *loadInst = (const llvm::LoadInst*)instruction;
   unsigned addressSpace = loadInst->getPointerAddressSpace();
-  size_t address = getPointer(loadInst->getPointerOperand());
+  size_t address = getOperand(loadInst->getPointerOperand()).getPointer();
 
   // Generate a mask to test pointer alignment
   const unsigned destSize = getTypeAlignment(loadInst->getType());
   const unsigned alignment = log2(destSize);
   const unsigned mask = ~(((unsigned)-1) << alignment);
-  if ((address & mask) != 0) {
+  if ((address & mask) != 0)
+  {
     m_device->notifyError("Invalid memory load - source pointer is"
       " not aligned to the pointed type");
   }
 
   // Load data
-  size_t size = result.size*result.num;
-  getMemory(addressSpace)->load(result.data, address, size);
+  getMemory(addressSpace)->load(result.data, address, result.size*result.num);
 }
 
 INSTRUCTION(lshr)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, a >> b, i);
+    result.setUInt(opA.getUInt(i) >> opB.getUInt(i), i);
   }
 }
 
 INSTRUCTION(mul)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, a * b, i);
+    result.setUInt(opA.getUInt(i) * opB.getUInt(i), i);
   }
 }
 
@@ -1650,40 +1334,15 @@ INSTRUCTION(phi)
   const llvm::PHINode *phiNode = (const llvm::PHINode*)instruction;
   const llvm::Value *value =
     phiNode->getIncomingValueForBlock((const llvm::BasicBlock*)m_prevBlock);
-
-  llvm::Type::TypeID type = value->getType()->getTypeID();
-  if (type == llvm::Type::VectorTyID)
-  {
-    type = value->getType()->getVectorElementType()->getTypeID();
-  }
-
-  for (int i = 0; i < result.num; i++)
-  {
-    switch (type)
-    {
-    case llvm::Type::IntegerTyID:
-      setIntResult(result, getUnsignedInt(value, i), i);
-      break;
-    case llvm::Type::FloatTyID:
-    case llvm::Type::DoubleTyID:
-      setFloatResult(result, getFloatValue(value, i), i);
-      break;
-    case llvm::Type::PointerTyID:
-      memcpy(result.data, get(value).data, result.size);
-      break;
-    default:
-      FATAL_ERROR("Unsupported operand type: %d", type);
-    }
-  }
+  memcpy(result.data, getOperand(value).data, result.size*result.num);
 }
 
 INSTRUCTION(ptrtoint)
 {
-  const llvm::CastInst *cast = (const llvm::CastInst*)instruction;
+  TypedValue op = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t r = getUnsignedInt(instruction->getOperand(0), i);
-    setIntResult(result, r, i);
+    result.setUInt(op.getPointer(i), i);
   }
 }
 
@@ -1702,31 +1361,7 @@ INSTRUCTION(ret)
     const llvm::Value *returnVal = retInst->getReturnValue();
     if (returnVal)
     {
-      if (isConstantOperand(returnVal))
-      {
-        if (returnVal->getValueID() == llvm::Value::ConstantExprVal)
-        {
-          TypedValue value =
-            resolveConstExpr((const llvm::ConstantExpr*)returnVal);
-          set(m_currInst, value);
-        }
-        else
-        {
-          pair<size_t,size_t> size = getValueSize(returnVal);
-          TypedValue value =
-          {
-            size.first,
-            size.second,
-            m_pool.alloc(size.first*size.second)
-          };
-          getConstantData(value.data, (const llvm::Constant*)returnVal);
-          set(m_currInst, value);
-        }
-      }
-      else
-      {
-        set(m_currInst, m_pool.clone(get(returnVal)));
-      }
+      set(m_currInst, m_pool.clone(getOperand(returnVal)));
     }
   }
   else
@@ -1739,78 +1374,57 @@ INSTRUCTION(ret)
 
 INSTRUCTION(sdiv)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    int64_t a = getSignedInt(instruction->getOperand(0), i);
-    int64_t b = getSignedInt(instruction->getOperand(1), i);
-
+    int64_t a = opA.getSInt(i);
+    int64_t b = opB.getSInt(i);
     int64_t r = 0;
     if (b && !(a == INT64_MIN && b == -1))
     {
       r = a / b;
     }
-
-    setIntResult(result, r, i);
+    result.setSInt(r, i);
   }
 }
 
 INSTRUCTION(select)
 {
   const llvm::SelectInst *selectInst = (const llvm::SelectInst*)instruction;
-
+  TypedValue opCondition = getOperand(selectInst->getCondition());
   for (int i = 0; i < result.num; i++)
   {
-    const bool cond = getUnsignedInt(selectInst->getCondition(), i);
+    const bool cond = opCondition.getUInt(i);
     const llvm::Value *op = cond ?
       selectInst->getTrueValue() :
       selectInst->getFalseValue();
-
-    uint64_t u;
-    double f;
-
-    llvm::Type::TypeID type = op->getType()->getTypeID();
-    if (type == llvm::Type::VectorTyID)
-    {
-      type = op->getType()->getVectorElementType()->getTypeID();
-    }
-
-    switch (type)
-    {
-    case llvm::Type::IntegerTyID:
-      u = getUnsignedInt(op, i);
-      setIntResult(result, u, i);
-      break;
-    case llvm::Type::FloatTyID:
-    case llvm::Type::DoubleTyID:
-      f = getFloatValue(op, i);
-      setFloatResult(result, f, i);
-      break;
-    default:
-      FATAL_ERROR("Unsupported operand type: %d", type);
-    }
+    memcpy(result.data, getOperand(op).data, result.size*result.num);
   }
 }
 
 INSTRUCTION(sext)
 {
+  const llvm::Value *operand = instruction->getOperand(0);
+  TypedValue value = getOperand(operand);
   for (int i = 0; i < result.num; i++)
   {
-    int64_t val = getSignedInt(instruction->getOperand(0), i);
-    if (instruction->getOperand(0)->getType()->getPrimitiveSizeInBits() == 1)
+    int64_t val = value.getSInt(i);
+    if (operand->getType()->getPrimitiveSizeInBits() == 1)
     {
       val = val ? -1 : 0;
     }
-    setIntResult(result, val, i);
+    result.setSInt(val, i);
   }
 }
 
 INSTRUCTION(shl)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, a << b, i);
+    result.setUInt(opA.getUInt(i) << opB.getUInt(i), i);
   }
 }
 
@@ -1821,18 +1435,18 @@ INSTRUCTION(shuffle)
 
   const llvm::Value *v1 = shuffle->getOperand(0);
   const llvm::Value *v2 = shuffle->getOperand(1);
-  const llvm::Value *mask = shuffle->getMask();
+  TypedValue mask = getOperand(shuffle->getMask());
 
   unsigned num = v1->getType()->getVectorNumElements();
   const llvm::Type *type = v1->getType()->getVectorElementType();
   for (int i = 0; i < result.num; i++)
   {
     const llvm::Value *src = v1;
-    unsigned int index = getUnsignedInt(mask, i);
+    unsigned int index = mask.getUInt(i);
     if (index == -1)
     {
       // Don't care / undef
-      setIntResult(result, (uint64_t)0, i);
+      result.setUInt(-1, i);
       continue;
     }
     else if (index >= num)
@@ -1840,46 +1454,34 @@ INSTRUCTION(shuffle)
       index -= num;
       src = v2;
     }
-
-    switch (type->getTypeID())
-    {
-    case llvm::Type::FloatTyID:
-    case llvm::Type::DoubleTyID:
-      setFloatResult(result, getFloatValue(src, index), i);
-      break;
-    case llvm::Type::IntegerTyID:
-      setIntResult(result, getUnsignedInt(src, index), i);
-      break;
-    default:
-      FATAL_ERROR("Unsupported operand type: %d", type->getTypeID());
-    }
+    memcpy(result.data + i*result.size,
+           getOperand(src).data + index*result.size, result.size);
   }
 }
 
 INSTRUCTION(sitofp)
 {
+  TypedValue op = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    const llvm::CastInst *cast = (const llvm::CastInst*)instruction;
-    double r = (double)getSignedInt(instruction->getOperand(0), i);
-    setFloatResult(result, r, i);
+    result.setFloat(op.getSInt(i), i);
   }
 }
 
 INSTRUCTION(srem)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    int64_t a = getSignedInt(instruction->getOperand(0), i);
-    int64_t b = getSignedInt(instruction->getOperand(1), i);
-
+    int64_t a = opA.getSInt(i);
+    int64_t b = opB.getSInt(i);
     int64_t r = 0;
     if (b && !(a == INT64_MIN && b == -1))
     {
       r = a % b;
     }
-
-    setIntResult(result, r, i);
+    result.setSInt(r, i);
   }
 }
 
@@ -1889,7 +1491,7 @@ INSTRUCTION(store)
   const llvm::Value *valOp = storeInst->getValueOperand();
   const llvm::Type *type = valOp->getType();
   unsigned addressSpace = storeInst->getPointerAddressSpace();
-  size_t address = getPointer(storeInst->getPointerOperand());
+  size_t address = getOperand(storeInst->getPointerOperand()).getPointer();
 
   // Generate a mask to test pointer alignment
   const unsigned alignment = log2(getTypeAlignment(type));
@@ -1899,50 +1501,18 @@ INSTRUCTION(store)
       " not aligned to the pointed type");
   }
 
-  // Get store operand
-  size_t size = getTypeSize(type);
-  unsigned char *data = m_pool.alloc(size);
-  if (isConstantOperand(valOp))
-  {
-    if (valOp->getValueID() == llvm::Value::ConstantExprVal)
-    {
-      TypedValue result = resolveConstExpr((const llvm::ConstantExpr*)valOp);
-      memcpy(data, result.data, result.size*result.num);
-    }
-    else
-    {
-      getConstantData(data, (const llvm::Constant*)valOp);
-    }
-  }
-  else
-  {
-    if (has(valOp))
-    {
-      memcpy(data, get(valOp).data, size);
-    }
-    else if (valOp->getValueID() >= llvm::Value::InstructionVal)
-    {
-      execute((const llvm::Instruction*)valOp);
-      TypedValue result = get(valOp);
-      memcpy(data, result.data, result.size*result.num);
-    }
-    else
-    {
-      FATAL_ERROR("Unable to find store operand");
-    }
-  }
-
   // Store data
-  getMemory(addressSpace)->store(data, address, size);
+  TypedValue operand = getOperand(valOp);
+  getMemory(addressSpace)->store(operand.data, address, getTypeSize(type));
 }
 
 INSTRUCTION(sub)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, a - b, i);
+    result.setUInt(opA.getUInt(i) - opB.getUInt(i), i);
   }
 }
 
@@ -1950,7 +1520,7 @@ INSTRUCTION(swtch)
 {
   const llvm::SwitchInst *swtch = (const llvm::SwitchInst*)instruction;
   const llvm::Value *cond = swtch->getCondition();
-  uint64_t val = getUnsignedInt(cond);
+  uint64_t val = getOperand(cond).getUInt();
   const llvm::ConstantInt *cval =
     (const llvm::ConstantInt*)llvm::ConstantInt::get(cond->getType(), val);
   m_nextBlock = swtch->findCaseValue(cval).getCaseSuccessor();
@@ -1958,40 +1528,43 @@ INSTRUCTION(swtch)
 
 INSTRUCTION(udiv)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, b ? a / b : 0, i);
+    uint64_t a = opA.getUInt(i);
+    uint64_t b = opB.getUInt(i);
+    result.setUInt(b ? a / b : 0, i);
   }
 }
 
 INSTRUCTION(uitofp)
 {
+  TypedValue op = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    const llvm::CastInst *cast = (const llvm::CastInst*)instruction;
-    double r = (double)getUnsignedInt(instruction->getOperand(0), i);
-    setFloatResult(result, r, i);
+    result.setFloat(op.getUInt(i), i);
   }
 }
 
 INSTRUCTION(urem)
 {
+  TypedValue opA = getOperand(instruction->getOperand(0));
+  TypedValue opB = getOperand(instruction->getOperand(1));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t a = getUnsignedInt(instruction->getOperand(0), i);
-    uint64_t b = getUnsignedInt(instruction->getOperand(1), i);
-    setIntResult(result, b ? a % b : 0, i);
+    uint64_t a = opA.getUInt(i);
+    uint64_t b = opB.getUInt(i);
+    result.setUInt(b ? a % b : 0, i);
   }
 }
 
 INSTRUCTION(zext)
 {
+  TypedValue operand = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t val = getUnsignedInt(instruction->getOperand(0), i);
-    setIntResult(result, val, i);
+    result.setUInt(operand.getUInt(i), i);
   }
 }
 

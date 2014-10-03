@@ -23,6 +23,128 @@ using namespace std;
 
 namespace oclgrind
 {
+  double TypedValue::getFloat(unsigned index) const
+  {
+    switch (size)
+    {
+    case 4:
+      return ((float*)data)[index];
+    case 8:
+      return ((double*)data)[index];
+    default:
+      FATAL_ERROR("Unsupported float size: %lu bytes", size);
+    }
+  }
+
+  size_t TypedValue::getPointer(unsigned index) const
+  {
+    if (size != sizeof(size_t))
+    {
+      FATAL_ERROR("Unsupported pointer size: %lu bytes", size);
+    }
+    return ((size_t*)data)[index];
+  }
+
+  int64_t TypedValue::getSInt(unsigned index) const
+  {
+    switch (size)
+    {
+    case 1:
+      return ((int8_t*)data)[index];
+    case 2:
+      return ((int16_t*)data)[index];
+    case 4:
+      return ((int32_t*)data)[index];
+    case 8:
+      return ((int64_t*)data)[index];
+    default:
+      FATAL_ERROR("Unsupported signed int size: %lu bytes", size);
+    }
+  }
+
+  uint64_t TypedValue::getUInt(unsigned index) const
+  {
+    switch (size)
+    {
+    case 1:
+      return ((uint8_t*)data)[index];
+    case 2:
+      return ((uint16_t*)data)[index];
+    case 4:
+      return ((uint32_t*)data)[index];
+    case 8:
+      return ((uint64_t*)data)[index];
+    default:
+      FATAL_ERROR("Unsupported unsigned int size: %lu bytes", size);
+    }
+  }
+
+  void TypedValue::setFloat(double value, unsigned index)
+  {
+    switch (size)
+    {
+    case 4:
+      ((float*)data)[index] = value;
+      break;
+    case 8:
+      ((double*)data)[index] = value;
+      break;
+    default:
+      FATAL_ERROR("Unsupported float size: %lu bytes", size);
+    }
+  }
+
+  void TypedValue::setPointer(size_t value, unsigned index)
+  {
+    if (size != sizeof(size_t))
+    {
+      FATAL_ERROR("Unsupported pointer size: %lu bytes", size);
+    }
+    ((size_t*)data)[index] = value;
+  }
+
+  void TypedValue::setSInt(int64_t value, unsigned index)
+  {
+    switch (size)
+    {
+    case 1:
+      ((int8_t*)data)[index] = value;
+      break;
+    case 2:
+      ((int16_t*)data)[index] = value;
+      break;
+    case 4:
+      ((int32_t*)data)[index] = value;
+      break;
+    case 8:
+      ((int64_t*)data)[index] = value;
+      break;
+    default:
+      FATAL_ERROR("Unsupported signed int size: %lu bytes", size);
+    }
+  }
+
+  void TypedValue::setUInt(uint64_t value, unsigned index)
+  {
+    switch (size)
+    {
+    case 1:
+      ((uint8_t*)data)[index] = value;
+      break;
+    case 2:
+      ((uint16_t*)data)[index] = value;
+      break;
+    case 4:
+      ((uint32_t*)data)[index] = value;
+      break;
+    case 8:
+      ((uint64_t*)data)[index] = value;
+      break;
+    default:
+      FATAL_ERROR("Unsupported unsigned int size: %lu bytes", size);
+    }
+  }
+
   TypedValue clone(const TypedValue& source)
   {
     TypedValue dest;

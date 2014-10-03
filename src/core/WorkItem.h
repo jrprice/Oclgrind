@@ -108,33 +108,21 @@ namespace oclgrind
     void dispatch(const llvm::Instruction *instruction, TypedValue& result);
     void execute(const llvm::Instruction *instruction);
     const std::stack<ReturnAddress>& getCallStack() const;
+    static std::string getCountedOpcodeName(unsigned opcode);
     const llvm::Instruction* getCurrentInstruction() const;
+    Device* getDevice() {return m_device;}
     const size_t* getGlobalID() const;
     size_t getGlobalIndex() const;
-    double getFloatValue(const llvm::Value *operand,
-                         unsigned int index = 0);
     static std::vector<size_t> getInstructionCounts();
     const size_t* getLocalID() const;
-    static std::string getCountedOpcodeName(unsigned opcode);
+    TypedValue getOperand(const llvm::Value *operand);
     Memory* getPrivateMemory() const;
-    size_t getPointer(const llvm::Value *operand, unsigned int index = 0);
-    int64_t getSignedInt(const llvm::Value *operand,
-                         unsigned int index = 0);
     State getState() const;
-    uint64_t getUnsignedInt(const llvm::Value *operand,
-                            unsigned int index = 0);
     const unsigned char* getValueData(const llvm::Value *value) const;
     const llvm::Value* getVariable(std::string name) const;
     bool printValue(const llvm::Value *value);
     bool printVariable(std::string name);
     TypedValue resolveConstExpr(const llvm::ConstantExpr *expr);
-    static void setFloatResult(TypedValue& result, double val,
-                               unsigned int index = 0);
-    static void setIntResult(TypedValue& result, int64_t val,
-                             unsigned int index = 0);
-    static void setIntResult(TypedValue& result, uint64_t val,
-                             unsigned int index = 0);
-    Device* getDevice() {return m_device;}
     State step();
 
     // SPIR instructions

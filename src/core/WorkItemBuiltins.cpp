@@ -52,13 +52,14 @@ namespace oclgrind
                    const string& fnName, const string& overload,       \
                    TypedValue& result, void *)
 #define ARG(i) (callInst->getArgOperand(i))
-#define UARG(i) workItem->getUnsignedInt(callInst->getArgOperand(i))
-#define SARG(i) workItem->getSignedInt(callInst->getArgOperand(i))
-#define FARG(i) workItem->getFloatValue(callInst->getArgOperand(i))
-#define PARG(i) workItem->getPointer(callInst->getArgOperand(i))
-#define UARGV(i,v) workItem->getUnsignedInt(callInst->getArgOperand(i), v)
-#define SARGV(i,v) workItem->getSignedInt(callInst->getArgOperand(i), v)
-#define FARGV(i,v) workItem->getFloatValue(callInst->getArgOperand(i), v)
+#define UARGV(i,v) workItem->getOperand(ARG(i)).getUInt(v)
+#define SARGV(i,v) workItem->getOperand(ARG(i)).getSInt(v)
+#define FARGV(i,v) workItem->getOperand(ARG(i)).getFloat(v)
+#define PARGV(i,v) workItem->getOperand(ARG(i)).getPointer(v)
+#define UARG(i) UARGV(i, 0)
+#define SARG(i) SARGV(i, 0)
+#define FARG(i) FARGV(i, 0)
+#define PARG(i) PARGV(i, 0)
 
     // Functions that apply generic builtins to each component of a vector
     static void f1arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -67,8 +68,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        double r = func(FARGV(0, i));
-        WorkItem::setFloatResult(result, r, i);
+        result.setFloat(func(FARGV(0, i)), i);
       }
     }
     static void f2arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -77,8 +77,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        double r = func(FARGV(0, i), FARGV(1, i));
-        WorkItem::setFloatResult(result, r, i);
+        result.setFloat(func(FARGV(0, i), FARGV(1, i)), i);
       }
     }
     static void f3arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -87,8 +86,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        double r = func(FARGV(0, i), FARGV(1, i), FARGV(2, i));
-        WorkItem::setFloatResult(result, r, i);
+        result.setFloat(func(FARGV(0, i), FARGV(1, i), FARGV(2, i)), i);
       }
     }
     static void u1arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -97,8 +95,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        uint64_t r = func(UARGV(0, i));
-        WorkItem::setIntResult(result, r, i);
+        result.setUInt(func(UARGV(0, i)), i);
       }
     }
     static void u2arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -107,8 +104,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        uint64_t r = func(UARGV(0, i), UARGV(1, i));
-        WorkItem::setIntResult(result, r, i);
+        result.setUInt(func(UARGV(0, i), UARGV(1, i)), i);
       }
     }
     static void u3arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -117,8 +113,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        uint64_t r = func(UARGV(0, i), UARGV(1, i), UARGV(2, i));
-        WorkItem::setIntResult(result, r, i);
+        result.setUInt(func(UARGV(0, i), UARGV(1, i), UARGV(2, i)), i);
       }
     }
     static void s1arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -127,8 +122,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        int64_t r = func(SARGV(0, i));
-        WorkItem::setIntResult(result, r, i);
+        result.setSInt(func(SARGV(0, i)), i);
       }
     }
     static void s2arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -137,8 +131,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        int64_t r = func(SARGV(0, i), SARGV(1, i));
-        WorkItem::setIntResult(result, r, i);
+        result.setSInt(func(SARGV(0, i), SARGV(1, i)), i);
       }
     }
     static void s3arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -147,8 +140,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        int64_t r = func(SARGV(0, i), SARGV(1, i), SARGV(2, i));
-        WorkItem::setIntResult(result, r, i);
+        result.setSInt(func(SARGV(0, i), SARGV(1, i), SARGV(2, i)), i);
       }
     }
     static void rel1arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -158,8 +150,7 @@ namespace oclgrind
       int64_t t = result.num > 1 ? -1 : 1;
       for (int i = 0; i < result.num; i++)
       {
-        int64_t r = func(FARGV(0, i))*t;
-        WorkItem::setIntResult(result, r, i);
+        result.setSInt(func(FARGV(0, i))*t, i);
       }
     }
     static void rel2arg(WorkItem *workItem, const llvm::CallInst *callInst,
@@ -169,8 +160,7 @@ namespace oclgrind
       int64_t t = result.num > 1 ? -1 : 1;
       for (int i = 0; i < result.num; i++)
       {
-        int64_t r = func(FARGV(0, i), FARGV(1, i))*t;
-        WorkItem::setIntResult(result, r, i);
+        result.setSInt(func(FARGV(0, i), FARGV(1, i))*t, i);
       }
     }
 
@@ -199,8 +189,8 @@ namespace oclgrind
       // Get src/dest addresses
       const llvm::Value *destOp = ARG(arg++);
       const llvm::Value *srcOp = ARG(arg++);
-      size_t dest = workItem->getPointer(destOp);
-      size_t src = workItem->getPointer(srcOp);
+      size_t dest = workItem->getOperand(destOp).getPointer();
+      size_t src = workItem->getOperand(srcOp).getPointer();
 
       // Get size of copy
       size_t elemSize = getTypeSize(destOp->getType()->getPointerElementType());
@@ -242,7 +232,7 @@ namespace oclgrind
         srcStride,
         destStride,
         event);
-      WorkItem::setIntResult(result, (uint64_t)event);
+      result.setUInt(event);
     }
 
     DEFINE_BUILTIN(wait_group_events)
@@ -288,7 +278,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_add");
       }
       uint32_t old = memory->atomicAdd(address, UARG(1));
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_and)
@@ -302,7 +292,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_and");
       }
       uint32_t old = memory->atomicAnd(address, UARG(1));
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_cmpxchg)
@@ -317,7 +307,7 @@ namespace oclgrind
           notifyError("Unaligned address on atomic_cmpxchg");
       }
       uint32_t old = memory->atomicCmpxchg(address, UARG(1), UARG(2));
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_dec)
@@ -331,7 +321,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_dec");
       }
       uint32_t old = memory->atomicDec(address);
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_inc)
@@ -345,7 +335,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_dec");
       }
       uint32_t old = memory->atomicInc(address);
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_max)
@@ -359,7 +349,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_max");
       }
       uint32_t old = memory->atomicMax(address, UARG(1));
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_min)
@@ -373,7 +363,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_min");
       }
       uint32_t old = memory->atomicMin(address, UARG(1));
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_or)
@@ -387,7 +377,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_or");
       }
       uint32_t old = memory->atomicOr(address, UARG(1));
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_sub)
@@ -401,7 +391,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_sub");
       }
       uint32_t old = memory->atomicSub(address, UARG(1));
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_xchg)
@@ -415,7 +405,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_xchg");
       }
       uint32_t old = memory->atomicXchg(address, UARG(1));
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
     DEFINE_BUILTIN(atomic_xor)
@@ -429,7 +419,7 @@ namespace oclgrind
         workItem->getDevice()->notifyError("Unaligned address on atomic_xor");
       }
       uint32_t old = memory->atomicXor(address, UARG(1));
-      workItem->setIntResult(result, (uint64_t)old);
+      result.setUInt(old);
     }
 
 
@@ -481,7 +471,7 @@ namespace oclgrind
               double x = FARGV(0, i);
               double minval = FARG(1);
               double maxval = FARG(2);
-              workItem->setFloatResult(result, _clamp_(x, minval, maxval), i);
+              result.setFloat(_clamp_(x, minval, maxval), i);
             }
           }
           break;
@@ -519,7 +509,7 @@ namespace oclgrind
             {
               double x = FARGV(0, i);
               double y = FARG(1);
-              workItem->setFloatResult(result, _max_(x, y), i);
+              result.setFloat(_max_(x, y), i);
             }
           }
           break;
@@ -557,7 +547,7 @@ namespace oclgrind
             {
               double x = FARGV(0, i);
               double y = FARG(1);
-              workItem->setFloatResult(result, _min_(x, y), i);
+              result.setFloat(_min_(x, y), i);
             }
           }
           break;
@@ -587,7 +577,7 @@ namespace oclgrind
         double y = FARGV(1, i);
         double a = ARG(2)->getType()->isVectorTy() ? FARGV(2, i) : FARG(2);
         double r = x + (y - x) * a;
-        workItem->setFloatResult(result, r, i);
+        result.setFloat(r, i);
       }
     }
 
@@ -600,7 +590,7 @@ namespace oclgrind
         double x = FARGV(2, i);
         double t = _clamp_<double>((x - edge0) / (edge1 - edge0), 0, 1);
         double r = t * t * (3 - 2*t);
-        workItem->setFloatResult(result, r, i);
+        result.setFloat(r, i);
       }
     }
 
@@ -611,7 +601,7 @@ namespace oclgrind
         double edge = ARG(0)->getType()->isVectorTy() ? FARGV(0, i) : FARG(0);
         double x = FARGV(1, i);
         double r = (x < edge) ? 0.0 : 1.0;
-        workItem->setFloatResult(result, r, i);
+        result.setFloat(r, i);
       }
     }
 
@@ -628,10 +618,10 @@ namespace oclgrind
       double v1 = FARGV(1, 0);
       double v2 = FARGV(1, 1);
       double v3 = FARGV(1, 2);
-      WorkItem::setFloatResult(result, u2*v3 - u3*v2, 0);
-      WorkItem::setFloatResult(result, u3*v1 - u1*v3, 1);
-      WorkItem::setFloatResult(result, u1*v2 - u2*v1, 2);
-      WorkItem::setFloatResult(result, 0, 3);
+      result.setFloat(u2*v3 - u3*v2, 0);
+      result.setFloat(u3*v1 - u1*v3, 1);
+      result.setFloat(u1*v2 - u2*v1, 2);
+      result.setFloat(0, 3);
     }
 
     DEFINE_BUILTIN(dot)
@@ -649,7 +639,7 @@ namespace oclgrind
         double b = FARGV(1, i);
         r += a * b;
       }
-      WorkItem::setFloatResult(result, r);
+      result.setFloat(r);
     }
 
     DEFINE_BUILTIN(distance)
@@ -666,7 +656,7 @@ namespace oclgrind
         double diff = FARGV(0,i) - FARGV(1,i);
         distSq += diff*diff;
       }
-      WorkItem::setFloatResult(result, sqrt(distSq));
+      result.setFloat(sqrt(distSq));
     }
 
     DEFINE_BUILTIN(length)
@@ -682,7 +672,7 @@ namespace oclgrind
       {
         lengthSq += FARGV(0, i) * FARGV(0, i);
       }
-      WorkItem::setFloatResult(result, sqrt(lengthSq));
+      result.setFloat(sqrt(lengthSq));
     }
 
     DEFINE_BUILTIN(normalize)
@@ -696,7 +686,7 @@ namespace oclgrind
 
       for (int i = 0; i < result.num; i++)
       {
-        WorkItem::setFloatResult(result, FARGV(0, i)/length, i);
+        result.setFloat(FARGV(0, i)/length, i);
       }
     }
 
@@ -777,53 +767,50 @@ namespace oclgrind
     DEFINE_BUILTIN(get_image_array_size)
     {
       Image *image = *(Image**)(workItem->get(ARG(0)).data);
-      workItem->setIntResult(result,
-                             (int64_t)image->desc.image_array_size);
+      result.setSInt(image->desc.image_array_size);
     }
 
     DEFINE_BUILTIN(get_image_channel_data_type)
     {
       Image *image = *(Image**)(workItem->get(ARG(0)).data);
-      workItem->setIntResult(result,
-                             (int64_t)image->format.image_channel_data_type);
+      result.setSInt(image->format.image_channel_data_type);
     }
 
     DEFINE_BUILTIN(get_image_channel_order)
     {
       Image *image = *(Image**)(workItem->get(ARG(0)).data);
-      workItem->setIntResult(result,
-                             (int64_t)image->format.image_channel_order);
+      result.setSInt(image->format.image_channel_order);
     }
 
     DEFINE_BUILTIN(get_image_dim)
     {
       Image *image = *(Image**)(workItem->get(ARG(0)).data);
 
-      workItem->setIntResult(result, (int64_t)image->desc.image_width, 0);
-      workItem->setIntResult(result, (int64_t)image->desc.image_height, 1);
+      result.setSInt(image->desc.image_width, 0);
+      result.setSInt(image->desc.image_height, 1);
       if (result.num > 2)
       {
-        workItem->setIntResult(result, (int64_t)image->desc.image_depth, 2);
-        workItem->setIntResult(result, (int64_t)0, 3);
+        result.setSInt(image->desc.image_depth, 2);
+        result.setSInt(0, 3);
       }
     }
 
     DEFINE_BUILTIN(get_image_depth)
     {
       Image *image = *(Image**)(workItem->get(ARG(0)).data);
-      workItem->setIntResult(result, (int64_t)image->desc.image_depth);
+      result.setSInt(image->desc.image_depth);
     }
 
     DEFINE_BUILTIN(get_image_height)
     {
       Image *image = *(Image**)(workItem->get(ARG(0)).data);
-      workItem->setIntResult(result, (int64_t)image->desc.image_height);
+      result.setSInt(image->desc.image_height);
     }
 
     DEFINE_BUILTIN(get_image_width)
     {
       Image *image = *(Image**)(workItem->get(ARG(0)).data);
-      workItem->setIntResult(result, (int64_t)image->desc.image_width);
+      result.setSInt(image->desc.image_width);
     }
 
     static inline float getCoordinate(const llvm::Value *value, int index,
@@ -832,9 +819,9 @@ namespace oclgrind
       switch (type)
       {
         case 'i':
-          return workItem->getSignedInt(value, index);
+          return workItem->getOperand(value).getSInt(index);
         case 'f':
-          return workItem->getFloatValue(value, index);
+          return workItem->getOperand(value).getFloat(index);
         default:
           FATAL_ERROR("Unsupported coordinate type: '%c'", type);
       }
@@ -1321,7 +1308,7 @@ namespace oclgrind
       // Store values in result
       for (int i = 0; i < 4; i++)
       {
-        workItem->setFloatResult(result, values[i], i);
+        result.setFloat(values[i], i);
       }
     }
 
@@ -1394,7 +1381,7 @@ namespace oclgrind
       // Store values in result
       for (int i = 0; i < 4; i++)
       {
-        workItem->setIntResult(result, (int64_t)values[i], i);
+        result.setSInt(values[i], i);
       }
     }
 
@@ -1467,7 +1454,7 @@ namespace oclgrind
       // Store values in result
       for (int i = 0; i < 4; i++)
       {
-        workItem->setIntResult(result, (uint64_t)values[i], i);
+        result.setUInt(values[i], i);
       }
     }
 
@@ -1768,13 +1755,13 @@ namespace oclgrind
           case 't':
           case 'j':
           case 'm':
-            WorkItem::setIntResult(result, UARGV(0,i), i);
+            result.setUInt(UARGV(0,i), i);
             break;
           case 'c':
           case 's':
           case 'i':
           case 'l':
-            WorkItem::setIntResult(result, abs(SARGV(0,i)), i);
+            result.setSInt(abs(SARGV(0,i)), i);
             break;
           default:
             FATAL_ERROR("Unsupported argument type: %c",
@@ -1796,7 +1783,7 @@ namespace oclgrind
           {
             uint64_t a = UARGV(0, i);
             uint64_t b = UARGV(1, i);
-            WorkItem::setIntResult(result, _max_(a,b) - _min_(a,b), i);
+            result.setUInt(_max_(a,b) - _min_(a,b), i);
             break;
           }
           case 'c':
@@ -1806,7 +1793,7 @@ namespace oclgrind
           {
             int64_t a = SARGV(0, i);
             int64_t b = SARGV(1, i);
-            WorkItem::setIntResult(result, _max_(a,b) - _min_(a,b), i);
+            result.setSInt(_max_(a,b) - _min_(a,b), i);
             break;
           }
           default:
@@ -1826,31 +1813,31 @@ namespace oclgrind
         {
           case 'h':
             uresult = _min_<uint64_t>(uresult, UINT8_MAX);
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 't':
             uresult = _min_<uint64_t>(uresult, UINT16_MAX);
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 'j':
             uresult = _min_<uint64_t>(uresult, UINT32_MAX);
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 'm':
             uresult = (UARGV(1, i) > uresult) ? UINT64_MAX : uresult;
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 'c':
             sresult = _clamp_<int64_t>(sresult, INT8_MIN, INT8_MAX);
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           case 's':
             sresult = _clamp_<int64_t>(sresult, INT16_MIN, INT16_MAX);
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           case 'i':
             sresult = _clamp_<int64_t>(sresult, INT32_MIN, INT32_MAX);
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           case 'l':
             if ((SARGV(0,i)>0) == (SARGV(1,i)>0) &&
@@ -1858,7 +1845,7 @@ namespace oclgrind
             {
               sresult = (SARGV(0,i)>0) ? INT64_MAX : INT64_MIN;
             }
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           default:
             FATAL_ERROR("Unsupported argument type: %c",
@@ -1880,7 +1867,7 @@ namespace oclgrind
         }
 
         uint64_t r = ((result.size<<3) - nz);
-        WorkItem::setIntResult(result, r, i);
+        result.setUInt(r, i);
       }
     }
 
@@ -1898,7 +1885,7 @@ namespace oclgrind
             uint64_t a = UARGV(0, i);
             uint64_t b = UARGV(1, i);
             uint64_t c = (a > UINT64_MAX-b) ? (1L<<63) : 0;
-            WorkItem::setIntResult(result, ((a + b) >> 1) | c, i);
+            result.setUInt(((a + b) >> 1) | c, i);
             break;
           }
           case 'c':
@@ -1909,7 +1896,7 @@ namespace oclgrind
             int64_t a = SARGV(0, i);
             int64_t b = SARGV(1, i);
             int64_t c = (a & b) & 1;
-            WorkItem::setIntResult(result, (a>>1) + (b>>1) + c, i);
+            result.setSInt((a>>1) + (b>>1) + c, i);
             break;
           }
           default:
@@ -1992,7 +1979,7 @@ namespace oclgrind
           {
             uint64_t r =
               _umul_hi_(UARGV(0, i), UARGV(1, i), result.size<<3) + UARGV(2, i);
-            WorkItem::setIntResult(result, r, i);
+            result.setUInt(r, i);
             break;
           }
           case 'c':
@@ -2002,7 +1989,7 @@ namespace oclgrind
           {
             int64_t r =
               _smul_hi_(SARGV(0, i), SARGV(1, i), result.size<<3) + SARGV(2, i);
-            WorkItem::setIntResult(result, r, i);
+            result.setSInt(r, i);
             break;
           }
           default:
@@ -2022,15 +2009,15 @@ namespace oclgrind
         {
           case 'h':
             uresult = _min_<uint64_t>(uresult, UINT8_MAX);
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 't':
             uresult = _min_<uint64_t>(uresult, UINT16_MAX);
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 'j':
             uresult = _min_<uint64_t>(uresult, UINT16_MAX);
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 'm':
           {
@@ -2039,20 +2026,20 @@ namespace oclgrind
             {
               uresult = UINT64_MAX;
             }
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           }
           case 'c':
             sresult = _clamp_<int64_t>(sresult, INT8_MIN, INT8_MAX);
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           case 's':
             sresult = _clamp_<int64_t>(sresult, INT16_MIN, INT16_MAX);
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           case 'i':
             sresult = _clamp_<int64_t>(sresult, INT32_MIN, INT32_MAX);
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           case 'l':
             // Check for overflow in multiplication
@@ -2069,7 +2056,7 @@ namespace oclgrind
                 sresult = (m>0) ? INT64_MAX : INT64_MIN;
               }
             }
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           default:
             FATAL_ERROR("Unsupported argument type: %c",
@@ -2095,7 +2082,7 @@ namespace oclgrind
           case 'm':
           {
             uint64_t r = _umul_hi_(UARGV(0, i), UARGV(1, i), result.size<<3);
-            WorkItem::setIntResult(result, r, i);
+            result.setUInt(r, i);
             break;
           }
           case 'c':
@@ -2104,7 +2091,7 @@ namespace oclgrind
           case 'l':
           {
             int64_t r = _smul_hi_(SARGV(0, i), SARGV(1, i), result.size<<3);
-            WorkItem::setIntResult(result, r, i);
+            result.setSInt(r, i);
             break;
           }
           default:
@@ -2139,7 +2126,7 @@ namespace oclgrind
             uint64_t a = UARGV(0, i);
             uint64_t b = UARGV(1, i);
             uint64_t c = (a > UINT64_MAX-(b+1)) ? (1L<<63) : 0;
-            WorkItem::setIntResult(result, ((a + b + 1) >> 1) | c, i);
+            result.setUInt(((a + b + 1) >> 1) | c, i);
             break;
           }
           case 'c':
@@ -2150,7 +2137,7 @@ namespace oclgrind
             int64_t a = SARGV(0, i);
             int64_t b = SARGV(1, i);
             int64_t c = (a | b) & 1;
-            WorkItem::setIntResult(result, (a>>1) + (b>>1) + c, i);
+            result.setSInt((a>>1) + (b>>1) + c, i);
             break;
           }
           default:
@@ -2168,7 +2155,7 @@ namespace oclgrind
         uint64_t v  = UARGV(0, i);
         uint64_t ls = UARGV(1, i) % width;
         uint64_t rs = width - ls;
-        WorkItem::setIntResult(result, (v << ls) | (v >> rs), i);
+        result.setUInt((v << ls) | (v >> rs), i);
       }
     }
 
@@ -2182,31 +2169,31 @@ namespace oclgrind
         {
           case 'h':
             uresult = uresult > UINT8_MAX ? 0 : uresult;
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 't':
             uresult = uresult > UINT16_MAX ? 0 : uresult;
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 'j':
             uresult = uresult > UINT32_MAX ? 0 : uresult;
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 'm':
             uresult = (UARGV(1, i) > UARGV(0, i)) ? 0 : uresult;
-            WorkItem::setIntResult(result, uresult, i);
+            result.setUInt(uresult, i);
             break;
           case 'c':
             sresult = _clamp_<int64_t>(sresult, INT8_MIN, INT8_MAX);
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           case 's':
             sresult = _clamp_<int64_t>(sresult, INT16_MIN, INT16_MAX);
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           case 'i':
             sresult = _clamp_<int64_t>(sresult, INT32_MIN, INT32_MAX);
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           case 'l':
             if ((SARGV(0,i)>0) != (SARGV(1,i)>0) &&
@@ -2214,7 +2201,7 @@ namespace oclgrind
             {
               sresult = (SARGV(0,i)>0) ? INT64_MAX : INT64_MIN;
             }
-            WorkItem::setIntResult(result, sresult, i);
+            result.setSInt(sresult, i);
             break;
           default:
             FATAL_ERROR("Unsupported argument type: %c",
@@ -2228,7 +2215,7 @@ namespace oclgrind
       for (int i = 0; i < result.num; i++)
       {
         uint64_t r = (UARGV(0,i)<<(result.size<<2)) | UARGV(1, i);
-        WorkItem::setIntResult(result, r, i);
+        result.setUInt(r, i);
       }
     }
 
@@ -2302,9 +2289,9 @@ namespace oclgrind
 #endif
 
         size_t offset = i*result.size;
-        WorkItem::setFloatResult(result, fl, i);
+        result.setFloat(fl, i);
         memory->store(result.data + offset, iptr + offset, result.size);
-        WorkItem::setFloatResult(result, r, i);
+        result.setFloat(r, i);
       }
     }
 
@@ -2319,7 +2306,7 @@ namespace oclgrind
         int32_t e;
         double r = frexp(FARGV(0, i), &e);
         memory->store((const unsigned char*)&e, iptr + i*4, 4);
-        WorkItem::setFloatResult(result, r, i);
+        result.setFloat(r, i);
       }
     }
 
@@ -2327,7 +2314,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        WorkItem::setIntResult(result, (int64_t)ilogb(FARGV(0, i)), i);
+        result.setSInt(ilogb(FARGV(0, i)), i);
       }
     }
 
@@ -2335,7 +2322,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        WorkItem::setFloatResult(result, ldexp(FARGV(0, i), SARGV(1, i)), i);
+        result.setFloat(ldexp(FARGV(0, i), SARGV(1, i)), i);
       }
     }
 
@@ -2350,7 +2337,7 @@ namespace oclgrind
         double r = lgamma(FARGV(0, i));
         int32_t s = (tgamma(FARGV(0, i)) < 0 ? -1 : 1);
         memory->store((const unsigned char*)&s, signp + i*4, 4);
-        WorkItem::setFloatResult(result, r, i);
+        result.setFloat(r, i);
       }
     }
 
@@ -2367,9 +2354,9 @@ namespace oclgrind
         double fractional = copysign(::isinf(x) ? 0.0 : x - integral, x);
 
         size_t offset = i*result.size;
-        WorkItem::setFloatResult(result, integral, i);
+        result.setFloat(integral, i);
         memory->store(result.data + offset, iptr + offset, result.size);
-        WorkItem::setFloatResult(result, fractional, i);
+        result.setFloat(fractional, i);
       }
     }
 
@@ -2378,7 +2365,7 @@ namespace oclgrind
       for (int i = 0; i < result.num; i++)
       {
         uint64_t nancode = UARGV(0, i);
-        WorkItem::setFloatResult(result, nan(""), i);
+        result.setFloat(nan(""), i);
       }
     }
 
@@ -2388,7 +2375,7 @@ namespace oclgrind
       {
         double x = FARGV(0, i);
         int32_t y = SARGV(1, i);
-        WorkItem::setFloatResult(result, pow(x, y), i);
+        result.setFloat(pow(x, y), i);
       }
     }
 
@@ -2406,7 +2393,7 @@ namespace oclgrind
         int32_t quo;
         double rem = remquo(x, y, &quo);
         memory->store((const unsigned char*)&quo, quop + i*4, 4);
-        WorkItem::setFloatResult(result, rem, i);
+        result.setFloat(rem, i);
       }
     }
 
@@ -2416,7 +2403,7 @@ namespace oclgrind
       {
         double x = FARGV(0, i);
         int y = SARGV(1, i);
-        WorkItem::setFloatResult(result, pow(x, (double)(1.0/y)), i);
+        result.setFloat(pow(x, (double)(1.0/y)), i);
       }
     }
 
@@ -2430,9 +2417,9 @@ namespace oclgrind
       {
         double x = FARGV(0, i);
         size_t offset = i*result.size;
-        WorkItem::setFloatResult(result, cos(x), i);
+        result.setFloat(cos(x), i);
         memory->store(result.data + offset, cv + offset, result.size);
-        WorkItem::setFloatResult(result, sin(x), i);
+        result.setFloat(sin(x), i);
       }
     }
 
@@ -2445,7 +2432,7 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        WorkItem::setIntResult(result, UARGV(0, UARGV(1, i)), i);
+        result.setUInt(UARGV(0, UARGV(1, i)), i);
       }
     }
 
@@ -2466,7 +2453,7 @@ namespace oclgrind
           index -= m;
           src = 1;
         }
-        WorkItem::setIntResult(result, UARGV(src, index), i);
+        result.setUInt(UARGV(src, index), i);
       }
     }
 
@@ -2502,11 +2489,11 @@ namespace oclgrind
       {
         if (!(SARGV(0, i) & INT64_MIN))
         {
-          WorkItem::setIntResult(result, (int64_t)0);
+          result.setSInt(0);
           return;
         }
       }
-      WorkItem::setIntResult(result, (int64_t)1);
+      result.setSInt(1);
     }
 
     DEFINE_BUILTIN(any)
@@ -2521,11 +2508,11 @@ namespace oclgrind
       {
         if (SARGV(0, i) & INT64_MIN)
         {
-          WorkItem::setIntResult(result, (int64_t)1);
+          result.setSInt(1);
           return;
         }
       }
-      WorkItem::setIntResult(result, (int64_t)0);
+      result.setSInt(0);
     }
 
     static uint64_t _ibitselect_(uint64_t a, uint64_t b, uint64_t c)
@@ -2577,7 +2564,7 @@ namespace oclgrind
         {
           case 'f':
           case 'd':
-            WorkItem::setFloatResult(result, _c ? FARGV(1, i) : FARGV(0, i), i);
+            result.setFloat(_c ? FARGV(1, i) : FARGV(0, i), i);
             break;
           case 'h':
           case 't':
@@ -2587,7 +2574,7 @@ namespace oclgrind
           case 's':
           case 'i':
           case 'l':
-            WorkItem::setIntResult(result, _c ? SARGV(1, i) : SARGV(0, i), i);
+            result.setSInt(_c ? SARGV(1, i) : SARGV(0, i), i);
             break;
           default:
             FATAL_ERROR("Unsupported argument type: %c",
@@ -2819,17 +2806,17 @@ namespace oclgrind
           case 't':
           case 'j':
           case 'm':
-            WorkItem::setFloatResult(result, (float)UARGV(0, i), i);
+            result.setFloat((float)UARGV(0, i), i);
             break;
           case 'c':
           case 's':
           case 'i':
           case 'l':
-            WorkItem::setFloatResult(result, (float)SARGV(0, i), i);
+            result.setFloat((float)SARGV(0, i), i);
             break;
           case 'f':
           case 'd':
-            WorkItem::setFloatResult(result, FARGV(0, i), i);
+            result.setFloat(FARGV(0, i), i);
             break;
           default:
             FATAL_ERROR("Unsupported argument type: %c",
@@ -2872,7 +2859,7 @@ namespace oclgrind
             FATAL_ERROR("Unsupported argument type: %c",
                         getOverloadArgType(overload));
         }
-        WorkItem::setIntResult(result, (uint64_t)floatToHalf(f, rmode), i);
+        result.setUInt(floatToHalf(f, rmode), i);
       }
     }
 
@@ -2966,7 +2953,7 @@ namespace oclgrind
                         getOverloadArgType(overload));
         }
 
-        WorkItem::setIntResult(result, r, i);
+        result.setUInt(r, i);
       }
     }
 
@@ -3040,7 +3027,7 @@ namespace oclgrind
                         getOverloadArgType(overload));
         }
 
-        WorkItem::setIntResult(result, r, i);
+        result.setSInt(r, i);
       }
       fesetround(origRnd);
     }
@@ -3177,7 +3164,7 @@ namespace oclgrind
         *(size_t*)(workItem->get(memcpyInst->getDest()).data);
       size_t src =
         *(size_t*)(workItem->get(memcpyInst->getSource()).data);
-      size_t size = workItem->getUnsignedInt(memcpyInst->getLength());
+      size_t size = workItem->getOperand(memcpyInst->getLength()).getUInt();
       unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
       unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
 
@@ -3191,11 +3178,11 @@ namespace oclgrind
       const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)callInst;
       size_t dest =
         *(size_t*)(workItem->get(memsetInst->getDest()).data);
-      size_t size = workItem->getUnsignedInt(memsetInst->getLength());
+      size_t size = workItem->getOperand(memsetInst->getLength()).getUInt();
       unsigned addressSpace = memsetInst->getDestAddressSpace();
 
       unsigned char *buffer = workItem->m_pool.alloc(size);
-      unsigned char value = workItem->getUnsignedInt(ARG(1));
+      unsigned char value = UARG(1);
       memset(buffer, value, size);
       workItem->getMemory(addressSpace)->store(buffer, dest, size);
     }
