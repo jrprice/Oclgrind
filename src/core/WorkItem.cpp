@@ -76,25 +76,9 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
   {
     const llvm::Constant *init = (*varItr)->getInitializer();
     size_t size = getTypeSize(init->getType());
-    size_t address = m_privateMemory->allocateBuffer(size);
 
-    // TODO: Can replace this with getOperand()
-    if (init->getValueID() == llvm::Value::ConstantExprVal)
-    {
-      TypedValue value = resolveConstExpr((const llvm::ConstantExpr*)init);
-      m_privateMemory->store(value.data, address, size);
-    }
-    else if (isConstantOperand(init))
-    {
-      unsigned char *data = m_pool.alloc(size);
-      getConstantData(data, init);
-      m_privateMemory->store(data, address, size);
-    }
-    else
-    {
-      FATAL_ERROR("Unsupported global variable initializer: %d",
-                  init->getValueID());
-    }
+    size_t address = m_privateMemory->allocateBuffer(size);
+    m_privateMemory->store(getOperand(init).data, address, size);
 
     TypedValue var =
     {
