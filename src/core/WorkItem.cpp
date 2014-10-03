@@ -849,7 +849,7 @@ INSTRUCTION(call)
   }
 
   // Check function cache
-  map<const llvm::Function*, CachedBuiltin>::iterator fItr;
+  map<const llvm::Function*, InterpreterCache::Builtin>::iterator fItr;
   fItr = m_cache->builtins.find(function);
   if (fItr != m_cache->builtins.end())
   {
@@ -883,7 +883,7 @@ INSTRUCTION(call)
   {
     bItr->second.func(this, callInst, name, overload, result, bItr->second.op);
 
-    const CachedBuiltin entry = {bItr->second, name, overload};
+    const InterpreterCache::Builtin entry = {bItr->second, name, overload};
     m_cache->builtins[function] = entry;
 
     return;
@@ -899,7 +899,7 @@ INSTRUCTION(call)
       pItr->second.func(this, callInst, name,
                         overload, result, pItr->second.op);
 
-      const CachedBuiltin entry = {pItr->second, name, overload};
+      const InterpreterCache::Builtin entry = {pItr->second, name, overload};
       m_cache->builtins[function] = entry;
 
       return;

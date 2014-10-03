@@ -73,23 +73,23 @@ namespace oclgrind
       std::list<unsigned char *> m_blocks;
     } m_pool;
 
-  private:
-    typedef struct
-    {
-      BuiltinFunction function;
-      std::string name, overload;
-    } CachedBuiltin;
-
   public:
     // Per-program cache for various interpreter state information
     class InterpreterCache
     {
     public:
+      typedef struct
+      {
+        BuiltinFunction function;
+        std::string name, overload;
+      } Builtin;
+
+    public:
       static void clear(unsigned long uid);
       static InterpreterCache* get(unsigned long uid);
 
       std::MAP<const llvm::Value*, size_t> valueIDs;
-      std::map<const llvm::Function*, CachedBuiltin> builtins;
+      std::map<const llvm::Function*, Builtin> builtins;
       std::map<const llvm::Value*, TypedValue> constants;
 
     private:
