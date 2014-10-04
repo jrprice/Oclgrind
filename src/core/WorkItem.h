@@ -188,11 +188,13 @@ namespace oclgrind
 #undef INSTRUCTION
 
   private:
+    typedef std::map<std::string, const llvm::Value*> VariableMap;
+
     size_t m_globalIndex;
     size_t m_globalID[3];
     size_t m_localID[3];
     TypedValueMap m_phiTemps;
-    std::map<std::string, const llvm::Value*> m_variables;
+    VariableMap m_variables;
     Device *m_device;
     const Kernel& m_kernel;
     Memory *m_privateMemory;

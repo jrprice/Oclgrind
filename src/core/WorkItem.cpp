@@ -567,7 +567,7 @@ const unsigned char* WorkItem::getValueData(const llvm::Value *value) const
 
 const llvm::Value* WorkItem::getVariable(std::string name) const
 {
-  map<string, const llvm::Value*>::const_iterator itr;
+  VariableMap::const_iterator itr;
   itr = m_variables.find(name);
   if (itr == m_variables.end())
   {
