@@ -22,11 +22,11 @@
 #include "Kernel.h"
 #include "Memory.h"
 #include "Device.h"
+#include "Plugin.h"
 #include "Program.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
-#include "plugins/Plugin.h"
 #include "plugins/InstructionCounter.h"
 
 using namespace oclgrind;

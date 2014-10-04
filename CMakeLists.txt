@@ -122,11 +122,11 @@ set(CORE_HEADERS
   src/core/half.h
   src/core/Kernel.h
   src/core/Memory.h
+  src/core/Plugin.h
   src/core/Program.h
   src/core/Queue.h
   src/core/WorkItem.h
   src/core/WorkGroup.h
-  src/plugins/Plugin.h
   src/plugins/InstructionCounter.h)
 
 add_library(oclgrind ${CORE_LIB_TYPE}

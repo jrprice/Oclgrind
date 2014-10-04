@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/common.h"
+#include "common.h"
 
 namespace oclgrind
 {

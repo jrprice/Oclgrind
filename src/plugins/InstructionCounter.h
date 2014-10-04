@@ -1,4 +1,4 @@
-#include "Plugin.h"
+#include "core/Plugin.h"
 
 namespace llvm
 {
