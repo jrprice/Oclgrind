@@ -126,8 +126,7 @@ set(CORE_HEADERS
   src/core/Program.h
   src/core/Queue.h
   src/core/WorkItem.h
-  src/core/WorkGroup.h
-  src/plugins/InstructionCounter.h)
+  src/core/WorkGroup.h)
 
 add_library(oclgrind ${CORE_LIB_TYPE}
   ${CORE_HEADERS}
@@ -141,6 +140,7 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/core/WorkItem.cpp
   src/core/WorkItemBuiltins.cpp
   src/core/WorkGroup.cpp
+  src/plugins/InstructionCounter.h
   src/plugins/InstructionCounter.cpp)
 target_link_libraries(oclgrind ${CORE_EXTRA_LIBS}
   clangAnalysis clangAST clangBasic clangCodeGen clangDriver clangEdit
