@@ -848,7 +848,7 @@ INSTRUCTION(call)
   }
 
   // Find builtin function in map
-  MAP<string,BuiltinFunction>::iterator bItr = workItemBuiltins.find(name);
+  BuiltinFunctionMap::iterator bItr = workItemBuiltins.find(name);
   if (bItr != workItemBuiltins.end())
   {
     bItr->second.func(this, callInst, name, overload, result, bItr->second.op);
@@ -860,7 +860,7 @@ INSTRUCTION(call)
   }
 
   // Check for builtin with matching prefix
-  list< pair<string, BuiltinFunction> >::iterator pItr;
+  BuiltinFunctionPrefixList::iterator pItr;
   for (pItr = workItemPrefixBuiltins.begin();
        pItr != workItemPrefixBuiltins.end(); pItr++)
   {

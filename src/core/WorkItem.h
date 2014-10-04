@@ -44,9 +44,12 @@ namespace oclgrind
                      void*),
                      void *o) : func(f), op(o) {};
   } BuiltinFunction;
-  extern std::MAP<std::string,BuiltinFunction> workItemBuiltins;
-  extern std::list< std::pair<std::string,
-                              BuiltinFunction> > workItemPrefixBuiltins;
+  typedef std::MAP<std::string,BuiltinFunction> BuiltinFunctionMap;
+  typedef std::list< std::pair<std::string, BuiltinFunction> >
+    BuiltinFunctionPrefixList;
+
+  extern BuiltinFunctionMap workItemBuiltins;
+  extern BuiltinFunctionPrefixList workItemPrefixBuiltins;
 
   // Return address for a function call
   typedef std::pair<llvm::Function::const_iterator,

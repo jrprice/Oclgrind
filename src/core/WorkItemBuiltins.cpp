@@ -3172,7 +3172,7 @@ namespace oclgrind
     }
 
   public:
-    static std::MAP<std::string, BuiltinFunction> initBuiltins();
+    static BuiltinFunctionMap initBuiltins();
   };
 
   // Utility macros for generating builtin function map
@@ -3189,12 +3189,11 @@ namespace oclgrind
     make_pair(name, BuiltinFunction((CAST)func, (void*)op)));
 
   // Generate builtin function map
-  list< pair<string, BuiltinFunction> > workItemPrefixBuiltins;
-  MAP<string,BuiltinFunction> workItemBuiltins =
-    WorkItemBuiltins::initBuiltins();
-  MAP<string,BuiltinFunction> WorkItemBuiltins::initBuiltins()
+  BuiltinFunctionPrefixList workItemPrefixBuiltins;
+  BuiltinFunctionMap workItemBuiltins = WorkItemBuiltins::initBuiltins();
+  BuiltinFunctionMap WorkItemBuiltins::initBuiltins()
   {
-    MAP<string, BuiltinFunction> builtins;
+    BuiltinFunctionMap builtins;
 
     // Async Copy and Prefetch Functions
     ADD_BUILTIN("async_work_group_copy", async_work_group_copy, NULL);
