@@ -26,12 +26,13 @@
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
+#include "plugins/Plugin.h"
+#include "plugins/InstructionCounter.h"
+
 using namespace oclgrind;
 using namespace std;
 
 #define LIST_LENGTH 10
-
-static bool compareNamedCount(pair<string,size_t> a, pair<string,size_t> b);
 
 Device::Device()
 {
@@ -40,10 +41,6 @@ Device::Device()
   m_nextBreakpoint = 1;
   m_currentWorkGroup = NULL;
   m_currentWorkItem = NULL;
-
-  // Check for instruction counts environment variable
-  const char *instCounts = getenv("OCLGRIND_INST_COUNTS");
-  m_showInstCounts = (instCounts && strcmp(instCounts, "1") == 0);
 
   // Check for interactive environment variable
   const char *interactive = getenv("OCLGRIND_INTERACTIVE");
@@ -72,6 +69,8 @@ Device::Device()
   ADD_CMD("quit",         "q",  quit);
   ADD_CMD("step",         "s",  step);
   ADD_CMD("workitem",     "wi", workitem);
+
+  loadPlugins();
 }
 
 Device::~Device()
@@ -85,6 +84,32 @@ WorkGroup* Device::createWorkGroup(size_t x, size_t y, size_t z)
     this, *m_kernel, *m_globalMemory, m_workDim, x, y, z,
     m_globalOffset, m_globalSize, m_localSize);
 }
+
+#define FIRE(function, ...)                       \
+  PluginList::iterator pluginItr;                 \
+  for (pluginItr = m_plugins.begin();             \
+       pluginItr != m_plugins.end(); pluginItr++) \
+  {                                               \
+    (*pluginItr)->function(__VA_ARGS__);          \
+  }
+
+void Device::fireInstructionExecuted(const llvm::Instruction *instruction,
+                                     const TypedValue& result)
+{
+  FIRE(instructionExecuted, instruction, result);
+}
+
+void Device::fireKernelBegin(const Kernel *kernel)
+{
+  FIRE(kernelBegin, kernel);
+}
+
+void Device::fireKernelEnd(const Kernel *kernel)
+{
+  FIRE(kernelEnd, kernel);
+}
+
+#undef FIRE
 
 size_t Device::getCurrentLineNumber() const
 {
@@ -126,9 +151,19 @@ bool Device::isInteractive() const
   return m_interactive;
 }
 
-bool Device::isShowingInstructionCounts() const
+void Device::loadPlugins()
 {
-  return m_showInstCounts;
+  // TODO: When can we destroy plugins?
+
+  // Core plugins
+
+  // Check for instruction counts environment variable
+  const char *instCounts = getenv("OCLGRIND_INST_COUNTS");
+  if (instCounts && strcmp(instCounts, "1") == 0)
+    m_plugins.push_back(new InstructionCounter);
+
+  // Add dynamic plugins
+  // TODO
 }
 
 bool Device::nextWorkItem()
@@ -491,7 +526,6 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   }
 
   // Prepare kernel invocation
-  WorkItem::clearInstructionCounts();
   m_program = &kernel.getProgram();
   m_kernel = &kernel;
   m_listPosition = 0;
@@ -499,6 +533,8 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   m_currentWorkItem = NULL;
   m_globalMemory->synchronize();
   nextWorkItem();
+
+  fireKernelBegin(m_kernel);
 
   try
   {
@@ -613,54 +649,12 @@ void Device::run(Kernel& kernel, unsigned int workDim,
 
   // Deallocate constant memory
   kernel.deallocateConstants(m_globalMemory);
-  m_kernel = NULL;
 
   m_globalMemory->synchronize();
 
-  if (m_showInstCounts)
-  {
-    // Load default locale
-    locale previousLocale = cout.getloc();
-    locale defaultLocale("");
-    cout.imbue(defaultLocale);
+  fireKernelEnd(m_kernel);
 
-    cout << "Instructions executed for kernel '" << kernel.getName() << "':";
-    cout << endl;
-
-    // Generate list named instructions and their counts
-    vector<size_t> counts = WorkItem::getInstructionCounts();
-    vector< pair<string,size_t> > namedCounts;
-    for (int i = 0; i < counts.size(); i++)
-    {
-      if (counts[i] == 0)
-      {
-        continue;
-      }
-
-      string name = WorkItem::getCountedOpcodeName(i);
-      if (name.compare(0, 14, "call llvm.dbg.") == 0)
-      {
-        continue;
-      }
-
-      namedCounts.push_back(make_pair(name, counts[i]));
-    }
-
-    // Sort named counts
-    sort(namedCounts.begin(), namedCounts.end(), compareNamedCount);
-
-    // Output sorted instruction counts
-    for (int i = 0; i < namedCounts.size(); i++)
-    {
-      cout << setw(16) << dec << namedCounts[i].second << " - "
-           << namedCounts[i].first << endl;
-    }
-
-    cout << endl;
-
-    // Restore locale
-    cout.imbue(previousLocale);
-  }
+  m_kernel = NULL;
 }
 
 void Device::printCurrentLine() const
@@ -1505,9 +1499,4 @@ void Device::workitem(vector<string> args)
   {
     printCurrentLine();
   }
-}
-
-static bool compareNamedCount(pair<string,size_t> a, pair<string,size_t> b)
-{
-  return a.second > b.second;
 }

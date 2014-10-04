@@ -7,7 +7,6 @@
 // source code.
 
 #include "common.h"
-#include <sstream>
 
 #include "llvm/DebugInfo.h"
 #include "llvm/GlobalVariable.h"
@@ -25,14 +24,6 @@
 
 using namespace oclgrind;
 using namespace std;
-
-#define COUNTED_LOAD_BASE  (llvm::Instruction::OtherOpsEnd + 4)
-#define COUNTED_STORE_BASE (COUNTED_LOAD_BASE + 8)
-#define COUNTED_CALL_BASE  (COUNTED_STORE_BASE + 8)
-
-vector<size_t> WorkItem::m_instructionCounts;
-vector<size_t> WorkItem::m_memopBytes;
-vector<const llvm::Function*> WorkItem::m_countedFunctions;
 
 WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
                    size_t lid_x, size_t lid_y, size_t lid_z)
@@ -110,67 +101,6 @@ void WorkItem::clearBarrier()
   {
     m_state = READY;
   }
-}
-
-void WorkItem::clearInstructionCounts()
-{
-  m_instructionCounts.clear();
-  m_instructionCounts.resize(COUNTED_LOAD_BASE + 8);
-
-  m_memopBytes.clear();
-  m_memopBytes.resize(16);
-
-  m_countedFunctions.clear();
-}
-
-void WorkItem::countInstruction(const llvm::Instruction *instruction)
-{
-  if (!m_device->isShowingInstructionCounts())
-  {
-    return;
-  }
-
-  unsigned opcode = instruction->getOpcode();
-
-  // Check for loads and stores
-  if (opcode == llvm::Instruction::Load || opcode == llvm::Instruction::Store)
-  {
-    // Track operations in separate address spaces
-    bool load = (opcode == llvm::Instruction::Load);
-    const llvm::Type *type = instruction->getOperand(load?0:1)->getType();
-    unsigned addrSpace = type->getPointerAddressSpace();
-    opcode = (load ? COUNTED_LOAD_BASE : COUNTED_STORE_BASE) + addrSpace;
-
-    // Count total number of bytes loaded/stored
-    size_t bytes = getTypeSize(type->getPointerElementType());
-    m_memopBytes[opcode-COUNTED_LOAD_BASE] += bytes;
-  }
-  else if (opcode == llvm::Instruction::Call)
-  {
-    // Track distinct function calls
-    const llvm::CallInst *callInst = (const llvm::CallInst*)instruction;
-    const llvm::Function *function = callInst->getCalledFunction();
-    if (function)
-    {
-      vector<const llvm::Function*>::iterator itr =
-        find(m_countedFunctions.begin(), m_countedFunctions.end(), function);
-      if (itr == m_countedFunctions.end())
-      {
-        opcode = COUNTED_CALL_BASE + m_countedFunctions.size();
-        m_countedFunctions.push_back(function);
-      }
-      else
-      {
-        opcode = COUNTED_CALL_BASE + (itr - m_countedFunctions.begin());
-      }
-    }
-  }
-
-  if (opcode >= m_instructionCounts.size())
-  {
-    m_instructionCounts.resize(opcode+1);
-  }
-  m_instructionCounts[opcode]++;
 }
 
 void WorkItem::dispatch(const llvm::Instruction *instruction,
@@ -354,7 +284,6 @@ void WorkItem::execute(const llvm::Instruction *instruction)
   }
 
   // Execute instruction
-  countInstruction(instruction);
   dispatch(instruction, result);
 
   // Store result
@@ -369,6 +298,8 @@ void WorkItem::execute(const llvm::Instruction *instruction)
       m_phiTemps[instruction] = result;
     }
   }
+
+  m_device->fireInstructionExecuted(instruction, result);
 }
 
 TypedValue WorkItem::getValue(const llvm::Value *key) const
@@ -379,66 +310,6 @@ TypedValue WorkItem::getValue(const llvm::Value *key) const
 const stack<ReturnAddress>& WorkItem::getCallStack() const
 {
   return m_callStack;
-}
-
-string WorkItem::getCountedOpcodeName(unsigned opcode)
-{
-  if (opcode >= COUNTED_CALL_BASE)
-  {
-    // Get functon name
-    unsigned index = opcode - COUNTED_CALL_BASE;
-    assert(index < m_countedFunctions.size());
-    return "call " + m_countedFunctions[index]->getName().str() + "()";
-  }
-  else if (opcode >= COUNTED_LOAD_BASE)
-  {
-    // Create stream using default locale
-    ostringstream name;
-    locale defaultLocale("");
-    name.imbue(defaultLocale);
-
-    // Get number of bytes
-    size_t bytes = m_memopBytes[opcode-COUNTED_LOAD_BASE];
-
-    // Get name of operation
-    if (opcode >= COUNTED_STORE_BASE)
-    {
-      opcode -= COUNTED_STORE_BASE;
-      name << "store";
-    }
-    else
-    {
-      opcode -= COUNTED_LOAD_BASE;
-      name << "load";
-    }
-
-    // Add address space to name
-    switch (opcode)
-    {
-      case AddrSpacePrivate:
-        name << " private";
-        break;
-      case AddrSpaceGlobal:
-        name << " global";
-        break;
-      case AddrSpaceConstant:
-        name << " constant";
-        break;
-      case AddrSpaceLocal:
-        name << " local";
-        break;
-      default:
-        name << " unknown";
-        break;
-    }
-
-    // Add number of bytes to name
-    name << " (" << bytes << " bytes)";
-
-    return name.str();
-  }
-
-  return llvm::Instruction::getOpcodeName(opcode);
 }
 
 const llvm::Instruction* WorkItem::getCurrentInstruction() const
@@ -454,11 +325,6 @@ const size_t* WorkItem::getGlobalID() const
 size_t WorkItem::getGlobalIndex() const
 {
   return m_globalIndex;
-}
-
-vector<size_t> WorkItem::getInstructionCounts()
-{
-  return m_instructionCounts;
 }
 
 const size_t* WorkItem::getLocalID() const

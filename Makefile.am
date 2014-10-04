@@ -13,13 +13,14 @@ AM_CPPFLAGS = -DINSTALL_ROOT=\"$(prefix)\" -I$(top_srcdir)/src/
 
 lib_LTLIBRARIES = liboclgrind.la liboclgrind-rt.la liboclgrind-rt-icd.la
 
-liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp	\
- src/core/Device.h src/core/Device.cpp src/core/half.h		\
- src/core/Kernel.h src/core/Kernel.cpp src/core/Memory.h	\
- src/core/Memory.cpp src/core/Program.h src/core/Program.cpp	\
- src/core/Queue.h src/core/Queue.cpp src/core/WorkItem.h	\
- src/core/WorkItem.cpp src/core/WorkItemBuiltins.cpp		\
- src/core/WorkGroup.h src/core/WorkGroup.cpp
+liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp		\
+ src/core/Device.h src/core/Device.cpp src/core/half.h			\
+ src/core/Kernel.h src/core/Kernel.cpp src/core/Memory.h		\
+ src/core/Memory.cpp src/core/Program.h src/core/Program.cpp		\
+ src/core/Queue.h src/core/Queue.cpp src/core/WorkItem.h		\
+ src/core/WorkItem.cpp src/core/WorkItemBuiltins.cpp			\
+ src/core/WorkGroup.h src/core/WorkGroup.cpp src/plugins/Plugin.h	\
+ src/plugins/InstructionCounter.h src/plugins/InstructionCounter.cpp
 nodist_liboclgrind_la_SOURCES = src/core/clc_h.cpp
 liboclgrind_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
 -lclangDriver -lclangSerialization -lclangCodeGen -lclangParse		\

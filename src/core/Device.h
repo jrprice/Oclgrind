@@ -12,9 +12,12 @@ namespace oclgrind
 {
   class Kernel;
   class Memory;
+  class Plugin;
   class Program;
   class WorkGroup;
   class WorkItem;
+
+  typedef std::list<Plugin*> PluginList;
 
   class Device
   {
@@ -26,7 +29,6 @@ namespace oclgrind
     const WorkGroup* getCurrentWorkGroup() const;
     const WorkItem* getCurrentWorkItem() const;
     bool isInteractive() const;
-    bool isShowingInstructionCounts() const;
     void notifyDataRace(DataRaceType type, unsigned int addrSpace,
                         size_t address,
                         size_t lastWorkGroup,
@@ -43,6 +45,11 @@ namespace oclgrind
              const size_t *globalOffset,
              const size_t *globalSize,
              const size_t *localSize);
+
+    void fireInstructionExecuted(const llvm::Instruction *instruction,
+                                 const TypedValue& result);
+    void fireKernelBegin(const Kernel *kernel);
+    void fireKernelEnd(const Kernel *kernel);
 
   private:
     Memory *m_globalMemory;
@@ -74,7 +81,6 @@ namespace oclgrind
     std::map<const Program*, std::map<size_t, size_t> > m_breakpoints;
 
     bool m_quickMode;
-    bool m_showInstCounts;
 
     bool m_interactive;
     bool m_running;
@@ -108,5 +114,9 @@ namespace oclgrind
     CMD(quit);
     CMD(step);
     CMD(workitem);
+#undef CMD
+
+    PluginList m_plugins;
+    void loadPlugins();
   };
 }

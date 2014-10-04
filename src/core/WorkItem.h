@@ -113,16 +113,13 @@ namespace oclgrind
     virtual ~WorkItem();
 
     void clearBarrier();
-    static void clearInstructionCounts();
     void dispatch(const llvm::Instruction *instruction, TypedValue& result);
     void execute(const llvm::Instruction *instruction);
     const std::stack<ReturnAddress>& getCallStack() const;
-    static std::string getCountedOpcodeName(unsigned opcode);
     const llvm::Instruction* getCurrentInstruction() const;
     Device* getDevice() {return m_device;}
     const size_t* getGlobalID() const;
     size_t getGlobalIndex() const;
-    static std::vector<size_t> getInstructionCounts();
     const size_t* getLocalID() const;
     TypedValue getOperand(const llvm::Value *operand);
     Memory* getPrivateMemory() const;
@@ -215,10 +212,5 @@ namespace oclgrind
     void setValue(const llvm::Value *key, TypedValue value);
 
     InterpreterCache *m_cache;
-
-    void countInstruction(const llvm::Instruction *instruction);
-    static std::vector<size_t> m_instructionCounts;
-    static std::vector<size_t> m_memopBytes;
-    static std::vector<const llvm::Function*> m_countedFunctions;
   };
 }
