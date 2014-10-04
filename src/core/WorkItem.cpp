@@ -505,11 +505,8 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand)
   //else if (valID == llvm::Value::BlockAddressVal)
   //{
   //}
-  else if (valID == llvm::Value::ConstantExprVal)
-  {
-    return resolveConstExpr((const llvm::ConstantExpr*)operand);
-  }
-  else if (valID == llvm::Value::UndefValueVal            ||
+  else if (valID == llvm::Value::ConstantExprVal          ||
+           valID == llvm::Value::UndefValueVal            ||
            valID == llvm::Value::ConstantAggregateZeroVal ||
            valID == llvm::Value::ConstantDataArrayVal     ||
            valID == llvm::Value::ConstantDataVectorVal    ||
@@ -520,7 +517,7 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand)
            valID == llvm::Value::ConstantVectorVal        ||
            valID == llvm::Value::ConstantPointerNullVal)
   {
-    return m_cache->getConstant(operand);
+    return m_cache->getConstant(operand, this);
   }
   //else if (valID == llvm::Value::MDNodeVal)
   //{
@@ -624,24 +621,6 @@ bool WorkItem::printVariable(string name)
   }
 
   return true;
-}
-
-TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
-{
-  const llvm::Instruction *instruction = getConstExprAsInstruction(expr);
-  pair<size_t,size_t> resultSize = getValueSize(instruction);
-  TypedValue result =
-    {
-      resultSize.first,
-      resultSize.second,
-      m_pool.alloc(resultSize.first*resultSize.second)
-    };
-
-  dispatch(instruction, result);
-
-  delete instruction;
-
-  return result;
 }
 
 void WorkItem::setValue(const llvm::Value *key, TypedValue value)
@@ -1592,7 +1571,8 @@ WorkItem::InterpreterCache::~InterpreterCache()
   }
 }
 
-TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand)
+TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand,
+                                                   WorkItem *workItem)
 {
   // Check cache
   ConstantMap::iterator constItr = m_constants.find(operand);
@@ -1607,7 +1587,19 @@ TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand)
   constant.size = size.first;
   constant.num  = size.second;
   constant.data = new unsigned char[constant.size*constant.num];
-  getConstantData(constant.data, (const llvm::Constant*)operand);
+
+  if (operand->getValueID() == llvm::Value::ConstantExprVal)
+  {
+    const llvm::Instruction *instruction =
+      getConstExprAsInstruction((const llvm::ConstantExpr*)operand);
+    workItem->dispatch(instruction, constant);
+    delete instruction;
+  }
+  else
+  {
+    getConstantData(constant.data, (const llvm::Constant*)operand);
+  }
+
   m_constants[operand] = constant;
   return constant;
 }

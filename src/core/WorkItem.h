@@ -97,7 +97,7 @@ namespace oclgrind
 
       ValueMap valueIDs;
       BuiltinMap builtins;
-      TypedValue getConstant(const llvm::Value *operand);
+      TypedValue getConstant(const llvm::Value *operand, WorkItem *workItem);
 
     private:
       static std::MAP<unsigned long, InterpreterCache*> m_cache;
@@ -131,7 +131,6 @@ namespace oclgrind
     const llvm::Value* getVariable(std::string name) const;
     bool printValue(const llvm::Value *value);
     bool printVariable(std::string name);
-    TypedValue resolveConstExpr(const llvm::ConstantExpr *expr);
     State step();
 
     // SPIR instructions
