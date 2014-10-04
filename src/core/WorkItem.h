@@ -84,12 +84,16 @@ namespace oclgrind
         std::string name, overload;
       } Builtin;
 
+      typedef std::MAP<const llvm::Value*, size_t> ValueMap;
+      typedef std::MAP<const llvm::Function*, Builtin> BuiltinMap;
+      typedef std::MAP<const llvm::Value*, TypedValue> ConstantMap;
+
     public:
       static void clear(unsigned long uid);
       static InterpreterCache* get(unsigned long uid);
 
-      std::MAP<const llvm::Value*, size_t> valueIDs;
-      std::MAP<const llvm::Function*, Builtin> builtins;
+      ValueMap valueIDs;
+      BuiltinMap builtins;
       TypedValue getConstant(const llvm::Value *operand);
 
     private:
@@ -97,7 +101,7 @@ namespace oclgrind
 
       InterpreterCache();
       ~InterpreterCache();
-      std::MAP<const llvm::Value*, TypedValue> m_constants;
+      ConstantMap m_constants;
     };
 
   public:

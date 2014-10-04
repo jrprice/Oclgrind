@@ -646,7 +646,7 @@ TypedValue WorkItem::resolveConstExpr(const llvm::ConstantExpr *expr)
 
 void WorkItem::setValue(const llvm::Value *key, TypedValue value)
 {
-  MAP<const llvm::Value*, size_t>::iterator itr = m_cache->valueIDs.find(key);
+  InterpreterCache::ValueMap::iterator itr = m_cache->valueIDs.find(key);
   if (itr == m_cache->valueIDs.end())
   {
     // Assign next index to value
@@ -819,7 +819,7 @@ INSTRUCTION(call)
   }
 
   // Check function cache
-  MAP<const llvm::Function*, InterpreterCache::Builtin>::iterator fItr;
+  InterpreterCache::BuiltinMap::iterator fItr;
   fItr = m_cache->builtins.find(function);
   if (fItr != m_cache->builtins.end())
   {
@@ -1584,7 +1584,7 @@ WorkItem::InterpreterCache::InterpreterCache()
 
 WorkItem::InterpreterCache::~InterpreterCache()
 {
-  std::MAP<const llvm::Value*, TypedValue>::iterator constItr;
+  ConstantMap::iterator constItr;
   for (constItr  = m_constants.begin();
        constItr != m_constants.end(); constItr++)
   {
@@ -1595,8 +1595,7 @@ WorkItem::InterpreterCache::~InterpreterCache()
 TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand)
 {
   // Check cache
-  std::MAP<const llvm::Value*, TypedValue>::iterator constItr =
-    m_constants.find(operand);
+  ConstantMap::iterator constItr = m_constants.find(operand);
   if (constItr != m_constants.end())
   {
     return constItr->second;
