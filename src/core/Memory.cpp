@@ -24,7 +24,7 @@
 #define EXTRACT_BUFFER(address) \
   (address >> NUM_ADDRESS_BITS)
 #define EXTRACT_OFFSET(address) \
-  (address ^ (EXTRACT_BUFFER(address) << NUM_ADDRESS_BITS))
+  (address & (((size_t)-1) >> NUM_BUFFER_BITS))
 
 #define ENV_DATA_RACES "OCLGRIND_DATA_RACES"
 #define ENV_UNIFORM_WRITES "OCLGRIND_UNIFORM_WRITES"
