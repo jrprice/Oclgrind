@@ -189,14 +189,17 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   string(REGEX REPLACE
     "__VERSION__" "${Oclgrind_VERSION_MAJOR}.${Oclgrind_VERSION_MINOR}"
     OCLGRIND_SCRIPT "${OCLGRIND_SCRIPT}")
-  file(WRITE oclgrind "${OCLGRIND_SCRIPT}")
+  string(REGEX REPLACE
+    "__LIBDIR__" "${CMAKE_INSTALL_PREFIX}/lib"
+    OCLGRIND_SCRIPT "${OCLGRIND_SCRIPT}")
+  file(WRITE ${CMAKE_BINARY_DIR}/oclgrind "${OCLGRIND_SCRIPT}")
 
   # Generate ICD loader
   get_property(OCLGRIND_RT_FILENAME TARGET oclgrind-rt-icd PROPERTY LOCATION)
   file(WRITE ${CMAKE_BINARY_DIR}/oclgrind.icd "${OCLGRIND_RT_FILENAME}\n")
 
   install(PROGRAMS
-    oclgrind
+    ${CMAKE_BINARY_DIR}/oclgrind
     DESTINATION bin)
 endif()
 
