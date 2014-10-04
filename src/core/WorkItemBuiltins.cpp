@@ -3016,9 +3016,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(printf_builtin)
     {
-      const llvm::ConstantExpr *formatExpr = (llvm::ConstantExpr*)ARG(0);
-      TypedValue formatPtrData = workItem->resolveConstExpr(formatExpr);
-      size_t formatPtr = *(size_t*)formatPtrData.data;
+      size_t formatPtr = workItem->getOperand(ARG(0)).getPointer();
       Memory *memory = workItem->getMemory(AddrSpaceGlobal);
 
       int arg = 1;
