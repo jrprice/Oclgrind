@@ -16,16 +16,6 @@
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
-#define NUM_BUFFER_BITS 16
-#define MAX_NUM_BUFFERS ((size_t)1 << NUM_BUFFER_BITS)
-#define NUM_ADDRESS_BITS ((sizeof(size_t)<<3) - NUM_BUFFER_BITS)
-#define MAX_BUFFER_SIZE ((size_t)1 << NUM_ADDRESS_BITS)
-
-#define EXTRACT_BUFFER(address) \
-  (address >> NUM_ADDRESS_BITS)
-#define EXTRACT_OFFSET(address) \
-  (address & (((size_t)-1) >> NUM_BUFFER_BITS))
-
 #define ENV_DATA_RACES "OCLGRIND_DATA_RACES"
 #define ENV_UNIFORM_WRITES "OCLGRIND_UNIFORM_WRITES"
 
@@ -36,16 +26,6 @@ Memory::Memory(unsigned int addrSpace, Device *device)
 {
   m_device = device;
   m_addressSpace = addrSpace;
-
-  m_checkDataRaces = false;
-  m_allowUniformWrites = true;
-  if (addrSpace != AddrSpacePrivate)
-  {
-    const char *dataRaces = getenv(ENV_DATA_RACES);
-    m_checkDataRaces = (dataRaces && strcmp(dataRaces, "1") == 0);
-    const char *uniformWrites = getenv(ENV_UNIFORM_WRITES);
-    m_allowUniformWrites = !(uniformWrites && strcmp(uniformWrites, "1") == 0);
-  }
 
   clear();
 }
@@ -75,7 +55,6 @@ size_t Memory::allocateBuffer(size_t size)
     false,
     size,
     new unsigned char[size],
-    m_checkDataRaces ? new Status[size] : NULL
   };
 
   // Initialize contents to 0
@@ -92,7 +71,11 @@ size_t Memory::allocateBuffer(size_t size)
 
   m_totalAllocated += size;
 
-  return ((size_t)b) << NUM_ADDRESS_BITS;
+  size_t address = ((size_t)b) << NUM_ADDRESS_BITS;
+
+  m_device->fireMemoryAllocated(this, address, size);
+
+  return address;
 }
 
 uint32_t* Memory::atomic(size_t address)
@@ -104,45 +87,11 @@ uint32_t* Memory::atomic(size_t address)
     return NULL;
   }
 
+  m_device->fireMemoryAtomic(this, address, 4);
+
   // Get buffer
   size_t offset = EXTRACT_OFFSET(address);
   Buffer buffer = m_memory[EXTRACT_BUFFER(address)];
-
-  if (m_checkDataRaces)
-  {
-    Status *status = buffer.status + offset;
-
-    // Get work-item
-    size_t workItemIndex = status->workItem;
-    const WorkItem *workItem = m_device->getCurrentWorkItem();
-    if (workItem)
-    {
-      workItemIndex = workItem->getGlobalIndex();
-    }
-
-    // Check for races with non-atomic operations
-    if (!status->canAtomic && workItemIndex != status->workItem)
-    {
-      m_device->notifyDataRace(ReadWriteRace, m_addressSpace, address,
-                               status->workItem,
-                               status->workGroup,
-                               status->instruction);
-    }
-
-    // Update status
-    status->canRead = false;
-    status->canWrite = false;
-    if (workItem)
-    {
-      if (!status->wasWorkItem)
-      {
-        status->instruction = workItem->getCurrentInstruction();
-        status->workItem = workItemIndex;
-        status->wasWorkItem = true;
-      }
-    }
-  }
-
   return (uint32_t*)(buffer.data + offset);
 }
 
@@ -311,11 +260,9 @@ void Memory::clear()
       {
         delete[] itr->data;
       }
-      if (itr->status)
-      {
-        delete[] itr->status;
-      }
     }
+
+    m_device->fireMemoryDeallocated(this, itr-m_memory.begin());
   }
   m_memory.resize(1);
   m_freeBuffers = queue<int>();
@@ -335,10 +282,10 @@ Memory* Memory::clone() const
       src.hostPtr,
       src.size,
       src.hostPtr ? src.data : new unsigned char[src.size],
-      m_checkDataRaces ? new Status[src.size] : NULL
     };
     memcpy(dest.data, src.data, src.size);
     mem->m_memory[i] = dest;
+    m_device->fireMemoryAllocated(mem, ((size_t)i<<NUM_ADDRESS_BITS), src.size);
   }
 
   // Clone state
@@ -368,7 +315,6 @@ size_t Memory::createHostBuffer(size_t size, void *ptr)
     true,
     size,
     (unsigned char*)ptr,
-    m_checkDataRaces ? new Status[size] : NULL
   };
 
   if (b >= m_memory.size())
@@ -382,7 +328,11 @@ size_t Memory::createHostBuffer(size_t size, void *ptr)
 
   m_totalAllocated += size;
 
-  return ((size_t)b) << NUM_ADDRESS_BITS;
+  size_t address = ((size_t)b) << NUM_ADDRESS_BITS;
+
+  m_device->fireMemoryAllocated(this, address, size);
+
+  return address;
 }
 
 bool Memory::copy(size_t dest, size_t src, size_t size)
@@ -404,8 +354,8 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
   size_t dest_offset = EXTRACT_OFFSET(dest);
   Buffer src_buffer = m_memory.at(EXTRACT_BUFFER(src));
   Buffer dest_buffer = m_memory.at(EXTRACT_BUFFER(dest));
-  registerAccess(src, size);
-  registerAccess(dest, size, src_buffer.data + src_offset);
+  m_device->fireMemoryLoad(this, src, size);
+  m_device->fireMemoryStore(this, dest, size, src_buffer.data + src_offset);
 
   // Copy data
   memcpy(dest_buffer.data + dest_offset,
@@ -424,15 +374,12 @@ void Memory::deallocateBuffer(size_t address)
   {
     delete[] m_memory[buffer].data;
   }
-  if (m_memory[buffer].status)
-  {
-    delete[] m_memory[buffer].status;
-  }
 
   m_memory[buffer].data = NULL;
-  m_memory[buffer].status = NULL;
   m_totalAllocated -= m_memory[buffer].size;
   m_freeBuffers.push(buffer);
+
+  m_device->fireMemoryDeallocated(this, address);
 }
 
 void Memory::dump() const
@@ -457,6 +404,11 @@ void Memory::dump() const
     }
   }
   cout << endl;
+}
+
+unsigned int Memory::getAddressSpace() const
+{
+  return m_addressSpace;
 }
 
 size_t Memory::getMaxAllocSize()
@@ -488,7 +440,7 @@ void* Memory::getPointer(size_t address) const
     return NULL;
   }
 
-  return m_memory.at(buffer).data;
+  return m_memory.at(buffer).data + EXTRACT_OFFSET(address);
 }
 
 size_t Memory::getTotalAllocated() const
@@ -522,7 +474,7 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   // Get buffer and register access
   size_t offset = EXTRACT_OFFSET(address);
   Buffer src = m_memory[EXTRACT_BUFFER(address)];
-  registerAccess(address, size);
+  m_device->fireMemoryLoad(this, address, size);
 
   // Load data
   memcpy(dest, src.data + offset, size);
@@ -560,123 +512,10 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
   // Get buffer and register access
   size_t offset = EXTRACT_OFFSET(address);
   Buffer dest = m_memory[EXTRACT_BUFFER(address)];
-  registerAccess(address, size, source);
+  m_device->fireMemoryStore(this, address, size, source);
 
   // Store data
   memcpy(dest.data + offset, source, size);
 
   return true;
-}
-
-void Memory::registerAccess(size_t address, size_t size,
-                            const uint8_t *data) const
-{
-  if (!m_checkDataRaces)
-  {
-    return;
-  }
-
-  bool load = !data;
-  bool store = data;
-
-  // Get index of work-item and work-group performing access
-  size_t workItemIndex = -1, workGroupIndex = -1;
-  const WorkItem *workItem = m_device->getCurrentWorkItem();;
-  const WorkGroup *workGroup = m_device->getCurrentWorkGroup();
-  if (workItem)
-  {
-    workItemIndex = workItem->getGlobalIndex();
-  }
-  if (workGroup)
-  {
-    workGroupIndex = workGroup->getGroupIndex();
-  }
-
-  bool race = false;
-  size_t base = EXTRACT_OFFSET(address);
-  Buffer buffer = m_memory[EXTRACT_BUFFER(address)];
-  Status *status = buffer.status + base;
-  for (size_t offset = 0; offset < size; offset++, status++)
-  {
-    bool conflict = store ? !status->canWrite : !status->canRead;
-    if (m_allowUniformWrites && data)
-    {
-      conflict &= (buffer.data[base + offset] != data[offset]);
-    }
-
-    if (!race && conflict &&
-        (status->wasWorkItem ?                // If status set by work-item,
-         status->workItem != workItemIndex :  // must be same work-item,
-         status->workGroup != workGroupIndex) // otherwise must be same group
-        )
-    {
-      // Report data-race
-      DataRaceType type = load|status->canRead ? ReadWriteRace : WriteWriteRace;
-      m_device->notifyDataRace(type, m_addressSpace, address + offset,
-                               status->workItem,
-                               status->workGroup,
-                               status->instruction);
-      race = true;
-    }
-    else
-    {
-      // Only update WI info if this operation is stronger than previous one
-      bool updateWI = store || (load && status->canWrite);
-
-      // Update status
-      status->canAtomic = false;
-      status->canRead &= load;
-      status->canWrite = false;
-      if (updateWI)
-      {
-        status->workGroup = workGroupIndex;
-        if (workItem)
-        {
-          status->instruction = workItem->getCurrentInstruction();
-          status->workItem = workItemIndex;
-          status->wasWorkItem = true;
-        }
-      }
-    }
-  }
-}
-
-void Memory::synchronize(bool workGroup)
-{
-  if (!m_checkDataRaces)
-  {
-    return;
-  }
-
-  vector<Buffer>::iterator itr;
-  for (itr = m_memory.begin(); itr != m_memory.end(); itr++)
-  {
-    if (!itr->status)
-    {
-      continue;
-    }
-    for (Status *status = itr->status; status < itr->status+itr->size; status++)
-    {
-      status->canAtomic = true; // TODO: atomic_intergroup_race test failure
-      status->workItem = -1;
-      status->wasWorkItem = false;
-      if (!workGroup)
-      {
-        status->workGroup = -1;
-        status->canRead = true;
-        status->canWrite = true;
-      }
-    }
-  }
-}
-
-Memory::Status::Status()
-{
-  instruction = NULL;
-  workItem = -1;
-  workGroup = -1;
-  canAtomic = true;
-  canRead = true;
-  canWrite = true;
-  wasWorkItem = false;
 }

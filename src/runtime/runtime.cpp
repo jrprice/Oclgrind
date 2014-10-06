@@ -2133,7 +2133,7 @@ clCreateProgramWithSource
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = new oclgrind::Program(source);
+  prog->program = new oclgrind::Program(context->device, source);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
@@ -2189,7 +2189,8 @@ clCreateProgramWithBinary
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = oclgrind::Program::createFromBitcode(binaries[0], lengths[0]);
+  prog->program = oclgrind::Program::createFromBitcode(context->device,
+                                                       binaries[0], lengths[0]);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
@@ -2442,7 +2443,8 @@ clLinkProgram
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = oclgrind::Program::createFromPrograms(programs);
+  prog->program = oclgrind::Program::createFromPrograms(context->device,
+                                                        programs);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)

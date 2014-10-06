@@ -135,13 +135,16 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/core/Device.cpp
   src/core/Kernel.cpp
   src/core/Memory.cpp
+  src/core/Plugin.cpp
   src/core/Program.cpp
   src/core/Queue.cpp
   src/core/WorkItem.cpp
   src/core/WorkItemBuiltins.cpp
   src/core/WorkGroup.cpp
   src/plugins/InstructionCounter.h
-  src/plugins/InstructionCounter.cpp)
+  src/plugins/InstructionCounter.cpp
+  src/plugins/RaceDetector.h
+  src/plugins/RaceDetector.cpp)
 target_link_libraries(oclgrind ${CORE_EXTRA_LIBS}
   clangAnalysis clangAST clangBasic clangCodeGen clangDriver clangEdit
   clangFrontend clangLex clangParse clangSema clangSerialization

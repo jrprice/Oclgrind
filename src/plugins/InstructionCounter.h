@@ -10,6 +10,8 @@ namespace oclgrind
   class InstructionCounter : public Plugin
   {
   public:
+    InstructionCounter(Device *device) : Plugin(device){};
+
     virtual void instructionExecuted(const llvm::Instruction *instruction,
                                      const TypedValue& result);
     virtual void kernelBegin(const Kernel *kernel);

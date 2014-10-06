@@ -28,6 +28,7 @@
 #include "WorkItem.h"
 
 #include "plugins/InstructionCounter.h"
+#include "plugins/RaceDetector.h"
 
 using namespace oclgrind;
 using namespace std;
@@ -109,6 +110,39 @@ void Device::fireKernelEnd(const Kernel *kernel)
   FIRE(kernelEnd, kernel);
 }
 
+void Device::fireMemoryAllocated(const Memory *memory, size_t address,
+                                 size_t size)
+{
+  FIRE(memoryAllocated, memory, address, size);
+}
+
+void Device::fireMemoryAtomic(const Memory *memory, size_t address,
+                              size_t size)
+{
+  FIRE(memoryAtomic, memory, address, size);
+}
+
+void Device::fireMemoryDeallocated(const Memory *memory, size_t address)
+{
+  FIRE(memoryDeallocated, memory, address);
+}
+
+void Device::fireMemoryLoad(const Memory *memory, size_t address, size_t size)
+{
+  FIRE(memoryLoad, memory, address, size);
+}
+
+void Device::fireMemoryStore(const Memory *memory, size_t address, size_t size,
+                             const uint8_t *storeData)
+{
+  FIRE(memoryStore, memory, address, size, storeData);
+}
+
+void Device::fireWorkGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
+{
+  FIRE(workGroupBarrier, workGroup, flags);
+}
+
 #undef FIRE
 
 size_t Device::getCurrentLineNumber() const
@@ -160,7 +194,11 @@ void Device::loadPlugins()
   // Check for instruction counts environment variable
   const char *instCounts = getenv("OCLGRIND_INST_COUNTS");
   if (instCounts && strcmp(instCounts, "1") == 0)
-    m_plugins.push_back(new InstructionCounter);
+    m_plugins.push_back(new InstructionCounter(this));
+
+  const char *dataRaces = getenv("OCLGRIND_DATA_RACES");
+  if (dataRaces && strcmp(dataRaces, "1") == 0)
+    m_plugins.push_back(new RaceDetector(this));
 
   // Add dynamic plugins
   // TODO
@@ -531,7 +569,6 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   m_listPosition = 0;
   m_currentWorkGroup = NULL;
   m_currentWorkItem = NULL;
-  m_globalMemory->synchronize();
   nextWorkItem();
 
   fireKernelBegin(m_kernel);
@@ -649,8 +686,6 @@ void Device::run(Kernel& kernel, unsigned int workDim,
 
   // Deallocate constant memory
   kernel.deallocateConstants(m_globalMemory);
-
-  m_globalMemory->synchronize();
 
   fireKernelEnd(m_kernel);
 

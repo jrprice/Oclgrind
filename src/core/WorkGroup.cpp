@@ -252,15 +252,8 @@ void WorkGroup::clearBarrier()
     m_barrier->events.remove(event);
   }
 
-  // Apple memory fences
-  if (m_barrier->fence & CLK_LOCAL_MEM_FENCE)
-  {
-    m_localMemory->synchronize();
-  }
-  if (m_barrier->fence & CLK_GLOBAL_MEM_FENCE)
-  {
-    m_device->getGlobalMemory()->synchronize(true);
-  }
+  m_device->fireWorkGroupBarrier(this, m_barrier->fence);
+
   delete m_barrier;
   m_barrier = NULL;
 }

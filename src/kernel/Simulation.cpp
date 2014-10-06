@@ -171,7 +171,7 @@ bool Simulation::load(const char *filename)
     {
       // Load bitcode
       progFile.close();
-      m_program = Program::createFromBitcodeFile(progFileName);
+      m_program = Program::createFromBitcodeFile(m_device, progFileName);
       if (!m_program)
       {
         cerr << "Failed to load bitcode from " << progFileName << endl;
@@ -190,7 +190,7 @@ bool Simulation::load(const char *filename)
       progFile.read(data, sz+1);
       progFile.close();
       data[sz] = '\0';
-      m_program = new Program(data);
+      m_program = new Program(m_device, data);
       delete[] data;
 
       // Build program

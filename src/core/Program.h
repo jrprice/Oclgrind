@@ -21,6 +21,7 @@ namespace llvm
 
 namespace oclgrind
 {
+  class Device;
   class Kernel;
 
   class Program
@@ -29,13 +30,16 @@ namespace oclgrind
     typedef std::pair<std::string, const Program*> Header;
 
   public:
-    Program(const std::string& source);
+    Program(Device *device, const std::string& source);
     virtual ~Program();
 
-    static Program* createFromBitcode(const unsigned char *bitcode,
+    static Program* createFromBitcode(Device *device,
+                                      const unsigned char *bitcode,
                                       size_t length);
-    static Program* createFromBitcodeFile(const std::string filename);
-    static Program* createFromPrograms(std::list<const Program*>);
+    static Program* createFromBitcodeFile(Device *device,
+                                          const std::string filename);
+    static Program* createFromPrograms(Device *device,
+                                       std::list<const Program*>);
 
     bool build(const char *options,
                std::list<Header> headers = std::list<Header>());
@@ -45,13 +49,14 @@ namespace oclgrind
     unsigned char* getBinary() const;
     size_t getBinarySize() const;
     unsigned int getBuildStatus() const;
+    Device* getDevice() const;
     std::list<std::string> getKernelNames() const;
     unsigned int getNumKernels() const;
     const std::string& getSource() const;
     unsigned long getUID() const;
 
   private:
-    Program(llvm::Module *module);
+    Program(Device *device, llvm::Module *module);
 
     llvm::OwningPtr<clang::CodeGenAction> *m_action;
     llvm::Module *m_module;
@@ -59,6 +64,7 @@ namespace oclgrind
     std::string m_buildLog;
     std::string m_buildOptions;
     unsigned int m_buildStatus;
+    Device *m_device;
 
     unsigned long m_uid;
     unsigned long generateUID() const;

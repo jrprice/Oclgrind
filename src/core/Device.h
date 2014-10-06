@@ -50,6 +50,13 @@ namespace oclgrind
                                  const TypedValue& result);
     void fireKernelBegin(const Kernel *kernel);
     void fireKernelEnd(const Kernel *kernel);
+    void fireMemoryAllocated(const Memory *memory, size_t address, size_t size);
+    void fireMemoryAtomic(const Memory *memory, size_t address, size_t size);
+    void fireMemoryDeallocated(const Memory *memory, size_t address);
+    void fireMemoryLoad(const Memory *memory, size_t address, size_t size);
+    void fireMemoryStore(const Memory *memory, size_t address, size_t size,
+                         const uint8_t *storeData);
+    void fireWorkGroupBarrier(const WorkGroup *workGroup, uint32_t flags);
 
   private:
     Memory *m_globalMemory;

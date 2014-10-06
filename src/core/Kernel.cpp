@@ -15,6 +15,7 @@
 #include "llvm/Support/raw_os_ostream.h"
 
 #include "Kernel.h"
+#include "Program.h"
 #include "Memory.h"
 
 using namespace oclgrind;
@@ -24,7 +25,7 @@ Kernel::Kernel(const Program& program,
                const llvm::Function *function, const llvm::Module *module)
  : m_program(program), m_function(function), m_name(function->getName())
 {
-  m_localMemory = new Memory(AddrSpaceLocal, NULL);
+  m_localMemory = new Memory(AddrSpaceLocal, program.getDevice());
 
   // Set-up global variables
   llvm::Module::const_global_iterator itr;

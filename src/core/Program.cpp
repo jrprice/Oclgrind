@@ -56,8 +56,8 @@ const char *EXTENSIONS[] =
 using namespace oclgrind;
 using namespace std;
 
-Program::Program(llvm::Module *module)
-  : m_module(module)
+Program::Program(Device *device, llvm::Module *module)
+  : m_device(device), m_module(module)
 {
   m_action = NULL;
   m_buildLog = "";
@@ -66,7 +66,8 @@ Program::Program(llvm::Module *module)
   m_uid = generateUID();
 }
 
-Program::Program(const string& source)
+Program::Program(Device *device, const string& source)
+  : m_device(device)
 {
   m_source = source;
   m_module = NULL;
@@ -316,7 +317,8 @@ bool Program::build(const char *options, list<Header> headers)
   return m_buildStatus == CL_BUILD_SUCCESS;
 }
 
-Program* Program::createFromBitcode(const unsigned char *bitcode,
+Program* Program::createFromBitcode(Device *device,
+                                    const unsigned char *bitcode,
                                     size_t length)
 {
   // Load bitcode from file
@@ -336,10 +338,10 @@ Program* Program::createFromBitcode(const unsigned char *bitcode,
     return NULL;
   }
 
-  return new Program(module);
+  return new Program(device, module);
 }
 
-Program* Program::createFromBitcodeFile(const string filename)
+Program* Program::createFromBitcodeFile(Device *device, const string filename)
 {
   // Load bitcode from file
   llvm::OwningPtr<llvm::MemoryBuffer> buffer;
@@ -356,10 +358,11 @@ Program* Program::createFromBitcodeFile(const string filename)
     return NULL;
   }
 
-  return new Program(module);
+  return new Program(device, module);
 }
 
-Program* Program::createFromPrograms(list<const Program*> programs)
+Program* Program::createFromPrograms(Device *device,
+                                     list<const Program*> programs)
 {
   llvm::LLVMContext& context = llvm::getGlobalContext();
   llvm::Module *module = new llvm::Module("oclgrind_linked", context);
@@ -375,7 +378,7 @@ Program* Program::createFromPrograms(list<const Program*> programs)
     }
   }
 
-  return new Program(linker.releaseModule());
+  return new Program(device, linker.releaseModule());
 }
 
 Kernel* Program::createKernel(const string name)
@@ -475,6 +478,11 @@ const string& Program::getBuildOptions() const
 unsigned int Program::getBuildStatus() const
 {
   return m_buildStatus;
+}
+
+Device* Program::getDevice() const
+{
+  return m_device;
 }
 
 unsigned long Program::generateUID() const

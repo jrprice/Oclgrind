@@ -8,6 +8,16 @@
 
 #include "common.h"
 
+#define NUM_BUFFER_BITS 16
+#define MAX_NUM_BUFFERS ((size_t)1 << NUM_BUFFER_BITS)
+#define NUM_ADDRESS_BITS ((sizeof(size_t)<<3) - NUM_BUFFER_BITS)
+#define MAX_BUFFER_SIZE ((size_t)1 << NUM_ADDRESS_BITS)
+
+#define EXTRACT_BUFFER(address) \
+  (address >> NUM_ADDRESS_BITS)
+#define EXTRACT_OFFSET(address) \
+  (address & (((size_t)-1) >> NUM_BUFFER_BITS))
+
 namespace oclgrind
 {
   class Device;
@@ -43,6 +53,7 @@ namespace oclgrind
     bool copy(size_t dest, size_t src, size_t size);
     void deallocateBuffer(size_t address);
     void dump() const;
+    unsigned int getAddressSpace() const;
     void* getPointer(size_t address) const;
     size_t getTotalAllocated() const;
     bool isAddressValid(size_t address, size_t size=1) const;
@@ -50,30 +61,15 @@ namespace oclgrind
     unsigned char* mapBuffer(size_t address, size_t offset, size_t size);
     void setDevice(Device *device);
     bool store(const unsigned char *source, size_t address, size_t size=1);
-    void synchronize(bool workGroup = false);
 
     static size_t getMaxAllocSize();
 
   private:
-    struct Status
-    {
-      const llvm::Instruction *instruction;
-      size_t workItem;
-      size_t workGroup;
-      bool canAtomic;
-      bool canRead;
-      bool canWrite;
-      bool wasWorkItem;
-
-      Status();
-    };
-
     typedef struct
     {
       bool hostPtr;
       size_t size;
       unsigned char *data;
-      Status *status;
     } Buffer;
 
     Device *m_device;
@@ -81,12 +77,8 @@ namespace oclgrind
     std::vector<Buffer> m_memory;
     unsigned int m_addressSpace;
     size_t m_totalAllocated;
-    bool m_checkDataRaces;
-    bool m_allowUniformWrites;
 
     uint32_t* atomic(size_t address);
     int getNextBuffer();
-    void registerAccess(size_t address, size_t size,
-                        const uint8_t *data = NULL) const;
   };
 }
