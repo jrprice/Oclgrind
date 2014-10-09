@@ -2842,7 +2842,8 @@ clSetKernelArg
     }
     break;
   case CL_KERNEL_ARG_ADDRESS_LOCAL:
-    *(size_t*)value.data = 0;
+    delete value.data;
+    value.data = NULL;
     break;
   case CL_KERNEL_ARG_ADDRESS_GLOBAL:
   case CL_KERNEL_ARG_ADDRESS_CONSTANT:
@@ -2868,7 +2869,7 @@ clSetKernelArg
     }
     else
     {
-      *(size_t*)value.data = 0;
+      value.setPointer(0);
       kernel->memArgs.erase(arg_index);
     }
     break;

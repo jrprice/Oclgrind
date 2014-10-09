@@ -81,7 +81,7 @@ WorkItem::WorkItem(const Context *context, WorkGroup *workGroup,
       1,
       m_pool.alloc(sizeof(size_t))
     };
-    *(size_t*)var.data = address;
+    var.setPointer(address);
     setValue(*varItr, var);
   }
 
@@ -478,7 +478,7 @@ bool WorkItem::printVariable(string name)
   {
     // If value is alloca result, look-up data at address
     const llvm::Type *elemType = value->getType()->getPointerElementType();
-    size_t address = *(size_t*)result.data;
+    size_t address = result.getPointer();
     size_t size = getTypeSize(elemType);
     unsigned char *data = m_pool.alloc(size);
     m_privateMemory->load(data, address, size);

@@ -568,7 +568,7 @@ void Simulation::parseArgument(size_t index)
       size_t address = globalMemory->allocateBuffer(size);
       globalMemory->store((unsigned char*)&data[0], address, size);
       value.data = new unsigned char[value.size];
-      *((size_t*)value.data) = address;
+      value.setPointer(address);
       delete[] data;
 
       if (dump)

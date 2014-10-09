@@ -49,7 +49,7 @@ Kernel::Kernel(const Program *program,
         1,
         new unsigned char[sizeof(size_t)]
       };
-      *((size_t*)v.data) = m_localMemory->allocateBuffer(size);
+      v.setPointer(m_localMemory->allocateBuffer(size));
       m_arguments[itr] = v;
       break;
     }
@@ -422,7 +422,7 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     // Deallocate existing argument
     if (m_arguments.count(arg))
     {
-      m_localMemory->deallocateBuffer(*(size_t*)m_arguments[arg].data);
+      m_localMemory->deallocateBuffer(m_arguments[arg].getPointer());
     }
 
     // Allocate local memory buffer
@@ -431,7 +431,7 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
       1,
       new unsigned char[sizeof(size_t)]
     };
-    *((size_t*)v.data) = m_localMemory->allocateBuffer(value.size);
+    v.setPointer(m_localMemory->allocateBuffer(value.size));
     m_arguments[arg] = v;
   }
   else
