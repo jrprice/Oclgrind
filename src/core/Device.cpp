@@ -19,9 +19,10 @@
 #include "llvm/DebugInfo.h"
 #include "llvm/Instructions.h"
 
+#include "Device.h"
+#include "Context.h"
 #include "Kernel.h"
 #include "Memory.h"
-#include "Device.h"
 #include "Plugin.h"
 #include "Program.h"
 #include "WorkGroup.h"
@@ -35,10 +36,10 @@ using namespace std;
 
 #define LIST_LENGTH 10
 
-Device::Device()
+Device::Device(const Context *context)
+  : m_context(context)
 {
-  m_globalMemory = new Memory(AddrSpaceGlobal, this);
-  m_kernel = NULL;
+  m_kernelInvocation = NULL;
   m_nextBreakpoint = 1;
   m_currentWorkGroup = NULL;
   m_currentWorkItem = NULL;
@@ -64,86 +65,27 @@ Device::Device()
   ADD_CMD("info",         "i",  info);
   ADD_CMD("list",         "l",  list);
   ADD_CMD("lmem",         "lm", mem);
-  ADD_CMD("next",         "n", next);
+  ADD_CMD("next",         "n",  next);
   ADD_CMD("pmem",         "pm", mem);
   ADD_CMD("print",        "p",  print);
   ADD_CMD("quit",         "q",  quit);
   ADD_CMD("step",         "s",  step);
   ADD_CMD("workitem",     "wi", workitem);
-
-  loadPlugins();
 }
 
 Device::~Device()
 {
-  delete m_globalMemory;
 }
 
 WorkGroup* Device::createWorkGroup(size_t x, size_t y, size_t z)
 {
-  return new WorkGroup(
-    this, *m_kernel, *m_globalMemory, m_workDim, x, y, z,
-    m_globalOffset, m_globalSize, m_localSize);
+  return new WorkGroup(m_context, m_kernelInvocation, x, y, z);
 }
 
-#define FIRE(function, ...)                       \
-  PluginList::iterator pluginItr;                 \
-  for (pluginItr = m_plugins.begin();             \
-       pluginItr != m_plugins.end(); pluginItr++) \
-  {                                               \
-    (*pluginItr)->function(__VA_ARGS__);          \
-  }
-
-void Device::fireInstructionExecuted(const llvm::Instruction *instruction,
-                                     const TypedValue& result)
+void Device::forceBreak()
 {
-  FIRE(instructionExecuted, instruction, result);
+  m_forceBreak = true;
 }
-
-void Device::fireKernelBegin(const Kernel *kernel)
-{
-  FIRE(kernelBegin, kernel);
-}
-
-void Device::fireKernelEnd(const Kernel *kernel)
-{
-  FIRE(kernelEnd, kernel);
-}
-
-void Device::fireMemoryAllocated(const Memory *memory, size_t address,
-                                 size_t size)
-{
-  FIRE(memoryAllocated, memory, address, size);
-}
-
-void Device::fireMemoryAtomic(const Memory *memory, size_t address,
-                              size_t size)
-{
-  FIRE(memoryAtomic, memory, address, size);
-}
-
-void Device::fireMemoryDeallocated(const Memory *memory, size_t address)
-{
-  FIRE(memoryDeallocated, memory, address);
-}
-
-void Device::fireMemoryLoad(const Memory *memory, size_t address, size_t size)
-{
-  FIRE(memoryLoad, memory, address, size);
-}
-
-void Device::fireMemoryStore(const Memory *memory, size_t address, size_t size,
-                             const uint8_t *storeData)
-{
-  FIRE(memoryStore, memory, address, size, storeData);
-}
-
-void Device::fireWorkGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
-{
-  FIRE(workGroupBarrier, workGroup, flags);
-}
-
-#undef FIRE
 
 size_t Device::getCurrentLineNumber() const
 {
@@ -164,9 +106,9 @@ const WorkItem* Device::getCurrentWorkItem() const
   return m_currentWorkItem;
 }
 
-Memory* Device::getGlobalMemory() const
+const KernelInvocation* Device::getCurrentKernelInvocation() const
 {
-  return m_globalMemory;
+  return m_kernelInvocation;
 }
 
 size_t Device::getLineNumber(const llvm::Instruction *instruction) const
@@ -183,25 +125,6 @@ size_t Device::getLineNumber(const llvm::Instruction *instruction) const
 bool Device::isInteractive() const
 {
   return m_interactive;
-}
-
-void Device::loadPlugins()
-{
-  // TODO: When can we destroy plugins?
-
-  // Core plugins
-
-  // Check for instruction counts environment variable
-  const char *instCounts = getenv("OCLGRIND_INST_COUNTS");
-  if (instCounts && strcmp(instCounts, "1") == 0)
-    m_plugins.push_back(new InstructionCounter(this));
-
-  const char *dataRaces = getenv("OCLGRIND_DATA_RACES");
-  if (dataRaces && strcmp(dataRaces, "1") == 0)
-    m_plugins.push_back(new RaceDetector(this));
-
-  // Add dynamic plugins
-  // TODO
 }
 
 bool Device::nextWorkItem()
@@ -261,300 +184,74 @@ bool Device::nextWorkItem()
   return true;
 }
 
-void Device::notifyDataRace(DataRaceType type, unsigned int addrSpace,
-                            size_t address,
-                            size_t lastWorkItem,
-                            size_t lastWorkGroup,
-                            const llvm::Instruction *lastInstruction)
-{
-  string memType;
-  switch (addrSpace)
-  {
-  case AddrSpacePrivate:
-    memType = "private";
-    break;
-  case AddrSpaceGlobal:
-    memType = "global";
-    break;
-  case AddrSpaceConstant:
-    memType = "constant";
-    break;
-  case AddrSpaceLocal:
-    memType = "local";
-    break;
-  default:
-    assert(false && "Data race in unsupported address space.");
-    break;
-  }
-
-  // Error info
-  cerr << endl;
-  switch (type)
-  {
-    case ReadWriteRace:
-      cerr << "Read-write";
-      break;
-    case WriteWriteRace:
-      cerr << "Write-write";
-      break;
-    default:
-      cerr << "Unrecognized";
-      break;
-  }
-  cerr << " data race"
-       << " at " << memType
-       << " memory address " << hex << address << endl;
-
-  printErrorContext();
-  cerr << endl;
-
-  // Show details of other entity involved in race
-  if (lastWorkItem != -1)
-  {
-    size_t gx, gy, gz;
-    gx = lastWorkItem % m_globalSize[0];
-    gy = (lastWorkItem - gx) / m_globalSize[1];
-    gz = (lastWorkItem - gy - gx) / m_globalSize[2];
-    cerr << "\tRace occurred with work-item (" << dec
-         << gx << ","
-         << gy << ","
-         << gz << ")" << endl;
-  }
-  else if (lastWorkGroup != -1)
-  {
-    size_t gx, gy, gz;
-    gx = lastWorkGroup % m_numGroups[0];
-    gy = (lastWorkGroup - gx) / m_numGroups[1];
-    gz = (lastWorkGroup - gy - gx) / m_numGroups[2];
-    cerr << "\tRace occurred with work-group (" << dec
-         << gx << ","
-         << gy << ","
-         << gz << ")" << endl;
-  }
-  else
-  {
-    cerr << "\tRace occurred with unknown entity" << endl;
-  }
-
-  // Show conflicting instruction
-  if (lastInstruction)
-  {
-    cerr << "\t";
-    printInstruction(lastInstruction);
-  }
-
-  cerr << endl;
-
-  m_forceBreak = true;
-}
-
-void Device::notifyDivergence(const llvm::Instruction *instruction,
-                              string divergence,
-                              string currentInfo, string previousInfo)
-{
-  // Error info
-  cerr << endl
-       << "Work-group divergence detected ("
-       << divergence
-       << "):" << endl;
-  printErrorContext();
-  if (!currentInfo.empty())
-  {
-    cerr << "\t" << currentInfo << endl;
-  }
-  cerr << endl;
-
-  // Show divergent instruction/info
-  cerr << "Previous work-items executed this instruction:" << endl;
-  cerr << "\t";
-  printInstruction(instruction);
-  if (!previousInfo.empty())
-  {
-    cerr << "\t" << previousInfo << endl;
-  }
-
-  cerr << endl;
-
-  m_forceBreak = true;
-}
-
-void Device::notifyError(const char* error, const char* info)
-{
-  // Error info
-  cerr << endl << error << ":" << endl;
-  printErrorContext();
-  if (info)
-  {
-    cerr << "\t" << info << endl;
-  }
-  cerr << endl;
-
-  m_forceBreak = true;
-}
-
-void Device::notifyMemoryError(bool read, unsigned int addrSpace,
-                               size_t address, size_t size)
-{
-  string memType;
-  switch (addrSpace)
-  {
-  case AddrSpacePrivate:
-    memType = "private";
-    break;
-  case AddrSpaceGlobal:
-    memType = "global";
-    break;
-  case AddrSpaceConstant:
-    memType = "constant";
-    break;
-  case AddrSpaceLocal:
-    memType = "local";
-    break;
-  default:
-    assert(false && "Memory error in unsupported address space.");
-    break;
-  }
-
-  // Error info
-  cerr << endl << "Invalid " << (read ? "read" : "write")
-       << " of size " << size
-       << " at " << memType
-       << " memory address " << hex << address << endl;
-
-  printErrorContext();
-  cerr << endl;
-
-  m_forceBreak = true;
-}
-
-void Device::printErrorContext() const
-{
-  // Work item
-  if (m_currentWorkItem)
-  {
-    const size_t *gid = m_currentWorkItem->getGlobalID();
-    const size_t *lid = m_currentWorkItem->getLocalID();
-    cerr << "\tWork-item:  Global(" << dec
-         << gid[0] << ","
-         << gid[1] << ","
-         << gid[2] << ")"
-         << " Local(" << dec
-         << lid[0] << ","
-         << lid[1] << ","
-         << lid[2] << ")"
-         << endl;
-  }
-
-  // Work group
-  if (m_currentWorkGroup)
-  {
-    const size_t *group = m_currentWorkGroup->getGroupID();
-    cerr << "\tWork-group: (" << dec
-         << group[0] << ","
-         << group[1] << ","
-         << group[2] << ")"
-         << endl;
-  }
-
-  // Kernel
-  if (m_kernel)
-  {
-    cerr << "\tKernel:     " << m_kernel->getName() << endl;
-  }
-
-  // Instruction
-  if (m_currentWorkItem)
-  {
-    cerr << "\t";
-    printInstruction(m_currentWorkItem->getCurrentInstruction());
-  }
-}
-
-void Device::printInstruction(const llvm::Instruction *instruction) const
-{
-  dumpInstruction(cerr, *instruction);
-  cerr << endl;
-
-  // Output debug information
-  cerr << "\t";
-  llvm::MDNode *md = instruction->getMetadata("dbg");
-  if (!md)
-  {
-    cerr << "Debugging information not available." << endl;
-  }
-  else
-  {
-    llvm::DILocation loc(md);
-    cerr << "At line " << dec << loc.getLineNumber()
-         << " of " << loc.getFilename().str() << endl;
-  }
-}
-
-void Device::run(Kernel& kernel, unsigned int workDim,
+void Device::run(Kernel *kernel, unsigned int workDim,
                  const size_t *globalOffset,
                  const size_t *globalSize,
                  const size_t *localSize)
 {
   assert(m_runningGroups.empty());
 
+  KernelInvocation *ki = new KernelInvocation;
+
   // Set-up offsets and sizes
-  m_workDim = workDim;
-  m_globalSize[0] = m_globalSize[1] = m_globalSize[2] = 1;
-  m_globalOffset[0] = m_globalOffset[1] = m_globalOffset[2] = 0;
-  m_localSize[0] = m_localSize[1] = m_localSize[2] = 1;
+  ki->workDim         = workDim;
+  ki->globalSize[0]   = ki->globalSize[1]   = ki->globalSize[2]   = 1;
+  ki->globalOffset[0] = ki->globalOffset[1] = ki->globalOffset[2] = 0;
+  ki->localSize[0]    = ki->localSize[1]    = ki->localSize[2]    = 1;
   for (int i = 0; i < workDim; i++)
   {
-    m_globalSize[i] = globalSize[i];
+    ki->globalSize[i] = globalSize[i];
     if (globalOffset[i])
     {
-      m_globalOffset[i] = globalOffset[i];
+      ki->globalOffset[i] = globalOffset[i];
     }
     if (localSize[i])
     {
-      m_localSize[i] = localSize[i];
+      ki->localSize[i] = localSize[i];
     }
   }
 
   try
   {
     // Allocate and initialise constant memory
-    kernel.allocateConstants(m_globalMemory);
+    kernel->allocateConstants(m_context->getGlobalMemory());
   }
   catch (FatalError& err)
   {
-    cerr << endl << "OCLGRIND FATAL ERROR "
+    ostringstream info;
+    info << endl << "OCLGRIND FATAL ERROR "
          << "(" << err.getFile() << ":" << err.getLine() << ")"
          << endl << err.what()
          << endl << "When allocating kernel constants for '"
-         << kernel.getName() << "'"
-         << endl;
+         << kernel->getName() << "'";
+    m_context->logError(info.str().c_str());
     return;
   }
 
   // Create pool of pending work-groups
-  m_numGroups[0] = m_globalSize[0]/m_localSize[0];
-  m_numGroups[1] = m_globalSize[1]/m_localSize[1];
-  m_numGroups[2] = m_globalSize[2]/m_localSize[2];
+  ki->numGroups[0] = ki->globalSize[0]/ki->localSize[0];
+  ki->numGroups[1] = ki->globalSize[1]/ki->localSize[1];
+  ki->numGroups[2] = ki->globalSize[2]/ki->localSize[2];
   if (m_quickMode)
   {
     // Only run first and last work-groups in quick-mode
     PendingWorkGroup firstGroup = {{0, 0, 0}};
     PendingWorkGroup lastGroup  =
     {{
-      m_numGroups[0]-1,
-      m_numGroups[1]-1,
-      m_numGroups[2]-1
+      ki->numGroups[0]-1,
+      ki->numGroups[1]-1,
+      ki->numGroups[2]-1
     }};
     m_pendingGroups.push_back(firstGroup);
     m_pendingGroups.push_back(lastGroup);
   }
   else
   {
-    for (size_t k = 0; k < m_numGroups[2]; k++)
+    for (size_t k = 0; k < ki->numGroups[2]; k++)
     {
-      for (size_t j = 0; j < m_numGroups[1]; j++)
+      for (size_t j = 0; j < ki->numGroups[1]; j++)
       {
-        for (size_t i = 0; i < m_numGroups[0]; i++)
+        for (size_t i = 0; i < ki->numGroups[0]; i++)
         {
           PendingWorkGroup workGroup = {{i, j, k}};
           m_pendingGroups.push_back(workGroup);
@@ -564,14 +261,15 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   }
 
   // Prepare kernel invocation
-  m_program = &kernel.getProgram();
-  m_kernel = &kernel;
+  ki->kernel = kernel;
+  m_kernelInvocation = ki;
+  m_program = kernel->getProgram();
   m_listPosition = 0;
   m_currentWorkGroup = NULL;
   m_currentWorkItem = NULL;
   nextWorkItem();
 
-  fireKernelBegin(m_kernel);
+  m_context->notifyKernelBegin(kernel);
 
   try
   {
@@ -665,11 +363,11 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   }
   catch (FatalError& err)
   {
-    cerr << endl << "OCLGRIND FATAL ERROR "
+    ostringstream info;
+    info << endl << "OCLGRIND FATAL ERROR "
          << "(" << err.getFile() << ":" << err.getLine() << ")"
          << endl << err.what() << endl;
-    printErrorContext();
-    cerr << endl;
+    m_context->logError(info.str().c_str());
   }
 
   // Destroy any remaining work-groups
@@ -685,11 +383,12 @@ void Device::run(Kernel& kernel, unsigned int workDim,
   }
 
   // Deallocate constant memory
-  kernel.deallocateConstants(m_globalMemory);
+  kernel->deallocateConstants(m_context->getGlobalMemory());
 
-  fireKernelEnd(m_kernel);
+  m_context->notifyKernelEnd(kernel);
 
-  m_kernel = NULL;
+  delete m_kernelInvocation;
+  m_kernelInvocation = NULL;
 }
 
 void Device::printCurrentLine() const
@@ -1072,16 +771,21 @@ void Device::info(vector<string> args)
   }
 
   // Kernel invocation information
-  cout << "Running kernel '" << m_kernel->getName() << "'" << endl
-       << "-> Global work size:   (" << m_globalSize[0] << ","
-                                     << m_globalSize[1] << ","
-                                     << m_globalSize[2] << ")" << endl
-       << "-> Global work offset: (" << m_globalOffset[0] << ","
-                                     << m_globalOffset[1] << ","
-                                     << m_globalOffset[2] << ")" << endl
-       << "-> Local work size:    (" << m_localSize[0] << ","
-                                     << m_localSize[1] << ","
-                                     << m_localSize[2] << ")" << endl;
+  cout
+    << "Running kernel '" << m_kernelInvocation->kernel->getName() << "'"
+    << endl
+    << "-> Global work size:   (" << m_kernelInvocation->globalSize[0] << ","
+                                  << m_kernelInvocation->globalSize[1] << ","
+                                  << m_kernelInvocation->globalSize[2] << ")"
+    << endl
+    << "-> Global work offset: (" << m_kernelInvocation->globalOffset[0] << ","
+                                  << m_kernelInvocation->globalOffset[1] << ","
+                                  << m_kernelInvocation->globalOffset[2] << ")"
+    << endl
+    << "-> Local work size:    (" << m_kernelInvocation->localSize[0] << ","
+                                  << m_kernelInvocation->localSize[1] << ","
+                                  << m_kernelInvocation->localSize[2] << ")"
+    << endl;
 
   // Current work-item
   if (m_currentWorkItem)
@@ -1174,7 +878,7 @@ void Device::mem(vector<string> args)
   Memory *memory = NULL;
   if (args[0][0] == 'g')
   {
-    memory = m_globalMemory;
+    memory = m_context->getGlobalMemory();
   }
   else if (args[0][0] == 'l')
   {
@@ -1357,7 +1061,7 @@ void Device::print(vector<string> args)
         break;
       case AddrSpaceGlobal:
       case AddrSpaceConstant:
-        memory = m_globalMemory;
+        memory = m_context->getGlobalMemory();
         break;
       case AddrSpaceLocal:
         memory = m_currentWorkGroup->getLocalMemory();
@@ -1437,7 +1141,7 @@ void Device::workitem(vector<string> args)
     // Parse argument as a target line number
     istringstream ss(args[i]);
     ss >> gid[i-1];
-    if (!ss.eof() || gid[i-1] >= m_globalSize[i-1])
+    if (!ss.eof() || gid[i-1] >= m_kernelInvocation->globalSize[i-1])
     {
       cout << "Invalid global ID." << endl;
       return;
@@ -1447,9 +1151,9 @@ void Device::workitem(vector<string> args)
   // Compute work-group ID
   size_t group[3] =
   {
-    gid[0]/m_localSize[0],
-    gid[1]/m_localSize[1],
-    gid[2]/m_localSize[2]
+    gid[0]/m_kernelInvocation->localSize[0],
+    gid[1]/m_kernelInvocation->localSize[1],
+    gid[2]/m_kernelInvocation->localSize[2]
   };
 
   bool found = false;
@@ -1516,9 +1220,9 @@ void Device::workitem(vector<string> args)
   // Get work-item
   size_t lid[3] =
   {
-    gid[0]%m_localSize[0],
-    gid[1]%m_localSize[1],
-    gid[2]%m_localSize[2]
+    gid[0]%m_kernelInvocation->localSize[0],
+    gid[1]%m_kernelInvocation->localSize[1],
+    gid[2]%m_kernelInvocation->localSize[2]
   };
   m_currentWorkItem = m_currentWorkGroup->getWorkItem(lid);
 

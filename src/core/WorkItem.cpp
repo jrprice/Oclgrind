@@ -15,7 +15,7 @@
 #include "llvm/Instructions.h"
 #include "llvm/IntrinsicInst.h"
 
-#include "Device.h"
+#include "Context.h"
 #include "Kernel.h"
 #include "Memory.h"
 #include "Program.h"
@@ -25,29 +25,33 @@
 using namespace oclgrind;
 using namespace std;
 
-WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
+WorkItem::WorkItem(const Context *context, WorkGroup *workGroup,
+                   const KernelInvocation *kernelInvocation,
                    size_t lid_x, size_t lid_y, size_t lid_z)
-  : m_device(device), m_workGroup(workGroup), m_kernel(kernel)
+  : m_context(context), m_workGroup(workGroup)
 {
   m_localID[0] = lid_x;
   m_localID[1] = lid_y;
   m_localID[2] = lid_z;
 
   // Compute global ID
-  const size_t *groupID = workGroup.getGroupID();
-  const size_t *groupSize = workGroup.getGroupSize();
-  const size_t *globalOffset = workGroup.getGlobalOffset();
+  const size_t *groupID = workGroup->getGroupID();
+  const size_t *groupSize = workGroup->getGroupSize();
+  const size_t *globalOffset = kernelInvocation->globalOffset;
   m_globalID[0] = lid_x + groupID[0]*groupSize[0] + globalOffset[0];
   m_globalID[1] = lid_y + groupID[1]*groupSize[1] + globalOffset[1];
   m_globalID[2] = lid_z + groupID[2]*groupSize[2] + globalOffset[2];
 
-  const size_t *globalSize = workGroup.getGlobalSize();
+  const size_t *globalSize = kernelInvocation->globalSize;
   m_globalIndex = (m_globalID[0] +
                   (m_globalID[1] +
                    m_globalID[2]*globalSize[1]) * globalSize[0]);
 
+  m_kernelInvocation = kernelInvocation;
+  const Kernel *kernel = kernelInvocation->kernel;
+
   // Load or create cached interpreter state
-  m_cache = InterpreterCache::get(kernel.getProgram().getUID());
+  m_cache = InterpreterCache::get(kernel->getProgram()->getUID());
   assert(m_cache);
 
   // Set initial number of values to store based on cache
@@ -55,15 +59,15 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
 
   // Store kernel arguments in private memory
   TypedValueMap::const_iterator argItr;
-  for (argItr = kernel.args_begin(); argItr != kernel.args_end(); argItr++)
+  for (argItr = kernel->args_begin(); argItr != kernel->args_end(); argItr++)
   {
     setValue(argItr->first, m_pool.clone(argItr->second));
   }
 
-  m_privateMemory = new Memory(AddrSpacePrivate, device);
+  m_privateMemory = new Memory(AddrSpacePrivate, context);
 
   list<const llvm::GlobalVariable*>::const_iterator varItr;
-  for (varItr = kernel.vars_begin(); varItr != kernel.vars_end(); varItr++)
+  for (varItr = kernel->vars_begin(); varItr != kernel->vars_end(); varItr++)
   {
     const llvm::Constant *init = (*varItr)->getInitializer();
     size_t size = getTypeSize(init->getType());
@@ -83,7 +87,7 @@ WorkItem::WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
 
   m_prevBlock = NULL;
   m_nextBlock = NULL;
-  m_currBlock = kernel.getFunction()->begin();
+  m_currBlock = kernel->getFunction()->begin();
   m_currInst = m_currBlock->begin();
 
   m_state = READY;
@@ -299,7 +303,7 @@ void WorkItem::execute(const llvm::Instruction *instruction)
     }
   }
 
-  m_device->fireInstructionExecuted(instruction, result);
+  m_context->notifyInstructionExecuted(instruction, result);
 }
 
 TypedValue WorkItem::getValue(const llvm::Value *key) const
@@ -340,9 +344,9 @@ Memory* WorkItem::getMemory(unsigned int addrSpace)
       return m_privateMemory;
     case AddrSpaceGlobal:
     case AddrSpaceConstant:
-      return m_device->getGlobalMemory();
+      return m_context->getGlobalMemory();
     case AddrSpaceLocal:
-      return m_workGroup.getLocalMemory();
+      return m_workGroup->getLocalMemory();
     default:
       FATAL_ERROR("Unsupported address space: %d", addrSpace);
   }
@@ -1088,8 +1092,8 @@ INSTRUCTION(inttoptr)
     // of the destination type (undefined behaviour in C99)
     if ((r & mask) != 0)
     {
-      m_device->notifyError("Invalid pointer cast - destination pointer is"
-        " not aligned to the pointed type");
+      m_context->logError("Invalid pointer cast - destination pointer is "
+                          "not aligned to the pointed type");
     }
     result.setUInt(r, i);
   }
@@ -1116,8 +1120,8 @@ INSTRUCTION(load)
   const unsigned mask = ~(((unsigned)-1) << alignment);
   if ((address & mask) != 0)
   {
-    m_device->notifyError("Invalid memory load - source pointer is"
-      " not aligned to the pointed type");
+    m_context->logError("Invalid memory load - source pointer is "
+                        "not aligned to the pointed type");
   }
 
   // Load data
@@ -1183,7 +1187,7 @@ INSTRUCTION(ret)
   {
     m_nextBlock = NULL;
     m_state = FINISHED;
-    m_workGroup.notifyFinished(this);
+    m_workGroup->notifyFinished(this);
   }
 }
 
@@ -1312,8 +1316,8 @@ INSTRUCTION(store)
   const unsigned alignment = log2(getTypeAlignment(type));
   const unsigned mask = ~(((unsigned)-1) << alignment);
   if ((address & mask) != 0) {
-    m_device->notifyError("Invalid memory store - source pointer is"
-      " not aligned to the pointed type");
+    m_context->logError("Invalid memory store - source pointer is "
+                        "not aligned to the pointed type");
   }
 
   // Store data

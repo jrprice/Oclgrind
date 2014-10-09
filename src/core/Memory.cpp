@@ -11,20 +11,17 @@
 #include <cmath>
 #include <cstring>
 
-#include "Device.h"
+#include "Context.h"
 #include "Memory.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
-#define ENV_DATA_RACES "OCLGRIND_DATA_RACES"
-#define ENV_UNIFORM_WRITES "OCLGRIND_UNIFORM_WRITES"
-
 using namespace oclgrind;
 using namespace std;
 
-Memory::Memory(unsigned int addrSpace, Device *device)
+Memory::Memory(unsigned int addrSpace, const Context *context)
 {
-  m_device = device;
+  m_context = context;
   m_addressSpace = addrSpace;
 
   clear();
@@ -73,7 +70,7 @@ size_t Memory::allocateBuffer(size_t size)
 
   size_t address = ((size_t)b) << NUM_ADDRESS_BITS;
 
-  m_device->fireMemoryAllocated(this, address, size);
+  m_context->notifyMemoryAllocated(this, address, size);
 
   return address;
 }
@@ -83,11 +80,11 @@ uint32_t* Memory::atomic(size_t address)
   // Bounds check
   if (!isAddressValid(address, 4))
   {
-    m_device->notifyMemoryError(true, m_addressSpace, address, 4);
+    m_context->logMemoryError(true, m_addressSpace, address, 4);
     return NULL;
   }
 
-  m_device->fireMemoryAtomic(this, address, 4);
+  m_context->notifyMemoryAtomic(this, address, 4);
 
   // Get buffer
   size_t offset = EXTRACT_OFFSET(address);
@@ -126,7 +123,7 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   // Bounds check
   if (!isAddressValid(address, 4))
   {
-    m_device->notifyMemoryError(true, m_addressSpace, address, 4);
+    m_context->logMemoryError(true, m_addressSpace, address, 4);
     return 0;
   }
 
@@ -262,7 +259,7 @@ void Memory::clear()
       }
     }
 
-    m_device->fireMemoryDeallocated(this, itr-m_memory.begin());
+    m_context->notifyMemoryDeallocated(this, itr-m_memory.begin());
   }
   m_memory.resize(1);
   m_freeBuffers = queue<int>();
@@ -271,7 +268,7 @@ void Memory::clear()
 
 Memory* Memory::clone() const
 {
-  Memory *mem = new Memory(m_addressSpace, m_device);
+  Memory *mem = new Memory(m_addressSpace, m_context);
 
   // Clone buffers
   mem->m_memory.resize(m_memory.size());
@@ -285,7 +282,8 @@ Memory* Memory::clone() const
     };
     memcpy(dest.data, src.data, src.size);
     mem->m_memory[i] = dest;
-    m_device->fireMemoryAllocated(mem, ((size_t)i<<NUM_ADDRESS_BITS), src.size);
+    m_context->notifyMemoryAllocated(mem, ((size_t)i<<NUM_ADDRESS_BITS),
+                                     src.size);
   }
 
   // Clone state
@@ -330,7 +328,7 @@ size_t Memory::createHostBuffer(size_t size, void *ptr)
 
   size_t address = ((size_t)b) << NUM_ADDRESS_BITS;
 
-  m_device->fireMemoryAllocated(this, address, size);
+  m_context->notifyMemoryAllocated(this, address, size);
 
   return address;
 }
@@ -340,12 +338,12 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
   // Bounds checks
   if (!isAddressValid(src, size))
   {
-    m_device->notifyMemoryError(true, m_addressSpace, src, size);
+    m_context->logMemoryError(true, m_addressSpace, src, size);
     return false;
   }
   if (!isAddressValid(dest, size))
   {
-    m_device->notifyMemoryError(false, m_addressSpace, dest, size);
+    m_context->logMemoryError(false, m_addressSpace, dest, size);
     return false;
   }
 
@@ -354,8 +352,8 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
   size_t dest_offset = EXTRACT_OFFSET(dest);
   Buffer src_buffer = m_memory.at(EXTRACT_BUFFER(src));
   Buffer dest_buffer = m_memory.at(EXTRACT_BUFFER(dest));
-  m_device->fireMemoryLoad(this, src, size);
-  m_device->fireMemoryStore(this, dest, size, src_buffer.data + src_offset);
+  m_context->notifyMemoryLoad(this, src, size);
+  m_context->notifyMemoryStore(this, dest, size, src_buffer.data + src_offset);
 
   // Copy data
   memcpy(dest_buffer.data + dest_offset,
@@ -379,7 +377,7 @@ void Memory::deallocateBuffer(size_t address)
   m_totalAllocated -= m_memory[buffer].size;
   m_freeBuffers.push(buffer);
 
-  m_device->fireMemoryDeallocated(this, address);
+  m_context->notifyMemoryDeallocated(this, address);
 }
 
 void Memory::dump() const
@@ -467,14 +465,14 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   // Bounds check
   if (!isAddressValid(address, size))
   {
-    m_device->notifyMemoryError(true, m_addressSpace, address, size);
+    m_context->logMemoryError(true, m_addressSpace, address, size);
     return false;
   }
 
   // Get buffer and register access
   size_t offset = EXTRACT_OFFSET(address);
   Buffer src = m_memory[EXTRACT_BUFFER(address)];
-  m_device->fireMemoryLoad(this, address, size);
+  m_context->notifyMemoryLoad(this, address, size);
 
   // Load data
   memcpy(dest, src.data + offset, size);
@@ -495,24 +493,19 @@ unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
   return m_memory[buffer].data + offset + EXTRACT_OFFSET(address);
 }
 
-void Memory::setDevice(Device *device)
-{
-  m_device = device;
-}
-
 bool Memory::store(const unsigned char *source, size_t address, size_t size)
 {
   // Bounds check
   if (!isAddressValid(address, size))
   {
-    m_device->notifyMemoryError(false, m_addressSpace, address, size);
+    m_context->logMemoryError(false, m_addressSpace, address, size);
     return false;
   }
 
   // Get buffer and register access
   size_t offset = EXTRACT_OFFSET(address);
   Buffer dest = m_memory[EXTRACT_BUFFER(address)];
-  m_device->fireMemoryStore(this, address, size, source);
+  m_context->notifyMemoryStore(this, address, size, source);
 
   // Store data
   memcpy(dest.data + offset, source, size);

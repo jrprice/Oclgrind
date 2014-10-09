@@ -2,7 +2,7 @@
 
 using namespace oclgrind;
 
-Plugin::Plugin(Device *device)
-  : m_device(device)
+Plugin::Plugin(const Context *context)
+  : m_context(context)
 {
 }

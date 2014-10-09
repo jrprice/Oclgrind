@@ -10,7 +10,7 @@ namespace oclgrind
   class RaceDetector : public Plugin
   {
   public:
-    RaceDetector(Device *device);
+    RaceDetector(const Context *context);
 
     virtual void kernelBegin(const Kernel *kernel);
     virtual void kernelEnd(const Kernel *kernel);

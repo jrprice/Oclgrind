@@ -28,7 +28,7 @@ namespace oclgrind
   class Kernel
   {
   public:
-    Kernel(const Program& program,
+    Kernel(const Program *program,
            const llvm::Function *function, const llvm::Module *module);
     Kernel(const Kernel& kernel);
     virtual ~Kernel();
@@ -52,12 +52,12 @@ namespace oclgrind
     size_t getLocalMemorySize() const;
     const std::string& getName() const;
     unsigned int getNumArguments() const;
-    const Program& getProgram() const;
+    const Program* getProgram() const;
     void getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const;
     void setArgument(unsigned int index, TypedValue value);
 
   private:
-    const Program& m_program;
+    const Program *m_program;
     const llvm::Function *m_function;
     TypedValueMap m_arguments;
     std::list<const llvm::GlobalVariable*> m_constants;

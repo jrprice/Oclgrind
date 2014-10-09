@@ -21,11 +21,11 @@
 using namespace oclgrind;
 using namespace std;
 
-Kernel::Kernel(const Program& program,
+Kernel::Kernel(const Program *program,
                const llvm::Function *function, const llvm::Module *module)
  : m_program(program), m_function(function), m_name(function->getName())
 {
-  m_localMemory = new Memory(AddrSpaceLocal, program.getDevice());
+  m_localMemory = new Memory(AddrSpaceLocal, program->getContext());
 
   // Set-up global variables
   llvm::Module::const_global_iterator itr;
@@ -123,7 +123,7 @@ void Kernel::allocateConstants(Memory *memory)
       new unsigned char[sizeof(size_t)]
     };
     size_t address = memory->allocateBuffer(size);
-    *((size_t*)v.data) = address;
+    v.setPointer(address);
     m_constantBuffers.push_back(address);
     m_arguments[*itr] = v;
 
@@ -383,7 +383,7 @@ unsigned int Kernel::getNumArguments() const
   return m_function->arg_size();
 }
 
-const Program& Kernel::getProgram() const
+const Program* Kernel::getProgram() const
 {
   return m_program;
 }

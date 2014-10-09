@@ -10,56 +10,30 @@
 
 namespace oclgrind
 {
+  class Context;
   class Kernel;
-  class Memory;
-  class Plugin;
   class Program;
   class WorkGroup;
   class WorkItem;
 
-  typedef std::list<Plugin*> PluginList;
-
   class Device
   {
   public:
-    Device();
+    Device(const Context *context);
     virtual ~Device();
 
-    Memory *getGlobalMemory() const;
+    void forceBreak();
     const WorkGroup* getCurrentWorkGroup() const;
     const WorkItem* getCurrentWorkItem() const;
+    const KernelInvocation* getCurrentKernelInvocation() const;
     bool isInteractive() const;
-    void notifyDataRace(DataRaceType type, unsigned int addrSpace,
-                        size_t address,
-                        size_t lastWorkGroup,
-                        size_t lastWorkItem,
-                        const llvm::Instruction *lastInstruction);
-    void notifyDivergence(const llvm::Instruction *instruction,
-                          std::string divergence,
-                          std::string currentInfo="",
-                          std::string lastInfo="");
-    void notifyError(const char* error, const char* info=0);
-    void notifyMemoryError(bool read, unsigned int addrSpace,
-                           size_t address, size_t size);
-    void run(Kernel& kernel, unsigned int workDim,
+    void run(Kernel *kernel, unsigned int workDim,
              const size_t *globalOffset,
              const size_t *globalSize,
              const size_t *localSize);
 
-    void fireInstructionExecuted(const llvm::Instruction *instruction,
-                                 const TypedValue& result);
-    void fireKernelBegin(const Kernel *kernel);
-    void fireKernelEnd(const Kernel *kernel);
-    void fireMemoryAllocated(const Memory *memory, size_t address, size_t size);
-    void fireMemoryAtomic(const Memory *memory, size_t address, size_t size);
-    void fireMemoryDeallocated(const Memory *memory, size_t address);
-    void fireMemoryLoad(const Memory *memory, size_t address, size_t size);
-    void fireMemoryStore(const Memory *memory, size_t address, size_t size,
-                         const uint8_t *storeData);
-    void fireWorkGroupBarrier(const WorkGroup *workGroup, uint32_t flags);
-
   private:
-    Memory *m_globalMemory;
+    const Context *m_context;
 
     struct PendingWorkGroup
     {
@@ -71,17 +45,12 @@ namespace oclgrind
     };
 
     // Current kernel invocation
+    const KernelInvocation *m_kernelInvocation;
     const Program *m_program;
-    Kernel *m_kernel;
     WorkGroup *m_currentWorkGroup;
     WorkItem *m_currentWorkItem;
     std::list<PendingWorkGroup> m_pendingGroups;
     std::list<WorkGroup*> m_runningGroups;
-    size_t m_workDim;
-    size_t m_globalSize[3];
-    size_t m_globalOffset[3];
-    size_t m_localSize[3];
-    size_t m_numGroups[3];
     std::vector<std::string> m_sourceLines;
     size_t m_listPosition;
     size_t m_nextBreakpoint;
@@ -100,9 +69,7 @@ namespace oclgrind
     size_t getLineNumber(const llvm::Instruction *instruction) const;
     bool nextWorkItem();
     void printCurrentLine() const;
-    void printErrorContext() const;
     void printFunction(const llvm::Instruction *instruction) const;
-    void printInstruction(const llvm::Instruction *instruction) const;
     void printSourceLine(size_t lineNum) const;
     void step();
 
@@ -122,8 +89,5 @@ namespace oclgrind
     CMD(step);
     CMD(workitem);
 #undef CMD
-
-    PluginList m_plugins;
-    void loadPlugins();
   };
 }

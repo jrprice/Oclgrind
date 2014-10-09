@@ -25,7 +25,7 @@ namespace llvm
 
 namespace oclgrind
 {
-  class Device;
+  class Context;
   class Kernel;
   class Memory;
   class WorkGroup;
@@ -108,7 +108,8 @@ namespace oclgrind
     };
 
   public:
-    WorkItem(Device *device, WorkGroup& workGroup, const Kernel& kernel,
+    WorkItem(const Context *context, WorkGroup *workGroup,
+             const KernelInvocation *kernelInvocation,
              size_t lid_x, size_t lid_y, size_t lid_z);
     virtual ~WorkItem();
 
@@ -117,7 +118,6 @@ namespace oclgrind
     void execute(const llvm::Instruction *instruction);
     const std::stack<ReturnAddress>& getCallStack() const;
     const llvm::Instruction* getCurrentInstruction() const;
-    Device* getDevice() {return m_device;}
     const size_t* getGlobalID() const;
     size_t getGlobalIndex() const;
     const size_t* getLocalID() const;
@@ -191,10 +191,10 @@ namespace oclgrind
     size_t m_localID[3];
     TypedValueMap m_phiTemps;
     VariableMap m_variables;
-    Device *m_device;
-    const Kernel& m_kernel;
+    const Context *m_context;
+    const KernelInvocation *m_kernelInvocation;
     Memory *m_privateMemory;
-    WorkGroup& m_workGroup;
+    WorkGroup *m_workGroup;
 
     State m_state;
     llvm::Function::const_iterator m_prevBlock;

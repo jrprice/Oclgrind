@@ -9,6 +9,7 @@
 #include "common.h"
 #include <cassert>
 
+#include "Context.h"
 #include "Device.h"
 #include "Memory.h"
 #include "Queue.h"
@@ -16,8 +17,8 @@
 using namespace oclgrind;
 using namespace std;
 
-Queue::Queue(Device& device)
-  : m_device(device)
+Queue::Queue(const Context *context, Device *device)
+  : m_context(context), m_device(device)
 {
 }
 
@@ -42,13 +43,13 @@ Event* Queue::enqueue(Command *cmd)
 
 void Queue::executeCopyBuffer(CopyCommand *cmd)
 {
-  m_device.getGlobalMemory()->copy(cmd->dst, cmd->src, cmd->size);
+  m_context->getGlobalMemory()->copy(cmd->dst, cmd->src, cmd->size);
 }
 
 void Queue::executeCopyBufferRect(CopyRectCommand *cmd)
 {
   // Perform copy
-  Memory *memory = m_device.getGlobalMemory();
+  Memory *memory = m_context->getGlobalMemory();
   for (int z = 0; z < cmd->region[2]; z++)
   {
     for (int y = 0; y < cmd->region[1]; y++)
@@ -73,7 +74,7 @@ void Queue::executeCopyBufferRect(CopyRectCommand *cmd)
 
 void Queue::executeFillBuffer(FillBufferCommand *cmd)
 {
-  Memory *memory = m_device.getGlobalMemory();
+  Memory *memory = m_context->getGlobalMemory();
   for (int i = 0; i < cmd->size/cmd->pattern_size; i++)
   {
     memory->store(cmd->pattern,
@@ -84,7 +85,7 @@ void Queue::executeFillBuffer(FillBufferCommand *cmd)
 
 void Queue::executeFillImage(FillImageCommand *cmd)
 {
-  Memory *memory = m_device.getGlobalMemory();
+  Memory *memory = m_context->getGlobalMemory();
 
   for (int z = 0; z < cmd->region[2]; z++)
   {
@@ -105,11 +106,11 @@ void Queue::executeFillImage(FillImageCommand *cmd)
 void Queue::executeKernel(KernelCommand *cmd)
 {
   // Run kernel
-  m_device.run(*cmd->kernel,
-               cmd->work_dim,
-               cmd->global_offset,
-               cmd->global_size,
-               cmd->local_size);
+  m_device->run(cmd->kernel,
+                cmd->work_dim,
+                cmd->global_offset,
+                cmd->global_size,
+                cmd->local_size);
 }
 
 void Queue::executeNativeKernel(NativeKernelCommand *cmd)
@@ -120,12 +121,12 @@ void Queue::executeNativeKernel(NativeKernelCommand *cmd)
 
 void Queue::executeReadBuffer(BufferCommand *cmd)
 {
-  m_device.getGlobalMemory()->load(cmd->ptr, cmd->address, cmd->size);
+  m_context->getGlobalMemory()->load(cmd->ptr, cmd->address, cmd->size);
 }
 
 void Queue::executeReadBufferRect(BufferRectCommand *cmd)
 {
-  Memory *memory = m_device.getGlobalMemory();
+  Memory *memory = m_context->getGlobalMemory();
   for (int z = 0; z < cmd->region[2]; z++)
   {
     for (int y = 0; y < cmd->region[1]; y++)
@@ -147,13 +148,13 @@ void Queue::executeReadBufferRect(BufferRectCommand *cmd)
 
 void Queue::executeWriteBuffer(BufferCommand *cmd)
 {
-  m_device.getGlobalMemory()->store(cmd->ptr, cmd->address, cmd->size);
+  m_context->getGlobalMemory()->store(cmd->ptr, cmd->address, cmd->size);
 }
 
 void Queue::executeWriteBufferRect(BufferRectCommand *cmd)
 {
   // Perform write
-  Memory *memory = m_device.getGlobalMemory();
+  Memory *memory = m_context->getGlobalMemory();
   for (int z = 0; z < cmd->region[2]; z++)
   {
     for (int y = 0; y < cmd->region[1]; y++)

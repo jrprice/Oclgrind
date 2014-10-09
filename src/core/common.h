@@ -44,6 +44,8 @@ namespace llvm
 
 namespace oclgrind
 {
+  class Kernel;
+
   // Enumeration for address spaces
   enum AddressSpace {
     AddrSpacePrivate = 0,
@@ -58,6 +60,17 @@ namespace oclgrind
     ReadWriteRace,
     WriteWriteRace
   };
+
+  // Kernel invocation
+  typedef struct
+  {
+    const Kernel *kernel;
+    size_t workDim;
+    size_t globalSize[3];
+    size_t globalOffset[3];
+    size_t localSize[3];
+    size_t numGroups[3];
+  } KernelInvocation;
 
   // Structure for a value with a size/type
   typedef struct

@@ -14,7 +14,7 @@
 
 namespace oclgrind
 {
-  class Device;
+  class Context;
   class Kernel;
   class Program;
 };
@@ -44,7 +44,7 @@ class Simulation
     void run(bool dumpGlobalMemory=false);
 
   private:
-    oclgrind::Device *m_device;
+    oclgrind::Context *m_context;
     oclgrind::Kernel *m_kernel;
     oclgrind::Program *m_program;
 

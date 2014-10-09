@@ -20,7 +20,7 @@
 
 namespace oclgrind
 {
-  class Device;
+  class Context;
 
   typedef struct
   {
@@ -32,7 +32,7 @@ namespace oclgrind
   class Memory
   {
   public:
-    Memory(unsigned int addrSpace, Device *device);
+    Memory(unsigned int addrSpace, const Context *context);
     virtual ~Memory();
 
     size_t allocateBuffer(size_t size);
@@ -59,7 +59,6 @@ namespace oclgrind
     bool isAddressValid(size_t address, size_t size=1) const;
     bool load(unsigned char *dest, size_t address, size_t size=1) const;
     unsigned char* mapBuffer(size_t address, size_t offset, size_t size);
-    void setDevice(Device *device);
     bool store(const unsigned char *source, size_t address, size_t size=1);
 
     static size_t getMaxAllocSize();
@@ -72,7 +71,7 @@ namespace oclgrind
       unsigned char *data;
     } Buffer;
 
-    Device *m_device;
+    const Context *m_context;
     std::queue<int> m_freeBuffers;
     std::vector<Buffer> m_memory;
     unsigned int m_addressSpace;

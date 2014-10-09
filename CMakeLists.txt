@@ -118,6 +118,7 @@ endif()
 set(CORE_HEADERS
   src/core/clc.h
   src/core/common.h
+  src/core/Context.h
   src/core/Device.h
   src/core/half.h
   src/core/Kernel.h
@@ -132,6 +133,7 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   ${CORE_HEADERS}
   src/core/clc_h.cpp
   src/core/common.cpp
+  src/core/Context.cpp
   src/core/Device.cpp
   src/core/Kernel.cpp
   src/core/Memory.cpp

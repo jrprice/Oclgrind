@@ -11,7 +11,7 @@
 
 #include "llvm/Module.h"
 
-#include "Device.h"
+#include "Context.h"
 #include "Kernel.h"
 #include "Memory.h"
 #include "WorkGroup.h"
@@ -20,45 +20,35 @@
 using namespace oclgrind;
 using namespace std;
 
-WorkGroup::WorkGroup(Device *device, const Kernel& kernel, Memory& globalMem,
-                     unsigned int workDim,
-                     size_t wgid_x, size_t wgid_y, size_t wgid_z,
-                     const size_t globalOffset[3],
-                     const size_t globalSize[3],
-                     const size_t groupSize[3])
-  : m_device(device), m_kernel(kernel)
+WorkGroup::WorkGroup(const Context *context,
+                     const KernelInvocation *kernelInvocation,
+                     size_t wgid_x, size_t wgid_y, size_t wgid_z)
+ : m_context(context)
 {
-  m_workDim = workDim;
   m_groupID[0] = wgid_x;
   m_groupID[1] = wgid_y;
   m_groupID[2] = wgid_z;
-  m_globalOffset[0] = globalOffset[0];
-  m_globalOffset[1] = globalOffset[1];
-  m_globalOffset[2] = globalOffset[2];
-  m_globalSize[0] = globalSize[0];
-  m_globalSize[1] = globalSize[1];
-  m_globalSize[2] = globalSize[2];
-  m_groupSize[0] = groupSize[0];
-  m_groupSize[1] = groupSize[1];
-  m_groupSize[2] = groupSize[2];
+  m_groupSize[0] = kernelInvocation->localSize[0];
+  m_groupSize[1] = kernelInvocation->localSize[1];
+  m_groupSize[2] = kernelInvocation->localSize[2];
 
   m_groupIndex = (m_groupID[0] +
                  (m_groupID[1] +
-                  m_groupID[2]*(globalSize[1]/groupSize[1])) *
-                  (globalSize[0]/groupSize[0]));
+                  m_groupID[2]*(kernelInvocation->numGroups[1]) *
+                  kernelInvocation->numGroups[0]));
 
   // Allocate local memory
-  m_localMemory = kernel.getLocalMemory()->clone();
-  m_localMemory->setDevice(device);
+  m_localMemory = kernelInvocation->kernel->getLocalMemory()->clone();
 
   // Initialise work-items
-  for (size_t k = 0; k < groupSize[2]; k++)
+  for (size_t k = 0; k < kernelInvocation->localSize[2]; k++)
   {
-    for (size_t j = 0; j < groupSize[1]; j++)
+    for (size_t j = 0; j < kernelInvocation->localSize[1]; j++)
     {
-      for (size_t i = 0; i < groupSize[0]; i++)
+      for (size_t i = 0; i < kernelInvocation->localSize[0]; i++)
       {
-        WorkItem *workItem = new WorkItem(m_device, *this, kernel, i, j, k);
+        WorkItem *workItem = new WorkItem(context, this, kernelInvocation,
+                                          i, j, k);
         m_workItems.push_back(workItem);
         m_running.insert(workItem);
       }
@@ -138,8 +128,8 @@ size_t WorkGroup::async_copy(
       previous << "num_elems=" << dec << itr->first.num << ", ";
       previous << "src_stride=" << dec << itr->first.srcStride << ", ";
       previous << "dest_stride=" << dec << itr->first.destStride;
-      m_device->notifyDivergence(copy.instruction, "async copy",
-                                 current.str(), previous.str());
+      m_context->logDivergence(copy.instruction, "async copy",
+                               current.str(), previous.str());
     }
 
     itr->second.insert(workItem);
@@ -174,8 +164,7 @@ void WorkGroup::clearBarrier()
     ostringstream info;
             info << "Only " << dec << m_barrier->workItems.size() << " out of "
                  << m_workItems.size() << " work-items executed barrier";
-    m_device->notifyDivergence(m_barrier->instruction, "barrier",
-                               info.str());
+    m_context->logDivergence(m_barrier->instruction, "barrier", info.str());
   }
 
   // Move work-items to running state
@@ -203,11 +192,11 @@ void WorkGroup::clearBarrier()
       if (itr->type == GLOBAL_TO_LOCAL)
       {
         destMem = m_localMemory;
-        srcMem = m_device->getGlobalMemory();
+        srcMem = m_context->getGlobalMemory();
       }
       else
       {
-        destMem = m_device->getGlobalMemory();
+        destMem = m_context->getGlobalMemory();
         srcMem = m_localMemory;
       }
 
@@ -237,8 +226,8 @@ void WorkGroup::clearBarrier()
           ostringstream info;
           info << "Only " << dec << cItr->second.size() << " out of "
                << m_workItems.size() << " work-items executed copy";
-          m_device->notifyDivergence(cItr->first.instruction, "async_copy",
-                                     info.str());
+          m_context->logDivergence(cItr->first.instruction, "async_copy",
+                                   info.str());
         }
 
         cItr = m_asyncCopies.erase(cItr);
@@ -252,20 +241,10 @@ void WorkGroup::clearBarrier()
     m_barrier->events.remove(event);
   }
 
-  m_device->fireWorkGroupBarrier(this, m_barrier->fence);
+  m_context->notifyWorkGroupBarrier(this, m_barrier->fence);
 
   delete m_barrier;
   m_barrier = NULL;
-}
-
-const size_t* WorkGroup::getGlobalOffset() const
-{
-  return m_globalOffset;
-}
-
-const size_t* WorkGroup::getGlobalSize() const
-{
-  return m_globalSize;
 }
 
 const size_t* WorkGroup::getGroupID() const
@@ -295,11 +274,6 @@ WorkItem* WorkGroup::getNextWorkItem() const
     return NULL;
   }
   return *m_running.begin();
-}
-
-unsigned int WorkGroup::getWorkDim() const
-{
-  return m_workDim;
 }
 
 WorkItem* WorkGroup::getWorkItem(size_t localID[3]) const
@@ -332,7 +306,7 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
     {
       if (!m_events.count(*itr))
       {
-        m_device->notifyError("Invalid wait event");
+        m_context->logError("Invalid wait event");
       }
     }
   }
@@ -372,8 +346,8 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
 
     if (divergence)
     {
-      m_device->notifyDivergence(m_barrier->instruction, "barrier",
-                                 current.str(), previous.str());
+      m_context->logDivergence(m_barrier->instruction, "barrier",
+                               current.str(), previous.str());
     }
   }
 
@@ -388,7 +362,7 @@ void WorkGroup::notifyFinished(WorkItem *workItem)
   // Check if work-group finished without waiting for all events
   if (m_running.empty() && !m_barrier && !m_events.empty())
   {
-    m_device->notifyError("Work-group finished without waiting for events");
+    m_context->logError("Work-group finished without waiting for events");
   }
 }
 

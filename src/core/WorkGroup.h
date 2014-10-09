@@ -13,7 +13,7 @@
 
 namespace oclgrind
 {
-  class Device;
+  class Context;
   class Memory;
   class Kernel;
   class WorkItem;
@@ -55,12 +55,8 @@ namespace oclgrind
     } Barrier;
 
   public:
-    WorkGroup(Device *device, const Kernel& kernel, Memory &globalMem,
-              unsigned int workDim,
-              size_t wgid_x, size_t wgid_y, size_t wgid_z,
-              const size_t globalOffset[3],
-              const size_t globalSize[3],
-              const size_t wgsize[3]);
+    WorkGroup(const Context *context, const KernelInvocation *kernelInvocation,
+              size_t wgid_x, size_t wgid_y, size_t wgid_z);
     virtual ~WorkGroup();
 
     size_t async_copy(
@@ -75,14 +71,11 @@ namespace oclgrind
       size_t destStride,
       size_t event);
     void clearBarrier();
-    const size_t* getGlobalOffset() const;
-    const size_t* getGlobalSize() const;
     const size_t* getGroupID() const;
     const size_t getGroupIndex() const;
     const size_t* getGroupSize() const;
     Memory* getLocalMemory() const;
     WorkItem *getNextWorkItem() const;
-    unsigned int getWorkDim() const;
     WorkItem *getWorkItem(size_t localID[3]) const;
     bool hasBarrier() const;
     void notifyBarrier(WorkItem *workItem, const llvm::Instruction *instruction,
@@ -93,12 +86,9 @@ namespace oclgrind
   private:
     unsigned int m_workDim;
     size_t m_groupIndex;
-    size_t m_globalOffset[3];
-    size_t m_globalSize[3];
     size_t m_groupID[3];
     size_t m_groupSize[3];
-    Device *m_device;
-    const Kernel& m_kernel;
+    const Context *m_context;
     Memory *m_localMemory;
     std::vector<WorkItem*> m_workItems;
 

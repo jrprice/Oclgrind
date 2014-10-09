@@ -12,6 +12,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "core/Context.h"
 #include "core/Device.h"
 #include "core/Kernel.h"
 #include "core/Memory.h"
@@ -36,16 +37,16 @@ template<typename T> T readValue(istream& stream);
 
 Simulation::Simulation()
 {
-  m_device = new Device();
+  m_context = new Context();
   m_kernel = NULL;
   m_program = NULL;
 }
 
 Simulation::~Simulation()
 {
-  delete m_device;
   delete m_kernel;
   delete m_program;
+  delete m_context;
 }
 
 template<typename T>
@@ -53,7 +54,7 @@ void Simulation::dumpArgument(DumpArg& arg)
 {
   size_t num = arg.size / sizeof(T);
   T *data = new T[num];
-  m_device->getGlobalMemory()->load((uint8_t*)data, arg.address, arg.size);
+  m_context->getGlobalMemory()->load((uint8_t*)data, arg.address, arg.size);
 
   for (size_t i = 0; i < num; i++)
   {
@@ -171,7 +172,7 @@ bool Simulation::load(const char *filename)
     {
       // Load bitcode
       progFile.close();
-      m_program = Program::createFromBitcodeFile(m_device, progFileName);
+      m_program = Program::createFromBitcodeFile(m_context, progFileName);
       if (!m_program)
       {
         cerr << "Failed to load bitcode from " << progFileName << endl;
@@ -190,7 +191,7 @@ bool Simulation::load(const char *filename)
       progFile.read(data, sz+1);
       progFile.close();
       data[sz] = '\0';
-      m_program = new Program(m_device, data);
+      m_program = new Program(m_context, data);
       delete[] data;
 
       // Build program
@@ -210,7 +211,7 @@ bool Simulation::load(const char *filename)
     }
 
     // Clear global memory
-    Memory *globalMemory = m_device->getGlobalMemory();
+    Memory *globalMemory = m_context->getGlobalMemory();
     globalMemory->clear();
 
     // Parse kernel arguments
@@ -563,7 +564,7 @@ void Simulation::parseArgument(size_t index)
     else
     {
       // Allocate buffer and store content
-      Memory *globalMemory = m_device->getGlobalMemory();
+      Memory *globalMemory = m_context->getGlobalMemory();
       size_t address = globalMemory->allocateBuffer(size);
       globalMemory->store((unsigned char*)&data[0], address, size);
       value.data = new unsigned char[value.size];
@@ -679,7 +680,7 @@ void Simulation::run(bool dumpGlobalMemory)
   assert(m_kernel->allArgumentsSet());
 
   size_t offset[] = {0, 0, 0};
-  m_device->run(*m_kernel, 3, offset, m_ndrange, m_wgsize);
+  m_context->getDevice()->run(m_kernel, 3, offset, m_ndrange, m_wgsize);
 
   // Dump individual arguments
   list<DumpArg>::iterator itr;
@@ -715,7 +716,7 @@ void Simulation::run(bool dumpGlobalMemory)
   if (dumpGlobalMemory)
   {
     cout << endl << "Global Memory:" << endl;
-    m_device->getGlobalMemory()->dump();
+    m_context->getGlobalMemory()->dump();
   }
 }
 

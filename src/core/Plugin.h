@@ -4,7 +4,7 @@
 
 namespace oclgrind
 {
-  class Device;
+  class Context;
   class Kernel;
   class Memory;
   class WorkGroup;
@@ -12,7 +12,7 @@ namespace oclgrind
   class Plugin
   {
   public:
-    Plugin(Device *device);
+    Plugin(const Context *context);
 
     virtual void instructionExecuted(const llvm::Instruction *instruction,
                                      const TypedValue& result){}
@@ -29,6 +29,6 @@ namespace oclgrind
     virtual void workGroupBarrier(const WorkGroup *workGroup, uint32_t flags){}
 
   protected:
-    Device *m_device;
+    const Context *m_context;
   };
 }

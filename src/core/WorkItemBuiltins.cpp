@@ -17,6 +17,7 @@
 #include "llvm/Metadata.h"
 
 #include "CL/cl.h"
+#include "Context.h"
 #include "Device.h"
 #include "half.h"
 #include "Memory.h"
@@ -221,7 +222,7 @@ namespace oclgrind
       }
 
       // Register copy
-      event = workItem->m_workGroup.async_copy(
+      event = workItem->m_workGroup->async_copy(
         workItem,
         callInst,
         type,
@@ -252,8 +253,8 @@ namespace oclgrind
         address += sizeof(size_t);
       }
       workItem->m_state = WorkItem::BARRIER;
-      workItem->m_workGroup.notifyBarrier(workItem, callInst,
-                                          CLK_LOCAL_MEM_FENCE, events);
+      workItem->m_workGroup->notifyBarrier(workItem, callInst,
+                                           CLK_LOCAL_MEM_FENCE, events);
     }
 
     DEFINE_BUILTIN(prefetch)
@@ -274,7 +275,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_add");
+        workItem->m_context->logError("Unaligned address on atomic_add");
       }
       uint32_t old = memory->atomicAdd(address, UARG(1));
       result.setUInt(old);
@@ -288,7 +289,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_and");
+        workItem->m_context->logError("Unaligned address on atomic_and");
       }
       uint32_t old = memory->atomicAnd(address, UARG(1));
       result.setUInt(old);
@@ -302,8 +303,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->
-          notifyError("Unaligned address on atomic_cmpxchg");
+        workItem->m_context->logError("Unaligned address on atomic_cmpxchg");
       }
       uint32_t old = memory->atomicCmpxchg(address, UARG(1), UARG(2));
       result.setUInt(old);
@@ -317,7 +317,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_dec");
+        workItem->m_context->logError("Unaligned address on atomic_dec");
       }
       uint32_t old = memory->atomicDec(address);
       result.setUInt(old);
@@ -331,7 +331,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_dec");
+        workItem->m_context->logError("Unaligned address on atomic_dec");
       }
       uint32_t old = memory->atomicInc(address);
       result.setUInt(old);
@@ -345,7 +345,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_max");
+        workItem->m_context->logError("Unaligned address on atomic_max");
       }
       uint32_t old = memory->atomicMax(address, UARG(1));
       result.setUInt(old);
@@ -359,7 +359,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_min");
+        workItem->m_context->logError("Unaligned address on atomic_min");
       }
       uint32_t old = memory->atomicMin(address, UARG(1));
       result.setUInt(old);
@@ -373,7 +373,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_or");
+        workItem->m_context->logError("Unaligned address on atomic_or");
       }
       uint32_t old = memory->atomicOr(address, UARG(1));
       result.setUInt(old);
@@ -387,7 +387,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_sub");
+        workItem->m_context->logError("Unaligned address on atomic_sub");
       }
       uint32_t old = memory->atomicSub(address, UARG(1));
       result.setUInt(old);
@@ -401,7 +401,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_xchg");
+        workItem->m_context->logError("Unaligned address on atomic_xchg");
       }
       uint32_t old = memory->atomicXchg(address, UARG(1));
       result.setUInt(old);
@@ -415,7 +415,7 @@ namespace oclgrind
       size_t address = PARG(0);
       // Verify the address is 4-byte aligned
       if ((address & 0x3) != 0) {
-        workItem->getDevice()->notifyError("Unaligned address on atomic_xor");
+        workItem->m_context->logError("Unaligned address on atomic_xor");
       }
       uint32_t old = memory->atomicXor(address, UARG(1));
       result.setUInt(old);
@@ -2590,7 +2590,7 @@ namespace oclgrind
     DEFINE_BUILTIN(barrier)
     {
       workItem->m_state = WorkItem::BARRIER;
-      workItem->m_workGroup.notifyBarrier(workItem, callInst, UARG(0));
+      workItem->m_workGroup->notifyBarrier(workItem, callInst, UARG(0));
     }
 
     DEFINE_BUILTIN(mem_fence)
@@ -2718,42 +2718,42 @@ namespace oclgrind
     {
       uint64_t dim = UARG(0);
       size_t r = dim < 3 ? workItem->m_globalID[dim] : 0;
-      *((size_t*)result.data) = r;
+      result.setUInt(r);
     }
 
     DEFINE_BUILTIN(get_global_size)
     {
       uint64_t dim = UARG(0);
-      size_t r = dim < 3 ? workItem->m_workGroup.getGlobalSize()[dim] : 0;
-      *((size_t*)result.data) = r;
+      size_t r = dim < 3 ? workItem->m_kernelInvocation->globalSize[dim] : 0;
+      result.setUInt(r);
     }
 
     DEFINE_BUILTIN(get_global_offset)
     {
       uint64_t dim = UARG(0);
-      size_t r = dim < 3 ? workItem->m_workGroup.getGlobalOffset()[dim] : 0;
-      *((size_t*)result.data) = r;
+      size_t r = dim < 3 ? workItem->m_kernelInvocation->globalOffset[dim] : 0;
+      result.setUInt(r);
     }
 
     DEFINE_BUILTIN(get_group_id)
     {
       uint64_t dim = UARG(0);
-      size_t r = dim < 3 ? workItem->m_workGroup.getGroupID()[dim] : 0;
-      *((size_t*)result.data) = r;
+      size_t r = dim < 3 ? workItem->m_workGroup->getGroupID()[dim] : 0;
+      result.setUInt(r);
     }
 
     DEFINE_BUILTIN(get_local_id)
     {
       uint64_t dim = UARG(0);
       size_t r = dim < 3 ? workItem->m_localID[dim] : 0;
-      *((size_t*)result.data) = r;
+      result.setUInt(r);
     }
 
     DEFINE_BUILTIN(get_local_size)
     {
       uint64_t dim = UARG(0);
-      size_t r = dim < 3 ? workItem->m_workGroup.getGroupSize()[dim] : 0;
-      *((size_t*)result.data) = r;
+      size_t r = dim < 3 ? workItem->m_workGroup->getGroupSize()[dim] : 0;
+      result.setUInt(r);
     }
 
     DEFINE_BUILTIN(get_num_groups)
@@ -2762,15 +2762,14 @@ namespace oclgrind
       size_t r = 0;
       if (dim < 3)
       {
-        r = workItem->m_workGroup.getGlobalSize()[dim] /
-            workItem->m_workGroup.getGroupSize()[dim];
+        r = workItem->m_kernelInvocation->numGroups[dim];
       }
-      *((size_t*)result.data) = r;
+      result.setUInt(r);
     }
 
     DEFINE_BUILTIN(get_work_dim)
     {
-      *((uint32_t*)result.data) = workItem->m_workGroup.getWorkDim();
+      result.setUInt(workItem->m_kernelInvocation->workDim);
     }
 
 
@@ -3097,7 +3096,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(llvm_dbg_declare)
     {
-      if (!workItem->m_device->isInteractive())
+      if (!workItem->m_context->getDevice()->isInteractive())
       {
         return;
       }
@@ -3112,7 +3111,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(llvm_dbg_value)
     {
-      if (!workItem->m_device->isInteractive())
+      if (!workItem->m_context->getDevice()->isInteractive())
       {
         return;
       }

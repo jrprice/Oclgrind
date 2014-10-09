@@ -1,3 +1,6 @@
+#include "core/common.h"
+
+#include "core/Context.h"
 #include "core/Device.h"
 #include "core/Memory.h"
 #include "core/WorkGroup.h"
@@ -10,8 +13,8 @@ using namespace std;
 
 #define KEY(memory,address) make_pair(memory, EXTRACT_BUFFER(address))
 
-RaceDetector::RaceDetector(Device *device)
- : Plugin(device)
+RaceDetector::RaceDetector(const Context *context)
+ : Plugin(context)
 {
   m_runningKernel = false;
 
@@ -26,7 +29,7 @@ void RaceDetector::kernelBegin(const Kernel *kernel)
 
 void RaceDetector::kernelEnd(const Kernel *kernel)
 {
-  synchronize(m_device->getGlobalMemory(), false);
+  synchronize(m_context->getGlobalMemory(), false);
 
   m_runningKernel = false;
 }
@@ -46,7 +49,7 @@ void RaceDetector::memoryAtomic(const Memory *memory, size_t address,
   State *state = m_state[KEY(memory,address)].first + EXTRACT_OFFSET(address);
 
   // Get work-item
-  const WorkItem *workItem = m_device->getCurrentWorkItem();
+  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
   size_t workItemIndex = workItem->getGlobalIndex();
 
   for (size_t offset = 0; offset < size; offset++, state++)
@@ -54,11 +57,12 @@ void RaceDetector::memoryAtomic(const Memory *memory, size_t address,
     // Check for races with non-atomic operations
     if (!state->canAtomic && workItemIndex != state->workItem)
     {
-      m_device->notifyDataRace(ReadWriteRace, memory->getAddressSpace(),
-                               address,
-                               state->workItem,
-                               state->workGroup,
-                               state->instruction);
+      m_context->logDataRace(ReadWriteRace,
+                             memory->getAddressSpace(),
+                             address,
+                             state->workItem,
+                             state->workGroup,
+                             state->instruction);
     }
 
     // Update state
@@ -106,8 +110,8 @@ void RaceDetector::registerLoadStore(const Memory *memory, size_t address,
 
   // Get index of work-item and work-group performing access
   size_t workItemIndex = -1, workGroupIndex = -1;
-  const WorkItem *workItem = m_device->getCurrentWorkItem();;
-  const WorkGroup *workGroup = m_device->getCurrentWorkGroup();
+  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkGroup *workGroup = m_context->getDevice()->getCurrentWorkGroup();
   if (workItem)
   {
     workItemIndex = workItem->getGlobalIndex();
@@ -138,11 +142,11 @@ void RaceDetector::registerLoadStore(const Memory *memory, size_t address,
     {
       // Report data-race
       DataRaceType type = load|state->canRead ? ReadWriteRace : WriteWriteRace;
-      m_device->notifyDataRace(type, memory->getAddressSpace(),
-                               address + offset,
-                               state->workItem,
-                               state->workGroup,
-                               state->instruction);
+      m_context->logDataRace(type, memory->getAddressSpace(),
+                             address + offset,
+                             state->workItem,
+                             state->workGroup,
+                             state->instruction);
       race = true;
     }
     else
@@ -197,7 +201,7 @@ void RaceDetector::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
   if (flags & CLK_LOCAL_MEM_FENCE)
     synchronize(workGroup->getLocalMemory(), false);
   if (flags & CLK_GLOBAL_MEM_FENCE)
-    synchronize(m_device->getGlobalMemory(), true);
+    synchronize(m_context->getGlobalMemory(), true);
 }
 
 RaceDetector::State::State()

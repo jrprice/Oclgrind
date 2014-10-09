@@ -15,7 +15,7 @@
 #include "async_queue.h"
 #include "icd.h"
 
-#include "core/Device.h"
+#include "core/Context.h"
 #include "core/Kernel.h"
 #include "core/half.h"
 #include "core/Memory.h"
@@ -761,7 +761,7 @@ clCreateContext
   // Create context object
   cl_context context = new _cl_context;
   context->dispatch = m_dispatchTable;
-  context->device = new oclgrind::Device();
+  context->context = new oclgrind::Context();
   context->notify = pfn_notify;
   context->data = user_data;
   context->properties = NULL;
@@ -816,7 +816,7 @@ clCreateContextFromType
   // Create context object
   cl_context context = new _cl_context;
   context->dispatch = m_dispatchTable;
-  context->device = new oclgrind::Device();
+  context->context = new oclgrind::Context();
   context->notify = pfn_notify;
   context->data = user_data;
   context->properties = NULL;
@@ -869,7 +869,7 @@ clReleaseContext
 
   if (--context->refCount == 0)
   {
-    delete context->device;
+    delete context->context;
     delete context;
   }
 
@@ -973,7 +973,8 @@ clCreateCommandQueue
   // Create command-queue object
   cl_command_queue queue;
   queue = new _cl_command_queue;
-  queue->queue = new oclgrind::Queue(*context->device);
+  queue->queue = new oclgrind::Queue(context->context,
+                                     context->context->getDevice());
   queue->dispatch = m_dispatchTable;
   queue->properties = properties;
   queue->context = context;
@@ -1155,13 +1156,13 @@ clCreateBuffer
   mem->refCount = 1;
   if (flags & CL_MEM_USE_HOST_PTR)
   {
-    mem->address = context->device->getGlobalMemory()->createHostBuffer(
+    mem->address = context->context->getGlobalMemory()->createHostBuffer(
       size, host_ptr);
     mem->hostPtr = host_ptr;
   }
   else
   {
-    mem->address = context->device->getGlobalMemory()->allocateBuffer(size);
+    mem->address = context->context->getGlobalMemory()->allocateBuffer(size);
     mem->hostPtr = NULL;
   }
   if (!mem->address)
@@ -1174,8 +1175,8 @@ clCreateBuffer
 
   if (flags & CL_MEM_COPY_HOST_PTR)
   {
-    context->device->getGlobalMemory()->store((const unsigned char*)host_ptr,
-                                              mem->address, size);
+    context->context->getGlobalMemory()->store((const unsigned char*)host_ptr,
+                                               mem->address, size);
   }
 
   SetError(context, CL_SUCCESS);
@@ -1571,7 +1572,7 @@ clReleaseMemObject
       }
       else
       {
-        memobj->context->device->getGlobalMemory()->deallocateBuffer(
+        memobj->context->context->getGlobalMemory()->deallocateBuffer(
           memobj->address);
         clReleaseContext(memobj->context);
       }
@@ -2133,7 +2134,7 @@ clCreateProgramWithSource
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = new oclgrind::Program(context->device, source);
+  prog->program = new oclgrind::Program(context->context, source);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
@@ -2189,7 +2190,7 @@ clCreateProgramWithBinary
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = oclgrind::Program::createFromBitcode(context->device,
+  prog->program = oclgrind::Program::createFromBitcode(context->context,
                                                        binaries[0], lengths[0]);
   prog->context = context;
   prog->refCount = 1;
@@ -2443,7 +2444,7 @@ clLinkProgram
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = oclgrind::Program::createFromPrograms(context->device,
+  prog->program = oclgrind::Program::createFromPrograms(context->context,
                                                         programs);
   prog->context = context;
   prog->refCount = 1;
@@ -4521,7 +4522,7 @@ clEnqueueMapBuffer
   }
 
   // Map buffer
-  void *ptr = buffer->context->device->getGlobalMemory()->mapBuffer(
+  void *ptr = buffer->context->context->getGlobalMemory()->mapBuffer(
     buffer->address, offset, cb);
   if (ptr == NULL)
   {
@@ -4618,7 +4619,7 @@ clEnqueueMapImage
   }
 
   // Map image
-  void *ptr = image->context->device->getGlobalMemory()->mapBuffer(
+  void *ptr = image->context->context->getGlobalMemory()->mapBuffer(
         image->address, offset, size);
   if (ptr == NULL)
   {
@@ -4845,7 +4846,7 @@ clEnqueueNativeKernel
   }
 
   // Replace mem objects with real pointers
-  oclgrind::Memory *memory = command_queue->context->device->getGlobalMemory();
+  oclgrind::Memory *memory = command_queue->context->context->getGlobalMemory();
   for (int i = 0; i < num_mem_objects; i++)
   {
     if (!mem_list[i])

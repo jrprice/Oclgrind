@@ -130,7 +130,7 @@
 
 namespace oclgrind
 {
-  class Device;
+  class Context;
   class Kernel;
   class Program;
   class Queue;
@@ -150,7 +150,7 @@ struct _cl_device_id
 struct _cl_context
 {
   void *dispatch;
-  oclgrind::Device *device;
+  oclgrind::Context *context;
   void (CL_CALLBACK *notify)(const char *, const void *, size_t, void *);
   void *data;
   cl_context_properties *properties;

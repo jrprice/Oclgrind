@@ -56,8 +56,8 @@ const char *EXTENSIONS[] =
 using namespace oclgrind;
 using namespace std;
 
-Program::Program(Device *device, llvm::Module *module)
-  : m_device(device), m_module(module)
+Program::Program(const Context *context, llvm::Module *module)
+  : m_context(context), m_module(module)
 {
   m_action = NULL;
   m_buildLog = "";
@@ -66,8 +66,8 @@ Program::Program(Device *device, llvm::Module *module)
   m_uid = generateUID();
 }
 
-Program::Program(Device *device, const string& source)
-  : m_device(device)
+Program::Program(const Context *context, const string& source)
+  : m_context(context)
 {
   m_source = source;
   m_module = NULL;
@@ -317,7 +317,7 @@ bool Program::build(const char *options, list<Header> headers)
   return m_buildStatus == CL_BUILD_SUCCESS;
 }
 
-Program* Program::createFromBitcode(Device *device,
+Program* Program::createFromBitcode(const Context *context,
                                     const unsigned char *bitcode,
                                     size_t length)
 {
@@ -331,17 +331,17 @@ Program* Program::createFromBitcode(Device *device,
   }
 
   // Parse bitcode into IR module
-  llvm::LLVMContext& context = llvm::getGlobalContext();
-  llvm::Module *module = ParseBitcodeFile(buffer, context);
+  llvm::Module *module = ParseBitcodeFile(buffer, llvm::getGlobalContext());
   if (!module)
   {
     return NULL;
   }
 
-  return new Program(device, module);
+  return new Program(context, module);
 }
 
-Program* Program::createFromBitcodeFile(Device *device, const string filename)
+Program* Program::createFromBitcodeFile(const Context *context,
+                                        const string filename)
 {
   // Load bitcode from file
   llvm::OwningPtr<llvm::MemoryBuffer> buffer;
@@ -351,21 +351,21 @@ Program* Program::createFromBitcodeFile(Device *device, const string filename)
   }
 
   // Parse bitcode into IR module
-  llvm::LLVMContext& context = llvm::getGlobalContext();
-  llvm::Module *module = ParseBitcodeFile(buffer.get(), context);
+  llvm::Module *module = ParseBitcodeFile(buffer.get(),
+                                          llvm::getGlobalContext());
   if (!module)
   {
     return NULL;
   }
 
-  return new Program(device, module);
+  return new Program(context, module);
 }
 
-Program* Program::createFromPrograms(Device *device,
+Program* Program::createFromPrograms(const Context *context,
                                      list<const Program*> programs)
 {
-  llvm::LLVMContext& context = llvm::getGlobalContext();
-  llvm::Module *module = new llvm::Module("oclgrind_linked", context);
+  llvm::Module *module = new llvm::Module("oclgrind_linked",
+                                          llvm::getGlobalContext());
   llvm::Linker linker("oclgrind", module);
 
   // Link modules
@@ -378,7 +378,7 @@ Program* Program::createFromPrograms(Device *device,
     }
   }
 
-  return new Program(device, linker.releaseModule());
+  return new Program(context, linker.releaseModule());
 }
 
 Kernel* Program::createKernel(const string name)
@@ -422,7 +422,7 @@ Kernel* Program::createKernel(const string name)
 
   try
   {
-    return new Kernel(*this, function, m_module);
+    return new Kernel(this, function, m_module);
   }
   catch (FatalError& err)
   {
@@ -480,9 +480,9 @@ unsigned int Program::getBuildStatus() const
   return m_buildStatus;
 }
 
-Device* Program::getDevice() const
+const Context* Program::getContext() const
 {
-  return m_device;
+  return m_context;
 }
 
 unsigned long Program::generateUID() const
