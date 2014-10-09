@@ -50,6 +50,9 @@ namespace oclgrind
     void notifyWorkGroupBarrier(const WorkGroup *workGroup,
                                 uint32_t flags) const;
 
+    void registerPlugin(Plugin *plugin);
+    void unregisterPlugin(Plugin *plugin);
+
   private:
     Device *m_device;
     Memory *m_globalMemory;

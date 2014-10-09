@@ -1,6 +1,8 @@
 #include "common.h"
 
 #include <cassert>
+#include <dlfcn.h>
+#include <sstream>
 
 #include "llvm/DebugInfo.h"
 
@@ -45,9 +47,8 @@ void Context::loadPlugins()
 {
   // TODO: When can we destroy plugins?
 
-  // Core plugins
+  // Register core plugins
 
-  // Check for instruction counts environment variable
   const char *instCounts = getenv("OCLGRIND_INST_COUNTS");
   if (instCounts && strcmp(instCounts, "1") == 0)
     m_plugins.push_back(new InstructionCounter(this));
@@ -56,8 +57,31 @@ void Context::loadPlugins()
   if (dataRaces && strcmp(dataRaces, "1") == 0)
     m_plugins.push_back(new RaceDetector(this));
 
-  // Add dynamic plugins
-  // TODO
+  // Register dynamic plugins
+  const char *dynamicPlugins = getenv("OCLGRIND_PLUGINS");
+  if (dynamicPlugins)
+  {
+    std::istringstream ss(dynamicPlugins);
+    std::string libpath;
+    while(std::getline(ss, libpath, ':'))
+    {
+      void *library = dlopen(libpath.c_str(), RTLD_NOW);
+      if (!library)
+      {
+        cerr << "Loading Oclgrind plugin failed: " << dlerror() << endl;
+        continue;
+      }
+
+      void *initialize = dlsym(library, "initializePlugin");
+      if (!initialize)
+      {
+        cerr << "Loading Oclgrind plugin failed: " << dlerror() << endl;
+        continue;
+      }
+
+      ((void(*)(Context*))initialize)(this);
+    }
+  }
 }
 
 void Context::logDataRace(DataRaceType type, unsigned int addrSpace,
@@ -355,3 +379,13 @@ void Context::notifyWorkGroupBarrier(const WorkGroup *workGroup,
 }
 
 #undef NOTIFY
+
+void Context::registerPlugin(Plugin *plugin)
+{
+  m_plugins.push_back(plugin);
+}
+
+void Context::unregisterPlugin(Plugin *plugin)
+{
+  m_plugins.remove(plugin);
+}
