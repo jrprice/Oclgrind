@@ -37,10 +37,10 @@ liboclgrind_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
 -lLLVMVectorize -lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lpthread	\
 $(oclgrind_extra_libs) -shared
 oclgrind_includedir = $(includedir)/oclgrind
-oclgrind_include_HEADERS = src/core/common.h src/core/Device.h		\
- src/core/half.h src/core/Kernel.h src/core/Memory.h src/core/Plugin.h	\
- src/core/Program.h src/core/Queue.h src/core/WorkItem.h		\
- src/core/WorkGroup.h src/core/clc.h
+oclgrind_include_HEADERS = src/core/common.h src/core/Context.h		\
+ src/core/Device.h src/core/half.h src/core/Kernel.h src/core/Memory.h	\
+ src/core/Plugin.h src/core/Program.h src/core/Queue.h			\
+ src/core/WorkItem.h src/core/WorkGroup.h src/core/clc.h config.h
 src/core/clc_h.cpp: src/core/gen_clc_h.sh	src/core/clc.h
 	$(top_srcdir)/src/core/gen_clc_h.sh $(top_srcdir)/src/core/clc.h $@
 

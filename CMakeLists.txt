@@ -215,7 +215,7 @@ install(TARGETS
   oclgrind oclgrind-rt oclgrind-rt-icd
   DESTINATION lib)
 install(FILES
-  ${CORE_HEADERS}
+  ${CORE_HEADERS} config.h
   DESTINATION include/oclgrind
 )
 
