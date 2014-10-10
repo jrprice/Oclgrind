@@ -94,6 +94,8 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     message(WARNING "GNU readline library not found (set READLINE_DIR)\n"
                     "The interactive debugger will not have a command history.")
   endif()
+else()
+ set(HAVE_READLINE 0)
 endif()
 
 # Generate stringified clc.h
