@@ -24,7 +24,7 @@ liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp	\
  src/core/WorkGroup.cpp src/plugins/InstructionCounter.h	\
  src/plugins/InstructionCounter.cpp src/plugins/RaceDetector.h	\
  src/plugins/RaceDetector.cpp
-nodist_liboclgrind_la_SOURCES = src/core/clc_h.cpp
+nodist_liboclgrind_la_SOURCES = src/core/clc_h.cpp config.h
 liboclgrind_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
 -lclangDriver -lclangSerialization -lclangCodeGen -lclangParse		\
 -lclangSema -lclangStaticAnalyzerFrontend				\
