@@ -136,4 +136,5 @@ EXTRA_DIST = NEWS src/core/gen_clc_h.sh src/core/clc.h			\
  src/core/gen_clc_h.cmake src/runtime/icd.def src/runtime/runtime.def	\
  tests/kernels/run_kernel_test.py tests/kernels/TESTS			\
  $(KERNEL_TEST_INPUTS)
-CLEANFILES = src/core/clc_h.cpp $(bin_SCRIPTS) $(KERNEL_TEST_OUTPUTS)
+CLEANFILES = src/core/clc_h.cpp $(bin_SCRIPTS) $(noinst_SCRIPTS)	\
+ $(KERNEL_TEST_OUTPUTS)
