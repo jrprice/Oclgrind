@@ -73,7 +73,7 @@ namespace oclgrind
   } KernelInvocation;
 
   // Structure for a value with a size/type
-  typedef struct
+  struct _TypedValue_
   {
     size_t size;
     size_t num;
@@ -88,7 +88,8 @@ namespace oclgrind
     void     setSInt(int64_t value, unsigned index = 0);
     void     setUInt(uint64_t value, unsigned index = 0);
 
-  } TypedValue;
+  };
+  typedef _TypedValue_ TypedValue;
 
   // Private memory map type
   typedef std::map<const llvm::Value*,TypedValue> TypedValueMap;
