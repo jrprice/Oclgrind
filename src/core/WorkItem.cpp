@@ -25,6 +25,15 @@
 using namespace oclgrind;
 using namespace std;
 
+struct WorkItem::Position
+{
+  llvm::Function::const_iterator       prevBlock;
+  llvm::Function::const_iterator       currBlock;
+  llvm::Function::const_iterator       nextBlock;
+  llvm::BasicBlock::const_iterator     currInst;
+  std::stack<const llvm::Instruction*> callStack;
+};
+
 WorkItem::WorkItem(const Context *context, WorkGroup *workGroup,
                    const KernelInvocation *kernelInvocation,
                    size_t lid_x, size_t lid_y, size_t lid_z)
@@ -85,18 +94,19 @@ WorkItem::WorkItem(const Context *context, WorkGroup *workGroup,
     setValue(*varItr, var);
   }
 
-  m_prevBlock = NULL;
-  m_nextBlock = NULL;
-  m_currBlock = kernel->getFunction()->begin();
-  m_currInst = m_currBlock->begin();
-
-  m_state = READY;
+  // Initialize interpreter state
+  m_state    = READY;
+  m_position = new Position;
+  m_position->prevBlock = NULL;
+  m_position->nextBlock = NULL;
+  m_position->currBlock = kernel->getFunction()->begin();
+  m_position->currInst = m_position->currBlock->begin();
 }
 
 WorkItem::~WorkItem()
 {
-  // Free private memory
   delete m_privateMemory;
+  delete m_position;
 }
 
 void WorkItem::clearBarrier()
@@ -311,14 +321,14 @@ TypedValue WorkItem::getValue(const llvm::Value *key) const
   return m_values[m_cache->valueIDs[key]];
 }
 
-const stack<ReturnAddress>& WorkItem::getCallStack() const
+const stack<const llvm::Instruction*>& WorkItem::getCallStack() const
 {
-  return m_callStack;
+  return m_position->callStack;
 }
 
 const llvm::Instruction* WorkItem::getCurrentInstruction() const
 {
-  return m_currInst;
+  return m_position->currInst;
 }
 
 const size_t* WorkItem::getGlobalID() const
@@ -521,18 +531,19 @@ WorkItem::State WorkItem::step()
   }
 
   // Execute the next instruction
-  execute(m_currInst);
+  execute(m_position->currInst);
 
   // Check if we've reached the end of the block
-  if (++m_currInst == m_currBlock->end() || m_nextBlock)
+  if (++m_position->currInst == m_position->currBlock->end() ||
+      m_position->nextBlock)
   {
-    if (m_nextBlock)
+    if (m_position->nextBlock)
     {
       // Move to next basic block
-      m_prevBlock = m_currBlock;
-      m_currBlock = m_nextBlock;
-      m_nextBlock = NULL;
-      m_currInst = m_currBlock->begin();
+      m_position->prevBlock = m_position->currBlock;
+      m_position->currBlock = m_position->nextBlock;
+      m_position->nextBlock = NULL;
+      m_position->currInst  = m_position->currBlock->begin();
     }
   }
 
@@ -591,7 +602,7 @@ INSTRUCTION(br)
   if (instruction->getNumOperands() == 1)
   {
     // Unconditional branch
-    m_nextBlock = (const llvm::BasicBlock*)instruction->getOperand(0);
+    m_position->nextBlock = (const llvm::BasicBlock*)instruction->getOperand(0);
   }
   else
   {
@@ -599,7 +610,7 @@ INSTRUCTION(br)
     bool pred = *((bool*)getValue(instruction->getOperand(0)).data);
     const llvm::Value *iftrue = instruction->getOperand(2);
     const llvm::Value *iffalse = instruction->getOperand(1);
-    m_nextBlock = (const llvm::BasicBlock*)(pred ? iftrue : iffalse);
+    m_position->nextBlock = (const llvm::BasicBlock*)(pred ? iftrue : iffalse);
   }
 }
 
@@ -650,10 +661,8 @@ INSTRUCTION(call)
   // Check if function has definition
   if (!function->isDeclaration())
   {
-    ReturnAddress ret(m_currBlock, m_currInst);
-    m_callStack.push(ret);
-
-    m_nextBlock = function->begin();
+    m_position->callStack.push(m_position->currInst);
+    m_position->nextBlock = function->begin();
 
     // Set function arguments
     llvm::Function::const_arg_iterator argItr;
@@ -1151,8 +1160,8 @@ INSTRUCTION(mul)
 INSTRUCTION(phi)
 {
   const llvm::PHINode *phiNode = (const llvm::PHINode*)instruction;
-  const llvm::Value *value =
-    phiNode->getIncomingValueForBlock((const llvm::BasicBlock*)m_prevBlock);
+  const llvm::Value *value = phiNode->getIncomingValueForBlock(
+    (const llvm::BasicBlock*)m_position->prevBlock);
   memcpy(result.data, getOperand(value).data, result.size*result.num);
 }
 
@@ -1169,23 +1178,22 @@ INSTRUCTION(ret)
 {
   const llvm::ReturnInst *retInst = (const llvm::ReturnInst*)instruction;
 
-  if (!m_callStack.empty())
+  if (!m_position->callStack.empty())
   {
-    ReturnAddress ret = m_callStack.top();
-    m_callStack.pop();
-    m_currBlock = ret.first;
-    m_currInst = ret.second;
+    m_position->currInst = m_position->callStack.top();
+    m_position->currBlock = m_position->currInst->getParent();
+    m_position->callStack.pop();
 
     // Set return value
     const llvm::Value *returnVal = retInst->getReturnValue();
     if (returnVal)
     {
-      setValue(m_currInst, m_pool.clone(getOperand(returnVal)));
+      setValue(m_position->currInst, m_pool.clone(getOperand(returnVal)));
     }
   }
   else
   {
-    m_nextBlock = NULL;
+    m_position->nextBlock = NULL;
     m_state = FINISHED;
     m_workGroup->notifyFinished(this);
   }
@@ -1342,7 +1350,7 @@ INSTRUCTION(swtch)
   uint64_t val = getOperand(cond).getUInt();
   const llvm::ConstantInt *cval =
     (const llvm::ConstantInt*)llvm::ConstantInt::get(cond->getType(), val);
-  m_nextBlock = swtch->findCaseValue(cval).getCaseSuccessor();
+  m_position->nextBlock = swtch->findCaseValue(cval).getCaseSuccessor();
 }
 
 INSTRUCTION(udiv)

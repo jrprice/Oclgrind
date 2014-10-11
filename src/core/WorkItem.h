@@ -15,12 +15,11 @@
 #define MAP map
 #endif
 
-#include "llvm/Function.h"
-
 namespace llvm
 {
-  class DbgValueInst;
   class CallInst;
+  class DbgValueInst;
+  class Function;
 }
 
 namespace oclgrind
@@ -50,10 +49,6 @@ namespace oclgrind
 
   extern BuiltinFunctionMap workItemBuiltins;
   extern BuiltinFunctionPrefixList workItemPrefixBuiltins;
-
-  // Return address for a function call
-  typedef std::pair<llvm::Function::const_iterator,
-                    llvm::BasicBlock::const_iterator> ReturnAddress;
 
   class WorkItem
   {
@@ -116,7 +111,7 @@ namespace oclgrind
     void clearBarrier();
     void dispatch(const llvm::Instruction *instruction, TypedValue& result);
     void execute(const llvm::Instruction *instruction);
-    const std::stack<ReturnAddress>& getCallStack() const;
+    const std::stack<const llvm::Instruction*>& getCallStack() const;
     const llvm::Instruction* getCurrentInstruction() const;
     const size_t* getGlobalID() const;
     size_t getGlobalIndex() const;
@@ -197,11 +192,8 @@ namespace oclgrind
     WorkGroup *m_workGroup;
 
     State m_state;
-    llvm::Function::const_iterator m_prevBlock;
-    llvm::Function::const_iterator m_currBlock;
-    llvm::Function::const_iterator m_nextBlock;
-    llvm::BasicBlock::const_iterator m_currInst;
-    std::stack<ReturnAddress> m_callStack;
+    struct Position;
+    Position *m_position;
 
     Memory* getMemory(unsigned int addrSpace);
 

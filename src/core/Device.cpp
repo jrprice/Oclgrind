@@ -491,7 +491,8 @@ void Device::backtrace(vector<string> args)
     return;
   }
 
-  stack<ReturnAddress> callStack = m_currentWorkItem->getCallStack();
+  stack<const llvm::Instruction*> callStack =
+    m_currentWorkItem->getCallStack();
 
   // Print current instruction
   cout << "#" << callStack.size() <<  " ";
@@ -501,7 +502,7 @@ void Device::backtrace(vector<string> args)
   while (!callStack.empty())
   {
     cout << "#" << (callStack.size()-1) <<  " ";
-    printFunction(callStack.top().second);
+    printFunction(callStack.top());
     callStack.pop();
   }
 }
