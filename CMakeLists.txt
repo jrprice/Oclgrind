@@ -231,7 +231,7 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     src/CL/cl_gl_ext.h
     src/CL/cl_platform.h
     src/CL/opencl.h
-    DESTINATION include/oclgrind/CL)
+    DESTINATION include/CL)
 endif()
 
 # Generate precompiled headers for clc.h
