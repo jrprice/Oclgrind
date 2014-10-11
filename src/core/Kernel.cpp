@@ -442,7 +442,7 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
       value.num = type->getVectorNumElements();
       value.size = getTypeSize(type->getVectorElementType());
     }
-    m_arguments[getArgument(index)] = clone(value);
+    m_arguments[getArgument(index)] = value.clone();
   }
 }
 

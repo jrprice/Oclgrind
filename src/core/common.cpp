@@ -145,14 +145,14 @@ namespace oclgrind
     }
   }
 
-  TypedValue clone(const TypedValue& source)
+  TypedValue TypedValue::clone() const
   {
-    TypedValue dest;
-    dest.size = source.size;
-    dest.num = source.num;
-    dest.data = new unsigned char[dest.size*dest.num];
-    memcpy(dest.data, source.data, dest.size*dest.num);
-    return dest;
+    TypedValue result;
+    result.size = size;
+    result.num  = num;
+    result.data = new unsigned char[size*num];
+    memcpy(result.data, data, size*num);
+    return result;
   }
 
   void dumpInstruction(ostream& out, const llvm::Instruction& instruction)

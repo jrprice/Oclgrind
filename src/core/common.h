@@ -79,6 +79,8 @@ namespace oclgrind
     size_t num;
     unsigned char *data;
 
+    struct _TypedValue_ clone() const;
+
     double   getFloat(unsigned index = 0) const;
     size_t   getPointer(unsigned index = 0) const;
     int64_t  getSInt(unsigned index = 0) const;
@@ -93,9 +95,6 @@ namespace oclgrind
 
   // Private memory map type
   typedef std::map<const llvm::Value*,TypedValue> TypedValueMap;
-
-  // Clone a TypedValue
-  TypedValue clone(const TypedValue& source);
 
   // Output an instruction in human-readable format
   void dumpInstruction(std::ostream& out, const llvm::Instruction& instruction);
