@@ -218,8 +218,19 @@ install(TARGETS
   DESTINATION lib)
 install(FILES
   ${CORE_HEADERS} config.h
-  DESTINATION include/oclgrind
-)
+  DESTINATION include/oclgrind)
+install(FILES
+  src/CL/cl.h
+  src/CL/cl_d3d10.h
+  src/CL/cl_d3d11.h
+  src/CL/cl_dx9_media_sharing.h
+  src/CL/cl_egl.h
+  src/CL/cl_ext.h
+  src/CL/cl_gl.h
+  src/CL/cl_gl_ext.h
+  src/CL/cl_platform.h
+  src/CL/opencl.h
+  DESTINATION include/oclgrind/CL)
 
 # Generate precompiled headers for clc.h
 install(CODE "execute_process(COMMAND

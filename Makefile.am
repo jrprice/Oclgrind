@@ -41,6 +41,10 @@ oclgrind_include_HEADERS = src/core/common.h src/core/Context.h		\
  src/core/Device.h src/core/half.h src/core/Kernel.h src/core/Memory.h	\
  src/core/Plugin.h src/core/Program.h src/core/Queue.h			\
  src/core/WorkItem.h src/core/WorkGroup.h src/core/clc.h config.h
+cl_includedir = $(oclgrind_includedir)/CL
+cl_include_HEADERS = src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
+ src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_d3d10.h			\
+ src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h
 src/core/clc_h.cpp: src/core/gen_clc_h.sh	src/core/clc.h
 	$(top_srcdir)/src/core/gen_clc_h.sh $(top_srcdir)/src/core/clc.h $@
 
@@ -128,13 +132,10 @@ check-local:
 	@echo
 endif
 
-EXTRA_DIST = NEWS src/core/gen_clc_h.sh src/core/clc.h			\
- src/runtime/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
- src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_d3d10.h			\
- src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
- CMakeLists.txt tests/apps/CMakeLists.txt cmake_config.h.in		\
- src/core/gen_clc_h.cmake src/runtime/icd.def src/runtime/runtime.def	\
- tests/kernels/run_kernel_test.py tests/kernels/TESTS			\
- $(KERNEL_TEST_INPUTS)
+EXTRA_DIST = NEWS src/core/gen_clc_h.sh src/core/clc.h		\
+ src/runtime/oclgrind CMakeLists.txt tests/apps/CMakeLists.txt	\
+ cmake_config.h.in src/core/gen_clc_h.cmake src/runtime/icd.def	\
+ src/runtime/runtime.def tests/kernels/run_kernel_test.py	\
+ tests/kernels/TESTS $(KERNEL_TEST_INPUTS)
 CLEANFILES = src/core/clc_h.cpp $(bin_SCRIPTS) $(noinst_SCRIPTS)	\
  $(KERNEL_TEST_OUTPUTS)
