@@ -22,13 +22,6 @@ namespace oclgrind
 {
   class Context;
 
-  typedef struct
-  {
-    size_t address;
-    cl_image_format format;
-    cl_image_desc desc;
-  } Image;
-
   class Memory
   {
   public:

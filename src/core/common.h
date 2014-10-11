@@ -96,6 +96,14 @@ namespace oclgrind
   // Private memory map type
   typedef std::map<const llvm::Value*,TypedValue> TypedValueMap;
 
+  // Image object
+  typedef struct
+  {
+    size_t address;
+    cl_image_format format;
+    cl_image_desc desc;
+  } Image;
+
   // Output an instruction in human-readable format
   void dumpInstruction(std::ostream& out, const llvm::Instruction& instruction);
 
