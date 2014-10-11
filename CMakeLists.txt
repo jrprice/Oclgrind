@@ -14,13 +14,6 @@ set(Oclgrind_VERSION_MINOR 5)
 include(CheckIncludeFiles)
 include(CheckLibraryExists)
 
-# Warn if not using Windows
-if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  message(WARNING
-"CMake build on non-Windows platform detected.\n"
-"Recommended build system for Unix is 'configure' and 'make'.")
-endif()
-
 # Set RPATH
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
