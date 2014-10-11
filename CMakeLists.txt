@@ -217,7 +217,7 @@ install(TARGETS
   oclgrind oclgrind-rt oclgrind-rt-icd
   DESTINATION lib)
 install(FILES
-  ${CORE_HEADERS} config.h
+  ${CORE_HEADERS} ${CMAKE_BINARY_DIR}/config.h
   DESTINATION include/oclgrind)
 install(FILES
   src/CL/cl.h
