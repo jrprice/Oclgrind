@@ -7,6 +7,7 @@ namespace oclgrind
   class Memory;
   class Plugin;
   class WorkGroup;
+  class WorkItem;
 
   typedef std::list<Plugin*> PluginList;
 
@@ -34,7 +35,8 @@ namespace oclgrind
                         size_t address, size_t size) const;
 
     // Simulation callbacks
-    void notifyInstructionExecuted(const llvm::Instruction *instruction,
+    void notifyInstructionExecuted(const WorkItem *workItem,
+                                   const llvm::Instruction *instruction,
                                    const TypedValue& result) const;
     void notifyKernelBegin(const Kernel *kernel) const;
     void notifyKernelEnd(const Kernel *kernel) const;

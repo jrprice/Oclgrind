@@ -303,7 +303,7 @@ void WorkItem::execute(const llvm::Instruction *instruction)
     }
   }
 
-  m_context->notifyInstructionExecuted(instruction, result);
+  m_context->notifyInstructionExecuted(this, instruction, result);
 }
 
 TypedValue WorkItem::getValue(const llvm::Value *key) const

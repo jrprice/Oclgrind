@@ -8,13 +8,15 @@ namespace oclgrind
   class Kernel;
   class Memory;
   class WorkGroup;
+  class WorkItem;
 
   class Plugin
   {
   public:
     Plugin(const Context *context);
 
-    virtual void instructionExecuted(const llvm::Instruction *instruction,
+    virtual void instructionExecuted(const WorkItem *workItem,
+                                     const llvm::Instruction *instruction,
                                      const TypedValue& result){}
     virtual void kernelBegin(const Kernel *kernel){}
     virtual void kernelEnd(const Kernel *kernel){}

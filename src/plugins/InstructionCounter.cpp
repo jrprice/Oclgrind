@@ -84,7 +84,8 @@ string InstructionCounter::getOpcodeName(unsigned opcode) const
 }
 
 void InstructionCounter::instructionExecuted(
-  const llvm::Instruction *instruction, const TypedValue& result)
+  const WorkItem *workItem, const llvm::Instruction *instruction,
+  const TypedValue& result)
 {
   unsigned opcode = instruction->getOpcode();
 

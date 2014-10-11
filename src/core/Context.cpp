@@ -10,6 +10,7 @@
 #endif
 
 #include "llvm/DebugInfo.h"
+#include "llvm/Instruction.h"
 
 #include "Context.h"
 #include "Device.h"
@@ -349,10 +350,11 @@ void Context::printInstruction(const llvm::Instruction *instruction) const
     (*pluginItr)->function(__VA_ARGS__);          \
   }
 
-void Context::notifyInstructionExecuted(const llvm::Instruction *instruction,
+void Context::notifyInstructionExecuted(const WorkItem *workItem,
+                                        const llvm::Instruction *instruction,
                                         const TypedValue& result) const
 {
-  NOTIFY(instructionExecuted, instruction, result);
+  NOTIFY(instructionExecuted, workItem, instruction, result);
 }
 
 void Context::notifyKernelBegin(const Kernel *kernel) const

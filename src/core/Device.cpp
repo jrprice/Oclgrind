@@ -17,6 +17,7 @@
 #endif
 
 #include "llvm/DebugInfo.h"
+#include "llvm/Function.h"
 #include "llvm/Instructions.h"
 
 #include "Device.h"
