@@ -1,8 +1,13 @@
 #include "common.h"
 
 #include <cassert>
-#include <dlfcn.h>
 #include <sstream>
+
+#if defined(_WIN32) && !defined(__MINGW32__)
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
 
 #include "llvm/DebugInfo.h"
 
@@ -65,6 +70,23 @@ void Context::loadPlugins()
     std::string libpath;
     while(std::getline(ss, libpath, ':'))
     {
+#if defined(_WIN32) && !defined(__MINGW32__)
+      HMODULE library = LoadLibrary(libpath.c_str());
+      if (!library)
+      {
+        cerr << "Loading Oclgrind plugin failed (LoadLibrary): "
+             << GetLastError() << endl;
+        continue;
+      }
+
+      void *initialize = GetProcAddress(library, "initializePlugin");
+      if (!initialize)
+      {
+        cerr << "Loading Oclgrind plugin failed (GetProcAddress): "
+             << GetLastError() << endl;
+        continue;
+      }
+#else
       void *library = dlopen(libpath.c_str(), RTLD_NOW);
       if (!library)
       {
@@ -78,6 +100,7 @@ void Context::loadPlugins()
         cerr << "Loading Oclgrind plugin failed: " << dlerror() << endl;
         continue;
       }
+#endif
 
       ((void(*)(Context*))initialize)(this);
     }
