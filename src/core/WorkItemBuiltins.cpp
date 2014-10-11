@@ -766,7 +766,7 @@ namespace oclgrind
     DEFINE_BUILTIN(get_image_array_size)
     {
       Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
-      result.setSInt(image->desc.image_array_size);
+      result.setUInt(image->desc.image_array_size);
     }
 
     DEFINE_BUILTIN(get_image_channel_data_type)
