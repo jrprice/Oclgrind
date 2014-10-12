@@ -22,12 +22,12 @@ RaceDetector::RaceDetector(const Context *context)
   m_allowUniformWrites = !(uniformWrites && strcmp(uniformWrites, "1") == 0);
 }
 
-void RaceDetector::kernelBegin(const Kernel *kernel)
+void RaceDetector::kernelBegin(const KernelInvocation *kernelInvocation)
 {
   m_runningKernel = true;
 }
 
-void RaceDetector::kernelEnd(const Kernel *kernel)
+void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
 {
   synchronize(m_context->getGlobalMemory(), false);
 

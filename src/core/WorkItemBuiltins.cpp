@@ -3096,10 +3096,11 @@ namespace oclgrind
 
     DEFINE_BUILTIN(llvm_dbg_declare)
     {
-      if (!workItem->m_context->getDevice()->isInteractive())
-      {
-        return;
-      }
+      // TODO: This?
+      //if (!workItem->m_context->getDevice()->isInteractive())
+      //{
+      //  return;
+      //}
 
       const llvm::DbgDeclareInst *dbgInst =
         (const llvm::DbgDeclareInst*)callInst;
@@ -3111,10 +3112,11 @@ namespace oclgrind
 
     DEFINE_BUILTIN(llvm_dbg_value)
     {
-      if (!workItem->m_context->getDevice()->isInteractive())
-      {
-        return;
-      }
+      // TODO: This?
+      //if (!workItem->m_context->getDevice()->isInteractive())
+      //{
+      //  return;
+      //}
 
       const llvm::DbgValueInst *dbgInst = (const llvm::DbgValueInst*)callInst;
       const llvm::Value *value = dbgInst->getValue();

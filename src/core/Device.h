@@ -12,7 +12,6 @@ namespace oclgrind
 {
   class Context;
   class Kernel;
-  class Program;
   class WorkGroup;
   class WorkItem;
 
@@ -22,15 +21,14 @@ namespace oclgrind
     Device(const Context *context);
     virtual ~Device();
 
-    void forceBreak();
     const WorkGroup* getCurrentWorkGroup() const;
     const WorkItem* getCurrentWorkItem() const;
     const KernelInvocation* getCurrentKernelInvocation() const;
-    bool isInteractive() const;
     void run(Kernel *kernel, unsigned int workDim,
              const size_t *globalOffset,
              const size_t *globalSize,
              const size_t *localSize);
+    bool switchWorkItem(const size_t gid[3]);
 
   private:
     const Context *m_context;
@@ -46,48 +44,14 @@ namespace oclgrind
 
     // Current kernel invocation
     const KernelInvocation *m_kernelInvocation;
-    const Program *m_program;
     WorkGroup *m_currentWorkGroup;
     WorkItem *m_currentWorkItem;
     std::list<PendingWorkGroup> m_pendingGroups;
     std::list<WorkGroup*> m_runningGroups;
-    std::vector<std::string> m_sourceLines;
-    size_t m_listPosition;
-    size_t m_nextBreakpoint;
-    std::map<const Program*, std::map<size_t, size_t> > m_breakpoints;
 
     bool m_quickMode;
 
-    bool m_interactive;
-    bool m_running;
-    bool m_forceBreak;
-    typedef void (Device::*Command)(std::vector<std::string>);
-    std::map<std::string, Command> m_commands;
-
     WorkGroup* createWorkGroup(size_t x, size_t y, size_t z);
-    size_t getCurrentLineNumber() const;
-    size_t getLineNumber(const llvm::Instruction *instruction) const;
     bool nextWorkItem();
-    void printCurrentLine() const;
-    void printFunction(const llvm::Instruction *instruction) const;
-    void printSourceLine(size_t lineNum) const;
-    void step();
-
-    // Interactive commands
-#define CMD(name) void name(std::vector<std::string> args);
-    CMD(backtrace);
-    CMD(brk);
-    CMD(cont);
-    CMD(del);
-    CMD(help);
-    CMD(info);
-    CMD(list);
-    CMD(mem);
-    CMD(next);
-    CMD(print);
-    CMD(quit);
-    CMD(step);
-    CMD(workitem);
-#undef CMD
   };
 }

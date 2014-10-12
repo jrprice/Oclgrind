@@ -121,8 +121,8 @@ namespace oclgrind
     State getState() const;
     const unsigned char* getValueData(const llvm::Value *value) const;
     const llvm::Value* getVariable(std::string name) const;
-    bool printValue(const llvm::Value *value);
-    bool printVariable(std::string name);
+    bool printValue(const llvm::Value *value) const;
+    bool printVariable(std::string name) const;
     State step();
 
     // SPIR instructions

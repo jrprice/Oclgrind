@@ -19,8 +19,9 @@
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
-#include "plugins/InstructionCounter.h"
 #include "plugins/RaceDetector.h"
+#include "plugins/InstructionCounter.h"
+#include "plugins/InteractiveDebugger.h"
 
 using namespace oclgrind;
 using namespace std;
@@ -62,6 +63,11 @@ void Context::loadPlugins()
   const char *dataRaces = getenv("OCLGRIND_DATA_RACES");
   if (dataRaces && strcmp(dataRaces, "1") == 0)
     m_plugins.push_back(new RaceDetector(this));
+
+  const char *interactive = getenv("OCLGRIND_INTERACTIVE");
+  if (interactive && strcmp(interactive, "1") == 0)
+    m_plugins.push_back(new InteractiveDebugger(this));
+
 
   // Register dynamic plugins
   const char *dynamicPlugins = getenv("OCLGRIND_PLUGINS");
@@ -194,7 +200,8 @@ void Context::logDataRace(DataRaceType type, unsigned int addrSpace,
 
   cerr << endl;
 
-  m_device->forceBreak();
+  // TODO: THIS (notifyError)
+  //m_device->forceBreak();
 }
 
 void Context::logDivergence(const llvm::Instruction *instruction,
@@ -224,7 +231,8 @@ void Context::logDivergence(const llvm::Instruction *instruction,
 
   cerr << endl;
 
-  m_device->forceBreak();
+  // TODO: THIS (notifyError)
+  //m_device->forceBreak();
 }
 
 void Context::logError(const char* error, const char* info) const
@@ -238,7 +246,8 @@ void Context::logError(const char* error, const char* info) const
   }
   cerr << endl;
 
-  m_device->forceBreak();
+  // TODO: THIS (notifyError)
+  //m_device->forceBreak();
 }
 
 void Context::logMemoryError(bool read, unsigned int addrSpace,
@@ -273,7 +282,8 @@ void Context::logMemoryError(bool read, unsigned int addrSpace,
   printErrorContext();
   cerr << endl;
 
-  m_device->forceBreak();
+  // TODO: THIS (notifyError)
+  //m_device->forceBreak();
 }
 
 void Context::printErrorContext() const
@@ -357,14 +367,14 @@ void Context::notifyInstructionExecuted(const WorkItem *workItem,
   NOTIFY(instructionExecuted, workItem, instruction, result);
 }
 
-void Context::notifyKernelBegin(const Kernel *kernel) const
+void Context::notifyKernelBegin(const KernelInvocation *kernelInvocation) const
 {
-  NOTIFY(kernelBegin, kernel);
+  NOTIFY(kernelBegin, kernelInvocation);
 }
 
-void Context::notifyKernelEnd(const Kernel *kernel) const
+void Context::notifyKernelEnd(const KernelInvocation *kernelInvocation) const
 {
-  NOTIFY(kernelEnd, kernel);
+  NOTIFY(kernelEnd, kernelInvocation);
 }
 
 void Context::notifyMemoryAllocated(const Memory *memory, size_t address,

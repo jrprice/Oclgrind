@@ -458,7 +458,7 @@ bool WorkItem::hasValue(const llvm::Value *key) const
   return m_cache->valueIDs.count(key);
 }
 
-bool WorkItem::printValue(const llvm::Value *value)
+bool WorkItem::printValue(const llvm::Value *value) const
 {
   if (!hasValue(value))
   {
@@ -470,7 +470,7 @@ bool WorkItem::printValue(const llvm::Value *value)
   return true;
 }
 
-bool WorkItem::printVariable(string name)
+bool WorkItem::printVariable(string name) const
 {
   // Find variable
   const llvm::Value *value = getVariable(name);
@@ -489,10 +489,8 @@ bool WorkItem::printVariable(string name)
     // If value is alloca result, look-up data at address
     const llvm::Type *elemType = value->getType()->getPointerElementType();
     size_t address = result.getPointer();
-    size_t size = getTypeSize(elemType);
-    unsigned char *data = m_pool.alloc(size);
-    m_privateMemory->load(data, address, size);
 
+    unsigned char *data = (unsigned char*)m_privateMemory->getPointer(address);
     printTypedData(elemType, data);
   }
   else

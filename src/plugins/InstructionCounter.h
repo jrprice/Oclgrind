@@ -17,11 +17,11 @@ namespace oclgrind
                                      const TypedValue& result);
     virtual void kernelBegin(const Kernel *kernel);
     virtual void kernelEnd(const Kernel *kernel);
-
-    std::string getOpcodeName(unsigned opcode) const;
   private:
     std::vector<size_t> m_instructionCounts;
     std::vector<size_t> m_memopBytes;
     std::vector<const llvm::Function*> m_functions;
+
+    std::string getOpcodeName(unsigned opcode) const;
   };
 }
