@@ -334,7 +334,7 @@ void Context::printErrorContext() const
 
 void Context::printInstruction(const llvm::Instruction *instruction) const
 {
-  dumpInstruction(cerr, *instruction);
+  dumpInstruction(cerr, instruction);
   cerr << endl;
 
   // Output debug information

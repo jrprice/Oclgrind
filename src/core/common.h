@@ -105,13 +105,14 @@ namespace oclgrind
   } Image;
 
   // Output an instruction in human-readable format
-  void dumpInstruction(std::ostream& out, const llvm::Instruction& instruction);
+  void dumpInstruction(std::ostream& out, const llvm::Instruction *instruction);
 
   // Retrieve the raw data for a constant
   void getConstantData(unsigned char *data, const llvm::Constant *constant);
 
   // Creates an instruction from a constant expression
-  llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr *expr);
+  const llvm::Instruction* getConstExprAsInstruction(
+    const llvm::ConstantExpr *expr);
 
   // Get the byte offset of a struct member
   size_t getStructMemberOffset(const llvm::StructType *type, size_t index);

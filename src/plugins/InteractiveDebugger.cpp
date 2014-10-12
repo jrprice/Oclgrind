@@ -248,7 +248,7 @@ void InteractiveDebugger::printCurrentLine() const
   else
   {
     cout << "Source line not available." << endl;
-    dumpInstruction(cout, *workItem->getCurrentInstruction());
+    dumpInstruction(cout, workItem->getCurrentInstruction());
     cout << endl;
   }
 }

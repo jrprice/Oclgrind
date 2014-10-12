@@ -155,10 +155,10 @@ namespace oclgrind
     return result;
   }
 
-  void dumpInstruction(ostream& out, const llvm::Instruction& instruction)
+  void dumpInstruction(ostream& out, const llvm::Instruction *instruction)
   {
     llvm::raw_os_ostream stream(out);
-    instruction.print(stream);
+    instruction->print(stream);
   }
 
   void getConstantData(unsigned char *data, const llvm::Constant *constant)
@@ -237,7 +237,8 @@ namespace oclgrind
     }
   }
 
-  llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr *expr)
+  const llvm::Instruction* getConstExprAsInstruction(
+    const llvm::ConstantExpr *expr)
   {
     // Get operands
     int numOperands = expr->getNumOperands();
