@@ -216,16 +216,10 @@ namespace oclgrind
     size_t offset = 0;
     for (int i = 0; i <= index; i++)
     {
-      size_t size = getTypeSize(type->getStructElementType(i));
-
-      // Get member alignment
-      size_t align = size;
-      if (type->getStructElementType(i)->isArrayTy())
-      {
-        // Use element type for arrays
-        align =
-          getTypeSize(type->getStructElementType(i)->getArrayElementType());
-      }
+      // Get member size and alignment
+      const llvm::Type *elemType = type->getStructElementType(i);
+      size_t size = getTypeSize(elemType);
+      size_t align = getTypeAlignment(elemType);
 
       // Add padding if necessary
       if (!packed && offset % align)
@@ -260,16 +254,10 @@ namespace oclgrind
       size_t alignment = 1;
       for (int i = 0; i < type->getStructNumElements(); i++)
       {
-        size_t sz = getTypeSize(type->getStructElementType(i));
-
-        // Get member alignment
-        size_t align = sz;
-        if (type->getStructElementType(i)->isArrayTy())
-        {
-          // Use element type for arrays
-          align =
-            getTypeSize(type->getStructElementType(i)->getArrayElementType());
-        }
+        // Get member size and alignment
+        const llvm::Type *elemType = type->getStructElementType(i);
+        size_t sz    = getTypeSize(elemType);
+        size_t align = getTypeAlignment(elemType);
 
         // Add padding if necessary
         if (!packed && size % align)
