@@ -12,8 +12,8 @@ namespace oclgrind
     virtual void instructionExecuted(const WorkItem *workItem,
                                      const llvm::Instruction *instruction,
                                      const TypedValue& result);
-    virtual void kernelBegin(const KernelInvocation *kernelInvocation);
-    virtual void kernelEnd(const KernelInvocation *kernelInvocation);
+    virtual void kernelBegin(KernelInvocation *kernelInvocation);
+    virtual void kernelEnd(KernelInvocation *kernelInvocation);
 
     std::string getOpcodeName(unsigned opcode) const;
   private:
@@ -29,7 +29,7 @@ namespace oclgrind
     std::vector<std::string> m_sourceLines;
     std::map<const Program*, std::map<size_t, size_t> > m_breakpoints;
     const Program *m_program;
-    const KernelInvocation *m_kernelInvocation;
+    KernelInvocation *m_kernelInvocation;
 
     size_t getCurrentLineNumber() const;
     size_t getLineNumber(const llvm::Instruction *instruction) const;

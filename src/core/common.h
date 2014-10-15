@@ -61,16 +61,17 @@ namespace oclgrind
     WriteWriteRace
   };
 
-  // Kernel invocation
-  typedef struct
+  // 3-dimensional size
+  typedef struct _Size3_
   {
-    const Kernel *kernel;
-    size_t workDim;
-    size_t globalSize[3];
-    size_t globalOffset[3];
-    size_t localSize[3];
-    size_t numGroups[3];
-  } KernelInvocation;
+    size_t x, y, z;
+    _Size3_();
+    _Size3_(size_t x, size_t y, size_t z);
+    size_t& operator[](size_t i);
+    const size_t& operator[](size_t i) const;
+    bool operator==(const _Size3_& rhs) const;
+    friend std::ostream& operator<<(std::ostream& stream, const _Size3_& sz);
+  } Size3;
 
   // Structure for a value with a size/type
   struct _TypedValue_

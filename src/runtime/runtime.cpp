@@ -973,8 +973,7 @@ clCreateCommandQueue
   // Create command-queue object
   cl_command_queue queue;
   queue = new _cl_command_queue;
-  queue->queue = new oclgrind::Queue(context->context,
-                                     context->context->getDevice());
+  queue->queue = new oclgrind::Queue(context->context);
   queue->dispatch = m_dispatchTable;
   queue->properties = properties;
   queue->context = context;

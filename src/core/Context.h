@@ -2,8 +2,7 @@
 
 namespace oclgrind
 {
-  class Device;
-  class Kernel;
+  class KernelInvocation;
   class Memory;
   class Plugin;
   class WorkGroup;
@@ -17,7 +16,6 @@ namespace oclgrind
     Context();
     virtual ~Context();
 
-    Device* getDevice() const;
     Memory* getGlobalMemory() const;
 
     // Error logging
@@ -38,8 +36,8 @@ namespace oclgrind
     void notifyInstructionExecuted(const WorkItem *workItem,
                                    const llvm::Instruction *instruction,
                                    const TypedValue& result) const;
-    void notifyKernelBegin(const KernelInvocation *kernelInvocation) const;
-    void notifyKernelEnd(const KernelInvocation *kernelInvocation) const;
+    void notifyKernelBegin(KernelInvocation *kernelInvocation) const;
+    void notifyKernelEnd(KernelInvocation *kernelInvocation) const;
     void notifyMemoryAllocated(const Memory *memory, size_t address,
                                size_t size) const;
     void notifyMemoryAtomic(const Memory *memory, size_t address,
@@ -56,7 +54,7 @@ namespace oclgrind
     void unregisterPlugin(Plugin *plugin);
 
   private:
-    Device *m_device;
+    mutable const KernelInvocation *m_kernelInvocation;
     Memory *m_globalMemory;
 
     PluginList m_plugins;

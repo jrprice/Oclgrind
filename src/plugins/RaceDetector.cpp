@@ -1,7 +1,7 @@
 #include "core/common.h"
 
 #include "core/Context.h"
-#include "core/Device.h"
+#include "core/KernelInvocation.h"
 #include "core/Memory.h"
 #include "core/WorkGroup.h"
 #include "core/WorkItem.h"
@@ -16,22 +16,22 @@ using namespace std;
 RaceDetector::RaceDetector(const Context *context)
  : Plugin(context)
 {
-  m_runningKernel = false;
+  m_kernelInvocation = NULL;
 
   const char *uniformWrites = getenv("OCLGRIND_UNIFORM_WRITES");
   m_allowUniformWrites = !(uniformWrites && strcmp(uniformWrites, "1") == 0);
 }
 
-void RaceDetector::kernelBegin(const KernelInvocation *kernelInvocation)
+void RaceDetector::kernelBegin(KernelInvocation *kernelInvocation)
 {
-  m_runningKernel = true;
+  m_kernelInvocation = kernelInvocation;
 }
 
-void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
+void RaceDetector::kernelEnd(KernelInvocation *kernelInvocation)
 {
   synchronize(m_context->getGlobalMemory(), false);
 
-  m_runningKernel = false;
+  m_kernelInvocation = NULL;
 }
 
 void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
@@ -49,7 +49,7 @@ void RaceDetector::memoryAtomic(const Memory *memory, size_t address,
   State *state = m_state[KEY(memory,address)].first + EXTRACT_OFFSET(address);
 
   // Get work-item
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   size_t workItemIndex = workItem->getGlobalIndex();
 
   for (size_t offset = 0; offset < size; offset++, state++)
@@ -100,7 +100,7 @@ void RaceDetector::memoryStore(const Memory *memory, size_t address,
 void RaceDetector::registerLoadStore(const Memory *memory, size_t address,
                                      size_t size, const uint8_t *storeData)
 {
-  if (!m_runningKernel)
+  if (!m_kernelInvocation)
     return;
   if (memory->getAddressSpace() == AddrSpacePrivate)
     return;
@@ -110,8 +110,8 @@ void RaceDetector::registerLoadStore(const Memory *memory, size_t address,
 
   // Get index of work-item and work-group performing access
   size_t workItemIndex = -1, workGroupIndex = -1;
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
-  const WorkGroup *workGroup = m_context->getDevice()->getCurrentWorkGroup();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  const WorkGroup *workGroup = m_kernelInvocation->getCurrentWorkGroup();
   if (workItem)
   {
     workItemIndex = workItem->getGlobalIndex();

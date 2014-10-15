@@ -10,15 +10,15 @@
 #include <cassert>
 
 #include "Context.h"
-#include "Device.h"
+#include "KernelInvocation.h"
 #include "Memory.h"
 #include "Queue.h"
 
 using namespace oclgrind;
 using namespace std;
 
-Queue::Queue(const Context *context, Device *device)
-  : m_context(context), m_device(device)
+Queue::Queue(const Context *context)
+  : m_context(context)
 {
 }
 
@@ -106,11 +106,12 @@ void Queue::executeFillImage(FillImageCommand *cmd)
 void Queue::executeKernel(KernelCommand *cmd)
 {
   // Run kernel
-  m_device->run(cmd->kernel,
-                cmd->work_dim,
-                cmd->global_offset,
-                cmd->global_size,
-                cmd->local_size);
+  KernelInvocation::run(m_context,
+                        cmd->kernel,
+                        cmd->work_dim,
+                        cmd->global_offset,
+                        cmd->global_size,
+                        cmd->local_size);
 }
 
 void Queue::executeNativeKernel(NativeKernelCommand *cmd)

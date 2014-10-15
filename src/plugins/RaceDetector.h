@@ -12,8 +12,8 @@ namespace oclgrind
   public:
     RaceDetector(const Context *context);
 
-    virtual void kernelBegin(const KernelInvocation *kernelInvocation);
-    virtual void kernelEnd(const KernelInvocation *kernelInvocation);
+    virtual void kernelBegin(KernelInvocation *kernelInvocation);
+    virtual void kernelEnd(KernelInvocation *kernelInvocation);
     virtual void memoryAllocated(const Memory *memory, size_t address,
                                  size_t size);
     virtual void memoryAtomic(const Memory *memory, size_t address,
@@ -44,8 +44,8 @@ namespace oclgrind
                     > StateMap;
     StateMap m_state;
 
-    bool m_runningKernel;
     bool m_allowUniformWrites;
+    const KernelInvocation *m_kernelInvocation;
 
     void registerLoadStore(const Memory *memory, size_t address,
                            size_t size, const uint8_t *storeData);

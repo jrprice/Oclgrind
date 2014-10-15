@@ -17,6 +17,7 @@
 
 #include "Context.h"
 #include "Kernel.h"
+#include "KernelInvocation.h"
 #include "Memory.h"
 #include "Program.h"
 #include "WorkGroup.h"
@@ -34,30 +35,28 @@ struct WorkItem::Position
   std::stack<const llvm::Instruction*> callStack;
 };
 
-WorkItem::WorkItem(const Context *context, WorkGroup *workGroup,
-                   const KernelInvocation *kernelInvocation,
-                   size_t lid_x, size_t lid_y, size_t lid_z)
-  : m_context(context), m_workGroup(workGroup)
+WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
+                   WorkGroup *workGroup, Size3 lid)
+  : m_context(kernelInvocation->getContext()),
+    m_kernelInvocation(kernelInvocation),
+    m_workGroup(workGroup)
 {
-  m_localID[0] = lid_x;
-  m_localID[1] = lid_y;
-  m_localID[2] = lid_z;
+  m_localID = lid;
 
   // Compute global ID
-  const size_t *groupID = workGroup->getGroupID();
-  const size_t *groupSize = workGroup->getGroupSize();
-  const size_t *globalOffset = kernelInvocation->globalOffset;
-  m_globalID[0] = lid_x + groupID[0]*groupSize[0] + globalOffset[0];
-  m_globalID[1] = lid_y + groupID[1]*groupSize[1] + globalOffset[1];
-  m_globalID[2] = lid_z + groupID[2]*groupSize[2] + globalOffset[2];
+  Size3 groupID = workGroup->getGroupID();
+  Size3 groupSize = workGroup->getGroupSize();
+  Size3 globalOffset = kernelInvocation->getGlobalOffset();
+  m_globalID.x = lid.x + groupID.x*groupSize.x + globalOffset.x;
+  m_globalID.y = lid.y + groupID.y*groupSize.y + globalOffset.y;
+  m_globalID.z = lid.z + groupID.z*groupSize.z + globalOffset.z;
 
-  const size_t *globalSize = kernelInvocation->globalSize;
-  m_globalIndex = (m_globalID[0] +
-                  (m_globalID[1] +
-                   m_globalID[2]*globalSize[1]) * globalSize[0]);
+  Size3 globalSize = kernelInvocation->getGlobalSize();
+  m_globalIndex = (m_globalID.x +
+                  (m_globalID.y +
+                   m_globalID.z*globalSize.y) * globalSize.x);
 
-  m_kernelInvocation = kernelInvocation;
-  const Kernel *kernel = kernelInvocation->kernel;
+  const Kernel *kernel = kernelInvocation->getKernel();
 
   // Load or create cached interpreter state
   m_cache = InterpreterCache::get(kernel->getProgram()->getUID());
@@ -73,7 +72,7 @@ WorkItem::WorkItem(const Context *context, WorkGroup *workGroup,
     setValue(argItr->first, m_pool.clone(argItr->second));
   }
 
-  m_privateMemory = new Memory(AddrSpacePrivate, context);
+  m_privateMemory = new Memory(AddrSpacePrivate, m_context);
 
   list<const llvm::GlobalVariable*>::const_iterator varItr;
   for (varItr = kernel->vars_begin(); varItr != kernel->vars_end(); varItr++)
@@ -331,7 +330,7 @@ const llvm::Instruction* WorkItem::getCurrentInstruction() const
   return m_position->currInst;
 }
 
-const size_t* WorkItem::getGlobalID() const
+Size3 WorkItem::getGlobalID() const
 {
   return m_globalID;
 }
@@ -341,7 +340,7 @@ size_t WorkItem::getGlobalIndex() const
   return m_globalIndex;
 }
 
-const size_t* WorkItem::getLocalID() const
+Size3 WorkItem::getLocalID() const
 {
   return m_localID;
 }

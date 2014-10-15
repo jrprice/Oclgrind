@@ -13,6 +13,7 @@
 
 #include "Context.h"
 #include "Kernel.h"
+#include "KernelInvocation.h"
 #include "Memory.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
@@ -20,35 +21,29 @@
 using namespace oclgrind;
 using namespace std;
 
-WorkGroup::WorkGroup(const Context *context,
-                     const KernelInvocation *kernelInvocation,
-                     size_t wgid_x, size_t wgid_y, size_t wgid_z)
- : m_context(context)
+WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid)
+ : m_context(kernelInvocation->getContext())
 {
-  m_groupID[0] = wgid_x;
-  m_groupID[1] = wgid_y;
-  m_groupID[2] = wgid_z;
-  m_groupSize[0] = kernelInvocation->localSize[0];
-  m_groupSize[1] = kernelInvocation->localSize[1];
-  m_groupSize[2] = kernelInvocation->localSize[2];
+  m_groupID = wgid;
+  m_groupSize = kernelInvocation->getLocalSize();
 
-  m_groupIndex = (m_groupID[0] +
-                 (m_groupID[1] +
-                  m_groupID[2]*(kernelInvocation->numGroups[1]) *
-                  kernelInvocation->numGroups[0]));
+  m_groupIndex = (m_groupID.x +
+                 (m_groupID.y +
+                  m_groupID.z*(kernelInvocation->getNumGroups().y) *
+                  kernelInvocation->getNumGroups().x));
 
   // Allocate local memory
-  m_localMemory = kernelInvocation->kernel->getLocalMemory()->clone();
+  m_localMemory = kernelInvocation->getKernel()->getLocalMemory()->clone();
 
   // Initialise work-items
-  for (size_t k = 0; k < kernelInvocation->localSize[2]; k++)
+  for (size_t k = 0; k < m_groupSize.z; k++)
   {
-    for (size_t j = 0; j < kernelInvocation->localSize[1]; j++)
+    for (size_t j = 0; j < m_groupSize.y; j++)
     {
-      for (size_t i = 0; i < kernelInvocation->localSize[0]; i++)
+      for (size_t i = 0; i < m_groupSize.x; i++)
       {
-        WorkItem *workItem = new WorkItem(context, this, kernelInvocation,
-                                          i, j, k);
+        WorkItem *workItem = new WorkItem(kernelInvocation, this,
+                                          Size3(i, j, k));
         m_workItems.push_back(workItem);
         m_running.insert(workItem);
       }
@@ -247,17 +242,17 @@ void WorkGroup::clearBarrier()
   m_barrier = NULL;
 }
 
-const size_t* WorkGroup::getGroupID() const
+Size3 WorkGroup::getGroupID() const
 {
   return m_groupID;
 }
 
-const size_t WorkGroup::getGroupIndex() const
+size_t WorkGroup::getGroupIndex() const
 {
   return m_groupIndex;
 }
 
-const size_t* WorkGroup::getGroupSize() const
+Size3 WorkGroup::getGroupSize() const
 {
   return m_groupSize;
 }
@@ -276,10 +271,10 @@ WorkItem* WorkGroup::getNextWorkItem() const
   return *m_running.begin();
 }
 
-WorkItem* WorkGroup::getWorkItem(size_t localID[3]) const
+WorkItem* WorkGroup::getWorkItem(Size3 localID) const
 {
-  return m_workItems[localID[0] +
-                    (localID[1] + localID[2]*m_groupSize[1])*m_groupSize[0]];
+  return m_workItems[localID.x +
+                    (localID.y + localID.z*m_groupSize.y)*m_groupSize.x];
 }
 
 bool WorkGroup::hasBarrier() const
@@ -369,15 +364,15 @@ void WorkGroup::notifyFinished(WorkItem *workItem)
 bool WorkGroup::WorkItemCmp::operator()(const WorkItem *lhs,
                                         const WorkItem *rhs) const
 {
-  const size_t *lgid = lhs->getGlobalID();
-  const size_t *rgid = rhs->getGlobalID();
-  if (lgid[2] != rgid[2])
+  Size3 lgid = lhs->getGlobalID();
+  Size3 rgid = rhs->getGlobalID();
+  if (lgid.z != rgid.z)
   {
-    return lgid[2] < rgid[2];
+    return lgid.z < rgid.z;
   }
-  if (lgid[1] != rgid[1])
+  if (lgid.y != rgid.y)
   {
-    return lgid[1] < rgid[1];
+    return lgid.y < rgid.y;
   }
-  return lgid[0] < rgid[0];
+  return lgid.x < rgid.x;
 }

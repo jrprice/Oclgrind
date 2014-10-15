@@ -10,6 +10,7 @@
 #include "InstructionCounter.h"
 
 #include "core/Kernel.h"
+#include "core/KernelInvocation.h"
 
 using namespace oclgrind;
 using namespace std;
@@ -130,7 +131,7 @@ void InstructionCounter::instructionExecuted(
   m_instructionCounts[opcode]++;
 }
 
-void InstructionCounter::kernelBegin(const Kernel *kernel)
+void InstructionCounter::kernelBegin(KernelInvocation *kernelInvocation)
 {
   m_instructionCounts.clear();
   m_instructionCounts.resize(COUNTED_CALL_BASE);
@@ -141,14 +142,15 @@ void InstructionCounter::kernelBegin(const Kernel *kernel)
   m_functions.clear();
 }
 
-void InstructionCounter::kernelEnd(const Kernel *kernel)
+void InstructionCounter::kernelEnd(KernelInvocation *kernelInvocation)
 {
   // Load default locale
   locale previousLocale = cout.getloc();
   locale defaultLocale("");
   cout.imbue(defaultLocale);
 
-  cout << "Instructions executed for kernel '" << kernel->getName() << "':";
+  cout << "Instructions executed for kernel '"
+       << kernelInvocation->getKernel()->getName() << "':";
   cout << endl;
 
   // Generate list named instructions and their counts

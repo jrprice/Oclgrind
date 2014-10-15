@@ -15,8 +15,8 @@
 
 #include "InteractiveDebugger.h"
 #include "core/Context.h"
-#include "core/Device.h"
 #include "core/Kernel.h"
+#include "core/KernelInvocation.h"
 #include "core/Memory.h"
 #include "core/Program.h"
 #include "core/WorkGroup.h"
@@ -138,11 +138,11 @@ void InteractiveDebugger::instructionExecuted(
   }
 }
 
-void InteractiveDebugger::kernelBegin(const KernelInvocation *kernelInvocation)
+void InteractiveDebugger::kernelBegin(KernelInvocation *kernelInvocation)
 {
   // Get source code (if available) and split into lines
   m_kernelInvocation = kernelInvocation;
-  m_program = kernelInvocation->kernel->getProgram();
+  m_program = kernelInvocation->getKernel()->getProgram();
   string source = m_program->getSource();
   m_sourceLines.clear();
   if (!source.empty())
@@ -163,7 +163,7 @@ void InteractiveDebugger::kernelBegin(const KernelInvocation *kernelInvocation)
   m_previousLine  = 0;
 }
 
-void InteractiveDebugger::kernelEnd(const KernelInvocation *kernelInvocation)
+void InteractiveDebugger::kernelEnd(KernelInvocation *kernelInvocation)
 {
   m_kernelInvocation = NULL;
 }
@@ -174,7 +174,7 @@ void InteractiveDebugger::kernelEnd(const KernelInvocation *kernelInvocation)
 
 size_t InteractiveDebugger::getCurrentLineNumber() const
 {
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem || workItem->getState() == WorkItem::FINISHED)
   {
     return 0;
@@ -217,13 +217,11 @@ bool InteractiveDebugger::hasHitBreakpoint()
   {
     if (itr->second == line)
     {
-      const size_t *gid =
-        m_context->getDevice()->getCurrentWorkItem()->getGlobalID();
       cout << "Breakpoint " << itr->first
            << " hit at line " << itr->second
-           << " by work-item (" << gid[0] << ","
-                                << gid[1] << ","
-                                << gid[2] << ")" << endl;
+           << " by work-item "
+           << m_kernelInvocation->getCurrentWorkItem()->getGlobalID()
+           << endl;
       m_lastBreakLine = line;
       m_listPosition = 0;
       return true;
@@ -234,7 +232,7 @@ bool InteractiveDebugger::hasHitBreakpoint()
 
 void InteractiveDebugger::printCurrentLine() const
 {
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem || workItem->getState() == WorkItem::FINISHED)
   {
     return;
@@ -270,7 +268,7 @@ void InteractiveDebugger::printFunction(
       cout << ", ";
     }
     cout << argItr->getName().str() << "=";
-    m_context->getDevice()->getCurrentWorkItem()->printValue(argItr);
+    m_kernelInvocation->getCurrentWorkItem()->printValue(argItr);
   }
 
   cout << ") at line " << dec << getLineNumber(instruction) << endl;
@@ -319,7 +317,7 @@ bool InteractiveDebugger::shouldShowPrompt(const WorkItem *workItem)
 
 bool InteractiveDebugger::backtrace(vector<string> args)
 {
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem || workItem->getState() == WorkItem::FINISHED)
   {
     return false;
@@ -554,29 +552,20 @@ bool InteractiveDebugger::info(vector<string> args)
   // Kernel invocation information
   cout
     << dec
-    << "Running kernel '" << m_kernelInvocation->kernel->getName() << "'"
+    << "Running kernel '" << m_kernelInvocation->getKernel()->getName() << "'"
     << endl
-    << "-> Global work size:   (" << m_kernelInvocation->globalSize[0] << ","
-                                  << m_kernelInvocation->globalSize[1] << ","
-                                  << m_kernelInvocation->globalSize[2] << ")"
+    << "-> Global work size:   " << m_kernelInvocation->getGlobalSize()
     << endl
-    << "-> Global work offset: (" << m_kernelInvocation->globalOffset[0] << ","
-                                  << m_kernelInvocation->globalOffset[1] << ","
-                                  << m_kernelInvocation->globalOffset[2] << ")"
+    << "-> Global work offset: " << m_kernelInvocation->getGlobalOffset()
     << endl
-    << "-> Local work size:    (" << m_kernelInvocation->localSize[0] << ","
-                                  << m_kernelInvocation->localSize[1] << ","
-                                  << m_kernelInvocation->localSize[2] << ")"
+    << "-> Local work size:    " << m_kernelInvocation->getLocalSize()
     << endl;
 
   // Current work-item
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   if (workItem)
   {
-    const size_t *gid = workItem->getGlobalID();
-    cout << endl << "Current work-item: (" << gid[0] << ","
-                                           << gid[1] << ","
-                                           << gid[2] << ")" << endl;
+    cout << endl << "Current work-item: " << workItem->getGlobalID() << endl;
     if (workItem->getState() == WorkItem::FINISHED)
     {
       cout << "Work-item has finished." << endl;
@@ -598,7 +587,7 @@ bool InteractiveDebugger::info(vector<string> args)
 
 bool InteractiveDebugger::list(vector<string> args)
 {
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem)
   {
     cout << "All work-items finished." << endl;
@@ -679,11 +668,11 @@ bool InteractiveDebugger::mem(vector<string> args)
   }
   else if (args[0][0] == 'l')
   {
-    memory = m_context->getDevice()->getCurrentWorkGroup()->getLocalMemory();
+    memory = m_kernelInvocation->getCurrentWorkGroup()->getLocalMemory();
   }
   else if (args[0][0] == 'p')
   {
-    memory = m_context->getDevice()->getCurrentWorkItem()->getPrivateMemory();
+    memory = m_kernelInvocation->getCurrentWorkItem()->getPrivateMemory();
   }
 
   // If no arguments, dump memory
@@ -747,7 +736,7 @@ bool InteractiveDebugger::mem(vector<string> args)
 
 bool InteractiveDebugger::next(vector<string> args)
 {
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem)
   {
     cout << "All work-items finished." << endl;
@@ -781,7 +770,7 @@ bool InteractiveDebugger::print(vector<string> args)
     return false;
   }
 
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   for (int i = 1; i < args.size(); i++)
   {
     cout << args[i] << " = ";
@@ -860,7 +849,7 @@ bool InteractiveDebugger::print(vector<string> args)
         memory = m_context->getGlobalMemory();
         break;
       case AddrSpaceLocal:
-        memory = m_context->getDevice()->getCurrentWorkGroup()->getLocalMemory();
+        memory = m_kernelInvocation->getCurrentWorkGroup()->getLocalMemory();
         break;
       default:
         cout << "invalid address space" << endl;
@@ -905,7 +894,7 @@ bool InteractiveDebugger::quit(vector<string> args)
 
 bool InteractiveDebugger::step(vector<string> args)
 {
-  const WorkItem *workItem = m_context->getDevice()->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem)
   {
     cout << "All work-items finished." << endl;
@@ -933,20 +922,20 @@ bool InteractiveDebugger::step(vector<string> args)
 bool InteractiveDebugger::workitem(vector<string> args)
 {
   // TODO: Take offsets into account?
-  size_t gid[3] = {0,0,0};
+  Size3 gid(0,0,0);
   for (int i = 1; i < args.size(); i++)
   {
     // Parse argument as a target line number
     istringstream ss(args[i]);
     ss >> gid[i-1];
-    if (!ss.eof() || gid[i-1] >= m_kernelInvocation->globalSize[i-1])
+    if (!ss.eof() || gid[i-1] >= m_kernelInvocation->getGlobalSize()[i-1])
     {
       cout << "Invalid global ID." << endl;
       return false;
     }
   }
 
-  if (!m_context->getDevice()->switchWorkItem(gid))
+  if (!m_kernelInvocation->switchWorkItem(gid))
   {
     cout << "Work-item has already finished, unable to load state." << endl;
     return false;
@@ -956,7 +945,7 @@ bool InteractiveDebugger::workitem(vector<string> args)
   cout << "Switched to work-item: (" << gid[0] << ","
                                      << gid[1] << ","
                                      << gid[2] << ")" << endl;
-  if (m_context->getDevice()->getCurrentWorkItem()->getState() ==
+  if (m_kernelInvocation->getCurrentWorkItem()->getState() ==
       WorkItem::FINISHED)
   {
     cout << "Work-item has finished execution." << endl;

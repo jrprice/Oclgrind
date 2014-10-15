@@ -23,6 +23,62 @@ using namespace std;
 
 namespace oclgrind
 {
+  _Size3_::_Size3_()
+  {
+    x = y = z = 0;
+  }
+
+  _Size3_::_Size3_(size_t _x, size_t _y, size_t _z)
+  {
+    x = _x;
+    y = _y;
+    z = _z;
+  }
+
+  size_t& Size3::operator[](size_t i)
+  {
+    switch (i)
+    {
+    case 0:
+      return x;
+    case 1:
+      return y;
+    case 2:
+      return z;
+    default:
+      assert(false && "Size3 index out of range");
+    }
+  }
+
+  const size_t& Size3::operator[](size_t i) const
+  {
+    switch (i)
+    {
+    case 0:
+      return x;
+    case 1:
+      return y;
+    case 2:
+      return z;
+    default:
+      assert(false && "Size3 index out of range");
+    }
+  }
+
+  bool Size3::operator==(const Size3& rhs) const
+  {
+    return x == rhs.x && y == rhs.y && z == rhs.z;
+  }
+
+  ostream& operator<<(ostream& stream, const Size3& size)
+  {
+    stream << dec    << "("
+           << size.x << ","
+           << size.y << ","
+           << size.z << ")";
+    return stream;
+  }
+
   double TypedValue::getFloat(unsigned index) const
   {
     switch (size)

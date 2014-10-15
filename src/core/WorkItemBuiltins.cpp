@@ -18,8 +18,8 @@
 
 #include "CL/cl.h"
 #include "Context.h"
-#include "Device.h"
 #include "half.h"
+#include "KernelInvocation.h"
 #include "Memory.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
@@ -2724,14 +2724,16 @@ namespace oclgrind
     DEFINE_BUILTIN(get_global_size)
     {
       uint64_t dim = UARG(0);
-      size_t r = dim < 3 ? workItem->m_kernelInvocation->globalSize[dim] : 0;
+      size_t r = dim < 3 ?
+        workItem->m_kernelInvocation->getGlobalSize()[dim] : 0;
       result.setUInt(r);
     }
 
     DEFINE_BUILTIN(get_global_offset)
     {
       uint64_t dim = UARG(0);
-      size_t r = dim < 3 ? workItem->m_kernelInvocation->globalOffset[dim] : 0;
+      size_t r = dim < 3 ?
+        workItem->m_kernelInvocation->getGlobalOffset()[dim] : 0;
       result.setUInt(r);
     }
 
@@ -2762,14 +2764,14 @@ namespace oclgrind
       size_t r = 0;
       if (dim < 3)
       {
-        r = workItem->m_kernelInvocation->numGroups[dim];
+        r = workItem->m_kernelInvocation->getNumGroups()[dim];
       }
       result.setUInt(r);
     }
 
     DEFINE_BUILTIN(get_work_dim)
     {
-      result.setUInt(workItem->m_kernelInvocation->workDim);
+      result.setUInt(workItem->m_kernelInvocation->getWorkDim());
     }
 
 
@@ -3096,12 +3098,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(llvm_dbg_declare)
     {
-      // TODO: This?
-      //if (!workItem->m_context->getDevice()->isInteractive())
-      //{
-      //  return;
-      //}
-
+      // TODO: Skip if not in interactive mode?
       const llvm::DbgDeclareInst *dbgInst =
         (const llvm::DbgDeclareInst*)callInst;
       const llvm::Value *addr = dbgInst->getAddress();
@@ -3112,12 +3109,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(llvm_dbg_value)
     {
-      // TODO: This?
-      //if (!workItem->m_context->getDevice()->isInteractive())
-      //{
-      //  return;
-      //}
-
+      // TODO: Skip if not in interactive mode?
       const llvm::DbgValueInst *dbgInst = (const llvm::DbgValueInst*)callInst;
       const llvm::Value *value = dbgInst->getValue();
       const llvm::MDNode *var = dbgInst->getVariable();

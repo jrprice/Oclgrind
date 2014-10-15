@@ -26,6 +26,7 @@ namespace oclgrind
 {
   class Context;
   class Kernel;
+  class KernelInvocation;
   class Memory;
   class WorkGroup;
   class WorkItem;
@@ -103,9 +104,8 @@ namespace oclgrind
     };
 
   public:
-    WorkItem(const Context *context, WorkGroup *workGroup,
-             const KernelInvocation *kernelInvocation,
-             size_t lid_x, size_t lid_y, size_t lid_z);
+    WorkItem(const KernelInvocation *kernelInvocation,
+             WorkGroup *workGroup, Size3 lid);
     virtual ~WorkItem();
 
     void clearBarrier();
@@ -113,9 +113,9 @@ namespace oclgrind
     void execute(const llvm::Instruction *instruction);
     const std::stack<const llvm::Instruction*>& getCallStack() const;
     const llvm::Instruction* getCurrentInstruction() const;
-    const size_t* getGlobalID() const;
+    Size3 getGlobalID() const;
     size_t getGlobalIndex() const;
-    const size_t* getLocalID() const;
+    Size3 getLocalID() const;
     TypedValue getOperand(const llvm::Value *operand);
     Memory* getPrivateMemory() const;
     State getState() const;
@@ -182,8 +182,8 @@ namespace oclgrind
     typedef std::map<std::string, const llvm::Value*> VariableMap;
 
     size_t m_globalIndex;
-    size_t m_globalID[3];
-    size_t m_localID[3];
+    Size3 m_globalID;
+    Size3 m_localID;
     TypedValueMap m_phiTemps;
     VariableMap m_variables;
     const Context *m_context;

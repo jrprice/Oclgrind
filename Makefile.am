@@ -14,9 +14,9 @@ AM_CPPFLAGS = -DINSTALL_ROOT=\"$(prefix)\" -I$(top_srcdir)/src/
 lib_LTLIBRARIES = liboclgrind.la liboclgrind-rt.la liboclgrind-rt-icd.la
 
 liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp		\
- src/core/Context.h src/core/Context.cpp src/core/Device.h		\
- src/core/Device.cpp src/core/half.h src/core/Kernel.h			\
- src/core/Kernel.cpp src/core/Memory.h src/core/Memory.cpp		\
+ src/core/Context.h src/core/Context.cpp src/core/half.h		\
+ src/core/Kernel.h src/core/Kernel.cpp src/core/KernelInvocation.h	\
+ src/core/KernelInvocation.cpp src/core/Memory.h src/core/Memory.cpp	\
  src/core/Plugin.h src/core/Plugin.cpp src/core/Program.h		\
  src/core/Program.cpp src/core/Queue.h src/core/Queue.cpp		\
  src/core/WorkItem.h src/core/WorkItem.cpp				\
@@ -38,10 +38,11 @@ liboclgrind_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
 -lLLVMVectorize -lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lpthread	\
 $(oclgrind_extra_libs) -shared
 oclgrind_includedir = $(includedir)/oclgrind
-oclgrind_include_HEADERS = src/core/common.h src/core/Context.h		\
- src/core/Device.h src/core/half.h src/core/Kernel.h src/core/Memory.h	\
- src/core/Plugin.h src/core/Program.h src/core/Queue.h			\
- src/core/WorkItem.h src/core/WorkGroup.h src/core/clc.h config.h
+oclgrind_include_HEADERS = src/core/common.h src/core/Context.h	\
+ src/core/half.h src/core/Kernel.h src/core/KernelInvocation.h	\
+ src/core/Memory.h src/core/Plugin.h src/core/Program.h		\
+ src/core/Queue.h src/core/WorkItem.h src/core/WorkGroup.h	\
+ src/core/clc.h config.h
 src/core/clc_h.cpp: src/core/gen_clc_h.sh	src/core/clc.h
 	$(top_srcdir)/src/core/gen_clc_h.sh $(top_srcdir)/src/core/clc.h $@
 

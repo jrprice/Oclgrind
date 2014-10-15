@@ -13,22 +13,21 @@
 #include "llvm/Instruction.h"
 
 #include "Context.h"
-#include "Device.h"
 #include "Kernel.h"
+#include "KernelInvocation.h"
 #include "Memory.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
-#include "plugins/RaceDetector.h"
 #include "plugins/InstructionCounter.h"
 #include "plugins/InteractiveDebugger.h"
+#include "plugins/RaceDetector.h"
 
 using namespace oclgrind;
 using namespace std;
 
 Context::Context()
 {
-  m_device = new Device(this);
   m_globalMemory = new Memory(AddrSpaceGlobal, this);
 
   loadPlugins();
@@ -37,12 +36,6 @@ Context::Context()
 Context::~Context()
 {
   delete m_globalMemory;
-  delete m_device;
-}
-
-Device* Context::getDevice() const
-{
-  return m_device;
 }
 
 Memory* Context::getGlobalMemory() const
@@ -161,15 +154,13 @@ void Context::logDataRace(DataRaceType type, unsigned int addrSpace,
   printErrorContext();
   cerr << endl;
 
-  const KernelInvocation *ki = m_device->getCurrentKernelInvocation();
-
   // Show details of other entity involved in race
   if (lastWorkItem != -1)
   {
     size_t gx, gy, gz;
-    gx = lastWorkItem % ki->globalSize[0];
-    gy = (lastWorkItem - gx) / ki->globalSize[1];
-    gz = (lastWorkItem - gy - gx) / ki->globalSize[2];
+    gx = lastWorkItem % m_kernelInvocation->getGlobalSize().x;
+    gy = (lastWorkItem - gx) / m_kernelInvocation->getGlobalSize().y;
+    gz = (lastWorkItem - gy - gx) / m_kernelInvocation->getGlobalSize().z;
     cerr << "\tRace occurred with work-item (" << dec
          << gx << ","
          << gy << ","
@@ -178,9 +169,9 @@ void Context::logDataRace(DataRaceType type, unsigned int addrSpace,
   else if (lastWorkGroup != -1)
   {
     size_t gx, gy, gz;
-    gx = lastWorkGroup % ki->numGroups[0];
-    gy = (lastWorkGroup - gx) / ki->numGroups[1];
-    gz = (lastWorkGroup - gy - gx) / ki->numGroups[2];
+    gx = lastWorkGroup % m_kernelInvocation->getNumGroups().x;
+    gy = (lastWorkGroup - gx) / m_kernelInvocation->getNumGroups().y;
+    gz = (lastWorkGroup - gy - gx) / m_kernelInvocation->getNumGroups().z;
     cerr << "\tRace occurred with work-group (" << dec
          << gx << ","
          << gy << ","
@@ -289,39 +280,27 @@ void Context::logMemoryError(bool read, unsigned int addrSpace,
 void Context::printErrorContext() const
 {
   // Work item
-  const WorkItem *workItem = m_device->getCurrentWorkItem();
+  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
   if (workItem)
   {
-    const size_t *gid = workItem->getGlobalID();
-    const size_t *lid = workItem->getLocalID();
-    cerr << "\tWork-item:  Global(" << dec
-         << gid[0] << ","
-         << gid[1] << ","
-         << gid[2] << ")"
-         << " Local(" << dec
-         << lid[0] << ","
-         << lid[1] << ","
-         << lid[2] << ")"
-         << endl;
+    cerr << "\tWork-item: "
+         << " Global" << workItem->getGlobalID()
+         << " Local" << workItem->getLocalID() << endl;
   }
 
   // Work group
-  const WorkGroup *workGroup = m_device->getCurrentWorkGroup();
+  const WorkGroup *workGroup = m_kernelInvocation->getCurrentWorkGroup();
   if (workGroup)
   {
-    const size_t *group = workGroup->getGroupID();
-    cerr << "\tWork-group: (" << dec
-         << group[0] << ","
-         << group[1] << ","
-         << group[2] << ")"
-         << endl;
+    Size3 group = workGroup->getGroupID();
+    cerr << "\tWork-group: " << group << endl;
   }
 
   // Kernel
-  const KernelInvocation *ki = m_device->getCurrentKernelInvocation();
-  if (ki && ki->kernel)
+  const Kernel *kernel = m_kernelInvocation->getKernel();
+  if (kernel)
   {
-    cerr << "\tKernel:     " << ki->kernel->getName() << endl;
+    cerr << "\tKernel:     " << kernel->getName() << endl;
   }
 
   // Instruction
@@ -367,14 +346,20 @@ void Context::notifyInstructionExecuted(const WorkItem *workItem,
   NOTIFY(instructionExecuted, workItem, instruction, result);
 }
 
-void Context::notifyKernelBegin(const KernelInvocation *kernelInvocation) const
+void Context::notifyKernelBegin(KernelInvocation *kernelInvocation) const
 {
+  assert(m_kernelInvocation == NULL);
+  m_kernelInvocation = kernelInvocation;
+
   NOTIFY(kernelBegin, kernelInvocation);
 }
 
-void Context::notifyKernelEnd(const KernelInvocation *kernelInvocation) const
+void Context::notifyKernelEnd(KernelInvocation *kernelInvocation) const
 {
   NOTIFY(kernelEnd, kernelInvocation);
+
+  assert(m_kernelInvocation == kernelInvocation);
+  m_kernelInvocation = NULL;
 }
 
 void Context::notifyMemoryAllocated(const Memory *memory, size_t address,

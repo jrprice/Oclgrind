@@ -114,9 +114,9 @@ set(CORE_HEADERS
   src/core/clc.h
   src/core/common.h
   src/core/Context.h
-  src/core/Device.h
   src/core/half.h
   src/core/Kernel.h
+  src/core/KernelInvocation.h
   src/core/Memory.h
   src/core/Plugin.h
   src/core/Program.h
@@ -129,8 +129,8 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/core/clc_h.cpp
   src/core/common.cpp
   src/core/Context.cpp
-  src/core/Device.cpp
   src/core/Kernel.cpp
+  src/core/KernelInvocation.cpp
   src/core/Memory.cpp
   src/core/Plugin.cpp
   src/core/Program.cpp

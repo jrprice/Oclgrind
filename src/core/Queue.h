@@ -12,7 +12,6 @@
 namespace oclgrind
 {
   class Context;
-  class Device;
   class Kernel;
 
   struct Event
@@ -158,7 +157,7 @@ namespace oclgrind
     };
 
   public:
-    Queue(const Context *context, Device *device);
+    Queue(const Context *context);
     virtual ~Queue();
 
     Event* enqueue(Command *command);
@@ -179,7 +178,6 @@ namespace oclgrind
 
   private:
     const Context *m_context;
-    Device *m_device;
     std::queue<Command*> m_queue;
   };
 }

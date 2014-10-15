@@ -13,8 +13,8 @@
 #include <sstream>
 
 #include "core/Context.h"
-#include "core/Device.h"
 #include "core/Kernel.h"
+#include "core/KernelInvocation.h"
 #include "core/Memory.h"
 #include "core/Program.h"
 #include "kernel/Simulation.h"
@@ -680,7 +680,7 @@ void Simulation::run(bool dumpGlobalMemory)
   assert(m_kernel->allArgumentsSet());
 
   size_t offset[] = {0, 0, 0};
-  m_context->getDevice()->run(m_kernel, 3, offset, m_ndrange, m_wgsize);
+  KernelInvocation::run(m_context, m_kernel, 3, offset, m_ndrange, m_wgsize);
 
   // Dump individual arguments
   list<DumpArg>::iterator itr;
