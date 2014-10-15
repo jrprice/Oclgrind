@@ -37,6 +37,7 @@ using namespace std;
 Context::Context()
 {
   m_globalMemory = new Memory(AddrSpaceGlobal, this);
+  m_kernelInvocation = NULL;
 
   loadPlugins();
 }
