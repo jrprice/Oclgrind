@@ -16,7 +16,8 @@ namespace oclgrind
   class WorkGroup;
   class WorkItem;
 
-  typedef std::list<Plugin*> PluginList;
+  typedef std::pair<Plugin*, bool> PluginEntry;
+  typedef std::list<PluginEntry> PluginList;
 
   class Context
   {
@@ -58,6 +59,7 @@ namespace oclgrind
     void notifyWorkGroupBarrier(const WorkGroup *workGroup,
                                 uint32_t flags) const;
 
+    // Plugins
     void registerPlugin(Plugin *plugin);
     void unregisterPlugin(Plugin *plugin);
 
@@ -66,7 +68,9 @@ namespace oclgrind
     Memory *m_globalMemory;
 
     PluginList m_plugins;
+    std::list<void*> m_pluginLibraries;
     void loadPlugins();
+    void unloadPlugins();
 
     void printErrorContext() const;
     void printInstruction(const llvm::Instruction *instruction) const;

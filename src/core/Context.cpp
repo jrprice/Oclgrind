@@ -45,6 +45,8 @@ Context::Context()
 Context::~Context()
 {
   delete m_globalMemory;
+
+  unloadPlugins();
 }
 
 Memory* Context::getGlobalMemory() const
@@ -54,24 +56,21 @@ Memory* Context::getGlobalMemory() const
 
 void Context::loadPlugins()
 {
-  // TODO: When can we destroy plugins?
-
-  // Register core plugins
-
+  // Create core plugins
   const char *instCounts = getenv("OCLGRIND_INST_COUNTS");
   if (instCounts && strcmp(instCounts, "1") == 0)
-    m_plugins.push_back(new InstructionCounter(this));
+    m_plugins.push_back(make_pair(new InstructionCounter(this), true));
 
   const char *dataRaces = getenv("OCLGRIND_DATA_RACES");
   if (dataRaces && strcmp(dataRaces, "1") == 0)
-    m_plugins.push_back(new RaceDetector(this));
+    m_plugins.push_back(make_pair(new RaceDetector(this), true));
 
   const char *interactive = getenv("OCLGRIND_INTERACTIVE");
   if (interactive && strcmp(interactive, "1") == 0)
-    m_plugins.push_back(new InteractiveDebugger(this));
+    m_plugins.push_back(make_pair(new InteractiveDebugger(this), true));
 
 
-  // Register dynamic plugins
+  // Load dynamic plugins
   const char *dynamicPlugins = getenv("OCLGRIND_PLUGINS");
   if (dynamicPlugins)
   {
@@ -88,7 +87,7 @@ void Context::loadPlugins()
         continue;
       }
 
-      void *initialize = GetProcAddress(library, "initializePlugin");
+      void *initialize = GetProcAddress(library, "initializePlugins");
       if (!initialize)
       {
         cerr << "Loading Oclgrind plugin failed (GetProcAddress): "
@@ -99,21 +98,69 @@ void Context::loadPlugins()
       void *library = dlopen(libpath.c_str(), RTLD_NOW);
       if (!library)
       {
-        cerr << "Loading Oclgrind plugin failed: " << dlerror() << endl;
+        cerr << "Loading Oclgrind plugin failed (dlopen): "
+             << dlerror() << endl;
         continue;
       }
 
-      void *initialize = dlsym(library, "initializePlugin");
+      void *initialize = dlsym(library, "initializePlugins");
       if (!initialize)
       {
-        cerr << "Loading Oclgrind plugin failed: " << dlerror() << endl;
+        cerr << "Loading Oclgrind plugin failed (dlsym): "
+             << dlerror() << endl;
         continue;
       }
 #endif
 
       ((void(*)(Context*))initialize)(this);
+      m_pluginLibraries.push_back(library);
     }
   }
+}
+
+void Context::unloadPlugins()
+{
+  // Release dynamic plugin libraries
+  list<void*>::iterator plibItr;
+  for (plibItr = m_pluginLibraries.begin();
+       plibItr != m_pluginLibraries.end(); plibItr++)
+  {
+#if defined(_WIN32) && !defined(__MINGW32__)
+      void *release = GetProcAddress(*plibItr, "releasePlugins");
+      if (release)
+      {
+        ((void(*)(Context*))release)(this);
+      }
+      FreeLibrary(*plibItr);
+#else
+      void *release = dlsym(*plibItr, "releasePlugins");
+      if (release)
+      {
+        ((void(*)(Context*))release)(this);
+      }
+      dlclose(*plibItr);
+#endif
+  }
+
+  // Destroy internal plugins
+  PluginList::iterator pItr;
+  for (pItr = m_plugins.begin(); pItr != m_plugins.end(); pItr++)
+  {
+    if (pItr->second)
+      delete pItr->first;
+  }
+
+  m_plugins.clear();
+}
+
+void Context::registerPlugin(Plugin *plugin)
+{
+  m_plugins.push_back(make_pair(plugin, false));
+}
+
+void Context::unregisterPlugin(Plugin *plugin)
+{
+  m_plugins.remove(make_pair(plugin, false));
 }
 
 void Context::logDataRace(DataRaceType type, unsigned int addrSpace,
@@ -345,7 +392,7 @@ void Context::printInstruction(const llvm::Instruction *instruction) const
   for (pluginItr = m_plugins.begin();             \
        pluginItr != m_plugins.end(); pluginItr++) \
   {                                               \
-    (*pluginItr)->function(__VA_ARGS__);          \
+    pluginItr->first->function(__VA_ARGS__);      \
   }
 
 void Context::notifyInstructionExecuted(const WorkItem *workItem,
@@ -408,13 +455,3 @@ void Context::notifyWorkGroupBarrier(const WorkGroup *workGroup,
 }
 
 #undef NOTIFY
-
-void Context::registerPlugin(Plugin *plugin)
-{
-  m_plugins.push_back(plugin);
-}
-
-void Context::unregisterPlugin(Plugin *plugin)
-{
-  m_plugins.remove(plugin);
-}
