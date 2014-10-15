@@ -1,0 +1,13 @@
+#
+# Issue #64 on GitHub:
+# https://github.com/jrprice/Oclgrind/issues/64
+#
+# Required alignment for multi-dimensional arrays was incorrect.
+#
+
+multidim_array_in_struct.cl
+multidim_array_in_struct
+1 1 1
+1 1 1
+
+<size=8 fill=0 dump>
