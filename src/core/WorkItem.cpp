@@ -604,7 +604,7 @@ INSTRUCTION(br)
   else
   {
     // Conditional branch
-    bool pred = *((bool*)getValue(instruction->getOperand(0)).data);
+    bool pred = getOperand(instruction->getOperand(0)).getUInt();
     const llvm::Value *iftrue = instruction->getOperand(2);
     const llvm::Value *iffalse = instruction->getOperand(1);
     m_position->nextBlock = (const llvm::BasicBlock*)(pred ? iftrue : iffalse);
