@@ -4760,21 +4760,24 @@ clEnqueueNDRangeKernel
                     "Not all kernel arguments set");
   }
 
-  // Enqueue command
+  // Set-up offsets and sizes
   oclgrind::Queue::KernelCommand *cmd = new oclgrind::Queue::KernelCommand();
   cmd->kernel = new oclgrind::Kernel(*kernel->kernel);
   cmd->work_dim = work_dim;
-  memcpy(cmd->global_size, global_work_size, work_dim*sizeof(size_t));
-  memset(cmd->global_offset, 0, 3*sizeof(size_t));
-  memset(cmd->local_size, 0, 3*sizeof(size_t));
+  cmd->globalSize   = oclgrind::Size3(1, 1, 1);
+  cmd->globalOffset = oclgrind::Size3(0, 0, 0);
+  cmd->localSize    = oclgrind::Size3(1, 1, 1);
+  memcpy(&cmd->globalSize, global_work_size, work_dim*sizeof(size_t));
   if (global_work_offset)
   {
-    memcpy(cmd->global_offset, global_work_offset, work_dim*sizeof(size_t));
+    memcpy(&cmd->globalOffset, global_work_offset, work_dim*sizeof(size_t));
   }
   if (local_work_size)
   {
-    memcpy(cmd->local_size, local_work_size, work_dim*sizeof(size_t));
+    memcpy(&cmd->localSize, local_work_size, work_dim*sizeof(size_t));
   }
+
+  // Enqueue command
   asyncQueueRetain(cmd, kernel);
   asyncEnqueue(command_queue, CL_COMMAND_NDRANGE_KERNEL, cmd,
                num_events_in_wait_list, event_wait_list, event);

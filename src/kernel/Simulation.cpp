@@ -139,18 +139,18 @@ bool Simulation::load(const char *filename)
     PARSING("kernel");
     get(kernelName);
     PARSING("NDRange");
-    get(m_ndrange[0]);
-    get(m_ndrange[1]);
-    get(m_ndrange[2]);
+    get(m_ndrange.x);
+    get(m_ndrange.y);
+    get(m_ndrange.z);
     PARSING("work-group size");
-    get(m_wgsize[0]);
-    get(m_wgsize[1]);
-    get(m_wgsize[2]);
+    get(m_wgsize.x);
+    get(m_wgsize.y);
+    get(m_wgsize.z);
 
     // Ensure work-group size exactly divides NDRange
-    if (m_ndrange[0] % m_wgsize[0] ||
-        m_ndrange[1] % m_wgsize[1] ||
-        m_ndrange[2] % m_wgsize[2])
+    if (m_ndrange.x % m_wgsize.x ||
+        m_ndrange.y % m_wgsize.y ||
+        m_ndrange.z % m_wgsize.z)
     {
       cerr << "Work group size must divide NDRange exactly." << endl;
       return false;
@@ -679,7 +679,7 @@ void Simulation::run(bool dumpGlobalMemory)
   assert(m_kernel && m_program);
   assert(m_kernel->allArgumentsSet());
 
-  size_t offset[] = {0, 0, 0};
+  Size3 offset(0, 0, 0);
   KernelInvocation::run(m_context, m_kernel, 3, offset, m_ndrange, m_wgsize);
 
   // Dump individual arguments

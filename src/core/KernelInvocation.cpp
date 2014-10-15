@@ -182,9 +182,9 @@ bool KernelInvocation::nextWorkItem()
 
 void KernelInvocation::run(const Context *context, Kernel *kernel,
                            unsigned int workDim,
-                           const size_t *_globalOffset,
-                           const size_t *_globalSize,
-                           const size_t *_localSize)
+                           Size3 globalOffset,
+                           Size3 globalSize,
+                           Size3 localSize)
 {
   try
   {
@@ -201,19 +201,6 @@ void KernelInvocation::run(const Context *context, Kernel *kernel,
          << kernel->getName() << "'";
     context->logError(info.str().c_str());
     return;
-  }
-
-  // Set-up offsets and sizes
-  Size3 globalSize(1, 1, 1);
-  Size3 globalOffset(0, 0, 0);
-  Size3 localSize(1, 1, 1);
-  for (int i = 0; i < workDim; i++)
-  {
-    globalSize[i] = _globalSize[i];
-    if (_globalOffset[i])
-      globalOffset[i] = _globalOffset[i];
-    if (_localSize[i])
-      localSize[i] = _localSize[i];
   }
 
   // Create kernel invocation

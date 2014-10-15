@@ -6,7 +6,8 @@
 // license terms please see the LICENSE file distributed with this
 // source code.
 
-#include "config.h"
+#include "core/common.h"
+
 #include <fstream>
 #include <list>
 #include <sstream>
@@ -48,8 +49,8 @@ class Simulation
     oclgrind::Kernel *m_kernel;
     oclgrind::Program *m_program;
 
-    size_t m_ndrange[3];
-    size_t m_wgsize[3];
+    oclgrind::Size3 m_ndrange;
+    oclgrind::Size3 m_wgsize;
 
     std::ifstream m_simfile;
     std::string m_parsing;

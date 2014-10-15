@@ -120,9 +120,9 @@ namespace oclgrind
     {
       Kernel *kernel;
       unsigned int work_dim;
-      size_t global_offset[3];
-      size_t global_size[3];
-      size_t local_size[3];
+      Size3 globalOffset;
+      Size3 globalSize;
+      Size3 localSize;
       KernelCommand()
       {
         type = KERNEL;

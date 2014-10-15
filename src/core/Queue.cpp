@@ -109,9 +109,9 @@ void Queue::executeKernel(KernelCommand *cmd)
   KernelInvocation::run(m_context,
                         cmd->kernel,
                         cmd->work_dim,
-                        cmd->global_offset,
-                        cmd->global_size,
-                        cmd->local_size);
+                        cmd->globalOffset,
+                        cmd->globalSize,
+                        cmd->localSize);
 }
 
 void Queue::executeNativeKernel(NativeKernelCommand *cmd)

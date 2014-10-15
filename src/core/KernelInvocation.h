@@ -20,9 +20,9 @@ namespace oclgrind
   public:
     static void run(const Context *context, Kernel *kernel,
                     unsigned int workDim,
-                    const size_t *globalOffset,
-                    const size_t *globalSize,
-                    const size_t *localSize);
+                    Size3 globalOffset,
+                    Size3 globalSize,
+                    Size3 localSize);
 
     const Context* getContext() const;
     const WorkGroup* getCurrentWorkGroup() const;
