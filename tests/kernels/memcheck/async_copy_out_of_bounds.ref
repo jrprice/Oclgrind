@@ -1,0 +1,8 @@
+ERROR EXPECTED
+
+Argument 'dst': 16 bytes
+  dst[0] = 0
+  dst[1] = 0
+  dst[2] = 1
+  dst[3] = 2
+
