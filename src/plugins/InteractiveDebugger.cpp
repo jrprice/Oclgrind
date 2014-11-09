@@ -151,27 +151,15 @@ void InteractiveDebugger::instructionExecuted(
 
 void InteractiveDebugger::kernelBegin(KernelInvocation *kernelInvocation)
 {
-  // Get source code (if available) and split into lines
-  m_kernelInvocation = kernelInvocation;
-  m_program = kernelInvocation->getKernel()->getProgram();
-  string source = m_program->getSource();
-  m_sourceLines.clear();
-  if (!source.empty())
-  {
-    std::stringstream ss(source);
-    std::string line;
-    while(std::getline(ss, line, '\n'))
-    {
-      m_sourceLines.push_back(line);
-    }
-  }
-
   m_continue      = false;
   m_lastBreakLine = 0;
   m_listPosition  = 0;
   m_next          = false;
   m_previousDepth = 0;
   m_previousLine  = 0;
+
+  m_kernelInvocation = kernelInvocation;
+  m_program = kernelInvocation->getKernel()->getProgram();
 }
 
 void InteractiveDebugger::kernelEnd(KernelInvocation *kernelInvocation)
@@ -256,7 +244,7 @@ void InteractiveDebugger::printCurrentLine() const
   }
 
   size_t lineNum = getCurrentLineNumber();
-  if (!m_sourceLines.empty() && lineNum > 0)
+  if (m_program->getNumSourceLines() && lineNum > 0)
   {
     printSourceLine(lineNum);
   }
@@ -293,9 +281,10 @@ void InteractiveDebugger::printFunction(
 
 void InteractiveDebugger::printSourceLine(size_t lineNum) const
 {
-  if (lineNum && lineNum <= m_sourceLines.size())
+  const char *line = m_program->getSourceLine(lineNum);
+  if (line)
   {
-    cout << dec << lineNum << "\t" << m_sourceLines[lineNum-1] << endl;
+    cout << dec << lineNum << "\t" << line << endl;
   }
   else
   {
@@ -362,7 +351,7 @@ bool InteractiveDebugger::backtrace(vector<string> args)
 
 bool InteractiveDebugger::brk(vector<string> args)
 {
-  if (m_sourceLines.empty())
+  if (!m_program->getNumSourceLines())
   {
     cout << "Breakpoints only valid when source is available." << endl;
     return false;
@@ -374,7 +363,7 @@ bool InteractiveDebugger::brk(vector<string> args)
     // Parse argument as a target line number
     istringstream ss(args[1]);
     ss >> lineNum;
-    if (!ss.eof() || !lineNum || lineNum > m_sourceLines.size()+1)
+    if (!ss.eof() || !lineNum || lineNum > m_program->getNumSourceLines()+1)
     {
       cout << "Invalid line number." << endl;
       return false;
@@ -613,7 +602,7 @@ bool InteractiveDebugger::list(vector<string> args)
     cout << "All work-items finished." << endl;
     return false;
   }
-  if (m_sourceLines.empty())
+  if (!m_program->getNumSourceLines())
   {
     cout << "No source code available." << endl;
     return false;
@@ -649,9 +638,9 @@ bool InteractiveDebugger::list(vector<string> args)
       // Starting position is the previous list position + LIST_LENGTH
       start = m_listPosition ?
         m_listPosition + LIST_LENGTH : getCurrentLineNumber() + 1;
-      if (start >= m_sourceLines.size() + 1)
+      if (start >= m_program->getNumSourceLines() + 1)
       {
-        m_listPosition = m_sourceLines.size() + 1;
+        m_listPosition = m_program->getNumSourceLines() + 1;
         return false;
       }
     }
@@ -666,7 +655,7 @@ bool InteractiveDebugger::list(vector<string> args)
   // Display lines
   for (int i = 0; i < LIST_LENGTH; i++)
   {
-    if (start + i >= m_sourceLines.size() + 1)
+    if (start + i >= m_program->getNumSourceLines() + 1)
     {
       break;
     }

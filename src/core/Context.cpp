@@ -21,6 +21,7 @@
 #include "Kernel.h"
 #include "KernelInvocation.h"
 #include "Memory.h"
+#include "Program.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
@@ -371,10 +372,23 @@ Context::Message& Context::Message::operator<<(
     }
     else
     {
-      // TODO: Show line of source code
       llvm::DILocation loc(md);
+
       *this << "At line " << dec << loc.getLineNumber()
-           << " of " << loc.getFilename().str();
+           << " of " << loc.getFilename().str() << ":" << endl;
+
+      // Get source line
+      const Program *program = m_kernelInvocation->getKernel()->getProgram();
+      const char *line = program->getSourceLine(loc.getLineNumber());
+      if (line)
+      {
+        while (isspace(line[0]))
+          line++;
+        *this << "  " << line;
+      }
+      else
+        *this << "  (source not available)";
+
     }
   }
   else

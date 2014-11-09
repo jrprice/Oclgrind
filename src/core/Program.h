@@ -53,6 +53,8 @@ namespace oclgrind
     std::list<std::string> getKernelNames() const;
     unsigned int getNumKernels() const;
     const std::string& getSource() const;
+    const char* getSourceLine(size_t lineNumber) const;
+    size_t getNumSourceLines() const;
     unsigned long getUID() const;
 
   private:
@@ -65,6 +67,7 @@ namespace oclgrind
     std::string m_buildOptions;
     unsigned int m_buildStatus;
     const Context *m_context;
+    std::vector<std::string> m_sourceLines;
 
     unsigned long m_uid;
     unsigned long generateUID() const;

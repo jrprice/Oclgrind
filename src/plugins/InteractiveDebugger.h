@@ -36,7 +36,6 @@ namespace oclgrind
     size_t m_nextBreakpoint;
     size_t m_previousDepth;
     size_t m_previousLine;
-    std::vector<std::string> m_sourceLines;
     std::map<const Program*, std::map<size_t, size_t> > m_breakpoints;
     const Program *m_program;
     KernelInvocation *m_kernelInvocation;

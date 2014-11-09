@@ -76,6 +76,18 @@ Program::Program(const Context *context, const string& source)
   m_buildOptions = "";
   m_buildStatus = CL_BUILD_NONE;
   m_uid = 0;
+
+  // Split source into individual lines
+  m_sourceLines.clear();
+  if (!source.empty())
+  {
+    std::stringstream ss(source);
+    std::string line;
+    while(std::getline(ss, line, '\n'))
+    {
+      m_sourceLines.push_back(line);
+    }
+  }
 }
 
 Program::~Program()
@@ -534,6 +546,19 @@ unsigned int Program::getNumKernels() const
 const string& Program::getSource() const
 {
   return m_source;
+}
+
+const char* Program::getSourceLine(size_t lineNumber) const
+{
+  if (!lineNumber || (lineNumber-1) >= m_sourceLines.size())
+    return NULL;
+
+  return m_sourceLines[lineNumber-1].c_str();
+}
+
+size_t Program::getNumSourceLines() const
+{
+  return m_sourceLines.size();
 }
 
 unsigned long Program::getUID() const
