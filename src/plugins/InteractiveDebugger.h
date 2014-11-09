@@ -22,12 +22,14 @@ namespace oclgrind
                                      const TypedValue& result);
     virtual void kernelBegin(KernelInvocation *kernelInvocation);
     virtual void kernelEnd(KernelInvocation *kernelInvocation);
+    virtual void log(MessageType type, const char *message);
 
     std::string getOpcodeName(unsigned opcode) const;
   private:
 
     bool m_continue;
     bool m_running;
+    bool m_forceBreak;
     size_t m_listPosition;
     bool m_next;
     size_t m_lastBreakLine;

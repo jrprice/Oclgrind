@@ -39,6 +39,7 @@ InteractiveDebugger::InteractiveDebugger(const Context *context)
   : Plugin(context)
 {
   m_running          = true;
+  m_forceBreak       = false;
   m_nextBreakpoint   = 1;
   m_program          = NULL;
   m_kernelInvocation = NULL;
@@ -70,6 +71,8 @@ void InteractiveDebugger::instructionExecuted(
 {
   if (!shouldShowPrompt(workItem))
     return;
+
+  m_forceBreak = false;
 
   // Print function if changed
   if (m_previousDepth != workItem->getCallStack().size() &&
@@ -174,6 +177,12 @@ void InteractiveDebugger::kernelBegin(KernelInvocation *kernelInvocation)
 void InteractiveDebugger::kernelEnd(KernelInvocation *kernelInvocation)
 {
   m_kernelInvocation = NULL;
+}
+
+void InteractiveDebugger::log(MessageType type, const char *message)
+{
+  if (type == ERROR)
+    m_forceBreak = true;
 }
 
 ///////////////////////////
@@ -298,6 +307,9 @@ bool InteractiveDebugger::shouldShowPrompt(const WorkItem *workItem)
 {
   if (!m_running)
     return false;
+
+  if (m_forceBreak)
+    return true;
 
   if (hasHitBreakpoint())
     return true;
