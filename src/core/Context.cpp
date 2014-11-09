@@ -163,19 +163,15 @@ void Context::unregisterPlugin(Plugin *plugin)
   m_plugins.remove(make_pair(plugin, false));
 }
 
-void Context::logError(const char* error, const char* info) const
+void Context::logError(const char* error) const
 {
-  // Error info
-  cerr << endl << error << endl;
-  printErrorContext();
-  if (info)
-  {
-    cerr << "\t" << info << endl;
-  }
-  cerr << endl;
-
-  // TODO: THIS (notifyError)
-  //m_device->forceBreak();
+  Message msg(ERROR, this);
+  msg << error << endl
+      << msg.INDENT
+      << "Kernel: " << msg.CURRENT_KERNEL << endl
+      << "Entity: " << msg.CURRENT_ENTITY << endl
+      << msg.CURRENT_LOCATION << endl;
+  msg.send();
 }
 
 void Context::logMemoryError(bool read, unsigned int addrSpace,

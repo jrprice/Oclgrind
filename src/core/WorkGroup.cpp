@@ -400,7 +400,7 @@ void WorkGroup::notifyFinished(WorkItem *workItem)
   // Check if work-group finished without waiting for all events
   if (m_running.empty() && !m_barrier && !m_events.empty())
   {
-    m_context->logError("Work-group finished without waiting for events");
+    m_context->logError("Work-item finished without waiting for events");
   }
 }
 
