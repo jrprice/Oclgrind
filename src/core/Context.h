@@ -28,10 +28,6 @@ namespace oclgrind
     Memory* getGlobalMemory() const;
 
     // Error logging
-    void logDivergence(const llvm::Instruction *instruction,
-                       std::string divergence,
-                       std::string currentInfo="",
-                       std::string lastInfo="") const;
     void logError(const char* error, const char* info=0) const;
     void logMemoryError(bool read, unsigned int addrSpace,
                         size_t address, size_t size) const;

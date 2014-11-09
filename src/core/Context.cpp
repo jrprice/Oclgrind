@@ -163,37 +163,6 @@ void Context::unregisterPlugin(Plugin *plugin)
   m_plugins.remove(make_pair(plugin, false));
 }
 
-void Context::logDivergence(const llvm::Instruction *instruction,
-                            string divergence,
-                            string currentInfo, string previousInfo) const
-{
-  // Error info
-  cerr << endl
-       << "Work-group divergence detected ("
-       << divergence
-       << "):" << endl;
-  printErrorContext();
-  if (!currentInfo.empty())
-  {
-    cerr << "\t" << currentInfo << endl;
-  }
-  cerr << endl;
-
-  // Show divergent instruction/info
-  cerr << "Previous work-items executed this instruction:" << endl;
-  cerr << "\t";
-  printInstruction(instruction);
-  if (!previousInfo.empty())
-  {
-    cerr << "\t" << previousInfo << endl;
-  }
-
-  cerr << endl;
-
-  // TODO: THIS (notifyError)
-  //m_device->forceBreak();
-}
-
 void Context::logError(const char* error, const char* info) const
 {
   // Error info

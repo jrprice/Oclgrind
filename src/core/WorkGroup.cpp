@@ -110,21 +110,30 @@ size_t WorkGroup::async_copy(
         (itr->first.srcStride != copy.srcStride) ||
         (itr->first.destStride != copy.destStride))
     {
-      ostringstream current, previous;
-      current << "dest=0x" << hex << copy.dest << ", ";
-      current << "src=0x" << hex << copy.src << endl << "\t";
-      current << "elem_size=" << dec << copy.size << ", ";
-      current << "num_elems=" << dec << copy.num << ", ";
-      current << "src_stride=" << dec << copy.srcStride << ", ";
-      current << "dest_stride=" << dec << copy.destStride;
-      previous << "dest=0x" << hex << itr->first.dest << ", ";
-      previous << "src=0x" << hex << itr->first.src << endl << "\t";
-      previous << "elem_size=" << dec << itr->first.size << ", ";
-      previous << "num_elems=" << dec << itr->first.num << ", ";
-      previous << "src_stride=" << dec << itr->first.srcStride << ", ";
-      previous << "dest_stride=" << dec << itr->first.destStride;
-      m_context->logDivergence(copy.instruction, "async copy",
-                               current.str(), previous.str());
+      Context::Message msg(ERROR, m_context);
+      msg << "Work-group divergence detected (async copy)" << endl
+          << msg.INDENT
+          << "Kernel:     " << msg.CURRENT_KERNEL << endl
+          << "Work-group: " << msg.CURRENT_WORK_GROUP << endl
+          << endl
+          << "Work-item:  " << msg.CURRENT_ENTITY << endl
+          << msg.CURRENT_LOCATION << endl
+          << "dest=0x" << hex << copy.dest << ", "
+          << "src=0x" << hex << copy.src << endl
+          << "elem_size=" << dec << copy.size << ", "
+          << "num_elems=" << dec << copy.num << ", "
+          << "src_stride=" << dec << copy.srcStride << ", "
+          << "dest_stride=" << dec << copy.destStride << endl
+          << endl
+          << "Previous work-items executed:" << endl
+          << itr->first.instruction << endl
+          << "dest=0x" << hex << itr->first.dest << ", "
+          << "src=0x" << hex << itr->first.src << endl
+          << "elem_size=" << dec << itr->first.size << ", "
+          << "num_elems=" << dec << itr->first.num << ", "
+          << "src_stride=" << dec << itr->first.srcStride << ", "
+          << "dest_stride=" << dec << itr->first.destStride << endl;
+      msg.send();
     }
 
     itr->second.insert(workItem);
@@ -156,10 +165,15 @@ void WorkGroup::clearBarrier()
   // Check for divergence
   if (m_barrier->workItems.size() != m_workItems.size())
   {
-    ostringstream info;
-            info << "Only " << dec << m_barrier->workItems.size() << " out of "
-                 << m_workItems.size() << " work-items executed barrier";
-    m_context->logDivergence(m_barrier->instruction, "barrier", info.str());
+    Context::Message msg(ERROR, m_context);
+    msg << "Work-group divergence detected (barrier)" << endl
+        << msg.INDENT
+        << "Kernel:     " << msg.CURRENT_KERNEL << endl
+        << "Work-group: " << msg.CURRENT_WORK_GROUP << endl
+        << "Only " << dec << m_barrier->workItems.size() << " out of "
+        << m_workItems.size() << " work-items executed barrier" << endl
+        << m_barrier->instruction << endl;
+    msg.send();
   }
 
   // Move work-items to running state
@@ -218,11 +232,15 @@ void WorkGroup::clearBarrier()
         // Check that all work-items registered the copy
         if (cItr->second.size() != m_workItems.size())
         {
-          ostringstream info;
-          info << "Only " << dec << cItr->second.size() << " out of "
-               << m_workItems.size() << " work-items executed copy";
-          m_context->logDivergence(cItr->first.instruction, "async_copy",
-                                   info.str());
+          Context::Message msg(ERROR, m_context);
+          msg << "Work-group divergence detected (async copy)" << endl
+              << msg.INDENT
+              << "Kernel:     " << msg.CURRENT_KERNEL << endl
+              << "Work-group: " << msg.CURRENT_WORK_GROUP << endl
+              << "Only " << dec << cItr->second.size() << " out of "
+              << m_workItems.size() << " work-items executed copy" << endl
+              << cItr->first.instruction << endl;
+          msg.send();
         }
 
         cItr = m_asyncCopies.erase(cItr);
@@ -309,19 +327,17 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
   {
     // Check for divergence
     bool divergence = false;
-    ostringstream current, previous;
     if (instruction != m_barrier->instruction ||
         fence != m_barrier->fence ||
         events.size() != m_barrier->events.size())
     {
-      current << "fence=0x" << hex << fence << ", ";
-      current << "num_events=" << dec << events.size();
-      previous << "fence=0x" << hex << m_barrier->fence << ", ";
-      previous << "num_events=" << dec << m_barrier->events.size();
       divergence = true;
     }
 
     // Check events are all the same
+    int divergentEventIndex = -1;
+    size_t newEvent = -1;
+    size_t oldEvent = -1;
     if (!divergence)
     {
       int i = 0;
@@ -331,9 +347,12 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
       {
         if (*cItr != *pItr)
         {
-          current << "events[" << dec << i << "]=" << *cItr;
-          previous << "events[" << dec << i << "]=" << *pItr;
           divergence = true;
+
+          divergentEventIndex = i;
+          newEvent = *cItr;
+          oldEvent = *pItr;
+
           break;
         }
       }
@@ -341,8 +360,32 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
 
     if (divergence)
     {
-      m_context->logDivergence(m_barrier->instruction, "barrier",
-                               current.str(), previous.str());
+      Context::Message msg(ERROR, m_context);
+      msg << "Work-group divergence detected (barrier)" << endl
+          << msg.INDENT
+          << "Kernel:     " << msg.CURRENT_KERNEL << endl
+          << "Work-group: " << msg.CURRENT_WORK_GROUP << endl
+          << endl
+          << "Work-item:  " << msg.CURRENT_ENTITY << endl
+          << msg.CURRENT_LOCATION << endl
+          << "fence=0x" << hex << fence << ", "
+          << "num_events=" << dec << events.size() << endl;
+      if (divergentEventIndex >= 0)
+      {
+        msg << "events[" << dec << divergentEventIndex << "]="
+            << newEvent << endl;
+      }
+      msg << endl
+          << "Previous work-items executed:" << endl
+          << m_barrier->instruction << endl
+          << "fence=0x" << hex << m_barrier->fence << ", "
+          << "num_events=" << dec << m_barrier->events.size() << endl;
+      if (divergentEventIndex >= 0)
+      {
+        msg << "events[" << dec << divergentEventIndex << "]="
+            << oldEvent << endl;
+      }
+      msg.send();
     }
   }
 
