@@ -47,6 +47,8 @@ namespace oclgrind
     void notifyMessage(MessageType type, const char *message) const;
     void notifyWorkGroupBarrier(const WorkGroup *workGroup,
                                 uint32_t flags) const;
+    void notifyWorkGroupComplete(const WorkGroup *workGroup) const;
+    void notifyWorkItemComplete(const WorkItem *workItem) const;
 
 
     // Plugins

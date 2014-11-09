@@ -39,6 +39,8 @@ namespace oclgrind
     virtual void memoryStore(const Memory *memory, size_t address, size_t size,
                              const uint8_t *storeData){}
     virtual void workGroupBarrier(const WorkGroup *workGroup, uint32_t flags){}
+    virtual void workGroupComplete(const WorkGroup *workGroup){}
+    virtual void workItemComplete(const WorkItem *workItem){}
 
   protected:
     const Context *m_context;

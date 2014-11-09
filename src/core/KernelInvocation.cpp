@@ -146,6 +146,7 @@ bool KernelInvocation::nextWorkItem()
     }
 
     // All work-items must have finished, destroy work-group
+    m_context->notifyWorkGroupComplete(m_currentWorkGroup);
     delete m_currentWorkGroup;
     m_currentWorkGroup = NULL;
   }
