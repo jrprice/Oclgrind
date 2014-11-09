@@ -27,10 +27,7 @@ namespace oclgrind
 
     Memory* getGlobalMemory() const;
 
-    // Error logging
     void logError(const char* error) const;
-    void logMemoryError(bool read, unsigned int addrSpace,
-                        size_t address, size_t size) const;
 
     // Simulation callbacks
     void notifyInstructionExecuted(const WorkItem *workItem,
@@ -64,9 +61,6 @@ namespace oclgrind
     std::list<void*> m_pluginLibraries;
     void loadPlugins();
     void unloadPlugins();
-
-    void printErrorContext() const;
-    void printInstruction(const llvm::Instruction *instruction) const;
 
   public:
     class Message

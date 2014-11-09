@@ -80,7 +80,7 @@ uint32_t* Memory::atomic(size_t address)
   // Bounds check
   if (!isAddressValid(address, 4))
   {
-    m_context->logMemoryError(true, m_addressSpace, address, 4);
+    logError(true, m_addressSpace, address, 4);
     return NULL;
   }
 
@@ -123,7 +123,7 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   // Bounds check
   if (!isAddressValid(address, 4))
   {
-    m_context->logMemoryError(true, m_addressSpace, address, 4);
+    logError(true, m_addressSpace, address, 4);
     return 0;
   }
 
@@ -338,12 +338,12 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
   // Bounds checks
   if (!isAddressValid(src, size))
   {
-    m_context->logMemoryError(true, m_addressSpace, src, size);
+    logError(true, m_addressSpace, src, size);
     return false;
   }
   if (!isAddressValid(dest, size))
   {
-    m_context->logMemoryError(false, m_addressSpace, dest, size);
+    logError(false, m_addressSpace, dest, size);
     return false;
   }
 
@@ -465,7 +465,7 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   // Bounds check
   if (!isAddressValid(address, size))
   {
-    m_context->logMemoryError(true, m_addressSpace, address, size);
+    logError(true, m_addressSpace, address, size);
     return false;
   }
 
@@ -478,6 +478,42 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   memcpy(dest, src.data + offset, size);
 
   return true;
+}
+
+void Memory::logError(bool read, unsigned int addrSpace,
+                      size_t address, size_t size) const
+{
+  const char *memType;
+  switch (addrSpace)
+  {
+  case AddrSpacePrivate:
+    memType = "private";
+    break;
+  case AddrSpaceGlobal:
+    memType = "global";
+    break;
+  case AddrSpaceConstant:
+    memType = "constant";
+    break;
+  case AddrSpaceLocal:
+    memType = "local";
+    break;
+  default:
+    assert(false && "Memory error in unsupported address space.");
+    break;
+  }
+
+  // Error info
+  Context::Message msg(ERROR, m_context);
+  msg << "Invalid " << (read ? "read" : "write")
+      << " of size " << size
+      << " at " << memType
+      << " memory address 0x" << hex << address << endl
+      << msg.INDENT
+      << "Kernel: " << msg.CURRENT_KERNEL << endl
+      << "Entity: " << msg.CURRENT_ENTITY << endl
+      << msg.CURRENT_LOCATION << endl;
+  msg.send();
 }
 
 unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
@@ -498,7 +534,7 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
   // Bounds check
   if (!isAddressValid(address, size))
   {
-    m_context->logMemoryError(false, m_addressSpace, address, size);
+    logError(false, m_addressSpace, address, size);
     return false;
   }
 
