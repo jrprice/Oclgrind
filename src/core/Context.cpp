@@ -8,9 +8,6 @@
 
 #include "common.h"
 
-#include <cassert>
-#include <sstream>
-
 #if defined(_WIN32) && !defined(__MINGW32__)
 #include <windows.h>
 #else
@@ -164,94 +161,6 @@ void Context::registerPlugin(Plugin *plugin)
 void Context::unregisterPlugin(Plugin *plugin)
 {
   m_plugins.remove(make_pair(plugin, false));
-}
-
-void Context::logDataRace(DataRaceType type, unsigned int addrSpace,
-                          size_t address,
-                          size_t lastWorkItem,
-                          size_t lastWorkGroup,
-                          const llvm::Instruction *lastInstruction) const
-{
-  string memType;
-  switch (addrSpace)
-  {
-  case AddrSpacePrivate:
-    memType = "private";
-    break;
-  case AddrSpaceGlobal:
-    memType = "global";
-    break;
-  case AddrSpaceConstant:
-    memType = "constant";
-    break;
-  case AddrSpaceLocal:
-    memType = "local";
-    break;
-  default:
-    assert(false && "Data race in unsupported address space.");
-    break;
-  }
-
-  // Error info
-  cerr << endl;
-  switch (type)
-  {
-    case ReadWriteRace:
-      cerr << "Read-write";
-      break;
-    case WriteWriteRace:
-      cerr << "Write-write";
-      break;
-    default:
-      cerr << "Unrecognized";
-      break;
-  }
-  cerr << " data race"
-       << " at " << memType
-       << " memory address " << hex << address << endl;
-
-  printErrorContext();
-  cerr << endl;
-
-  // Show details of other entity involved in race
-  if (lastWorkItem != -1)
-  {
-    size_t gx, gy, gz;
-    gx = lastWorkItem % m_kernelInvocation->getGlobalSize().x;
-    gy = (lastWorkItem - gx) / m_kernelInvocation->getGlobalSize().y;
-    gz = (lastWorkItem - gy - gx) / m_kernelInvocation->getGlobalSize().z;
-    cerr << "\tRace occurred with work-item (" << dec
-         << gx << ","
-         << gy << ","
-         << gz << ")" << endl;
-  }
-  else if (lastWorkGroup != -1)
-  {
-    size_t gx, gy, gz;
-    gx = lastWorkGroup % m_kernelInvocation->getNumGroups().x;
-    gy = (lastWorkGroup - gx) / m_kernelInvocation->getNumGroups().y;
-    gz = (lastWorkGroup - gy - gx) / m_kernelInvocation->getNumGroups().z;
-    cerr << "\tRace occurred with work-group (" << dec
-         << gx << ","
-         << gy << ","
-         << gz << ")" << endl;
-  }
-  else
-  {
-    cerr << "\tRace occurred with unknown entity" << endl;
-  }
-
-  // Show conflicting instruction
-  if (lastInstruction)
-  {
-    cerr << "\t";
-    printInstruction(lastInstruction);
-  }
-
-  cerr << endl;
-
-  // TODO: THIS (notifyError)
-  //m_device->forceBreak();
 }
 
 void Context::logDivergence(const llvm::Instruction *instruction,

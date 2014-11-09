@@ -28,11 +28,6 @@ namespace oclgrind
     Memory* getGlobalMemory() const;
 
     // Error logging
-    void logDataRace(DataRaceType type, unsigned int addrSpace,
-                     size_t address,
-                     size_t lastWorkGroup,
-                     size_t lastWorkItem,
-                     const llvm::Instruction *lastInstruction) const;
     void logDivergence(const llvm::Instruction *instruction,
                        std::string divergence,
                        std::string currentInfo="",

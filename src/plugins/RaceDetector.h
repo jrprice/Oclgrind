@@ -46,6 +46,13 @@ namespace oclgrind
       State();
     };
 
+    // Enumeration for types of data-race
+    enum DataRaceType
+    {
+      ReadWriteRace,
+      WriteWriteRace
+    };
+
     typedef std::map<
                       std::pair<const Memory*, size_t>,
                       std::pair<State*, size_t>
@@ -55,6 +62,12 @@ namespace oclgrind
     bool m_allowUniformWrites;
     const KernelInvocation *m_kernelInvocation;
 
+    void logRace(DataRaceType type,
+                 unsigned int addrSpace,
+                 size_t address,
+                 size_t lastWorkGroup,
+                 size_t lastWorkItem,
+                 const llvm::Instruction *lastInstruction) const;
     void registerLoadStore(const Memory *memory, size_t address,
                            size_t size, const uint8_t *storeData);
     void synchronize(const Memory *memory, bool workGroup);

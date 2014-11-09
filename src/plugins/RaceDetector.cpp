@@ -65,12 +65,12 @@ void RaceDetector::memoryAtomic(const Memory *memory, size_t address,
     // Check for races with non-atomic operations
     if (!state->canAtomic && workItemIndex != state->workItem)
     {
-      m_context->logDataRace(ReadWriteRace,
-                             memory->getAddressSpace(),
-                             address,
-                             state->workItem,
-                             state->workGroup,
-                             state->instruction);
+      logRace(ReadWriteRace,
+              memory->getAddressSpace(),
+              address,
+              state->workItem,
+              state->workGroup,
+              state->instruction);
     }
 
     // Update state
@@ -103,6 +103,82 @@ void RaceDetector::memoryStore(const Memory *memory, size_t address,
                                size_t size, const uint8_t *storeData)
 {
   registerLoadStore(memory, address, size, storeData);
+}
+
+void RaceDetector::logRace(DataRaceType type,
+                           unsigned int addrSpace,
+                           size_t address,
+                           size_t lastWorkGroup,
+                           size_t lastWorkItem,
+                           const llvm::Instruction *lastInstruction) const
+{
+  const char *memType = NULL;
+  switch (addrSpace)
+  {
+  case AddrSpacePrivate:
+    memType = "private";
+    break;
+  case AddrSpaceGlobal:
+    memType = "global";
+    break;
+  case AddrSpaceConstant:
+    memType = "constant";
+    break;
+  case AddrSpaceLocal:
+    memType = "local";
+    break;
+  default:
+    assert(false && "Memory error in unsupported address space.");
+    break;
+  }
+
+  const char *raceType = NULL;
+  switch (type)
+  {
+    case ReadWriteRace:
+      raceType = "Read-write";
+      break;
+    case WriteWriteRace:
+      raceType = "Write-write";
+      break;
+  }
+
+  Context::Message msg(ERROR, m_context);
+  msg << raceType << " data race at "
+      << memType << " memory address 0x" << hex << address << endl
+      << msg.INDENT
+      << "Kernel: " << msg.CURRENT_KERNEL << endl
+      << endl
+      << "First entity:  " << msg.CURRENT_ENTITY << endl
+      << msg.CURRENT_LOCATION << endl
+      << endl
+      << "Second entity: ";
+
+  // Show details of other entity involved in race
+  if (lastWorkItem != -1)
+  {
+    Size3 global(lastWorkItem, m_kernelInvocation->getGlobalSize());
+    Size3 local, group;
+    local.x = global.x % m_kernelInvocation->getLocalSize().x;
+    local.y = global.y % m_kernelInvocation->getLocalSize().y;
+    local.z = global.z % m_kernelInvocation->getLocalSize().z;
+    group.x = global.x / m_kernelInvocation->getLocalSize().x;
+    group.y = global.y / m_kernelInvocation->getLocalSize().y;
+    group.z = global.z / m_kernelInvocation->getLocalSize().z;
+    msg << "Global" << global << " Local" << local << " Group" << group;
+  }
+  else if (lastWorkGroup != -1)
+  {
+    msg << "Group"
+        << Size3(lastWorkGroup, m_kernelInvocation->getNumGroups());
+  }
+  else
+  {
+    msg << "(unknown)";
+  }
+  msg << endl
+      << lastInstruction << endl;
+  msg.send();
 }
 
 void RaceDetector::registerLoadStore(const Memory *memory, size_t address,
@@ -150,11 +226,11 @@ void RaceDetector::registerLoadStore(const Memory *memory, size_t address,
     {
       // Report data-race
       DataRaceType type = load|state->canRead ? ReadWriteRace : WriteWriteRace;
-      m_context->logDataRace(type, memory->getAddressSpace(),
-                             address + offset,
-                             state->workItem,
-                             state->workGroup,
-                             state->instruction);
+      logRace(type, memory->getAddressSpace(),
+              address + offset,
+              state->workItem,
+              state->workGroup,
+              state->instruction);
       race = true;
     }
     else

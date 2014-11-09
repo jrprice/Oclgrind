@@ -11,6 +11,7 @@
 
 #include "config.h"
 #include "CL/cl.h"
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -53,13 +54,6 @@ namespace oclgrind
     AddrSpaceGlobal = 1,
     AddrSpaceConstant = 2,
     AddrSpaceLocal = 3,
-  };
-
-  // Enumeration for types of data-race
-  enum DataRaceType
-  {
-    ReadWriteRace,
-    WriteWriteRace
   };
 
   // Enumeration for different log message types
