@@ -35,6 +35,13 @@ namespace oclgrind
     z = _z;
   }
 
+  _Size3_::_Size3_(size_t linear, _Size3_ dimensions)
+  {
+    x = linear % dimensions.x;
+    y = (linear / dimensions.x) % dimensions.y;
+    z = (linear / (dimensions.x * dimensions.y));
+  }
+
   size_t& Size3::operator[](size_t i)
   {
     switch (i)

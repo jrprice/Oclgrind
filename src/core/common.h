@@ -20,6 +20,7 @@
 #include <map>
 #include <queue>
 #include <set>
+#include <sstream>
 #include <stack>
 #include <stdexcept>
 #include <stdint.h>
@@ -61,12 +62,22 @@ namespace oclgrind
     WriteWriteRace
   };
 
+  // Enumeration for different log message types
+  enum MessageType
+  {
+    DEBUG,
+    INFO,
+    WARNING,
+    ERROR,
+  };
+
   // 3-dimensional size
   typedef struct _Size3_
   {
     size_t x, y, z;
     _Size3_();
     _Size3_(size_t x, size_t y, size_t z);
+    _Size3_(size_t linear, _Size3_ dimensions);
     size_t& operator[](size_t i);
     const size_t& operator[](size_t i) const;
     bool operator==(const _Size3_& rhs) const;

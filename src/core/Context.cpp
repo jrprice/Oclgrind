@@ -29,6 +29,7 @@
 
 #include "plugins/InstructionCounter.h"
 #include "plugins/InteractiveDebugger.h"
+#include "plugins/Logger.h"
 #include "plugins/RaceDetector.h"
 
 using namespace oclgrind;
@@ -57,6 +58,8 @@ Memory* Context::getGlobalMemory() const
 void Context::loadPlugins()
 {
   // Create core plugins
+  m_plugins.push_back(make_pair(new Logger(this), true));
+
   const char *instCounts = getenv("OCLGRIND_INST_COUNTS");
   if (instCounts && strcmp(instCounts, "1") == 0)
     m_plugins.push_back(make_pair(new InstructionCounter(this), true));
@@ -448,6 +451,11 @@ void Context::notifyMemoryStore(const Memory *memory, size_t address,
   NOTIFY(memoryStore, memory, address, size, storeData);
 }
 
+void Context::notifyMessage(MessageType type, const char *message) const
+{
+  NOTIFY(log, type, message);
+}
+
 void Context::notifyWorkGroupBarrier(const WorkGroup *workGroup,
                                      uint32_t flags) const
 {
@@ -455,3 +463,191 @@ void Context::notifyWorkGroupBarrier(const WorkGroup *workGroup,
 }
 
 #undef NOTIFY
+
+
+Context::Message::Message(MessageType type, const Context *context)
+{
+  m_type             = type;
+  m_context          = context;
+  m_kernelInvocation = context->m_kernelInvocation;
+}
+
+Context::Message& Context::Message::operator<<(const special& id)
+{
+  switch (id)
+  {
+  case INDENT:
+    m_indentModifiers.push_back( m_stream.tellp());
+    break;
+  case UNINDENT:
+    m_indentModifiers.push_back(-m_stream.tellp());
+    break;
+  case CURRENT_KERNEL:
+    *this << m_kernelInvocation->getKernel()->getName();
+    break;
+  case CURRENT_WORK_ITEM_GLOBAL:
+  {
+    const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+    if (workItem)
+    {
+      *this << workItem->getGlobalID();
+    }
+    else
+    {
+      *this << "(none)";
+    }
+    break;
+  }
+  case CURRENT_WORK_ITEM_LOCAL:
+  {
+    const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+    if (workItem)
+    {
+      *this << workItem->getLocalID();
+    }
+    else
+    {
+      *this << "(none)";
+    }
+    break;
+  }
+  case CURRENT_WORK_GROUP:
+  {
+    const WorkGroup *workGroup = m_kernelInvocation->getCurrentWorkGroup();
+    if (workGroup)
+    {
+      *this << workGroup->getGroupID();
+    }
+    else
+    {
+      *this << "(none)";
+    }
+    break;
+  }
+  case CURRENT_ENTITY:
+  {
+    const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+    const WorkGroup *workGroup = m_kernelInvocation->getCurrentWorkGroup();
+    if (workItem)
+    {
+      *this << "Global" << workItem->getGlobalID()
+            << " Local" << workItem->getLocalID() << " ";
+    }
+    if (workGroup)
+    {
+      *this << "Group" << workGroup->getGroupID();
+    }
+    if (!workItem && ! workGroup)
+    {
+      *this << "(unknown)";
+    }
+    break;
+  }
+  case CURRENT_LOCATION:
+  {
+    const llvm::Instruction *instruction = NULL;
+    const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+    if (workItem)
+    {
+      instruction = workItem->getCurrentInstruction();
+    }
+    // TODO: Attempt to get work-group location (e.g. barrier)
+
+    *this << instruction;
+    break;
+  }
+  }
+  return *this;
+}
+
+Context::Message& Context::Message::operator<<(
+  const llvm::Instruction *instruction)
+{
+  if (instruction)
+  {
+    // Output instruction
+    dumpInstruction(m_stream, instruction);
+    *this << endl;
+
+    // Output debug information
+    llvm::MDNode *md = instruction->getMetadata("dbg");
+    if (!md)
+    {
+      *this << "Debugging information not available." << endl;
+    }
+    else
+    {
+      // TODO: Show line of source code
+      llvm::DILocation loc(md);
+      *this << "At line " << dec << loc.getLineNumber()
+           << " of " << loc.getFilename().str();
+    }
+  }
+  else
+  {
+    *this << "(location unknown)";
+  }
+
+  return *this;
+}
+
+Context::Message& Context::Message::operator<<(
+  std::ostream& (*t)(std::ostream&))
+{
+  m_stream << t;
+  return *this;
+}
+
+Context::Message& Context::Message::operator<<(
+  std::ios& (*t)(std::ios&))
+{
+  m_stream << t;
+  return *this;
+}
+
+Context::Message& Context::Message::operator<<(
+  std::ios_base& (*t)(std::ios_base&))
+{
+  m_stream << t;
+  return *this;
+}
+
+void Context::Message::send() const
+{
+  string msg;
+
+  string line;
+  int currentIndent = 0;
+  list<int>::const_iterator itr = m_indentModifiers.begin();
+
+  m_stream.clear();
+  m_stream.seekg(0);
+  while (m_stream.good())
+  {
+    getline(m_stream, line);
+
+    // TODO: Wrap long lines
+    msg += line;
+
+    // Check for indentation modifiers
+    long pos = m_stream.tellg();
+    if (itr != m_indentModifiers.end() && pos >= abs(*itr))
+    {
+      if (*itr >= 0)
+        currentIndent++;
+      else
+        currentIndent--;
+      itr++;
+    }
+
+    if (!m_stream.eof())
+    {
+      // Add newline and indentation
+      msg += '\n';
+      for (int i = 0; i < currentIndent; i++)
+        msg += '\t';
+    }
+  }
+
+  m_context->notifyMessage(m_type, msg.c_str());
+}

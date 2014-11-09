@@ -56,8 +56,10 @@ namespace oclgrind
                           size_t size) const;
     void notifyMemoryStore(const Memory *memory, size_t address, size_t size,
                            const uint8_t *storeData) const;
+    void notifyMessage(MessageType type, const char *message) const;
     void notifyWorkGroupBarrier(const WorkGroup *workGroup,
                                 uint32_t flags) const;
+
 
     // Plugins
     void registerPlugin(Plugin *plugin);
@@ -74,5 +76,49 @@ namespace oclgrind
 
     void printErrorContext() const;
     void printInstruction(const llvm::Instruction *instruction) const;
+
+  public:
+    class Message
+    {
+    public:
+      enum special
+      {
+        INDENT,
+        UNINDENT,
+        CURRENT_KERNEL,
+        CURRENT_WORK_ITEM_GLOBAL,
+        CURRENT_WORK_ITEM_LOCAL,
+        CURRENT_WORK_GROUP,
+        CURRENT_ENTITY,
+        CURRENT_LOCATION,
+      };
+
+      Message(MessageType type, const Context *context);
+
+      Message& operator<<(const special& id);
+      Message& operator<<(const llvm::Instruction *instruction);
+
+      template<typename T>
+      Message& operator<<(const T& t);
+      Message& operator<<(std::ostream& (*t)(std::ostream&));
+      Message& operator<<(std::ios& (*t)(std::ios&));
+      Message& operator<<(std::ios_base& (*t)(std::ios_base&));
+
+      void send() const;
+
+    private:
+      MessageType                m_type;
+      const Context             *m_context;
+      const KernelInvocation    *m_kernelInvocation;
+      mutable std::stringstream  m_stream;
+      std::list<int>             m_indentModifiers;
+    };
   };
+
+  template<typename T>
+  Context::Message& Context::Message::operator<<(const T& t)
+  {
+    m_stream << t;
+    return *this;
+  }
 }

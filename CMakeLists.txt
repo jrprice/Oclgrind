@@ -142,6 +142,8 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/InstructionCounter.cpp
   src/plugins/InteractiveDebugger.h
   src/plugins/InteractiveDebugger.cpp
+  src/plugins/Logger.h
+  src/plugins/Logger.cpp
   src/plugins/RaceDetector.h
   src/plugins/RaceDetector.cpp)
 target_link_libraries(oclgrind ${CORE_EXTRA_LIBS}
