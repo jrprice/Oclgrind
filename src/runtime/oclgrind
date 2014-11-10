@@ -88,10 +88,11 @@ then
 fi
 
 # Inject liboclgrind.{so,dylib} and run command
+LIBDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../lib"
 if [ "$(uname -s)" == "Darwin" ]
 then
-  DYLD_INSERT_LIBRARIES=__LIBDIR__/liboclgrind-rt.dylib \
+  DYLD_INSERT_LIBRARIES=$LIBDIR/liboclgrind-rt.dylib \
       DYLD_FORCE_FLAT_NAMESPACE=1 $@
 else
-  LD_PRELOAD=__LIBDIR__/liboclgrind-rt.so $@
+  LD_PRELOAD=$LIBDIR/liboclgrind-rt.so $@
 fi

@@ -185,13 +185,7 @@ target_link_libraries(oclgrind-kernel oclgrind)
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   file(READ src/runtime/oclgrind OCLGRIND_SCRIPT)
   string(REGEX REPLACE
-    "__ROOT__" "${CMAKE_INSTALL_PREFIX}"
-    OCLGRIND_SCRIPT "${OCLGRIND_SCRIPT}")
-  string(REGEX REPLACE
     "__VERSION__" "${Oclgrind_VERSION_MAJOR}.${Oclgrind_VERSION_MINOR}"
-    OCLGRIND_SCRIPT "${OCLGRIND_SCRIPT}")
-  string(REGEX REPLACE
-    "__LIBDIR__" "${CMAKE_INSTALL_PREFIX}/lib"
     OCLGRIND_SCRIPT "${OCLGRIND_SCRIPT}")
   file(WRITE ${CMAKE_BINARY_DIR}/oclgrind "${OCLGRIND_SCRIPT}")
 
