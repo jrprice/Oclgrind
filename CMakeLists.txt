@@ -51,9 +51,6 @@ endif()
 # Add LLVM required macro definitions
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
-# Set INSTALL_ROOT (used by oclgrind::Program for finding PCH files)
-add_definitions(-DINSTALL_ROOT=\"${CMAKE_INSTALL_PREFIX}\")
-
 # Require that SPIR_ROOT is set and pointing to a Clang/SPIR generator
 set(SPIR_ROOT " " CACHE PATH "Root of Clang/SPIR generator.")
 if (NOT EXISTS ${SPIR_ROOT}/include/clang)

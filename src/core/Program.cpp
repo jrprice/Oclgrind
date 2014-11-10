@@ -9,6 +9,12 @@
 #include "common.h"
 #include <fstream>
 
+#if defined(_WIN32) && !defined(__MINGW32__)
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
+
 #include "llvm/Assembly/AssemblyAnnotationWriter.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Linker.h"
@@ -183,37 +189,68 @@ bool Program::build(const char *options, list<Header> headers)
     }
   }
 
-  // Select precompiled header
-  const char *pch = NULL;
-  if (optimize)
+  // Get location of header files
+  // TODO: Implement on Windows
+  Dl_info dlinfo;
+  const char *dirend;
+  char *includedir = NULL;
+  if (dladdr((const void*)Program::createFromBitcode, &dlinfo) &&
+     (dirend = strrchr(dlinfo.dli_fname, '/')))
   {
-    if (sizeof(size_t) == 4)
-      pch = INSTALL_ROOT"/include/oclgrind/clc32.pch";
-    else
-      pch = INSTALL_ROOT"/include/oclgrind/clc64.pch";
-  }
-  else
-  {
-    if (sizeof(size_t) == 4)
-      pch = INSTALL_ROOT"/include/oclgrind/clc32.noopt.pch";
-    else
-      pch = INSTALL_ROOT"/include/oclgrind/clc64.noopt.pch";
+    const char *includes_relative = "/../include/oclgrind";
+    size_t length = dirend - dlinfo.dli_fname;
+    includedir = new char[length + strlen(includes_relative) + 1];
+    strncpy(includedir, dlinfo.dli_fname, length);
+    strcat(includedir, includes_relative);
+
+    args.push_back("-isysroot");
+    args.push_back(includedir);
   }
 
-  // Use precompiled header if it exists, otherwise fall back to embedded clc.h
-  ifstream pchfile(pch);
-  if (pchfile.good())
+  char *pch = NULL;
+  if (includedir)
   {
-    args.push_back("-include-pch");
-    args.push_back(pch);
+    // Select precompiled header
+    pch = new char[strlen(includedir) + 20];
+    strcpy(pch, includedir);
+    if (optimize)
+    {
+      if (sizeof(size_t) == 4)
+        strcat(pch, "/clc32.pch");
+      else
+        strcat(pch, "/clc64.pch");
+    }
+    else
+    {
+      if (sizeof(size_t) == 4)
+        strcat(pch, "/clc32.noopt.pch");
+      else
+        strcat(pch, "/clc64.noopt.pch");
+    }
+
+    // Check precompiled header exists
+    ifstream pchfile(pch);
+    if (pchfile.good())
+    {
+      args.push_back("-include-pch");
+      args.push_back(pch);
+    }
+    else
+    {
+      args.push_back("-include");
+      args.push_back(CLC_H_PATH);
+      buildLog << "WARNING: Unable to find precompiled header:\n"
+               << pch << "\n";
+    }
+    pchfile.close();
   }
   else
   {
+    // Fall back to embedded clc.h
     args.push_back("-include");
     args.push_back(CLC_H_PATH);
-    buildLog << "WARNING: Unable to find precompiled header.\n";
+    buildLog << "WARNING: Unable to determine precompiled header path\n";
   }
-  pchfile.close();
 
   // Append input file to arguments (remapped later)
   args.push_back(REMAP_INPUT);
@@ -325,6 +362,9 @@ bool Program::build(const char *options, list<Header> headers)
     delete[] tempIR;
     delete[] tempBC;
   }
+
+  delete[] includedir;
+  delete[] pch;
 
   return m_buildStatus == CL_BUILD_SUCCESS;
 }
