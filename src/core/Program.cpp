@@ -395,6 +395,9 @@ Program* Program::createFromPrograms(const Context *context,
 
 Kernel* Program::createKernel(const string name)
 {
+  if (!m_module)
+    return NULL;
+
   // Iterate over functions in module to find kernel
   llvm::Function *function = NULL;
 
