@@ -232,24 +232,28 @@ endif()
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -g -emit-pch -triple spir-unknown-unknown
+  -relocatable-pch -isysroot \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/\"
   \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
   -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc32.pch\"
 )")
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown
+  -relocatable-pch -isysroot \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/\"
   \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
   -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc32.noopt.pch\"
 )")
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown
+  -relocatable-pch -isysroot \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/\"
   \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
   -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc64.pch\"
 )")
 install(CODE "execute_process(COMMAND
   \"${SPIR_ROOT}/bin/clang\"
   -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown
+  -relocatable-pch -isysroot \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/\"
   \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
   -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc64.noopt.pch\"
 )")

@@ -42,43 +42,23 @@ oclgrind_includedir = $(includedir)/oclgrind
 oclgrind_include_HEADERS = src/core/common.h src/core/Context.h	\
  src/core/half.h src/core/Kernel.h src/core/KernelInvocation.h	\
  src/core/Memory.h src/core/Plugin.h src/core/Program.h		\
- src/core/Queue.h src/core/WorkItem.h src/core/WorkGroup.h	\
- src/core/clc.h config.h
+ src/core/Queue.h src/core/WorkItem.h src/core/WorkGroup.h config.h
 src/core/clc_h.cpp: src/core/gen_clc_h.sh	src/core/clc.h
 	$(top_srcdir)/src/core/gen_clc_h.sh $(top_srcdir)/src/core/clc.h $@
 
 install-data-hook:
-	-$(clang_spir) \
-		-cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown \
-		$(includedir)/oclgrind/clc.h \
-		-o $(includedir)/oclgrind/clc32.noopt.pch
-	-$(clang_spir) \
-		-cc1 -x cl -g -emit-pch -triple spir-unknown-unknown \
-		$(includedir)/oclgrind/clc.h \
-		-o $(includedir)/oclgrind/clc32.pch
-	-$(clang_spir) \
-		-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
-		$(includedir)/oclgrind/clc.h \
-		-o $(includedir)/oclgrind/clc64.noopt.pch
-	-$(clang_spir) \
-		-cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown \
-		$(includedir)/oclgrind/clc.h \
-		-o $(includedir)/oclgrind/clc64.pch
-	@if [ ! -r $(includedir)/oclgrind/clc32.pch          \
-	   -o ! -r $(includedir)/oclgrind/clc32.noopt.pch    \
-	   -o ! -r $(includedir)/oclgrind/clc64.pch          \
-	   -o ! -r $(includedir)/oclgrind/clc64.noopt.pch ]; \
-	then \
-		echo; \
-		echo "WARNING: Failed to generate precompiled headers."; \
-		echo; \
-	fi
+	cp -p include/oclgrind/clc.h           $(DESTDIR)$(includedir)/oclgrind/
+	cp -p include/oclgrind/clc32.pch       $(DESTDIR)$(includedir)/oclgrind/
+	cp -p include/oclgrind/clc64.pch       $(DESTDIR)$(includedir)/oclgrind/
+	cp -p include/oclgrind/clc32.noopt.pch $(DESTDIR)$(includedir)/oclgrind/
+	cp -p include/oclgrind/clc64.noopt.pch $(DESTDIR)$(includedir)/oclgrind/
 
 uninstall-hook:
-	rm -rf $(includedir)/oclgrind/clc32.pch
-	rm -rf $(includedir)/oclgrind/clc32.noopt.pch
-	rm -rf $(includedir)/oclgrind/clc64.pch
-	rm -rf $(includedir)/oclgrind/clc64.noopt.pch
+	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc.h
+	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc32.pch
+	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc64.pch
+	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc32.noopt.pch
+	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc64.noopt.pch
 
 RUNTIME_SOURCES = src/runtime/async_queue.h				\
  src/runtime/async_queue.cpp src/runtime/icd.h src/runtime/runtime.cpp
@@ -103,10 +83,40 @@ oclgrind: $(top_srcdir)/src/runtime/oclgrind
 	| $(SED) 's|__LIBDIR__|'$(libdir)'|g' \
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>$@
-noinst_SCRIPTS = oclgrind.icd
+noinst_SCRIPTS = oclgrind.icd \
+ include/oclgrind/clc.h \
+ include/oclgrind/clc32.noopt.pch \
+ include/oclgrind/clc64.noopt.pch \
+ include/oclgrind/clc32.pch \
+ include/oclgrind/clc64.pch
 oclgrind.icd: liboclgrind-rt-icd.la
 	printf $(libdir)/ >$@
 	$(GREP) dlname $< | $(AWK) -F "'" '{print $$2}' >>$@
+
+include/oclgrind/clc.h: $(top_srcdir)/src/core/clc.h
+	mkdir -p include/oclgrind
+	cp $< $@
+
+include/oclgrind/clc32.noopt.pch: include/oclgrind/clc.h
+	$(clang_spir) \
+		-cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown \
+		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
+		$< -o $@
+include/oclgrind/clc64.noopt.pch: include/oclgrind/clc.h
+	$(clang_spir) \
+		-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
+		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
+		$< -o $@
+include/oclgrind/clc32.pch: include/oclgrind/clc.h
+	$(clang_spir) \
+		-cc1 -x cl -g -emit-pch -triple spir-unknown-unknown \
+		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
+		$< -o $@
+include/oclgrind/clc64.pch: include/oclgrind/clc.h
+	$(clang_spir) \
+		-cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown \
+		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
+		$< -o $@
 
 check_PROGRAMS = tests/apps/vecadd/vecadd
 tests_apps_vecadd_vecadd_LDADD = liboclgrind-rt.la
