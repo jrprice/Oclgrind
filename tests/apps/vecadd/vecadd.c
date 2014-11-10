@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define N 1024
 #define TOL 1e-8
 #define MAX_ERRORS 8
 #define MAX_PLATFORMS 8
@@ -32,6 +31,20 @@ int main(int argc, char *argv[])
   cl_kernel kernel;
   cl_mem d_a, d_b, d_c;
   float *h_a, *h_b, *h_c;
+
+  size_t N = 1024;
+  if (argc > 1)
+    N = atoi(argv[1]);
+
+  size_t global = N;
+  if (argc > 2)
+    global = atoi(argv[2]);
+
+  if (!N || !global)
+  {
+    printf("Usage: ./vecadd N [GLOBAL_SIZE]\n");
+    exit(1);
+  }
 
   // Get list of platforms
   cl_uint numPlatforms = 0;
@@ -122,9 +135,8 @@ int main(int argc, char *argv[])
   err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_c);
   checkError(err, "setting kernel args");
 
-  size_t global[1] = {N};
   err = clEnqueueNDRangeKernel(queue, kernel,
-                               1, NULL, global, NULL, 0, NULL, NULL);
+                               1, NULL, &global, NULL, 0, NULL, NULL);
   checkError(err, "enqueuing kernel");
 
   err = clFinish(queue);
@@ -148,6 +160,7 @@ int main(int argc, char *argv[])
       errors++;
     }
   }
+  printf("%d errors detected\n", errors);
 
   free(h_a);
   free(h_b);
