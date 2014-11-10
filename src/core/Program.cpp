@@ -201,7 +201,7 @@ bool Program::build(const char *options, list<Header> headers)
     size_t length = dirend - dlinfo.dli_fname;
     includedir = new char[length + strlen(includes_relative) + 1];
     strncpy(includedir, dlinfo.dli_fname, length);
-    strcat(includedir, includes_relative);
+    strcpy(includedir+length, includes_relative);
 
     args.push_back("-isysroot");
     args.push_back(includedir);
