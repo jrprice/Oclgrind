@@ -34,11 +34,15 @@ int main(int argc, char *argv[])
 
   size_t N = 1024;
   if (argc > 1)
+  {
     N = atoi(argv[1]);
+  }
 
   size_t global = N;
   if (argc > 2)
+  {
     global = atoi(argv[2]);
+  }
 
   if (!N || !global)
   {
