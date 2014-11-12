@@ -10,6 +10,7 @@
 
 #if defined(_WIN32) && !defined(__MINGW32__)
 #include <windows.h>
+#undef ERROR
 #else
 #include <dlfcn.h>
 #endif

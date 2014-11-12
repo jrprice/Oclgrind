@@ -32,6 +32,7 @@
 
 #if defined(_WIN32) && !defined(__MINGW32__)
 #define snprintf _snprintf
+#undef ERROR
 #endif
 
 namespace llvm
