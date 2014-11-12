@@ -332,8 +332,7 @@ bool Program::build(const char *options, list<Header> headers)
   }
 
   // Dump temps if required
-  const char *dumpSpir = getenv(ENV_DUMP_SPIR);
-  if (dumpSpir && strcmp(dumpSpir, "1") == 0)
+  if (checkEnv(ENV_DUMP_SPIR))
   {
     // Temporary directory
 #if defined(_WIN32)

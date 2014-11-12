@@ -26,8 +26,7 @@ RaceDetector::RaceDetector(const Context *context)
 {
   m_kernelInvocation = NULL;
 
-  const char *uniformWrites = getenv("OCLGRIND_UNIFORM_WRITES");
-  m_allowUniformWrites = !(uniformWrites && strcmp(uniformWrites, "1") == 0);
+  m_allowUniformWrites = !checkEnv("OCLGRIND_UNIFORM_WRITES");
 }
 
 void RaceDetector::kernelBegin(KernelInvocation *kernelInvocation)

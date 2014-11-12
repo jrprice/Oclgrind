@@ -218,6 +218,12 @@ namespace oclgrind
     return result;
   }
 
+  bool checkEnv(const char *var)
+  {
+    const char *value = getenv(var);
+    return (value && !strcmp(value, "1"));
+  }
+
   void dumpInstruction(ostream& out, const llvm::Instruction *instruction)
   {
     llvm::raw_os_ostream stream(out);

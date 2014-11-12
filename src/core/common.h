@@ -111,6 +111,9 @@ namespace oclgrind
     cl_image_desc desc;
   } Image;
 
+  // Check if an environment variable is set to 1
+  bool checkEnv(const char *var);
+
   // Output an instruction in human-readable format
   void dumpInstruction(std::ostream& out, const llvm::Instruction *instruction);
 

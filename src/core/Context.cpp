@@ -59,16 +59,13 @@ void Context::loadPlugins()
   // Create core plugins
   m_plugins.push_back(make_pair(new Logger(this), true));
 
-  const char *instCounts = getenv("OCLGRIND_INST_COUNTS");
-  if (instCounts && strcmp(instCounts, "1") == 0)
+  if (checkEnv("OCLGRIND_INST_COUNTS"))
     m_plugins.push_back(make_pair(new InstructionCounter(this), true));
 
-  const char *dataRaces = getenv("OCLGRIND_DATA_RACES");
-  if (dataRaces && strcmp(dataRaces, "1") == 0)
+  if (checkEnv("OCLGRIND_DATA_RACES"))
     m_plugins.push_back(make_pair(new RaceDetector(this), true));
 
-  const char *interactive = getenv("OCLGRIND_INTERACTIVE");
-  if (interactive && strcmp(interactive, "1") == 0)
+  if (checkEnv("OCLGRIND_INTERACTIVE"))
     m_plugins.push_back(make_pair(new InteractiveDebugger(this), true));
 
 

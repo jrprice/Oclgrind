@@ -36,8 +36,7 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   m_numGroups.z = m_globalSize.z/m_localSize.z;
 
   // Check for quick-mode environment variable
-  const char *quick = getenv("OCLGRIND_QUICK");
-  if (quick && strcmp(quick, "1") == 0)
+  if (checkEnv("OCLGRIND_QUICK"))
   {
     // Only run first and last work-groups in quick-mode
     Size3 firstGroup(0, 0, 0);
