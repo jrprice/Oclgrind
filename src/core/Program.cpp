@@ -189,81 +189,102 @@ bool Program::build(const char *options, list<Header> headers)
     }
   }
 
-  // Get location of header files
-  char *includedir = NULL;
+  // Pre-compiled header
+  char *pchdir = NULL;
+  char *pch    = NULL;
+  if (!checkEnv("OCLGRIND_DISABLE_PCH"))
+  {
+    const char *pchdirOverride = getenv("OCLGRIND_PCH_DIR");
+    if (pchdirOverride)
+    {
+      pchdir = strdup(pchdirOverride);
+    }
+    else
+    {
+      // Get directory containing library
 #if defined(_WIN32) && !defined(__MINGW32__)
-  char libpath[4096];
-  HMODULE dll;
-  if (GetModuleHandleEx(
-        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-        GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-        (LPCSTR)&Program::createFromBitcode, &dll) &&
-      GetModuleFileName(dll, libpath, sizeof(libpath)))
-  {
+      char libpath[4096];
+      HMODULE dll;
+      if (GetModuleHandleEx(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            (LPCSTR)&Program::createFromBitcode, &dll) &&
+          GetModuleFileName(dll, libpath, sizeof(libpath)))
+      {
 #else
-  Dl_info dlinfo;
-  if (dladdr((const void*)Program::createFromBitcode, &dlinfo))
-  {
-    const char *libpath = dlinfo.dli_fname;
+      Dl_info dlinfo;
+      if (dladdr((const void*)Program::createFromBitcode, &dlinfo))
+      {
+        const char *libpath = dlinfo.dli_fname;
 #endif
 
-    const char *dirend;
-    if ((dirend = strrchr(libpath, '/')))
-    {
-      const char *includes_relative = "/../include/oclgrind";
-      size_t length = dirend - libpath;
-      includedir = new char[length + strlen(includes_relative) + 1];
-      strncpy(includedir, libpath, length);
-      strcpy(includedir + length, includes_relative);
+        // Construct path to PCH directory
+        const char *dirend;
+#if defined(_WIN32) && !defined(__MINGW32__)
+        if ((dirend = strrchr(libpath, '\\')))
+#else
+        if ((dirend = strrchr(libpath, '/')))
+#endif
+        {
+          const char *includes_relative = "/../include/oclgrind/";
+          size_t length = dirend - libpath;
+          pchdir = new char[length + strlen(includes_relative) + 1];
+          strncpy(pchdir, libpath, length);
+          strcpy(pchdir + length, includes_relative);
+        }
+      }
+    }
 
-      args.push_back("-isysroot");
-      args.push_back(includedir);
+    if (pchdir)
+    {
+      // Select precompiled header
+      pch = new char[strlen(pchdir) + 20];
+      strcpy(pch, pchdir);
+      if (optimize)
+      {
+        if (sizeof(size_t) == 4)
+          strcat(pch, "/clc32.pch");
+        else
+          strcat(pch, "/clc64.pch");
+      }
+      else
+      {
+        if (sizeof(size_t) == 4)
+          strcat(pch, "/clc32.noopt.pch");
+        else
+          strcat(pch, "/clc64.noopt.pch");
+      }
+
+      // Check if precompiled header exists
+      ifstream pchfile(pch);
+      if (!pchfile.good())
+      {
+        buildLog << "WARNING: Unable to find precompiled header:\n"
+                 << pch << "\n";
+        delete[] pch;
+        pch = NULL;
+      }
+      pchfile.close();
+    }
+    else
+    {
+      buildLog << "WARNING: Unable to determine precompiled header path\n";
     }
   }
 
-  char *pch = NULL;
-  if (includedir)
+  if (pch)
   {
-    // Select precompiled header
-    pch = new char[strlen(includedir) + 20];
-    strcpy(pch, includedir);
-    if (optimize)
-    {
-      if (sizeof(size_t) == 4)
-        strcat(pch, "/clc32.pch");
-      else
-        strcat(pch, "/clc64.pch");
-    }
-    else
-    {
-      if (sizeof(size_t) == 4)
-        strcat(pch, "/clc32.noopt.pch");
-      else
-        strcat(pch, "/clc64.noopt.pch");
-    }
+    args.push_back("-isysroot");
+    args.push_back(pchdir);
 
-    // Check precompiled header exists
-    ifstream pchfile(pch);
-    if (pchfile.good())
-    {
-      args.push_back("-include-pch");
-      args.push_back(pch);
-    }
-    else
-    {
-      args.push_back("-include");
-      args.push_back(CLC_H_PATH);
-      buildLog << "WARNING: Unable to find precompiled header:\n"
-               << pch << "\n";
-    }
-    pchfile.close();
+    args.push_back("-include-pch");
+    args.push_back(pch);
   }
   else
   {
     // Fall back to embedded clc.h
     args.push_back("-include");
     args.push_back(CLC_H_PATH);
-    buildLog << "WARNING: Unable to determine precompiled header path\n";
   }
 
   // Append input file to arguments (remapped later)
@@ -376,7 +397,7 @@ bool Program::build(const char *options, list<Header> headers)
     delete[] tempBC;
   }
 
-  delete[] includedir;
+  delete[] pchdir;
   delete[] pch;
 
   return m_buildStatus == CL_BUILD_SUCCESS;
