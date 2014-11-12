@@ -24,4 +24,8 @@ foreach(test
 
   set_tests_properties(app_${test} PROPERTIES DEPENDS ${test})
 
+  # Set PCH directory
+  set_tests_properties(app_${test} PROPERTIES
+      ENVIRONMENT "OCLGRIND_PCH_DIR=${CMAKE_BINARY_DIR}/include/oclgrind")
+
 endforeach(${test})

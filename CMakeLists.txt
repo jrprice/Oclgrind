@@ -108,7 +108,6 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 endif()
 
 set(CORE_HEADERS
-  src/core/clc.h
   src/core/common.h
   src/core/Context.h
   src/core/half.h
@@ -181,6 +180,74 @@ add_executable(oclgrind-kernel
   src/kernel/Simulation.cpp)
 target_link_libraries(oclgrind-kernel oclgrind)
 
+set(CLC_HEADERS
+ ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
+ ${CMAKE_BINARY_DIR}/include/oclgrind/clc32.noopt.pch
+ ${CMAKE_BINARY_DIR}/include/oclgrind/clc64.noopt.pch
+ ${CMAKE_BINARY_DIR}/include/oclgrind/clc32.pch
+ ${CMAKE_BINARY_DIR}/include/oclgrind/clc64.pch
+)
+
+add_custom_target(CLC_HEADERS ALL DEPENDS ${CLC_HEADERS})
+
+add_custom_command(
+  OUTPUT include/oclgrind/clc.h
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E
+    copy ${CMAKE_SOURCE_DIR}/src/core/clc.h include/oclgrind/clc.h
+  DEPENDS src/core/clc.h)
+
+# Generate precompiled headers for clc.h
+add_custom_command(
+  OUTPUT include/oclgrind/clc32.noopt.pch
+  POST_BUILD
+  COMMAND
+    ${SPIR_ROOT}/bin/clang
+    -cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown
+    -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
+    ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
+    -o include/oclgrind/clc32.noopt.pch
+  DEPENDS include/oclgrind/clc.h
+)
+add_custom_command(
+  OUTPUT include/oclgrind/clc64.noopt.pch
+  POST_BUILD
+  COMMAND
+    ${SPIR_ROOT}/bin/clang
+    -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown
+    -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
+    ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
+    -o include/oclgrind/clc64.noopt.pch
+  DEPENDS include/oclgrind/clc.h
+)
+add_custom_command(
+  OUTPUT include/oclgrind/clc32.pch
+  POST_BUILD
+  COMMAND
+    ${SPIR_ROOT}/bin/clang
+    -cc1 -x cl -g -emit-pch -triple spir-unknown-unknown
+    -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
+    ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
+    -o include/oclgrind/clc32.pch
+  DEPENDS include/oclgrind/clc.h
+)
+add_custom_command(
+  OUTPUT include/oclgrind/clc64.pch
+  POST_BUILD
+  COMMAND
+    ${SPIR_ROOT}/bin/clang
+    -cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown
+    -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
+    ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
+    -o include/oclgrind/clc64.pch
+  DEPENDS include/oclgrind/clc.h
+)
+
+
+# Generate config.h
+configure_file("cmake_config.h.in" "config.h")
+
+
 # Install oclgrind script if not on Windows
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   file(READ src/runtime/oclgrind OCLGRIND_SCRIPT)
@@ -205,7 +272,7 @@ install(TARGETS
   oclgrind oclgrind-rt oclgrind-rt-icd
   DESTINATION lib)
 install(FILES
-  ${CORE_HEADERS} ${CMAKE_BINARY_DIR}/config.h
+  ${CORE_HEADERS} ${CMAKE_BINARY_DIR}/config.h ${CLC_HEADERS}
   DESTINATION include/oclgrind)
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   install(FILES
@@ -221,40 +288,6 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
     src/CL/opencl.h
     DESTINATION include/CL)
 endif()
-
-# Generate precompiled headers for clc.h
-install(CODE "execute_process(COMMAND
-  \"${SPIR_ROOT}/bin/clang\"
-  -cc1 -x cl -g -emit-pch -triple spir-unknown-unknown
-  -relocatable-pch -isysroot \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/\"
-  \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc32.pch\"
-)")
-install(CODE "execute_process(COMMAND
-  \"${SPIR_ROOT}/bin/clang\"
-  -cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown
-  -relocatable-pch -isysroot \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/\"
-  \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc32.noopt.pch\"
-)")
-install(CODE "execute_process(COMMAND
-  \"${SPIR_ROOT}/bin/clang\"
-  -cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown
-  -relocatable-pch -isysroot \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/\"
-  \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc64.pch\"
-)")
-install(CODE "execute_process(COMMAND
-  \"${SPIR_ROOT}/bin/clang\"
-  -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown
-  -relocatable-pch -isysroot \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/\"
-  \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc.h\"
-  -o \"${CMAKE_INSTALL_PREFIX}/include/oclgrind/clc64.noopt.pch\"
-)")
-
-
-# Generate config.h
-configure_file("cmake_config.h.in" "config.h")
 
 
 # Tests
@@ -275,6 +308,10 @@ if (PYTHONINTERP_FOUND)
       $<TARGET_FILE:oclgrind-kernel>
       ${CMAKE_SOURCE_DIR}/tests/kernels/${test}.sim)
   endforeach(${test})
+
+  # Set PCH directory
+  set_tests_properties(${KERNEL_TESTS} PROPERTIES
+      ENVIRONMENT "OCLGRIND_PCH_DIR=${CMAKE_BINARY_DIR}/include/oclgrind")
 
   # Expected failures
   set_tests_properties(
