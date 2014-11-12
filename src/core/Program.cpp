@@ -190,21 +190,35 @@ bool Program::build(const char *options, list<Header> headers)
   }
 
   // Get location of header files
-  // TODO: Implement on Windows
-  Dl_info dlinfo;
-  const char *dirend;
   char *includedir = NULL;
-  if (dladdr((const void*)Program::createFromBitcode, &dlinfo) &&
-     (dirend = strrchr(dlinfo.dli_fname, '/')))
+#if defined(_WIN32) && !defined(__MINGW32__)
+  char libpath[4096];
+  HMODULE dll;
+  if (GetModuleHandleEx(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+        GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        (LPCSTR)&Program::createFromBitcode, &dll) &&
+      GetModuleFileName(dll, libpath, sizeof(libpath)))
   {
-    const char *includes_relative = "/../include/oclgrind";
-    size_t length = dirend - dlinfo.dli_fname;
-    includedir = new char[length + strlen(includes_relative) + 1];
-    strncpy(includedir, dlinfo.dli_fname, length);
-    strcpy(includedir+length, includes_relative);
+#else
+  Dl_info dlinfo;
+  if (dladdr((const void*)Program::createFromBitcode, &dlinfo))
+  {
+    const char *libpath = dlinfo.dli_fname;
+#endif
 
-    args.push_back("-isysroot");
-    args.push_back(includedir);
+    const char *dirend;
+    if ((dirend = strrchr(libpath, '/')))
+    {
+      const char *includes_relative = "/../include/oclgrind";
+      size_t length = dirend - libpath;
+      includedir = new char[length + strlen(includes_relative) + 1];
+      strncpy(includedir, libpath, length);
+      strcpy(includedir + length, includes_relative);
+
+      args.push_back("-isysroot");
+      args.push_back(includedir);
+	  }
   }
 
   char *pch = NULL;
