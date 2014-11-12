@@ -128,12 +128,12 @@ void Context::unloadPlugins()
        plibItr != m_pluginLibraries.end(); plibItr++)
   {
 #if defined(_WIN32) && !defined(__MINGW32__)
-      void *release = GetProcAddress(*plibItr, "releasePlugins");
+      void *release = GetProcAddress((HMODULE)*plibItr, "releasePlugins");
       if (release)
       {
         ((void(*)(Context*))release)(this);
       }
-      FreeLibrary(*plibItr);
+      FreeLibrary((HMODULE)*plibItr);
 #else
       void *release = dlsym(*plibItr, "releasePlugins");
       if (release)
