@@ -20,6 +20,7 @@ function usage
   echo "  -h --help             Display usage information"
   echo "     --inst-counts      Output histograms of instructions executed"
   echo "  -i --interactive      Enable interactive mode"
+  echo "     --log     LOGFILE  Redirect log/error messages to a file"
   echo "     --plugins PLUGINS  Load colon seperated list of plugin libraries"
   echo "  -q --quick            Only run first and last work-group"
   echo "     --uniform-writes   Don't suppress uniform write-write data-races"
@@ -52,6 +53,10 @@ do
   elif [ "$1" == "-i" -o "$1" == "--interactive" ]
   then
     export OCLGRIND_INTERACTIVE=1
+  elif [ "$1" == "--log" ]
+  then
+    shift
+    export OCLGRIND_LOG="$1"
   elif [ "$1" == "--plugins" ]
   then
     shift

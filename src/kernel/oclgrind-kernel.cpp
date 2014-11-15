@@ -72,6 +72,15 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_INTERACTIVE", "1");
     }
+    else if (!strcmp(argv[i], "--log"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --log" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_LOG", argv[i]);
+    }
     else if (!strcmp(argv[i], "--plugins"))
     {
       if (++i >= argc)
@@ -143,6 +152,7 @@ static void printUsage()
     << "     --inst-counts      Output histograms of instructions executed"
       << endl
     << "  -i --interactive      Enable interactive mode" << endl
+    << "     --log     LOGFILE  Redirect log/error messages to a file" << endl
     << "     --plugins PLUGINS  Load colon seperated list of plugin libraries"
       << endl
     << "  -q --quick            Only run first and last work-group" << endl

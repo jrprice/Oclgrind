@@ -14,6 +14,11 @@ namespace oclgrind
   {
   public:
     Logger(const Context *context);
+    virtual ~Logger();
+
     virtual void log(MessageType type, const char *message);
+
+  private:
+    std::ostream *m_log;
   };
 }
