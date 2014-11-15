@@ -15,6 +15,10 @@
 using namespace oclgrind;
 using namespace std;
 
+#define DEFAULT_MAX_ERRORS 1000
+
+unsigned Logger::m_numErrors = 0;
+
 Logger::Logger(const Context *context)
  : Plugin(context)
 {
@@ -30,6 +34,18 @@ Logger::Logger(const Context *context)
       m_log = &cerr;
     }
   }
+
+  m_maxErrors = DEFAULT_MAX_ERRORS;
+  const char *maxErrors = getenv("OCLGRIND_MAX_ERRORS");
+  if (maxErrors)
+  {
+    char *next;
+    m_maxErrors = strtoul(maxErrors, &next, 10);
+    if (strlen(next))
+    {
+      cerr << "Oclgrind: Invalid value for OCLGRIND_MAX_ERRORS" << endl;
+    }
+  }
 }
 
 Logger::~Logger()
@@ -43,5 +59,18 @@ Logger::~Logger()
 
 void Logger::log(MessageType type, const char *message)
 {
+  // Limit number of errors/warning printed
+  if (type == ERROR || type == WARNING)
+  {
+    if (m_numErrors == m_maxErrors)
+    {
+      *m_log << endl << "Oclgrind: "
+             << m_numErrors << " errors generated - suppressing further errors"
+             << endl << endl;
+    }
+    if (m_numErrors++ >= m_maxErrors)
+      return;
+  }
+
   *m_log << endl << message << endl;
 }

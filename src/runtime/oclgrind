@@ -14,17 +14,30 @@ function usage
   echo "  oclgrind [--help | --version]"
   echo
   echo "Options:"
-  echo "     --check-api        Reports errors on API calls"
-  echo "     --data-races       Enable data-race detection"
-  echo "     --dump-spir        Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
-  echo "  -h --help             Display usage information"
-  echo "     --inst-counts      Output histograms of instructions executed"
-  echo "  -i --interactive      Enable interactive mode"
-  echo "     --log     LOGFILE  Redirect log/error messages to a file"
-  echo "     --plugins PLUGINS  Load colon seperated list of plugin libraries"
-  echo "  -q --quick            Only run first and last work-group"
-  echo "     --uniform-writes   Don't suppress uniform write-write data-races"
-  echo "  -v --version          Display version information"
+  echo -n "     --check-api                "
+  echo          "Reports errors on API calls"
+  echo -n "     --data-races               "
+  echo          "Enable data-race detection"
+  echo -n "     --dump-spir                "
+  echo          "Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
+  echo -n "  -h --help                     "
+  echo          "Display usage information"
+  echo -n "     --inst-counts              "
+  echo          "Output histograms of instructions executed"
+  echo -n "  -i --interactive              "
+  echo          "Enable interactive mode"
+  echo -n "     --log             LOGFILE  "
+  echo          "Redirect log/error messages to a file"
+  echo -n "     --max-errors      NUM      "
+  echo          "Limit the number of error/warning messages"
+  echo -n "     --plugins         PLUGINS  "
+  echo          "Load colon seperated list of plugin libraries"
+  echo -n "  -q --quick                    "
+  echo          "Only run first and last work-group"
+  echo -n "     --uniform-writes           "
+  echo          "Don't suppress uniform write-write data-races"
+  echo -n "  -v --version                  "
+  echo          "Display version information"
   echo
   echo "For more information, please visit the Oclgrind wiki page:"
   echo "-> https://github.com/jrprice/Oclgrind/wiki"
@@ -57,6 +70,10 @@ do
   then
     shift
     export OCLGRIND_LOG="$1"
+  elif [ "$1" == "--max-errors" ]
+  then
+    shift
+    export OCLGRIND_MAX_ERRORS="$1"
   elif [ "$1" == "--plugins" ]
   then
     shift

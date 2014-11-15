@@ -81,6 +81,15 @@ static bool parseArguments(int argc, char *argv[])
       }
       setEnvironment("OCLGRIND_LOG", argv[i]);
     }
+    else if (!strcmp(argv[i], "--max-errors"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --max-errors" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_MAX_ERRORS", argv[i]);
+    }
     else if (!strcmp(argv[i], "--plugins"))
     {
       if (++i >= argc)
@@ -145,20 +154,30 @@ static void printUsage()
     << "       oclgrind-kernel [--help | --version]" << endl
     << endl
     << "Options:" << endl
-    << "     --data-races       Enable data-race detection" << endl
-    << "     --dump-spir        Dump SPIR to /tmp/oclgrind_*.{ll,bc}" << endl
-    << "  -g --global-mem       Output global memory at exit" << endl
-    << "  -h --help             Display usage information" << endl
-    << "     --inst-counts      Output histograms of instructions executed"
-      << endl
-    << "  -i --interactive      Enable interactive mode" << endl
-    << "     --log     LOGFILE  Redirect log/error messages to a file" << endl
-    << "     --plugins PLUGINS  Load colon seperated list of plugin libraries"
-      << endl
-    << "  -q --quick            Only run first and last work-group" << endl
-    << "     --uniform-writes   Don't suppress uniform write-write data-races"
-      << endl
-    << "  -v --version          Display version information" << endl
+    << "     --data-races              "
+             "Enable data-race detection" << endl
+    << "     --dump-spir               "
+             "Dump SPIR to /tmp/oclgrind_*.{ll,bc}" << endl
+    << "  -g --global-mem              "
+             "Output global memory at exit" << endl
+    << "  -h --help                    "
+             "Display usage information" << endl
+    << "     --inst-counts             "
+             "Output histograms of instructions executed" << endl
+    << "  -i --interactive             "
+             "Enable interactive mode" << endl
+    << "     --log            LOGFILE  "
+             "Redirect log/error messages to a file" << endl
+    << "     --max-errors     NUM      "
+             "Limit the number of error/warning messages" << endl
+    << "     --plugins        PLUGINS  "
+             "Load colon seperated list of plugin libraries" << endl
+    << "  -q --quick                   "
+             "Only run first and last work-group" << endl
+    << "     --uniform-writes          "
+             "Don't suppress uniform write-write data-races" << endl
+    << "  -v --version                 "
+             "Display version information" << endl
     << endl
     << "For more information, please visit the Oclgrind wiki page:" << endl
     << "-> https://github.com/jrprice/Oclgrind/wiki" << endl

@@ -20,5 +20,8 @@ namespace oclgrind
 
   private:
     std::ostream *m_log;
+
+    unsigned m_maxErrors;
+    static unsigned m_numErrors;
   };
 }
