@@ -51,6 +51,10 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_DATA_RACES", "1");
     }
+    else if (!strcmp(argv[i], "--disable-pch"))
+    {
+      setEnvironment("OCLGRIND_DISABLE_PCH", "1");
+    }
     else if (!strcmp(argv[i], "--dump-spir"))
     {
       setEnvironment("OCLGRIND_DUMP_SPIR", "1");
@@ -89,6 +93,15 @@ static bool parseArguments(int argc, char *argv[])
         return false;
       }
       setEnvironment("OCLGRIND_MAX_ERRORS", argv[i]);
+    }
+    else if (!strcmp(argv[i], "--pch-dir"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --pch-dir" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_PCH_DIR", argv[i]);
     }
     else if (!strcmp(argv[i], "--plugins"))
     {
@@ -156,6 +169,8 @@ static void printUsage()
     << "Options:" << endl
     << "     --data-races              "
              "Enable data-race detection" << endl
+    << "     --disable-pch             "
+             "Don't use precompiled headers" << endl
     << "     --dump-spir               "
              "Dump SPIR to /tmp/oclgrind_*.{ll,bc}" << endl
     << "  -g --global-mem              "
@@ -170,6 +185,8 @@ static void printUsage()
              "Redirect log/error messages to a file" << endl
     << "     --max-errors     NUM      "
              "Limit the number of error/warning messages" << endl
+    << "     --pch-dir        DIR      "
+             "Override directory containing precompiled headers" << endl
     << "     --plugins        PLUGINS  "
              "Load colon seperated list of plugin libraries" << endl
     << "  -q --quick                   "
