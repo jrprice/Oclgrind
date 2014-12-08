@@ -62,6 +62,7 @@ namespace oclgrind
   {
     AtomicAdd,
     AtomicAnd,
+    AtomicCmpXchg,
     AtomicDec,
     AtomicInc,
     AtomicMax,

@@ -99,6 +99,9 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
   case AtomicAnd:
     *ptr = old & value;
     break;
+  case AtomicCmpXchg:
+    FATAL_ERROR("AtomicCmpXchg in generic atomic handler");
+    break;
   case AtomicDec:
     *ptr = old - 1;
     break;
@@ -143,10 +146,16 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   // Perform cmpxchg
   uint32_t *ptr = (uint32_t*)(buffer.data + offset);
   uint32_t old = *ptr;
-  bool xchg = (old == cmp);
-  *ptr = xchg ? value : old;
+  if (old == cmp)
+  {
+    *ptr = value;
 
-  // TODO: Register special atomic access?
+    m_context->notifyMemoryAtomic(this, AtomicCmpXchg, address, 4);
+  }
+  else
+  {
+    // TODO: Register read-only atomic access?
+  }
 
   return old;
 }
