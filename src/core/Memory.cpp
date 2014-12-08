@@ -75,46 +75,55 @@ size_t Memory::allocateBuffer(size_t size)
   return address;
 }
 
-uint32_t* Memory::atomic(size_t address)
+uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
 {
   // Bounds check
   if (!isAddressValid(address, 4))
   {
     logError(true, m_addressSpace, address, 4);
-    return NULL;
+    return 0;
   }
 
-  m_context->notifyMemoryAtomic(this, address, 4);
-
-  // Get buffer
+  // Get buffer and register access
   size_t offset = EXTRACT_OFFSET(address);
   Buffer buffer = m_memory[EXTRACT_BUFFER(address)];
-  return (uint32_t*)(buffer.data + offset);
-}
-
-uint32_t Memory::atomicAdd(size_t address, uint32_t value)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
-  {
-    return 0;
-  }
+  uint32_t *ptr = (uint32_t*)(buffer.data + offset);
+  m_context->notifyMemoryAtomic(this, op, address, 4);
 
   uint32_t old = *ptr;
-  *ptr = old + value;
-  return old;
-}
-
-uint32_t Memory::atomicAnd(size_t address, uint32_t value)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
+  switch(op)
   {
-    return 0;
+  case AtomicAdd:
+    *ptr = old + value;
+    break;
+  case AtomicAnd:
+    *ptr = old & value;
+    break;
+  case AtomicDec:
+    *ptr = old - 1;
+    break;
+  case AtomicInc:
+    *ptr = old + 1;
+    break;
+  case AtomicMax:
+    *ptr = old > value ? old : value;
+    break;
+  case AtomicMin:
+    *ptr = old < value ? old : value;
+    break;
+  case AtomicOr:
+    *ptr = old | value;
+    break;
+  case AtomicSub:
+    *ptr = old - value;
+    break;
+  case AtomicXchg:
+    *ptr = value;
+    break;
+  case AtomicXor:
+    *ptr = old ^ value;
+    break;
   }
-
-  uint32_t old = *ptr;
-  *ptr = old & value;
   return old;
 }
 
@@ -137,112 +146,8 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   bool xchg = (old == cmp);
   *ptr = xchg ? value : old;
 
-  // TODO: Check for data-races
+  // TODO: Register special atomic access?
 
-  return old;
-}
-
-uint32_t Memory::atomicDec(size_t address)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
-  {
-    return 0;
-  }
-
-  uint32_t old = *ptr;
-  *ptr = old - 1;
-  return old;
-}
-
-uint32_t Memory::atomicInc(size_t address)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
-  {
-    return 0;
-  }
-
-  uint32_t old = *ptr;
-  *ptr = old + 1;
-  return old;
-}
-
-uint32_t Memory::atomicMax(size_t address, uint32_t value)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
-  {
-    return 0;
-  }
-
-  uint32_t old = *ptr;
-  *ptr = old > value ? old : value;
-  return old;
-}
-
-uint32_t Memory::atomicMin(size_t address, uint32_t value)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
-  {
-    return 0;
-  }
-
-  uint32_t old = *ptr;
-  *ptr = old < value ? old : value;
-  return old;
-}
-
-uint32_t Memory::atomicOr(size_t address, uint32_t value)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
-  {
-    return 0;
-  }
-
-  uint32_t old = *ptr;
-  *ptr = old | value;
-  return old;
-}
-
-uint32_t Memory::atomicSub(size_t address, uint32_t value)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
-  {
-    return 0;
-  }
-
-  uint32_t old = *ptr;
-  *ptr = old - value;
-  return old;
-}
-
-uint32_t Memory::atomicXchg(size_t address, uint32_t value)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
-  {
-    return 0;
-  }
-
-  uint32_t old = *ptr;
-  *ptr = value;
-  return old;
-}
-
-uint32_t Memory::atomicXor(size_t address, uint32_t value)
-{
-  uint32_t *ptr = atomic(address);
-  if (!ptr)
-  {
-    return 0;
-  }
-
-  uint32_t old = *ptr;
-  *ptr = old ^ value;
   return old;
 }
 

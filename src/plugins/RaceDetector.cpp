@@ -51,7 +51,7 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
 }
 
 void RaceDetector::memoryAtomic(const Memory *memory, const WorkItem *workItem,
-                                size_t address, size_t size)
+                                AtomicOp op, size_t address, size_t size)
 {
   State *state = m_state[KEY(memory,address)].first + EXTRACT_OFFSET(address);
 

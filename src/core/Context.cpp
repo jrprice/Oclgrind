@@ -212,13 +212,13 @@ void Context::notifyMemoryAllocated(const Memory *memory, size_t address,
   NOTIFY(memoryAllocated, memory, address, size);
 }
 
-void Context::notifyMemoryAtomic(const Memory *memory, size_t address,
-                                 size_t size) const
+void Context::notifyMemoryAtomic(const Memory *memory, AtomicOp op,
+                                 size_t address, size_t size) const
 {
   if (m_kernelInvocation && m_kernelInvocation->getCurrentWorkItem())
   {
     NOTIFY(memoryAtomic, memory, m_kernelInvocation->getCurrentWorkItem(),
-           address, size);
+           op, address, size);
   }
 }
 

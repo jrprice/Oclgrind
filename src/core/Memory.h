@@ -29,17 +29,8 @@ namespace oclgrind
     virtual ~Memory();
 
     size_t allocateBuffer(size_t size);
-    uint32_t atomicAdd(size_t address, uint32_t value);
-    uint32_t atomicAnd(size_t address, uint32_t value);
+    uint32_t atomic(AtomicOp op, size_t address, uint32_t value = 0);
     uint32_t atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value);
-    uint32_t atomicDec(size_t address);
-    uint32_t atomicInc(size_t address);
-    uint32_t atomicMax(size_t address, uint32_t value);
-    uint32_t atomicMin(size_t address, uint32_t value);
-    uint32_t atomicOr(size_t address, uint32_t value);
-    uint32_t atomicSub(size_t address, uint32_t value);
-    uint32_t atomicXchg(size_t address, uint32_t value);
-    uint32_t atomicXor(size_t address, uint32_t value);
     void clear();
     Memory *clone() const;
     size_t createHostBuffer(size_t size, void *ptr);
@@ -72,7 +63,6 @@ namespace oclgrind
     unsigned int m_addressSpace;
     size_t m_totalAllocated;
 
-    uint32_t* atomic(size_t address);
     int getNextBuffer();
   };
 }

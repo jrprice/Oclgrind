@@ -50,11 +50,26 @@ namespace oclgrind
   class Kernel;
 
   // Enumeration for address spaces
-  enum AddressSpace {
+  enum AddressSpace
+  {
     AddrSpacePrivate = 0,
     AddrSpaceGlobal = 1,
     AddrSpaceConstant = 2,
     AddrSpaceLocal = 3,
+  };
+
+  enum AtomicOp
+  {
+    AtomicAdd,
+    AtomicAnd,
+    AtomicDec,
+    AtomicInc,
+    AtomicMax,
+    AtomicMin,
+    AtomicOr,
+    AtomicSub,
+    AtomicXchg,
+    AtomicXor,
   };
 
   // Enumeration for different log message types

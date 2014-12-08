@@ -33,7 +33,7 @@ namespace oclgrind
     virtual void memoryAllocated(const Memory *memory, size_t address,
                                  size_t size){}
     virtual void memoryAtomic(const Memory *memory, const WorkItem *workItem,
-                              size_t address, size_t size){}
+                              AtomicOp op, size_t address, size_t size){}
     virtual void memoryDeallocated(const Memory *memory, size_t address){}
     virtual void memoryLoad(const Memory *memory, const WorkItem *workItem,
                             size_t address, size_t size){}
