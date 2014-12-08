@@ -121,6 +121,7 @@ namespace oclgrind
     State getState() const;
     const unsigned char* getValueData(const llvm::Value *value) const;
     const llvm::Value* getVariable(std::string name) const;
+    const WorkGroup* getWorkGroup() const;
     bool printValue(const llvm::Value *value) const;
     bool printVariable(std::string name) const;
     State step();

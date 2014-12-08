@@ -452,6 +452,11 @@ const llvm::Value* WorkItem::getVariable(std::string name) const
   return itr->second;
 }
 
+const WorkGroup* WorkItem::getWorkGroup() const
+{
+  return m_workGroup;
+}
+
 bool WorkItem::hasValue(const llvm::Value *key) const
 {
   return m_cache->valueIDs.count(key);
