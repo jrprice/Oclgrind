@@ -221,7 +221,7 @@ void KernelInvocation::run(const Context *context, Kernel *kernel,
     ostringstream info;
     info << endl << "OCLGRIND FATAL ERROR "
          << "(" << err.getFile() << ":" << err.getLine() << ")"
-         << endl << err.what() << endl;
+         << endl << err.what();
     context->logError(info.str().c_str());
   }
 
