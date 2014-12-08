@@ -174,12 +174,14 @@ void Context::logError(const char* error) const
 }
 
 #define NOTIFY(function, ...)                     \
+{                                                 \
   PluginList::const_iterator pluginItr;           \
   for (pluginItr = m_plugins.begin();             \
        pluginItr != m_plugins.end(); pluginItr++) \
   {                                               \
     pluginItr->first->function(__VA_ARGS__);      \
-  }
+  }                                               \
+}
 
 void Context::notifyInstructionExecuted(const WorkItem *workItem,
                                         const llvm::Instruction *instruction,
@@ -213,7 +215,11 @@ void Context::notifyMemoryAllocated(const Memory *memory, size_t address,
 void Context::notifyMemoryAtomic(const Memory *memory, size_t address,
                                  size_t size) const
 {
-  NOTIFY(memoryAtomic, memory, address, size);
+  if (m_kernelInvocation && m_kernelInvocation->getCurrentWorkItem())
+  {
+    NOTIFY(memoryAtomic, memory, m_kernelInvocation->getCurrentWorkItem(),
+           address, size);
+  }
 }
 
 void Context::notifyMemoryDeallocated(const Memory *memory,
@@ -225,13 +231,37 @@ void Context::notifyMemoryDeallocated(const Memory *memory,
 void Context::notifyMemoryLoad(const Memory *memory, size_t address,
                                size_t size) const
 {
-  NOTIFY(memoryLoad, memory, address, size);
+  if (m_kernelInvocation)
+  {
+    if (m_kernelInvocation->getCurrentWorkItem())
+    {
+      NOTIFY(memoryLoad, memory, m_kernelInvocation->getCurrentWorkItem(),
+             address, size);
+    }
+    else if (m_kernelInvocation->getCurrentWorkGroup())
+    {
+      NOTIFY(memoryLoad, memory, m_kernelInvocation->getCurrentWorkGroup(),
+             address, size);
+    }
+  }
 }
 
 void Context::notifyMemoryStore(const Memory *memory, size_t address,
                                 size_t size, const uint8_t *storeData) const
 {
-  NOTIFY(memoryStore, memory, address, size, storeData);
+  if (m_kernelInvocation)
+  {
+    if (m_kernelInvocation->getCurrentWorkItem())
+    {
+      NOTIFY(memoryStore, memory, m_kernelInvocation->getCurrentWorkItem(),
+             address, size, storeData);
+    }
+    else if (m_kernelInvocation->getCurrentWorkGroup())
+    {
+      NOTIFY(memoryStore, memory, m_kernelInvocation->getCurrentWorkGroup(),
+             address, size, storeData);
+    }
+  }
 }
 
 void Context::notifyMessage(MessageType type, const char *message) const

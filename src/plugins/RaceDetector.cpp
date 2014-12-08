@@ -50,13 +50,12 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
   m_state[KEY(memory,address)] = make_pair(new State[size], size);
 }
 
-void RaceDetector::memoryAtomic(const Memory *memory, size_t address,
-                                size_t size)
+void RaceDetector::memoryAtomic(const Memory *memory, const WorkItem *workItem,
+                                size_t address, size_t size)
 {
   State *state = m_state[KEY(memory,address)].first + EXTRACT_OFFSET(address);
 
-  // Get work-item
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  // Get work-item index
   size_t workItemIndex = workItem->getGlobalIndex();
 
   for (size_t offset = 0; offset < size; offset++, state++)
@@ -93,15 +92,32 @@ void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
   m_state.erase(KEY(memory,address));
 }
 
-void RaceDetector::memoryLoad(const Memory *memory, size_t address, size_t size)
+void RaceDetector::memoryLoad(const Memory *memory, const WorkItem *workItem,
+                              size_t address, size_t size)
 {
-  registerLoadStore(memory, address, size, NULL);
+  registerLoadStore(memory, workItem, workItem->getWorkGroup(),
+                    address, size, NULL);
 }
 
-void RaceDetector::memoryStore(const Memory *memory, size_t address,
-                               size_t size, const uint8_t *storeData)
+void RaceDetector::memoryLoad(const Memory *memory, const WorkGroup *workGroup,
+                              size_t address, size_t size)
 {
-  registerLoadStore(memory, address, size, storeData);
+  registerLoadStore(memory, NULL, workGroup, address, size, NULL);
+}
+
+void RaceDetector::memoryStore(const Memory *memory, const WorkItem *workItem,
+                               size_t address, size_t size,
+                               const uint8_t *storeData)
+{
+  registerLoadStore(memory, workItem, workItem->getWorkGroup(),
+                    address, size, storeData);
+}
+
+void RaceDetector::memoryStore(const Memory *memory, const WorkGroup *workGroup,
+                               size_t address, size_t size,
+                               const uint8_t *storeData)
+{
+  registerLoadStore(memory, NULL, workGroup, address, size, storeData);
 }
 
 void RaceDetector::logRace(DataRaceType type,
@@ -180,8 +196,11 @@ void RaceDetector::logRace(DataRaceType type,
   msg.send();
 }
 
-void RaceDetector::registerLoadStore(const Memory *memory, size_t address,
-                                     size_t size, const uint8_t *storeData)
+void RaceDetector::registerLoadStore(const Memory *memory,
+                                     const WorkItem *workItem,
+                                     const WorkGroup *workGroup,
+                                     size_t address, size_t size,
+                                     const uint8_t *storeData)
 {
   if (!m_kernelInvocation)
     return;
@@ -193,8 +212,6 @@ void RaceDetector::registerLoadStore(const Memory *memory, size_t address,
 
   // Get index of work-item and work-group performing access
   size_t workItemIndex = -1, workGroupIndex = -1;
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
-  const WorkGroup *workGroup = m_kernelInvocation->getCurrentWorkGroup();
   if (workItem)
   {
     workItemIndex = workItem->getGlobalIndex();
