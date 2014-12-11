@@ -2235,6 +2235,11 @@ namespace oclgrind
     static double _sinpi_(double x){ return (sin(x * M_PI)); }
     static double _tanpi_(double x){ return (tan(x * M_PI)); }
 
+    static double _fma_(double a, double b, double c)
+    {
+      return a*b + c;
+    }
+
     static double _maxmag_(double x, double y)
     {
       double _x = fabs(x);
@@ -3297,7 +3302,7 @@ namespace oclgrind
     ADD_BUILTIN("fabs", f1arg, F1ARG(fabs));
     ADD_BUILTIN("fdim", f2arg, F2ARG(fdim));
     ADD_BUILTIN("floor", f1arg, F1ARG(floor));
-    ADD_BUILTIN("fma", f3arg, F3ARG(fma));
+    ADD_BUILTIN("fma", f3arg, F3ARG(_fma_));
     ADD_BUILTIN("fmax", f2arg, F2ARG(fmax));
     ADD_BUILTIN("fmin", f2arg, F2ARG(fmin));
     ADD_BUILTIN("fmod", f2arg, F2ARG(fmod));
@@ -3313,7 +3318,7 @@ namespace oclgrind
     ADD_BUILTIN("log10", f1arg, F1ARG(log10));
     ADD_BUILTIN("log1p", f1arg, F1ARG(log1p));
     ADD_BUILTIN("logb", f1arg, F1ARG(logb));
-    ADD_BUILTIN("mad", f3arg, F3ARG(fma));
+    ADD_BUILTIN("mad", f3arg, F3ARG(_fma_));
     ADD_BUILTIN("maxmag", f2arg, _maxmag_);
     ADD_BUILTIN("minmag", f2arg, _minmag_);
     ADD_BUILTIN("modf", modf_builtin, NULL);
@@ -3432,7 +3437,7 @@ namespace oclgrind
     ADD_BUILTIN("llvm.lifetime.end", llvm_lifetime_end, NULL);
     ADD_PREFIX_BUILTIN("llvm.memcpy", llvm_memcpy, NULL);
     ADD_PREFIX_BUILTIN("llvm.memset", llvm_memset, NULL);
-    ADD_PREFIX_BUILTIN("llvm.fmuladd", f3arg, F3ARG(fma));
+    ADD_PREFIX_BUILTIN("llvm.fmuladd", f3arg, F3ARG(_fma_));
     ADD_BUILTIN("llvm.trap", llvm_trap, NULL);
 
     return builtins;
