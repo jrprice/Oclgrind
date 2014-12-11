@@ -1,0 +1,11 @@
+kernel_struct_argument.cl
+kernel_struct_argument
+1 1 1
+1 1 1
+
+<size=12 float>
+42
+3
+18
+
+<size=4 dump fill=0>
