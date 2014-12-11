@@ -65,14 +65,32 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   // Set initial number of values to store based on cache
   m_values.resize(m_cache->valueIDs.size());
 
+  m_privateMemory = new Memory(AddrSpacePrivate, m_context);
+
   // Store kernel arguments in private memory
   TypedValueMap::const_iterator argItr;
   for (argItr = kernel->args_begin(); argItr != kernel->args_end(); argItr++)
   {
-    setValue(argItr->first, m_pool.clone(argItr->second));
-  }
+    const llvm::Argument *arg = (const llvm::Argument*)argItr->first;
+    TypedValue value = argItr->second;
 
-  m_privateMemory = new Memory(AddrSpacePrivate, m_context);
+    if (arg->hasByValAttr())
+    {
+      TypedValue address =
+      {
+        sizeof(size_t),
+        1,
+        m_pool.alloc(sizeof(size_t))
+      };
+      address.setPointer(m_privateMemory->allocateBuffer(value.size));
+      m_privateMemory->store(value.data, address.getPointer(), value.size);
+      setValue(argItr->first, m_pool.clone(address));
+    }
+    else
+    {
+      setValue(argItr->first, m_pool.clone(value));
+    }
+  }
 
   list<const llvm::GlobalVariable*>::const_iterator varItr;
   for (varItr = kernel->vars_begin(); varItr != kernel->vars_end(); varItr++)
