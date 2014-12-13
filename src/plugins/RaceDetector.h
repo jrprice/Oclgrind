@@ -20,8 +20,8 @@ namespace oclgrind
   public:
     RaceDetector(const Context *context);
 
-    virtual void kernelBegin(KernelInvocation *kernelInvocation);
-    virtual void kernelEnd(KernelInvocation *kernelInvocation);
+    virtual void kernelBegin(const KernelInvocation *kernelInvocation);
+    virtual void kernelEnd(const KernelInvocation *kernelInvocation);
     virtual void memoryAllocated(const Memory *memory, size_t address,
                                  size_t size);
     virtual void memoryAtomic(const Memory *memory, const WorkItem *workItem,

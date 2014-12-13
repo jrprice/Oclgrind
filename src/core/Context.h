@@ -33,8 +33,8 @@ namespace oclgrind
     void notifyInstructionExecuted(const WorkItem *workItem,
                                    const llvm::Instruction *instruction,
                                    const TypedValue& result) const;
-    void notifyKernelBegin(KernelInvocation *kernelInvocation) const;
-    void notifyKernelEnd(KernelInvocation *kernelInvocation) const;
+    void notifyKernelBegin(const KernelInvocation *kernelInvocation) const;
+    void notifyKernelEnd(const KernelInvocation *kernelInvocation) const;
     void notifyMemoryAllocated(const Memory *memory, size_t address,
                                size_t size) const;
     void notifyMemoryAtomic(const Memory *memory, AtomicOp op,

@@ -139,7 +139,7 @@ void InstructionCounter::instructionExecuted(
   m_instructionCounts[opcode]++;
 }
 
-void InstructionCounter::kernelBegin(KernelInvocation *kernelInvocation)
+void InstructionCounter::kernelBegin(const KernelInvocation *kernelInvocation)
 {
   m_instructionCounts.clear();
   m_instructionCounts.resize(COUNTED_CALL_BASE);
@@ -150,7 +150,7 @@ void InstructionCounter::kernelBegin(KernelInvocation *kernelInvocation)
   m_functions.clear();
 }
 
-void InstructionCounter::kernelEnd(KernelInvocation *kernelInvocation)
+void InstructionCounter::kernelEnd(const KernelInvocation *kernelInvocation)
 {
   // Load default locale
   locale previousLocale = cout.getloc();

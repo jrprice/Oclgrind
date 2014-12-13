@@ -190,7 +190,7 @@ void Context::notifyInstructionExecuted(const WorkItem *workItem,
   NOTIFY(instructionExecuted, workItem, instruction, result);
 }
 
-void Context::notifyKernelBegin(KernelInvocation *kernelInvocation) const
+void Context::notifyKernelBegin(const KernelInvocation *kernelInvocation) const
 {
   assert(m_kernelInvocation == NULL);
   m_kernelInvocation = kernelInvocation;
@@ -198,7 +198,7 @@ void Context::notifyKernelBegin(KernelInvocation *kernelInvocation) const
   NOTIFY(kernelBegin, kernelInvocation);
 }
 
-void Context::notifyKernelEnd(KernelInvocation *kernelInvocation) const
+void Context::notifyKernelEnd(const KernelInvocation *kernelInvocation) const
 {
   NOTIFY(kernelEnd, kernelInvocation);
 

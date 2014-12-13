@@ -29,12 +29,12 @@ RaceDetector::RaceDetector(const Context *context)
   m_allowUniformWrites = !checkEnv("OCLGRIND_UNIFORM_WRITES");
 }
 
-void RaceDetector::kernelBegin(KernelInvocation *kernelInvocation)
+void RaceDetector::kernelBegin(const KernelInvocation *kernelInvocation)
 {
   m_kernelInvocation = kernelInvocation;
 }
 
-void RaceDetector::kernelEnd(KernelInvocation *kernelInvocation)
+void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
 {
   synchronize(m_context->getGlobalMemory(), false);
 

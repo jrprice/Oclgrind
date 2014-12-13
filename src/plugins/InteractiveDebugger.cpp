@@ -149,7 +149,7 @@ void InteractiveDebugger::instructionExecuted(
   }
 }
 
-void InteractiveDebugger::kernelBegin(KernelInvocation *kernelInvocation)
+void InteractiveDebugger::kernelBegin(const KernelInvocation *kernelInvocation)
 {
   m_continue      = false;
   m_lastBreakLine = 0;
@@ -162,7 +162,7 @@ void InteractiveDebugger::kernelBegin(KernelInvocation *kernelInvocation)
   m_program = kernelInvocation->getKernel()->getProgram();
 }
 
-void InteractiveDebugger::kernelEnd(KernelInvocation *kernelInvocation)
+void InteractiveDebugger::kernelEnd(const KernelInvocation *kernelInvocation)
 {
   m_kernelInvocation = NULL;
 }
@@ -944,7 +944,10 @@ bool InteractiveDebugger::workitem(vector<string> args)
     }
   }
 
-  if (!m_kernelInvocation->switchWorkItem(gid))
+  // Ugly const_cast since this operation actually changes something about
+  // the simulation. This goes against the idea that plugins are entirely
+  // passive.
+  if (!const_cast<KernelInvocation*>(m_kernelInvocation)->switchWorkItem(gid))
   {
     cout << "Work-item has already finished, unable to load state." << endl;
     return false;

@@ -27,8 +27,8 @@ namespace oclgrind
     virtual void instructionExecuted(const WorkItem *workItem,
                                      const llvm::Instruction *instruction,
                                      const TypedValue& result){}
-    virtual void kernelBegin(KernelInvocation *kernelInvocation){}
-    virtual void kernelEnd(KernelInvocation *kernelInvocation){}
+    virtual void kernelBegin(const KernelInvocation *kernelInvocation){}
+    virtual void kernelEnd(const KernelInvocation *kernelInvocation){}
     virtual void log(MessageType type, const char *message){}
     virtual void memoryAllocated(const Memory *memory, size_t address,
                                  size_t size){}
