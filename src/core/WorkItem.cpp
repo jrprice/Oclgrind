@@ -71,10 +71,10 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   TypedValueMap::const_iterator argItr;
   for (argItr = kernel->args_begin(); argItr != kernel->args_end(); argItr++)
   {
-    const llvm::Argument *arg = (const llvm::Argument*)argItr->first;
     TypedValue value = argItr->second;
 
-    if (arg->hasByValAttr())
+    if (argItr->first->getValueID() == llvm::Value::ArgumentVal &&
+        ((const llvm::Argument*)argItr->first)->hasByValAttr())
     {
       TypedValue address =
       {
