@@ -363,7 +363,7 @@ Size3 WorkItem::getLocalID() const
   return m_localID;
 }
 
-Memory* WorkItem::getMemory(unsigned int addrSpace)
+Memory* WorkItem::getMemory(unsigned int addrSpace) const
 {
   switch (addrSpace)
   {

@@ -196,7 +196,7 @@ namespace oclgrind
     struct Position;
     Position *m_position;
 
-    Memory* getMemory(unsigned int addrSpace);
+    Memory* getMemory(unsigned int addrSpace) const;
 
     // Store for instruction results and other operand values
     std::vector<TypedValue> m_values;
