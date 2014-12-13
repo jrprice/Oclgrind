@@ -93,7 +93,8 @@ namespace oclgrind
 
       ValueMap valueIDs;
       BuiltinMap builtins;
-      TypedValue getConstant(const llvm::Value *operand, WorkItem *workItem);
+      TypedValue getConstant(const llvm::Value *operand,
+                             const WorkItem *workItem);
 
     private:
       static std::MAP<unsigned long, InterpreterCache*> m_cache;
@@ -116,7 +117,7 @@ namespace oclgrind
     Size3 getGlobalID() const;
     size_t getGlobalIndex() const;
     Size3 getLocalID() const;
-    TypedValue getOperand(const llvm::Value *operand);
+    TypedValue getOperand(const llvm::Value *operand) const;
     Memory* getPrivateMemory() const;
     State getState() const;
     const unsigned char* getValueData(const llvm::Value *value) const;

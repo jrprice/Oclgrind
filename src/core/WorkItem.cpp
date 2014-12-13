@@ -379,7 +379,7 @@ Memory* WorkItem::getMemory(unsigned int addrSpace) const
   }
 }
 
-TypedValue WorkItem::getOperand(const llvm::Value *operand)
+TypedValue WorkItem::getOperand(const llvm::Value *operand) const
 {
   unsigned valID = operand->getValueID();
   pair<size_t,size_t> size = getValueSize(operand);
@@ -1471,7 +1471,7 @@ WorkItem::InterpreterCache::~InterpreterCache()
 }
 
 TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand,
-                                                   WorkItem *workItem)
+                                                   const WorkItem *workItem)
 {
   // Check cache
   ConstantMap::iterator constItr = m_constants.find(operand);
@@ -1491,7 +1491,9 @@ TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand,
   {
     const llvm::Instruction *instruction =
       getConstExprAsInstruction((const llvm::ConstantExpr*)operand);
-    workItem->dispatch(instruction, constant);
+    // Use of const_cast here is ugly, but ConstExpr instructions
+    // shouldn't actually modify WorkItem state anyway
+    const_cast<WorkItem*>(workItem)->dispatch(instruction, constant);
     delete instruction;
   }
   else
