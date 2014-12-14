@@ -1,6 +1,20 @@
 For more information, please visit the Oclgrind Wiki:
 https://github.com/jrprice/Oclgrind/wiki
 
+Oclgrind 14.12
+=============
+This release incorporates a new plugin system, to allow third-party
+developers to build tools that utilise Oclgrind. More information can
+be found on the Wiki:
+https://github.com/jrprice/Oclgrind/wiki/Creating-Plugins
+
+In addition, this release contains the following changes:
+- Interactive debugger now has a command history
+- Detection for unaligned memory accesses
+- Limit the number of error messages printed to avoid flooding output
+- Various other bug fixes and improvements
+
+
 Oclgrind 14.5
 =============
 Initial release (beta).
