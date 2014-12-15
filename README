@@ -14,19 +14,19 @@ debugging. The simulator is built on an interpreter for SPIR. This is
 a side-project is being undertaken by James Price (a PhD student at
 the University of Bristol).
 
-This project is currently in beta, and so you may encounter issues
-when building or running it. If you do, please get in touch using the
-contact details below.
+Binary releases can be found on the GitHub releases page:
+
+  https://github.com/jrprice/Oclgrind/releases
 
 
 Building
 --------
-To use this project you will require a version of Clang that is
+To build this project you will require a version of Clang that is
 capable of generating SPIR. The Khronos working group has made a
 patched version of Clang 3.2 that can generate SPIR available on
 GitHub:
 
-https://github.com/KhronosGroup/SPIR
+    https://github.com/KhronosGroup/SPIR
 
 Follow the instructions in the README.md file in that repository to
 build the Clang/SPIR generator. To improve the performance of
@@ -127,14 +127,16 @@ available commands.
 
 For more detailed information about using Oclgrind please visit the
 GitHub Wiki:
-https://github.com/jrprice/Oclgrind/wiki/
+
+    https://github.com/jrprice/Oclgrind/wiki/
 
 
 Contact
 -------
 If you encounter any issues or have any questions, please use the
 GitHub issues page:
-https://github.com/jrprice/Oclgrind/issues
+
+    https://github.com/jrprice/Oclgrind/issues
 
 You can also contact the developer via email:
 James Price <j.price@bristol.ac.uk>
