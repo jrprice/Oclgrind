@@ -8,11 +8,6 @@
 
 #include "core/Plugin.h"
 
-namespace llvm
-{
-  class Function;
-}
-
 namespace oclgrind
 {
   class RaceDetector : public Plugin
