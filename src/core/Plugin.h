@@ -24,6 +24,11 @@ namespace oclgrind
   public:
     Plugin(const Context *context);
 
+    virtual void hostMemoryLoad(const Memory *memory,
+                                size_t address, size_t size){}
+    virtual void hostMemoryStore(const Memory *memory,
+                                 size_t address, size_t size,
+                                 const uint8_t *storeData){}
     virtual void instructionExecuted(const WorkItem *workItem,
                                      const llvm::Instruction *instruction,
                                      const TypedValue& result){}

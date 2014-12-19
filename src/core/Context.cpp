@@ -244,6 +244,10 @@ void Context::notifyMemoryLoad(const Memory *memory, size_t address,
              address, size);
     }
   }
+  else
+  {
+    NOTIFY(hostMemoryLoad, memory, address, size);
+  }
 }
 
 void Context::notifyMemoryStore(const Memory *memory, size_t address,
@@ -261,6 +265,10 @@ void Context::notifyMemoryStore(const Memory *memory, size_t address,
       NOTIFY(memoryStore, memory, m_kernelInvocation->getCurrentWorkGroup(),
              address, size, storeData);
     }
+  }
+  else
+  {
+    NOTIFY(hostMemoryStore, memory, address, size, storeData);
   }
 }
 
