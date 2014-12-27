@@ -435,6 +435,7 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     if (m_arguments.count(arg))
     {
       m_localMemory->deallocateBuffer(m_arguments[arg].getPointer());
+      delete[] m_arguments[arg].data;
     }
 
     // Allocate local memory buffer
