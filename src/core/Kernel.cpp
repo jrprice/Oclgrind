@@ -80,13 +80,19 @@ Kernel::Kernel(const Kernel& kernel)
  : m_program(kernel.m_program)
 {
   m_function = kernel.m_function;
-  m_arguments = kernel.m_arguments;
   m_constants = kernel.m_constants;
   m_globalVariables = kernel.m_globalVariables;
   m_constantBuffers = kernel.m_constantBuffers;
   m_localMemory = kernel.m_localMemory->clone();
   m_name = kernel.m_name;
   m_metadata = kernel.m_metadata;
+
+  TypedValueMap::const_iterator itr;
+  for (itr = kernel.m_arguments.begin();
+       itr != kernel.m_arguments.end(); itr++)
+  {
+    m_arguments[itr->first] = itr->second.clone();
+  }
 }
 
 Kernel::~Kernel()
