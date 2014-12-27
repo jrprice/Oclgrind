@@ -1485,7 +1485,7 @@ TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand,
   TypedValue constant;
   constant.size = size.first;
   constant.num  = size.second;
-  constant.data = new unsigned char[constant.size*constant.num];
+  constant.data = new unsigned char[getTypeSize(operand->getType())];
 
   if (operand->getValueID() == llvm::Value::ConstantExprVal)
   {
