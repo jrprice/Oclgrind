@@ -98,6 +98,12 @@ Kernel::Kernel(const Kernel& kernel)
 Kernel::~Kernel()
 {
   delete m_localMemory;
+
+  TypedValueMap::iterator itr;
+  for (itr = m_arguments.begin(); itr != m_arguments.end(); itr++)
+  {
+    delete[] itr->second.data;
+  }
 }
 
 bool Kernel::allArgumentsSet() const
