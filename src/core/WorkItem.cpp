@@ -1243,11 +1243,16 @@ INSTRUCTION(select)
   TypedValue opCondition = getOperand(selectInst->getCondition());
   for (int i = 0; i < result.num; i++)
   {
-    const bool cond = opCondition.getUInt(i);
+    const bool cond =
+      selectInst->getCondition()->getType()->isVectorTy() ?
+      opCondition.getUInt(i) :
+      opCondition.getUInt();
     const llvm::Value *op = cond ?
       selectInst->getTrueValue() :
       selectInst->getFalseValue();
-    memcpy(result.data, getOperand(op).data, result.size*result.num);
+    memcpy(result.data + i*result.size,
+           getOperand(op).data + i*result.size,
+           result.size);
   }
 }
 
