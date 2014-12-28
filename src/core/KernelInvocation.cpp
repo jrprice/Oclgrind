@@ -26,6 +26,7 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
                                    Size3 localSize)
   : m_context(context), m_kernel(kernel)
 {
+  m_workDim      = workDim;
   m_globalOffset = globalOffset;
   m_globalSize   = globalSize;
   m_localSize    = localSize;
