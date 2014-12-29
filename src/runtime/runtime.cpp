@@ -2143,6 +2143,8 @@ clCreateProgramWithSource
     return NULL;
   }
 
+  clRetainContext(context);
+
   SetError(context, CL_SUCCESS);
   return prog;
 }
@@ -2208,6 +2210,8 @@ clCreateProgramWithBinary
     binary_status[0] = CL_SUCCESS;
   }
 
+  clRetainContext(context);
+
   SetError(context, CL_SUCCESS);
   return prog;
 }
@@ -2261,6 +2265,7 @@ clReleaseProgram
   if (--program->refCount == 0)
   {
     delete program->program;
+    clReleaseContext(program->context);
     delete program;
   }
 
@@ -2459,6 +2464,8 @@ clLinkProgram
   {
     pfn_notify(prog, user_data);
   }
+
+  clRetainContext(context);
 
   SetError(context, CL_SUCCESS);
   return prog;
