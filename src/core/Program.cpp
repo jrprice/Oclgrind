@@ -98,8 +98,6 @@ Program::Program(const Context *context, const string& source)
 
 Program::~Program()
 {
-  WorkItem::InterpreterCache::clear(m_uid);
-
   if (m_module)
   {
     delete m_module;
