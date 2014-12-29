@@ -2791,8 +2791,10 @@ clReleaseKernel
 
   if (--kernel->refCount == 0)
   {
-    clReleaseProgram(kernel->program);
     delete kernel->kernel;
+
+    clReleaseProgram(kernel->program);
+
     delete kernel;
   }
 
