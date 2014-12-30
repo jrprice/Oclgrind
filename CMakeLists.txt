@@ -182,8 +182,6 @@ target_link_libraries(oclgrind-kernel oclgrind)
 
 set(CLC_HEADERS
  ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
- ${CMAKE_BINARY_DIR}/include/oclgrind/clc32.noopt.pch
- ${CMAKE_BINARY_DIR}/include/oclgrind/clc64.noopt.pch
  ${CMAKE_BINARY_DIR}/include/oclgrind/clc32.pch
  ${CMAKE_BINARY_DIR}/include/oclgrind/clc64.pch
 )
@@ -199,33 +197,11 @@ add_custom_command(
 
 # Generate precompiled headers for clc.h
 add_custom_command(
-  OUTPUT include/oclgrind/clc32.noopt.pch
-  POST_BUILD
-  COMMAND
-    ${SPIR_ROOT}/bin/clang
-    -cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown
-    -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
-    ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
-    -o include/oclgrind/clc32.noopt.pch
-  DEPENDS include/oclgrind/clc.h
-)
-add_custom_command(
-  OUTPUT include/oclgrind/clc64.noopt.pch
-  POST_BUILD
-  COMMAND
-    ${SPIR_ROOT}/bin/clang
-    -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown
-    -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
-    ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
-    -o include/oclgrind/clc64.noopt.pch
-  DEPENDS include/oclgrind/clc.h
-)
-add_custom_command(
   OUTPUT include/oclgrind/clc32.pch
   POST_BUILD
   COMMAND
     ${SPIR_ROOT}/bin/clang
-    -cc1 -x cl -g -emit-pch -triple spir-unknown-unknown
+    -cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown
     -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
     ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
     -o include/oclgrind/clc32.pch
@@ -236,7 +212,7 @@ add_custom_command(
   POST_BUILD
   COMMAND
     ${SPIR_ROOT}/bin/clang
-    -cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown
+    -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown
     -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
     ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
     -o include/oclgrind/clc64.pch

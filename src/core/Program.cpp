@@ -15,16 +15,17 @@
 #include <dlfcn.h>
 #endif
 
+#include "llvm/Analysis/Passes.h"
 #include "llvm/Assembly/AssemblyAnnotationWriter.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/Linker.h"
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
-#include "llvm/Pass.h"
+#include "llvm/PassManager.h"
 #include "llvm/Support/system_error.h"
-#include "llvm/Transforms/Utils/Cloning.h"
+#include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Scalar.h"
-#include "llvm/Metadata.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
@@ -153,9 +154,12 @@ bool Program::build(const char *options, list<Header> headers)
     args.push_back(EXTENSIONS[i]);
   }
 
-  // Disable optimizations by default due to bugs in Khronos SPIR generator
-  bool optimize = false;
+  // Disable Clang's optimizations due to issues with certain LLVM passes.
+  // Notably, GVN and SROA are known to 'break' SPIR in LLVM 3.2.
+  // We'll add our own hand-picked passes later on.
   args.push_back("-O0");
+
+  bool optimize = true;
 
   // Add OpenCL build options
   if (options)
@@ -168,19 +172,18 @@ bool Program::build(const char *options, list<Header> headers)
       if (strcmp(opt, "-cl-fast-relaxed-math") != 0 &&
           strcmp(opt, "-cl-single-precision-constant") != 0)
       {
-        args.push_back(opt);
-
         // Check for optimization flags
-        if (strncmp(opt, "-O", 2) == 0)
+        if (strcmp(opt, "-O0") == 0 || strcmp(opt, "-cl-opt-disable") == 0)
         {
-          if (strcmp(opt, "-O0") == 0)
-          {
-            optimize = false;
-          }
-          else
-          {
-            optimize = true;
-          }
+          optimize = false;
+        }
+        else if (strncmp(opt, "-O", 2) == 0)
+        {
+          optimize = true;
+        }
+        else
+        {
+          args.push_back(opt);
         }
       }
       opt = strtok(NULL, " ");
@@ -237,21 +240,7 @@ bool Program::build(const char *options, list<Header> headers)
     {
       // Select precompiled header
       pch = new char[strlen(pchdir) + 20];
-      strcpy(pch, pchdir);
-      if (optimize)
-      {
-        if (sizeof(size_t) == 4)
-          strcat(pch, "/clc32.pch");
-        else
-          strcat(pch, "/clc64.pch");
-      }
-      else
-      {
-        if (sizeof(size_t) == 4)
-          strcat(pch, "/clc32.noopt.pch");
-        else
-          strcat(pch, "/clc64.noopt.pch");
-      }
+      sprintf(pch, "%s/clc%d.pch", pchdir, (sizeof(size_t) == 4 ? 32 : 64));
 
       // Check if precompiled header exists
       ifstream pchfile(pch);
@@ -343,6 +332,79 @@ bool Program::build(const char *options, list<Header> headers)
     // Retrieve module
     m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
     m_module = action->takeModule();
+
+    // Run optimizations on module
+    if (optimize)
+    {
+      llvm::PassManager passes;
+
+      // List of passes taken from 'opt -Os'
+      //targetlibinfo
+      passes.add(llvm::createNoAAPass());
+      passes.add(llvm::createTypeBasedAliasAnalysisPass());
+      passes.add(llvm::createBasicAliasAnalysisPass());
+      passes.add(llvm::createGlobalOptimizerPass());
+      passes.add(llvm::createIPSCCPPass());
+      passes.add(llvm::createDeadArgEliminationPass());
+      passes.add(llvm::createInstructionCombiningPass());
+      passes.add(llvm::createCFGSimplificationPass());
+      //basiccg
+      passes.add(llvm::createPruneEHPass());
+      passes.add(llvm::createFunctionInliningPass(25));
+      passes.add(llvm::createFunctionAttrsPass());
+      //passes.add(llvm::createSROAPass(false));
+      //domtree
+      passes.add(llvm::createEarlyCSEPass());
+      passes.add(llvm::createSimplifyLibCallsPass());
+      passes.add(llvm::createLazyValueInfoPass());
+      passes.add(llvm::createJumpThreadingPass());
+      passes.add(llvm::createCorrelatedValuePropagationPass());
+      passes.add(llvm::createCFGSimplificationPass());
+      passes.add(llvm::createInstructionCombiningPass());
+      passes.add(llvm::createTailCallEliminationPass());
+      passes.add(llvm::createCFGSimplificationPass());
+      passes.add(llvm::createReassociatePass());
+      //domtree
+      //loops
+      passes.add(llvm::createLoopSimplifyPass());
+      passes.add(llvm::createLCSSAPass());
+      passes.add(llvm::createLoopRotatePass());
+      passes.add(llvm::createLICMPass());
+      passes.add(llvm::createLCSSAPass());
+      passes.add(llvm::createLoopUnswitchPass());
+      passes.add(llvm::createInstructionCombiningPass());
+      passes.add(llvm::createScalarEvolutionAliasAnalysisPass());
+      passes.add(llvm::createLoopSimplifyPass());
+      passes.add(llvm::createLCSSAPass());
+      passes.add(llvm::createIndVarSimplifyPass());
+      passes.add(llvm::createLoopIdiomPass());
+      passes.add(llvm::createLoopDeletionPass());
+      passes.add(llvm::createLoopUnrollPass());
+      //memdep
+      //passes.add(llvm::createGVNPass());
+      //memdep
+      passes.add(llvm::createMemCpyOptPass());
+      passes.add(llvm::createSCCPPass());
+      passes.add(llvm::createInstructionCombiningPass());
+      passes.add(llvm::createLazyValueInfoPass());
+      passes.add(llvm::createJumpThreadingPass());
+      passes.add(llvm::createCorrelatedValuePropagationPass());
+      //domtree
+      //memdep
+      passes.add(llvm::createDeadStoreEliminationPass());
+      passes.add(llvm::createAggressiveDCEPass());
+      passes.add(llvm::createCFGSimplificationPass());
+      passes.add(llvm::createInstructionCombiningPass());
+      passes.add(llvm::createStripDeadPrototypesPass());
+      passes.add(llvm::createGlobalDCEPass());
+      passes.add(llvm::createConstantMergePass());
+      //preverify
+      //domtree
+      //verify
+
+      passes.run(*m_module);
+    }
+
     m_buildStatus = CL_BUILD_SUCCESS;
   }
   else

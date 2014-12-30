@@ -50,15 +50,11 @@ install-data-hook:
 	cp -p include/oclgrind/clc.h           $(DESTDIR)$(includedir)/oclgrind/
 	cp -p include/oclgrind/clc32.pch       $(DESTDIR)$(includedir)/oclgrind/
 	cp -p include/oclgrind/clc64.pch       $(DESTDIR)$(includedir)/oclgrind/
-	cp -p include/oclgrind/clc32.noopt.pch $(DESTDIR)$(includedir)/oclgrind/
-	cp -p include/oclgrind/clc64.noopt.pch $(DESTDIR)$(includedir)/oclgrind/
 
 uninstall-hook:
 	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc.h
 	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc32.pch
 	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc64.pch
-	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc32.noopt.pch
-	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc64.noopt.pch
 
 RUNTIME_SOURCES = src/runtime/async_queue.h				\
  src/runtime/async_queue.cpp src/runtime/icd.h src/runtime/runtime.cpp
@@ -84,8 +80,6 @@ oclgrind: $(top_srcdir)/src/runtime/oclgrind
 	>$@
 noinst_SCRIPTS = oclgrind.icd \
  include/oclgrind/clc.h \
- include/oclgrind/clc32.noopt.pch \
- include/oclgrind/clc64.noopt.pch \
  include/oclgrind/clc32.pch \
  include/oclgrind/clc64.pch
 oclgrind.icd: liboclgrind-rt-icd.la
@@ -96,24 +90,14 @@ include/oclgrind/clc.h: $(top_srcdir)/src/core/clc.h
 	mkdir -p include/oclgrind
 	cp $< $@
 
-include/oclgrind/clc32.noopt.pch: include/oclgrind/clc.h
+include/oclgrind/clc32.pch: include/oclgrind/clc.h
 	$(clang_spir) \
 		-cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown \
 		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
 		$< -o $@
-include/oclgrind/clc64.noopt.pch: include/oclgrind/clc.h
-	$(clang_spir) \
-		-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
-		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
-		$< -o $@
-include/oclgrind/clc32.pch: include/oclgrind/clc.h
-	$(clang_spir) \
-		-cc1 -x cl -g -emit-pch -triple spir-unknown-unknown \
-		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
-		$< -o $@
 include/oclgrind/clc64.pch: include/oclgrind/clc.h
 	$(clang_spir) \
-		-cc1 -x cl -g -emit-pch -triple spir64-unknown-unknown \
+		-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
 		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
 		$< -o $@
 
