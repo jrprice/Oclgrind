@@ -47,7 +47,16 @@ static bool parseArguments(int argc, char *argv[])
 {
   for (int i = 1; i < argc; i++)
   {
-    if (!strcmp(argv[i], "--data-races"))
+    if (!strcmp(argv[i], "--build-options"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --build-options" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_BUILD_OPTIONS", argv[i]);
+    }
+    else if (!strcmp(argv[i], "--data-races"))
     {
       setEnvironment("OCLGRIND_DATA_RACES", "1");
     }
@@ -167,6 +176,8 @@ static void printUsage()
     << "       oclgrind-kernel [--help | --version]" << endl
     << endl
     << "Options:" << endl
+    << "     --build-options  OPTIONS  "
+             "Additional options to pass to the OpenCL compiler" << endl
     << "     --data-races              "
              "Enable data-race detection" << endl
     << "     --disable-pch             "

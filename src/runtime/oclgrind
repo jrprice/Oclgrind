@@ -14,6 +14,8 @@ function usage
   echo "  oclgrind [--help | --version]"
   echo
   echo "Options:"
+  echo -n "     --build-options  OPTIONS  "
+  echo          "Additional options to pass to the OpenCL compiler"
   echo -n "     --check-api               "
   echo          "Reports errors on API calls"
   echo -n "     --data-races              "
@@ -51,7 +53,11 @@ function usage
 # Parse arguments
 while [ $# -gt 0 -a "${1:0:1}" == "-" ]
 do
-  if [ "$1" == "--check-api" ]
+  if [ "$1" == "--build-options" ]
+  then
+    shift
+    export OCLGRIND_BUILD_OPTIONS="$1"
+  elif [ "$1" == "--check-api" ]
   then
     export OCLGRIND_CHECK_API=1
   elif [ "$1" == "--data-races" ]

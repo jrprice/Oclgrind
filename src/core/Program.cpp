@@ -162,32 +162,36 @@ bool Program::build(const char *options, list<Header> headers)
   bool optimize = true;
 
   // Add OpenCL build options
-  if (options)
+  const char *mainOptions = options;
+  const char *extraOptions = getenv("OCLGRIND_BUILD_OPTIONS");
+  if (!mainOptions)
+    mainOptions = "";
+  if (!extraOptions)
+    extraOptions = "";
+  char *tmpOptions = new char[strlen(mainOptions) + strlen(extraOptions) + 2];
+  sprintf(tmpOptions, "%s %s", mainOptions, extraOptions);
+  char *opt = strtok(tmpOptions, " ");
+  while (opt)
   {
-    char *_options = strdup(options);
-    char *opt = strtok(_options, " ");
-    while (opt)
+    // Ignore options that break PCH
+    if (strcmp(opt, "-cl-fast-relaxed-math") != 0 &&
+        strcmp(opt, "-cl-single-precision-constant") != 0)
     {
-      // Ignore options that break PCH
-      if (strcmp(opt, "-cl-fast-relaxed-math") != 0 &&
-          strcmp(opt, "-cl-single-precision-constant") != 0)
+      // Check for optimization flags
+      if (strcmp(opt, "-O0") == 0 || strcmp(opt, "-cl-opt-disable") == 0)
       {
-        // Check for optimization flags
-        if (strcmp(opt, "-O0") == 0 || strcmp(opt, "-cl-opt-disable") == 0)
-        {
-          optimize = false;
-        }
-        else if (strncmp(opt, "-O", 2) == 0)
-        {
-          optimize = true;
-        }
-        else
-        {
-          args.push_back(opt);
-        }
+        optimize = false;
       }
-      opt = strtok(NULL, " ");
+      else if (strncmp(opt, "-O", 2) == 0)
+      {
+        optimize = true;
+      }
+      else
+      {
+        args.push_back(opt);
+      }
     }
+    opt = strtok(NULL, " ");
   }
 
   // Pre-compiled header
@@ -457,6 +461,7 @@ bool Program::build(const char *options, list<Header> headers)
     delete[] tempBC;
   }
 
+  delete[] tmpOptions;
   delete[] pchdir;
   delete[] pch;
 
