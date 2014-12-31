@@ -15,15 +15,15 @@
 #include <dlfcn.h>
 #endif
 
-#include "llvm/Analysis/Passes.h"
 #include "llvm/Assembly/AssemblyAnnotationWriter.h"
 #include "llvm/Bitcode/ReaderWriter.h"
+#include "llvm/DataLayout.h"
 #include "llvm/Linker.h"
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
 #include "llvm/PassManager.h"
 #include "llvm/Support/system_error.h"
-#include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "clang/CodeGen/CodeGenAction.h"
@@ -340,73 +340,29 @@ bool Program::build(const char *options, list<Header> headers)
     // Run optimizations on module
     if (optimize)
     {
-      llvm::PassManager passes;
+      // Initialize pass managers
+      llvm::PassManager modulePasses;
+      llvm::FunctionPassManager functionPasses(m_module);
+      modulePasses.add(new llvm::DataLayout(m_module->getDataLayout()));
+      functionPasses.add(new llvm::DataLayout(m_module->getDataLayout()));
 
-      // List of passes taken from 'opt -Os'
-      //targetlibinfo
-      passes.add(llvm::createNoAAPass());
-      passes.add(llvm::createTypeBasedAliasAnalysisPass());
-      passes.add(llvm::createBasicAliasAnalysisPass());
-      passes.add(llvm::createGlobalOptimizerPass());
-      passes.add(llvm::createIPSCCPPass());
-      passes.add(llvm::createDeadArgEliminationPass());
-      passes.add(llvm::createInstructionCombiningPass());
-      passes.add(llvm::createCFGSimplificationPass());
-      //basiccg
-      passes.add(llvm::createPruneEHPass());
-      passes.add(llvm::createFunctionInliningPass(25));
-      passes.add(llvm::createFunctionAttrsPass());
-      //passes.add(llvm::createSROAPass(false));
-      //domtree
-      passes.add(llvm::createEarlyCSEPass());
-      passes.add(llvm::createSimplifyLibCallsPass());
-      passes.add(llvm::createLazyValueInfoPass());
-      passes.add(llvm::createJumpThreadingPass());
-      passes.add(llvm::createCorrelatedValuePropagationPass());
-      passes.add(llvm::createCFGSimplificationPass());
-      passes.add(llvm::createInstructionCombiningPass());
-      passes.add(llvm::createTailCallEliminationPass());
-      passes.add(llvm::createCFGSimplificationPass());
-      passes.add(llvm::createReassociatePass());
-      //domtree
-      //loops
-      passes.add(llvm::createLoopSimplifyPass());
-      passes.add(llvm::createLCSSAPass());
-      passes.add(llvm::createLoopRotatePass());
-      passes.add(llvm::createLICMPass());
-      passes.add(llvm::createLCSSAPass());
-      passes.add(llvm::createLoopUnswitchPass());
-      passes.add(llvm::createInstructionCombiningPass());
-      passes.add(llvm::createScalarEvolutionAliasAnalysisPass());
-      passes.add(llvm::createLoopSimplifyPass());
-      passes.add(llvm::createLCSSAPass());
-      passes.add(llvm::createIndVarSimplifyPass());
-      passes.add(llvm::createLoopIdiomPass());
-      passes.add(llvm::createLoopDeletionPass());
-      passes.add(llvm::createLoopUnrollPass());
-      //memdep
-      //passes.add(llvm::createGVNPass());
-      //memdep
-      passes.add(llvm::createMemCpyOptPass());
-      passes.add(llvm::createSCCPPass());
-      passes.add(llvm::createInstructionCombiningPass());
-      passes.add(llvm::createLazyValueInfoPass());
-      passes.add(llvm::createJumpThreadingPass());
-      passes.add(llvm::createCorrelatedValuePropagationPass());
-      //domtree
-      //memdep
-      passes.add(llvm::createDeadStoreEliminationPass());
-      passes.add(llvm::createAggressiveDCEPass());
-      passes.add(llvm::createCFGSimplificationPass());
-      passes.add(llvm::createInstructionCombiningPass());
-      passes.add(llvm::createStripDeadPrototypesPass());
-      passes.add(llvm::createGlobalDCEPass());
-      passes.add(llvm::createConstantMergePass());
-      //preverify
-      //domtree
-      //verify
+      // Populate pass managers with -Oz
+      llvm::PassManagerBuilder builder;
+      builder.OptLevel = 2;
+      builder.SizeLevel = 2;
+      builder.populateModulePassManager(modulePasses);
+      builder.populateFunctionPassManager(functionPasses);
 
-      passes.run(*m_module);
+      // Assign identifiers to unnamed temporaries
+      functionPasses.add(llvm::createInstructionNamerPass());
+
+      // Run passes
+      functionPasses.doInitialization();
+      llvm::Module::iterator fItr;
+      for (fItr = m_module->begin(); fItr != m_module->end(); fItr++)
+        functionPasses.run(*fItr);
+      functionPasses.doFinalization();
+      modulePasses.run(*m_module);
     }
 
     m_buildStatus = CL_BUILD_SUCCESS;
@@ -568,11 +524,6 @@ Kernel* Program::createKernel(const string name)
   {
     return NULL;
   }
-
-  // Assign identifiers to unnamed temporaries
-  llvm::FunctionPass *instNamer = llvm::createInstructionNamerPass();
-  instNamer->runOnFunction(*((llvm::Function*)function));
-  delete instNamer;
 
   try
   {
