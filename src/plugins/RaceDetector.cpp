@@ -127,26 +127,6 @@ void RaceDetector::logRace(DataRaceType type,
                            size_t lastWorkItem,
                            const llvm::Instruction *lastInstruction) const
 {
-  const char *memType = NULL;
-  switch (addrSpace)
-  {
-  case AddrSpacePrivate:
-    memType = "private";
-    break;
-  case AddrSpaceGlobal:
-    memType = "global";
-    break;
-  case AddrSpaceConstant:
-    memType = "constant";
-    break;
-  case AddrSpaceLocal:
-    memType = "local";
-    break;
-  default:
-    assert(false && "Memory error in unsupported address space.");
-    break;
-  }
-
   const char *raceType = NULL;
   switch (type)
   {
@@ -160,7 +140,8 @@ void RaceDetector::logRace(DataRaceType type,
 
   Context::Message msg(ERROR, m_context);
   msg << raceType << " data race at "
-      << memType << " memory address 0x" << hex << address << endl
+      << getAddressSpaceName(addrSpace)
+      << " memory address 0x" << hex << address << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
       << endl

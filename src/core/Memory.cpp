@@ -80,7 +80,7 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
   // Bounds check
   if (!isAddressValid(address, 4))
   {
-    logError(true, m_addressSpace, address, 4);
+    logError(true, address, 4);
     return 0;
   }
 
@@ -135,7 +135,7 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   // Bounds check
   if (!isAddressValid(address, 4))
   {
-    logError(true, m_addressSpace, address, 4);
+    logError(true, address, 4);
     return 0;
   }
 
@@ -252,12 +252,12 @@ bool Memory::copy(size_t dest, size_t src, size_t size)
   // Bounds checks
   if (!isAddressValid(src, size))
   {
-    logError(true, m_addressSpace, src, size);
+    logError(true, src, size);
     return false;
   }
   if (!isAddressValid(dest, size))
   {
-    logError(false, m_addressSpace, dest, size);
+    logError(false, dest, size);
     return false;
   }
 
@@ -379,7 +379,7 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   // Bounds check
   if (!isAddressValid(address, size))
   {
-    logError(true, m_addressSpace, address, size);
+    logError(true, address, size);
     return false;
   }
 
@@ -394,34 +394,13 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   return true;
 }
 
-void Memory::logError(bool read, unsigned int addrSpace,
-                      size_t address, size_t size) const
+void Memory::logError(bool read, size_t address, size_t size) const
 {
-  const char *memType;
-  switch (addrSpace)
-  {
-  case AddrSpacePrivate:
-    memType = "private";
-    break;
-  case AddrSpaceGlobal:
-    memType = "global";
-    break;
-  case AddrSpaceConstant:
-    memType = "constant";
-    break;
-  case AddrSpaceLocal:
-    memType = "local";
-    break;
-  default:
-    assert(false && "Memory error in unsupported address space.");
-    break;
-  }
-
   // Error info
   Context::Message msg(ERROR, m_context);
   msg << "Invalid " << (read ? "read" : "write")
       << " of size " << size
-      << " at " << memType
+      << " at " << getAddressSpaceName(m_addressSpace)
       << " memory address 0x" << hex << address << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
@@ -448,7 +427,7 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
   // Bounds check
   if (!isAddressValid(address, size))
   {
-    logError(false, m_addressSpace, address, size);
+    logError(false, address, size);
     return false;
   }
 

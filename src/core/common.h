@@ -133,6 +133,9 @@ namespace oclgrind
   // Output an instruction in human-readable format
   void dumpInstruction(std::ostream& out, const llvm::Instruction *instruction);
 
+  // Get the human readable name of an address space
+  const char* getAddressSpaceName(unsigned addrSpace);
+
   // Retrieve the raw data for a constant
   void getConstantData(unsigned char *data, const llvm::Constant *constant);
 

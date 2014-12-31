@@ -64,24 +64,7 @@ string InstructionCounter::getOpcodeName(unsigned opcode) const
     }
 
     // Add address space to name
-    switch (opcode)
-    {
-      case AddrSpacePrivate:
-        name << " private";
-        break;
-      case AddrSpaceGlobal:
-        name << " global";
-        break;
-      case AddrSpaceConstant:
-        name << " constant";
-        break;
-      case AddrSpaceLocal:
-        name << " local";
-        break;
-      default:
-        name << " unknown";
-        break;
-    }
+    name << " " << getAddressSpaceName(opcode);
 
     // Add number of bytes to name
     name << " (" << bytes << " bytes)";

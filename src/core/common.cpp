@@ -230,6 +230,23 @@ namespace oclgrind
     instruction->print(stream);
   }
 
+  const char* getAddressSpaceName(unsigned addrSpace)
+  {
+    switch (addrSpace)
+    {
+    case AddrSpacePrivate:
+      return "private";
+    case AddrSpaceGlobal:
+      return "global";
+    case AddrSpaceConstant:
+      return "constant";
+    case AddrSpaceLocal:
+      return "local";
+    default:
+      return "(unknown)";
+    }
+  }
+
   void getConstantData(unsigned char *data, const llvm::Constant *constant)
   {
     if (constant->getValueID() == llvm::Value::UndefValueVal)
