@@ -17,6 +17,7 @@ namespace llvm
 {
   class Module;
   template<typename T> class OwningPtr;
+  class raw_string_ostream;
 }
 
 namespace oclgrind
@@ -71,5 +72,7 @@ namespace oclgrind
 
     unsigned long m_uid;
     unsigned long generateUID() const;
+
+    bool legalize(llvm::raw_string_ostream& buildLog);
   };
 }

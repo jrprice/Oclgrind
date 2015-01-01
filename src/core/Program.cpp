@@ -18,6 +18,7 @@
 #include "llvm/Assembly/AssemblyAnnotationWriter.h"
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/DataLayout.h"
+#include "llvm/Instructions.h"
 #include "llvm/Linker.h"
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
@@ -365,7 +366,15 @@ bool Program::build(const char *options, list<Header> headers)
     functionPasses.doFinalization();
     modulePasses.run(*m_module);
 
-    m_buildStatus = CL_BUILD_SUCCESS;
+    // Attempt to legalize module
+    if (legalize(buildLog))
+    {
+      m_buildStatus = CL_BUILD_SUCCESS;
+    }
+    else
+    {
+      m_buildStatus = CL_BUILD_ERROR;
+    }
   }
   else
   {
@@ -657,4 +666,101 @@ size_t Program::getNumSourceLines() const
 unsigned long Program::getUID() const
 {
   return m_uid;
+}
+
+bool Program::legalize(llvm::raw_string_ostream& buildLog)
+{
+  // Get a list of global variables
+  list<llvm::GlobalVariable*> globals;
+  for (llvm::Module::global_iterator gItr = m_module->global_begin();
+       gItr != m_module->global_end();
+       gItr++)
+  {
+    globals.push_back(gItr);
+  }
+
+  // Move all string literals to the constant address space
+  list<llvm::GlobalVariable*>::iterator global;
+  for (global = globals.begin(); global != globals.end(); global++)
+  {
+    // Skip if not a string literal or already in the correct address space
+    llvm::Type *type = (*global)->getType()->getPointerElementType();
+    bool isStringLiteral =
+      (*global)->isConstant() &&
+      type->isArrayTy() &&
+      type->getArrayElementType() ==
+        llvm::Type::getInt8Ty(llvm::getGlobalContext());
+    if (!isStringLiteral || (*global)->getType()->getAddressSpace() == 2)
+    {
+      continue;
+    }
+
+    // Create a new global variable in the constant address space
+    llvm::GlobalVariable *newGlobal =
+      new llvm::GlobalVariable(
+        *m_module,
+        (*global)->getType()->getPointerElementType(),
+        (*global)->isConstant(),
+        (*global)->getLinkage(),
+        (*global)->getInitializer(),
+        (*global)->getName(),
+        (*global),
+        (*global)->getThreadLocalMode(),
+        AddrSpaceConstant
+    );
+    newGlobal->setUnnamedAddr((*global)->hasUnnamedAddr());
+    newGlobal->setAlignment((*global)->getAlignment());
+    newGlobal->setSection((*global)->getSection());
+
+    // Update users with new global variable
+    llvm::Value::use_iterator use;
+    for (use = (*global)->use_begin(); use != (*global)->use_end(); use++)
+    {
+      unsigned useType = use->getValueID();
+      switch (useType)
+      {
+      case llvm::Value::ConstantExprVal:
+      {
+        unsigned opcode = ((llvm::ConstantExpr*)*use)->getOpcode();
+        switch (opcode)
+        {
+        case llvm::Instruction::BitCast:
+        {
+          llvm::Constant *expr =
+            llvm::ConstantExpr::getBitCast(newGlobal, use->getType());
+          use->replaceAllUsesWith(expr);
+          break;
+        }
+        default:
+          buildLog << "Unhandled global variable user constant expression: "
+                   << opcode << "\n";
+          return false;
+        }
+        break;
+      }
+      default:
+        if (useType >= llvm::Value::InstructionVal)
+        {
+          llvm::Instruction *instruction = ((llvm::Instruction*)*use);
+          switch (instruction->getOpcode())
+          {
+            default:
+              buildLog << "Unhandled global variable user instruction: "
+                       << instruction->getOpcodeName() << "\n";
+              return false;
+          }
+        }
+        else
+        {
+          buildLog << "Unhandled global variable user type: " << useType << "\n";
+          return false;
+        }
+      }
+    }
+
+    // Remove the old global variable
+    (*global)->removeFromParent();
+  }
+
+  return true;
 }
