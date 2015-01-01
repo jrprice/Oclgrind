@@ -1511,10 +1511,18 @@ TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand,
   {
     const llvm::Instruction *instruction =
       getConstExprAsInstruction((const llvm::ConstantExpr*)operand);
-    // Use of const_cast here is ugly, but ConstExpr instructions
-    // shouldn't actually modify WorkItem state anyway
-    const_cast<WorkItem*>(workItem)->dispatch(instruction, constant);
-    delete instruction;
+    try
+    {
+      // Use of const_cast here is ugly, but ConstExpr instructions
+      // shouldn't actually modify WorkItem state anyway
+      const_cast<WorkItem*>(workItem)->dispatch(instruction, constant);
+      delete instruction;
+    }
+    catch (FatalError& err)
+    {
+      delete instruction;
+      throw err;
+    }
   }
   else
   {
