@@ -3063,6 +3063,10 @@ namespace oclgrind
               continue;
             }
 
+            // Ignore all 'h' specifiers
+            if (c == 'h')
+              continue;
+
             format += c;
             bool done = false;
             switch (c)
