@@ -1148,7 +1148,7 @@ INSTRUCTION(itrunc)
   TypedValue op = getOperand(instruction->getOperand(0));
   for (int i = 0; i < result.num; i++)
   {
-    result.setUInt(op.getUInt(i), i);
+    memcpy(result.data+i*result.size, op.data+i*op.size, result.size);
   }
 }
 
