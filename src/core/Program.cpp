@@ -337,33 +337,33 @@ bool Program::build(const char *options, list<Header> headers)
     m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
     m_module = action->takeModule();
 
+    // Initialize pass managers
+    llvm::PassManager modulePasses;
+    llvm::FunctionPassManager functionPasses(m_module);
+    modulePasses.add(new llvm::DataLayout(m_module->getDataLayout()));
+    functionPasses.add(new llvm::DataLayout(m_module->getDataLayout()));
+
     // Run optimizations on module
     if (optimize)
     {
-      // Initialize pass managers
-      llvm::PassManager modulePasses;
-      llvm::FunctionPassManager functionPasses(m_module);
-      modulePasses.add(new llvm::DataLayout(m_module->getDataLayout()));
-      functionPasses.add(new llvm::DataLayout(m_module->getDataLayout()));
-
       // Populate pass managers with -Oz
       llvm::PassManagerBuilder builder;
       builder.OptLevel = 2;
       builder.SizeLevel = 2;
       builder.populateModulePassManager(modulePasses);
       builder.populateFunctionPassManager(functionPasses);
-
-      // Assign identifiers to unnamed temporaries
-      functionPasses.add(llvm::createInstructionNamerPass());
-
-      // Run passes
-      functionPasses.doInitialization();
-      llvm::Module::iterator fItr;
-      for (fItr = m_module->begin(); fItr != m_module->end(); fItr++)
-        functionPasses.run(*fItr);
-      functionPasses.doFinalization();
-      modulePasses.run(*m_module);
     }
+
+    // Assign identifiers to unnamed temporaries
+    functionPasses.add(llvm::createInstructionNamerPass());
+
+    // Run passes
+    functionPasses.doInitialization();
+    llvm::Module::iterator fItr;
+    for (fItr = m_module->begin(); fItr != m_module->end(); fItr++)
+      functionPasses.run(*fItr);
+    functionPasses.doFinalization();
+    modulePasses.run(*m_module);
 
     m_buildStatus = CL_BUILD_SUCCESS;
   }
