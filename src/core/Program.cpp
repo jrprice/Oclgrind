@@ -19,6 +19,7 @@
 #include "llvm/Bitcode/ReaderWriter.h"
 #include "llvm/DataLayout.h"
 #include "llvm/Instructions.h"
+#include "llvm/Support/InstIterator.h"
 #include "llvm/Linker.h"
 #include "llvm/LLVMContext.h"
 #include "llvm/Module.h"
@@ -365,6 +366,12 @@ bool Program::build(const char *options, list<Header> headers)
       functionPasses.run(*fItr);
     functionPasses.doFinalization();
     modulePasses.run(*m_module);
+
+    // Strip debug intrinsics if not in interactive mode
+    if (!checkEnv("OCLGRIND_INTERACTIVE"))
+    {
+      stripDebugIntrinsics();
+    }
 
     // Attempt to legalize module
     if (legalize(buildLog))
@@ -763,4 +770,32 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
   }
 
   return true;
+}
+
+void Program::stripDebugIntrinsics()
+{
+  // Get list of llvm.dbg intrinsics
+  set<llvm::Instruction*> intrinsics;
+  for (llvm::Module::iterator F = m_module->begin(); F != m_module->end(); F++)
+  {
+    for (llvm::inst_iterator I = inst_begin(F), E = inst_end(F); I != E; I++)
+    {
+      if (I->getOpcode() == llvm::Instruction::Call)
+      {
+        llvm::CallInst *call = (llvm::CallInst*)&*I;
+        if (call->getCalledFunction()->getName().startswith("llvm.dbg"))
+        {
+          intrinsics.insert(&*I);
+        }
+      }
+    }
+  }
+
+  // Remove instructions
+  set<llvm::Instruction*>::iterator itr;
+  for (itr = intrinsics.begin(); itr != intrinsics.end(); itr++)
+  {
+    (*itr)->removeFromParent();
+    delete *itr;
+  }
 }

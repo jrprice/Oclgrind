@@ -74,5 +74,6 @@ namespace oclgrind
     unsigned long generateUID() const;
 
     bool legalize(llvm::raw_string_ostream& buildLog);
+    void stripDebugIntrinsics();
   };
 }
