@@ -101,7 +101,8 @@ size_t WorkGroup::async_copy(
     }
 
     // Check for divergence
-    if ((itr->first.instruction != copy.instruction) ||
+    if ((itr->first.instruction->getDebugLoc()
+         != copy.instruction->getDebugLoc()) ||
         (itr->first.type != copy.type) ||
         (itr->first.dest != copy.dest) ||
         (itr->first.src != copy.src) ||
@@ -327,7 +328,7 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
   {
     // Check for divergence
     bool divergence = false;
-    if (instruction != m_barrier->instruction ||
+    if (instruction->getDebugLoc() != m_barrier->instruction->getDebugLoc() ||
         fence != m_barrier->fence ||
         events.size() != m_barrier->events.size())
     {
