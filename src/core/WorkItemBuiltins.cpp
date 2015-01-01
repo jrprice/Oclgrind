@@ -3051,6 +3051,7 @@ namespace oclgrind
             bool done = false;
             switch (c)
             {
+              case 'c':
               case 'd':
               case 'i':
                 printf(format.c_str(), SARG(arg++));
@@ -3060,6 +3061,7 @@ namespace oclgrind
               case 'u':
               case 'x':
               case 'X':
+              case 'p':
                 printf(format.c_str(), UARG(arg++));
                 done = true;
                 break;
@@ -3074,6 +3076,33 @@ namespace oclgrind
                 printf(format.c_str(), FARG(arg++));
                 done = true;
                 break;
+              case 's':
+              {
+                size_t ptr = UARG(arg++);
+                if (!ptr)
+                {
+                  // Special case for printing NULL pointer
+                  printf(format.c_str(), NULL);
+                }
+                else
+                {
+                  // Load string from memory
+                  char c;
+                  string str = "";
+                  while (true)
+                  {
+                    if (!memory->load((unsigned char*)&c, ptr++))
+                      break;
+                    if (c == '\0')
+                      break;
+                    str += c;
+                  }
+
+                  printf(format.c_str(), str.c_str());
+                }
+                done = true;
+                break;
+              }
               case '%':
                 printf("%%");
                 done = true;
