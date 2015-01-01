@@ -3,4 +3,8 @@ packed
 1 1 1
 1 1 1
 
+<size=5 char hex>
+0x01
+0x02 0x00 0x0 0x00
+
 <size=4 fill=0 dump>

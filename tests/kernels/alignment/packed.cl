@@ -4,8 +4,7 @@ struct __attribute__((packed)) Foo
   int b;
 };
 
-kernel void packed(global int *out)
+kernel void packed(struct Foo x, global int *out)
 {
-  struct Foo x = {1, 2};
   *out = x.b;
 }
