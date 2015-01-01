@@ -3037,6 +3037,7 @@ namespace oclgrind
 
         if (c == '%')
         {
+          unsigned vectorWidth = 1;
           string format = "%";
           while (true)
           {
@@ -3047,6 +3048,21 @@ namespace oclgrind
               break;
             }
 
+            if (c == 'v')
+            {
+              // Load vector width specifier
+              memory->load((unsigned char*)&c, formatPtr++);
+              vectorWidth = c - '0';
+              if (vectorWidth == 1)
+              {
+                // Assume this is 16
+                vectorWidth = 16;
+                formatPtr++;
+              }
+
+              continue;
+            }
+
             format += c;
             bool done = false;
             switch (c)
@@ -3054,7 +3070,13 @@ namespace oclgrind
               case 'c':
               case 'd':
               case 'i':
-                printf(format.c_str(), SARG(arg++));
+                for (int i = 0; i < vectorWidth; i++)
+                {
+                  if (i > 0)
+                    printf(",");
+                  printf(format.c_str(), SARGV(arg, i));
+                }
+                arg++;
                 done = true;
                 break;
               case 'o':
@@ -3062,7 +3084,13 @@ namespace oclgrind
               case 'x':
               case 'X':
               case 'p':
-                printf(format.c_str(), UARG(arg++));
+                for (int i = 0; i < vectorWidth; i++)
+                {
+                  if (i > 0)
+                    printf(",");
+                  printf(format.c_str(), UARGV(arg, i));
+                }
+                arg++;
                 done = true;
                 break;
               case 'f':
@@ -3073,7 +3101,13 @@ namespace oclgrind
               case 'G':
               case 'a':
               case 'A':
-                printf(format.c_str(), FARG(arg++));
+                for (int i = 0; i < vectorWidth; i++)
+                {
+                  if (i > 0)
+                    printf(",");
+                  printf(format.c_str(), FARGV(arg, i));
+                }
+                arg++;
                 done = true;
                 break;
               case 's':
