@@ -1,5 +1,5 @@
 // main.cpp (Oclgrind)
-// Copyright (c) 2013-2014, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2015, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
@@ -134,7 +134,7 @@ static bool parseArguments(int argc, char *argv[])
       cout << endl;
       cout << "Oclgrind " PACKAGE_VERSION << endl;
       cout << endl;
-      cout << "Copyright (c) 2013-2014" << endl;
+      cout << "Copyright (c) 2013-2015" << endl;
       cout << "James Price and Simon McIntosh-Smith, University of Bristol"
            << endl;
       cout << "https://github.com/jrprice/Oclgrind" << endl;
