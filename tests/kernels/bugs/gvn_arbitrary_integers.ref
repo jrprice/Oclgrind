@@ -1,0 +1,6 @@
+
+Argument 'dest': 12 bytes
+  dest[0] = 0
+  dest[1] = 0
+  dest[2] = 42
+
