@@ -3007,7 +3007,7 @@ clGetKernelArgInfo
     break;
   case CL_KERNEL_ARG_ACCESS_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_access_qualifier);
-    return_integer = kernel->kernel->getArgumentAddressQualifier(arg_indx);
+    return_integer = kernel->kernel->getArgumentAccessQualifier(arg_indx);
     break;
   case CL_KERNEL_ARG_TYPE_NAME:
     str_data = kernel->kernel->getArgumentTypeName(arg_indx).str();
