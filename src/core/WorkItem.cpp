@@ -1119,25 +1119,10 @@ INSTRUCTION(insertval)
 
 INSTRUCTION(inttoptr)
 {
-  // Generate a mask to test pointer alignment
-  const unsigned destSize =
-    getTypeAlignment(instruction->getType()->getPointerElementType());
-  const unsigned alignment = log2(destSize);
-  const unsigned mask = ~(((unsigned)-1) << alignment);
-
   TypedValue op = getOperand(instruction->getOperand(0));
-
   for (int i = 0; i < result.num; i++)
   {
-    uint64_t r = op.getUInt(i);
-    // Verify that the cast pointer fits the alignment requirements
-    // of the destination type (undefined behaviour in C99)
-    if ((r & mask) != 0)
-    {
-      m_context->logError("Invalid pointer cast - destination pointer is "
-                          "not aligned to the pointed type");
-    }
-    result.setUInt(r, i);
+    result.setPointer(op.getUInt(i), i);
   }
 }
 
@@ -1156,11 +1141,8 @@ INSTRUCTION(load)
   unsigned addressSpace = loadInst->getPointerAddressSpace();
   size_t address = getOperand(loadInst->getPointerOperand()).getPointer();
 
-  // Generate a mask to test pointer alignment
-  const unsigned destSize = getTypeAlignment(loadInst->getType());
-  const unsigned alignment = log2(destSize);
-  const unsigned mask = ~(((unsigned)-1) << alignment);
-  if ((address & mask) != 0)
+  // Check address is correctly aligned
+  if (address & (loadInst->getAlignment()-1))
   {
     m_context->logError("Invalid memory load - source pointer is "
                         "not aligned to the pointed type");
@@ -1359,10 +1341,9 @@ INSTRUCTION(store)
   unsigned addressSpace = storeInst->getPointerAddressSpace();
   size_t address = getOperand(storeInst->getPointerOperand()).getPointer();
 
-  // Generate a mask to test pointer alignment
-  const unsigned alignment = log2(getTypeAlignment(type));
-  const unsigned mask = ~(((unsigned)-1) << alignment);
-  if ((address & mask) != 0) {
+  // Check address is correctly aligned
+  if (address & (storeInst->getAlignment()-1))
+  {
     m_context->logError("Invalid memory store - source pointer is "
                         "not aligned to the pointed type");
   }
