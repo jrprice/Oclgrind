@@ -1336,8 +1336,6 @@ INSTRUCTION(srem)
 INSTRUCTION(store)
 {
   const llvm::StoreInst *storeInst = (const llvm::StoreInst*)instruction;
-  const llvm::Value *valOp = storeInst->getValueOperand();
-  const llvm::Type *type = valOp->getType();
   unsigned addressSpace = storeInst->getPointerAddressSpace();
   size_t address = getOperand(storeInst->getPointerOperand()).getPointer();
 
@@ -1349,8 +1347,9 @@ INSTRUCTION(store)
   }
 
   // Store data
-  TypedValue operand = getOperand(valOp);
-  getMemory(addressSpace)->store(operand.data, address, getTypeSize(type));
+  TypedValue operand = getOperand(storeInst->getValueOperand());
+  getMemory(addressSpace)->store(operand.data, address,
+                                 operand.size*operand.num);
 }
 
 INSTRUCTION(sub)
