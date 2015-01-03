@@ -96,7 +96,7 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   for (varItr = kernel->vars_begin(); varItr != kernel->vars_end(); varItr++)
   {
     const llvm::Constant *init = (*varItr)->getInitializer();
-    size_t size = getTypeSize(init->getType());
+    unsigned size = getTypeSize(init->getType());
 
     size_t address = m_privateMemory->allocateBuffer(size);
     m_privateMemory->store(getOperand(init).data, address, size);
@@ -290,7 +290,7 @@ void WorkItem::dispatch(const llvm::Instruction *instruction,
 void WorkItem::execute(const llvm::Instruction *instruction)
 {
   // Prepare private variable for instruction result
-  pair<size_t,size_t> resultSize = getValueSize(instruction);
+  pair<unsigned,unsigned> resultSize = getValueSize(instruction);
 
   // Prepare result
   TypedValue result = {
@@ -382,8 +382,6 @@ Memory* WorkItem::getMemory(unsigned int addrSpace) const
 TypedValue WorkItem::getOperand(const llvm::Value *operand) const
 {
   unsigned valID = operand->getValueID();
-  pair<size_t,size_t> size = getValueSize(operand);
-
   if (valID == llvm::Value::ArgumentVal ||
       valID == llvm::Value::GlobalVariableVal ||
       valID >= llvm::Value::InstructionVal)
@@ -594,7 +592,7 @@ INSTRUCTION(alloc)
   const llvm::Type *type = allocInst->getAllocatedType();
 
   // Perform allocation
-  size_t size = getTypeSize(type);
+  unsigned size = getTypeSize(type);
   size_t address = m_privateMemory->allocateBuffer(size);
 
   // Create pointer to alloc'd memory
@@ -1501,7 +1499,7 @@ TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand,
   }
 
   // Create constant and add to cache
-  pair<size_t,size_t> size = getValueSize(operand);
+  pair<unsigned,unsigned> size = getValueSize(operand);
   TypedValue constant;
   constant.size = size.first;
   constant.num  = size.second;

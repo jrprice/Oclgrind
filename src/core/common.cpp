@@ -42,7 +42,7 @@ namespace oclgrind
     z = (linear / (dimensions.x * dimensions.y));
   }
 
-  size_t& Size3::operator[](size_t i)
+  size_t& Size3::operator[](unsigned i)
   {
     switch (i)
     {
@@ -57,7 +57,7 @@ namespace oclgrind
     }
   }
 
-  const size_t& Size3::operator[](size_t i) const
+  const size_t& Size3::operator[](unsigned i) const
   {
     switch (i)
     {
@@ -95,7 +95,7 @@ namespace oclgrind
     case 8:
       return ((double*)data)[index];
     default:
-      FATAL_ERROR("Unsupported float size: %lu bytes", size);
+      FATAL_ERROR("Unsupported float size: %u bytes", size);
     }
   }
 
@@ -103,7 +103,7 @@ namespace oclgrind
   {
     if (size != sizeof(size_t))
     {
-      FATAL_ERROR("Unsupported pointer size: %lu bytes", size);
+      FATAL_ERROR("Unsupported pointer size: %u bytes", size);
     }
     return ((size_t*)data)[index];
   }
@@ -121,7 +121,7 @@ namespace oclgrind
     case 8:
       return ((int64_t*)data)[index];
     default:
-      FATAL_ERROR("Unsupported signed int size: %lu bytes", size);
+      FATAL_ERROR("Unsupported signed int size: %u bytes", size);
     }
   }
 
@@ -138,7 +138,7 @@ namespace oclgrind
     case 8:
       return ((uint64_t*)data)[index];
     default:
-      FATAL_ERROR("Unsupported unsigned int size: %lu bytes", size);
+      FATAL_ERROR("Unsupported unsigned int size: %u bytes", size);
     }
   }
 
@@ -153,7 +153,7 @@ namespace oclgrind
       ((double*)data)[index] = value;
       break;
     default:
-      FATAL_ERROR("Unsupported float size: %lu bytes", size);
+      FATAL_ERROR("Unsupported float size: %u bytes", size);
     }
   }
 
@@ -161,7 +161,7 @@ namespace oclgrind
   {
     if (size != sizeof(size_t))
     {
-      FATAL_ERROR("Unsupported pointer size: %lu bytes", size);
+      FATAL_ERROR("Unsupported pointer size: %u bytes", size);
     }
     ((size_t*)data)[index] = value;
   }
@@ -183,7 +183,7 @@ namespace oclgrind
       ((int64_t*)data)[index] = value;
       break;
     default:
-      FATAL_ERROR("Unsupported signed int size: %lu bytes", size);
+      FATAL_ERROR("Unsupported signed int size: %u bytes", size);
     }
   }
 
@@ -204,7 +204,7 @@ namespace oclgrind
       ((uint64_t*)data)[index] = value;
       break;
     default:
-      FATAL_ERROR("Unsupported unsigned int size: %lu bytes", size);
+      FATAL_ERROR("Unsupported unsigned int size: %u bytes", size);
     }
   }
 
@@ -256,7 +256,7 @@ namespace oclgrind
     }
 
     const llvm::Type *type = constant->getType();
-    size_t size = getTypeSize(type);
+    unsigned size = getTypeSize(type);
     switch (type->getTypeID())
     {
     case llvm::Type::IntegerTyID:
@@ -278,10 +278,10 @@ namespace oclgrind
     }
     case llvm::Type::VectorTyID:
     {
-      int num = type->getVectorNumElements();
+      unsigned num = type->getVectorNumElements();
       const llvm::Type *elemType = type->getVectorElementType();
-      size_t elemSize = getTypeSize(elemType);
-      for (int i = 0; i < num; i++)
+      unsigned elemSize = getTypeSize(elemType);
+      for (unsigned i = 0; i < num; i++)
       {
         getConstantData(data + i*elemSize, constant->getAggregateElement(i));
       }
@@ -289,10 +289,10 @@ namespace oclgrind
     }
     case llvm::Type::ArrayTyID:
     {
-      int num = type->getArrayNumElements();
+      unsigned num = type->getArrayNumElements();
       const llvm::Type *elemType = type->getArrayElementType();
-      size_t elemSize = getTypeSize(elemType);
-      for (int i = 0; i < num; i++)
+      unsigned elemSize = getTypeSize(elemType);
+      for (unsigned i = 0; i < num; i++)
       {
         getConstantData(data + i*elemSize, constant->getAggregateElement(i));
       }
@@ -310,10 +310,11 @@ namespace oclgrind
     }
     case llvm::Type::StructTyID:
     {
-      int num = type->getStructNumElements();
-      for (int i = 0; i < num; i++)
+      unsigned num = type->getStructNumElements();
+      for (unsigned i = 0; i < num; i++)
       {
-        size_t offset = getStructMemberOffset((const llvm::StructType*)type, i);
+        unsigned offset =
+          getStructMemberOffset((const llvm::StructType*)type, i);
         getConstantData(data + offset, constant->getAggregateElement(i));
       }
       break;
@@ -327,9 +328,9 @@ namespace oclgrind
     const llvm::ConstantExpr *expr)
   {
     // Get operands
-    int numOperands = expr->getNumOperands();
+    unsigned numOperands = expr->getNumOperands();
     llvm::Value **valueOperands = new llvm::Value*[numOperands];
-    for (int i = 0; i < numOperands; i++)
+    for (unsigned i = 0; i < numOperands; i++)
     {
       valueOperands[i] = expr->getOperand(i);
     }
@@ -418,17 +419,17 @@ namespace oclgrind
     }
   }
 
-  size_t getStructMemberOffset(const llvm::StructType *type, size_t index)
+  unsigned getStructMemberOffset(const llvm::StructType *type, unsigned index)
   {
     bool packed = ((llvm::StructType*)type)->isPacked();
 
-    size_t offset = 0;
-    for (int i = 0; i <= index; i++)
+    unsigned offset = 0;
+    for (unsigned i = 0; i <= index; i++)
     {
       // Get member size and alignment
       const llvm::Type *elemType = type->getStructElementType(i);
-      size_t size = getTypeSize(elemType);
-      size_t align = getTypeAlignment(elemType);
+      unsigned size = getTypeSize(elemType);
+      unsigned align = getTypeAlignment(elemType);
 
       // Add padding if necessary
       if (!packed && offset % align)
@@ -447,26 +448,26 @@ namespace oclgrind
     assert(false);
   }
 
-  size_t getTypeSize(const llvm::Type *type)
+  unsigned getTypeSize(const llvm::Type *type)
   {
     if (type->isArrayTy())
     {
-      size_t num = type->getArrayNumElements();
-      size_t sz = getTypeSize(type->getArrayElementType());
+      unsigned num = type->getArrayNumElements();
+      unsigned sz = getTypeSize(type->getArrayElementType());
       return num*sz;
     }
     else if (type->isStructTy())
     {
       bool packed = ((llvm::StructType*)type)->isPacked();
 
-      size_t size = 0;
-      size_t alignment = 1;
-      for (int i = 0; i < type->getStructNumElements(); i++)
+      unsigned size = 0;
+      unsigned alignment = 1;
+      for (unsigned i = 0; i < type->getStructNumElements(); i++)
       {
         // Get member size and alignment
         const llvm::Type *elemType = type->getStructElementType(i);
-        size_t sz    = getTypeSize(elemType);
-        size_t align = getTypeAlignment(elemType);
+        unsigned sz    = getTypeSize(elemType);
+        unsigned align = getTypeAlignment(elemType);
 
         // Add padding if necessary
         if (!packed && size % align)
@@ -489,8 +490,8 @@ namespace oclgrind
     }
     else if (type->isVectorTy())
     {
-      size_t num = type->getVectorNumElements();
-      size_t sz = getTypeSize(type->getVectorElementType());
+      unsigned num = type->getVectorNumElements();
+      unsigned sz = getTypeSize(type->getVectorElementType());
       if (num == 3) num = 4; // Hack for 3-element vectors
       return num*sz;
     }
@@ -505,7 +506,7 @@ namespace oclgrind
 
       // Round up for types that have a bit size not multiple of 8
       // like "bool".
-      size_t ret = nonConstTy->getScalarSizeInBits() / 8;
+      unsigned ret = nonConstTy->getScalarSizeInBits() / 8;
       if (nonConstTy->getScalarSizeInBits() % 8)
         ret++;
 
@@ -514,25 +515,30 @@ namespace oclgrind
   }
 
   /// Returns the byte alignment of this type
-  size_t getTypeAlignment(const llvm::Type* type) {
+  unsigned getTypeAlignment(const llvm::Type* type)
+  {
     using namespace llvm;
     // Array types are aligned to their element type
-    if (const ArrayType* psAT = dyn_cast<ArrayType>(type)) {
+    if (const ArrayType* psAT = dyn_cast<ArrayType>(type))
+    {
       return getTypeAlignment(psAT->getElementType());
     }
 
     // Struct alignment is the size of its largest contained type
-    if (const StructType* structT = dyn_cast<StructType>(type)) {
-      if (structT->isPacked()) return 1;
+    if (const StructType* structT = dyn_cast<StructType>(type))
+    {
+      if (structT->isPacked())
+        return 1;
       StructType* nonConstTy = const_cast<StructType*>(structT);
-      uint32_t uAlign = 0, uMaxAlign = 1;
-      uint32_t uCount = structT->getNumElements();
-      for (uint32_t i = 0; i < uCount; i++) {
+      unsigned uAlign = 0, uMaxAlign = 1;
+      unsigned uCount = structT->getNumElements();
+      for (unsigned i = 0; i < uCount; i++)
+      {
           const Type* psElemType = nonConstTy->getTypeAtIndex(i);
           uAlign = getTypeAlignment(psElemType);
 
           if (uAlign > uMaxAlign)
-              uMaxAlign = uAlign;
+            uMaxAlign = uAlign;
       }
 
       return uMaxAlign;
@@ -541,9 +547,9 @@ namespace oclgrind
     return getTypeSize(type);
   }
 
-  pair<size_t,size_t> getValueSize(const llvm::Value *value)
+  pair<unsigned,unsigned> getValueSize(const llvm::Value *value)
   {
-    size_t bits, numElements;
+    unsigned bits, numElements;
     const llvm::Type *type = value->getType();
 
     if (type->isVectorTy())
@@ -562,7 +568,7 @@ namespace oclgrind
       numElements = 1;
     }
 
-    size_t elemSize = bits >> 3;
+    unsigned elemSize = bits >> 3;
 
     // Special case for pointer types
     if (type->isPointerTy())
@@ -576,7 +582,7 @@ namespace oclgrind
       elemSize = sizeof(bool);
     }
 
-    return pair<size_t,size_t>(elemSize,numElements);
+    return pair<unsigned,unsigned>(elemSize,numElements);
   }
 
   bool isConstantOperand(const llvm::Value *operand)
@@ -606,7 +612,7 @@ namespace oclgrind
   void printTypedData(const llvm::Type *type, const unsigned char *data)
   {
     // TODO: Interpret other types (array, struct)
-    size_t size = getTypeSize(type);
+    unsigned size = getTypeSize(type);
     switch (type->getTypeID())
     {
     case llvm::Type::FloatTyID:
@@ -639,7 +645,7 @@ namespace oclgrind
     {
       const llvm::Type *elemType = type->getVectorElementType();
       cout << "(";
-      for (int i = 0; i < type->getVectorNumElements(); i++)
+      for (unsigned i = 0; i < type->getVectorNumElements(); i++)
       {
         if (i > 0)
         {
@@ -655,7 +661,7 @@ namespace oclgrind
       break;
     default:
       cout << "(raw) 0x" << hex << uppercase << setfill('0');
-      for (int i = 0; i < size; i++)
+      for (unsigned i = 0; i < size; i++)
       {
         cout << setw(2) << (int)data[i];
       }

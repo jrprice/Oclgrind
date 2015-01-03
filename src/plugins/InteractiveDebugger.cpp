@@ -867,7 +867,7 @@ bool InteractiveDebugger::print(vector<string> args)
 
       // Get element type
       const llvm::Type *elemType = ptrType->getPointerElementType();
-      size_t elemSize = getTypeSize(elemType);
+      unsigned elemSize = getTypeSize(elemType);
 
       // Load data
       if (!memory->isAddressValid(base + index*elemSize, elemSize))

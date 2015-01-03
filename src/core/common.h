@@ -89,8 +89,8 @@ namespace oclgrind
     _Size3_();
     _Size3_(size_t x, size_t y, size_t z);
     _Size3_(size_t linear, _Size3_ dimensions);
-    size_t& operator[](size_t i);
-    const size_t& operator[](size_t i) const;
+    size_t& operator[](unsigned i);
+    const size_t& operator[](unsigned i) const;
     bool operator==(const _Size3_& rhs) const;
     friend std::ostream& operator<<(std::ostream& stream, const _Size3_& sz);
   } Size3;
@@ -98,8 +98,8 @@ namespace oclgrind
   // Structure for a value with a size/type
   struct _TypedValue_
   {
-    size_t size;
-    size_t num;
+    unsigned size;
+    unsigned num;
     unsigned char *data;
 
     struct _TypedValue_ clone() const;
@@ -144,16 +144,16 @@ namespace oclgrind
     const llvm::ConstantExpr *expr);
 
   // Get the byte offset of a struct member
-  size_t getStructMemberOffset(const llvm::StructType *type, size_t index);
+  unsigned getStructMemberOffset(const llvm::StructType *type, unsigned index);
 
   // Returns the size of a type
-  size_t getTypeSize(const llvm::Type *type);
+  unsigned getTypeSize(const llvm::Type *type);
 
   /// Returns the alignment requirements of this type
-  size_t getTypeAlignment(const llvm::Type* type);
+  unsigned getTypeAlignment(const llvm::Type* type);
 
   // Returns the size of a value
-  std::pair<size_t,size_t> getValueSize(const llvm::Value *value);
+  std::pair<unsigned,unsigned> getValueSize(const llvm::Value *value);
 
   // Returns true if the operand is a constant value
   bool isConstantOperand(const llvm::Value *operand);

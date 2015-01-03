@@ -91,7 +91,7 @@ void InstructionCounter::instructionExecuted(
     opcode = (load ? COUNTED_LOAD_BASE : COUNTED_STORE_BASE) + addrSpace;
 
     // Count total number of bytes loaded/stored
-    size_t bytes = getTypeSize(type->getPointerElementType());
+    unsigned bytes = getTypeSize(type->getPointerElementType());
     m_memopBytes[opcode-COUNTED_LOAD_BASE] += bytes;
   }
   else if (opcode == llvm::Instruction::Call)

@@ -43,7 +43,7 @@ Kernel::Kernel(const Program *program,
     case AddrSpaceLocal:
     {
       // Allocate buffer
-      size_t size = getTypeSize(itr->getInitializer()->getType());
+      unsigned size = getTypeSize(itr->getInitializer()->getType());
       TypedValue v = {
         sizeof(size_t),
         1,
@@ -128,7 +128,7 @@ void Kernel::allocateConstants(Memory *memory)
     const llvm::Type *type = initializer->getType();
 
     // Allocate buffer
-    size_t size = getTypeSize(type);
+    unsigned size = getTypeSize(type);
     TypedValue v = {
       sizeof(size_t),
       1,

@@ -194,7 +194,8 @@ namespace oclgrind
       size_t src = workItem->getOperand(srcOp).getPointer();
 
       // Get size of copy
-      size_t elemSize = getTypeSize(destOp->getType()->getPointerElementType());
+      unsigned elemSize =
+        getTypeSize(destOp->getType()->getPointerElementType());
       uint64_t num = UARG(arg++);
 
       // Get stride
@@ -2622,7 +2623,7 @@ namespace oclgrind
     DEFINE_BUILTIN(vstore)
     {
       const llvm::Value *value = ARG(0);
-      size_t size = getTypeSize(value->getType());
+      unsigned size = getTypeSize(value->getType());
       if (isVector3(value))
       {
         // 3-element vectors are same size as 4-element vectors,
@@ -2669,7 +2670,7 @@ namespace oclgrind
     DEFINE_BUILTIN(vstore_half)
     {
       const llvm::Value *value = ARG(0);
-      size_t size = getTypeSize(value->getType());
+      unsigned size = getTypeSize(value->getType());
       if (isVector3(value))
       {
         // 3-element vectors are same size as 4-element vectors,
