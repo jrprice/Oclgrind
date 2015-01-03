@@ -292,7 +292,6 @@ if (PYTHONINTERP_FOUND)
   # Expected failures
   set_tests_properties(
     atomics/atomic_intergroup_race
-    alignment/packed
     PROPERTIES WILL_FAIL TRUE)
 
 else()

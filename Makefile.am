@@ -114,8 +114,7 @@ AM_TESTS_ENVIRONMENT = export AM_TESTS=1;
 if HAVE_PYTHON
 TESTS += $(KERNEL_TESTS)
 XFAIL_TESTS =							\
-	tests/kernels/atomics/atomic_intergroup_race.sim	\
-	tests/kernels/alignment/packed.sim
+	tests/kernels/atomics/atomic_intergroup_race.sim
 else
 check-local:
 	@echo
