@@ -20,6 +20,7 @@ namespace llvm
   class CallInst;
   class DbgValueInst;
   class Function;
+  class Module;
 }
 
 namespace oclgrind
@@ -88,8 +89,8 @@ namespace oclgrind
       typedef std::MAP<const llvm::Value*, TypedValue> ConstantMap;
 
     public:
-      static void clear(unsigned long uid);
-      static InterpreterCache* get(unsigned long uid);
+      static void clear(const llvm::Module *program);
+      static InterpreterCache* get(const llvm::Function *kernel);
 
       ValueMap valueIDs;
       BuiltinMap builtins;
@@ -97,7 +98,8 @@ namespace oclgrind
                              const WorkItem *workItem);
 
     private:
-      static std::MAP<unsigned long, InterpreterCache*> m_cache;
+      typedef std::MAP<const llvm::Function*, InterpreterCache*> CacheMap;
+      static CacheMap m_cache;
 
       InterpreterCache();
       ~InterpreterCache();

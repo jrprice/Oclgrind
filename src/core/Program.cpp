@@ -133,7 +133,7 @@ bool Program::build(const char *options, list<Header> headers)
     delete m_module;
     m_module = NULL;
 
-    WorkItem::InterpreterCache::clear(m_uid);
+    WorkItem::InterpreterCache::clear(m_module);
   }
 
   // Assign a new UID to this program

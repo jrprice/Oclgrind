@@ -14,6 +14,7 @@
 #include "llvm/Instruction.h"
 #include "llvm/Instructions.h"
 #include "llvm/IntrinsicInst.h"
+#include "llvm/Module.h"
 
 #include "Context.h"
 #include "Kernel.h"
@@ -58,8 +59,8 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
 
   const Kernel *kernel = kernelInvocation->getKernel();
 
-  // Load or create cached interpreter state
-  m_cache = InterpreterCache::get(kernel->getProgram()->getUID());
+  // Load or create interpreter cache
+  m_cache = InterpreterCache::get(kernel->getFunction());
   assert(m_cache);
 
   // Set initial number of values to store based on cache
@@ -1421,37 +1422,36 @@ INSTRUCTION(zext)
 // WorkItem::InterpreterCache //
 ////////////////////////////////
 
-MAP<unsigned long, WorkItem::InterpreterCache*>
-  WorkItem::InterpreterCache::m_cache;
+WorkItem::InterpreterCache::CacheMap WorkItem::InterpreterCache::m_cache;
 
-void WorkItem::InterpreterCache::clear(unsigned long uid)
+void WorkItem::InterpreterCache::clear(const llvm::Module *program)
 {
-  MAP<unsigned long, InterpreterCache*>::iterator itr = m_cache.find(uid);
-  if (itr != m_cache.end())
+  llvm::Module::const_iterator fItr;
+  for (fItr = program->begin(); fItr != program->end(); fItr++)
   {
-    delete itr->second;
-    m_cache.erase(itr);
+    m_cache.erase(fItr);
   }
 }
 
-WorkItem::InterpreterCache* WorkItem::InterpreterCache::get(unsigned long uid)
+WorkItem::InterpreterCache* WorkItem::InterpreterCache::get(
+  const llvm::Function *kernel)
 {
-  // Check for existing state
-  MAP<unsigned long, InterpreterCache*>::iterator itr = m_cache.find(uid);
+  // Check for existing cache
+  CacheMap::iterator itr = m_cache.find(kernel);
   if (itr != m_cache.end())
   {
     return itr->second;
   }
 
-  // Create new state
-  InterpreterCache *state = new InterpreterCache;
-  m_cache[uid] = state;
+  // Create new cache
+  InterpreterCache *cache = new InterpreterCache;
+  m_cache[kernel] = cache;
 
 #if HAVE_CXX11
-  state->valueIDs.reserve(1024); // TODO: Determine this number dynamically?
+  cache->valueIDs.reserve(1024); // TODO: Determine this number dynamically?
 #endif
 
-  return state;
+  return cache;
 }
 
 WorkItem::InterpreterCache::InterpreterCache()
