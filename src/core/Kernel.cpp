@@ -26,6 +26,7 @@ Kernel::Kernel(const Program *program,
  : m_program(program), m_function(function), m_name(function->getName())
 {
   m_localMemory = new Memory(AddrSpaceLocal, program->getContext());
+  m_privateMemory = new Memory(AddrSpacePrivate, program->getContext());
 
   // Set-up global variables
   llvm::Module::const_global_iterator itr;
@@ -35,8 +36,28 @@ Kernel::Kernel(const Program *program,
     switch (type->getPointerAddressSpace())
     {
     case AddrSpacePrivate:
-      m_globalVariables.push_back(itr);
+    {
+      const llvm::Constant *init = itr->getInitializer();
+
+      // Allocate private memory for variable
+      unsigned size = getTypeSize(init->getType());
+      size_t address = m_privateMemory->allocateBuffer(size);
+
+      // Initialize variable
+      void *ptr = m_privateMemory->getPointer(address);
+      getConstantData((unsigned char*)ptr, init);
+
+      TypedValue value =
+      {
+        sizeof(size_t),
+        1,
+        new unsigned char[sizeof(size_t)]
+      };
+      value.setPointer(address);
+      m_arguments[itr] = value;
+
       break;
+    }
     case AddrSpaceConstant:
       m_constants.push_back(itr);
       break;
@@ -51,6 +72,7 @@ Kernel::Kernel(const Program *program,
       };
       v.setPointer(m_localMemory->allocateBuffer(size));
       m_arguments[itr] = v;
+
       break;
     }
     default:
@@ -81,9 +103,9 @@ Kernel::Kernel(const Kernel& kernel)
 {
   m_function = kernel.m_function;
   m_constants = kernel.m_constants;
-  m_globalVariables = kernel.m_globalVariables;
   m_constantBuffers = kernel.m_constantBuffers;
   m_localMemory = kernel.m_localMemory->clone();
+  m_privateMemory = kernel.m_privateMemory->clone();
   m_name = kernel.m_name;
   m_metadata = kernel.m_metadata;
 
@@ -98,6 +120,7 @@ Kernel::Kernel(const Kernel& kernel)
 Kernel::~Kernel()
 {
   delete m_localMemory;
+  delete m_privateMemory;
 
   TypedValueMap::iterator itr;
   for (itr = m_arguments.begin(); itr != m_arguments.end(); itr++)
@@ -395,6 +418,11 @@ unsigned int Kernel::getNumArguments() const
   return m_function->arg_size();
 }
 
+const Memory* Kernel::getPrivateMemory() const
+{
+  return m_privateMemory;
+}
+
 const Program* Kernel::getProgram() const
 {
   return m_program;
@@ -426,16 +454,15 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
 {
   assert(index < m_function->arg_size());
 
+  const llvm::Value *argument = getArgument(index);
   unsigned int type = getArgumentAddressQualifier(index);
   if (type == CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
-    const llvm::Value *arg = getArgument(index);
-
     // Deallocate existing argument
-    if (m_arguments.count(arg))
+    if (m_arguments.count(argument))
     {
-      m_localMemory->deallocateBuffer(m_arguments[arg].getPointer());
-      delete[] m_arguments[arg].data;
+      m_localMemory->deallocateBuffer(m_arguments[argument].getPointer());
+      delete[] m_arguments[argument].data;
     }
 
     // Allocate local memory buffer
@@ -445,17 +472,46 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
       new unsigned char[sizeof(size_t)]
     };
     v.setPointer(m_localMemory->allocateBuffer(value.size));
-    m_arguments[arg] = v;
+    m_arguments[argument] = v;
   }
   else
   {
-    const llvm::Type *type = getArgument(index)->getType();
-    if (type->isVectorTy())
+    if (((const llvm::Argument*)argument)->hasByValAttr())
     {
-      value.num = type->getVectorNumElements();
-      value.size = getTypeSize(type->getVectorElementType());
+      // Deallocate existing argument
+      if (m_arguments.count(argument))
+      {
+        m_privateMemory->deallocateBuffer(m_arguments[argument].getPointer());
+        delete[] m_arguments[argument].data;
+      }
+
+      TypedValue address =
+      {
+        sizeof(size_t),
+        1,
+        new unsigned char[sizeof(size_t)]
+      };
+      size_t size = value.size*value.num;
+      address.setPointer(m_privateMemory->allocateBuffer(size));
+      m_privateMemory->store(value.data, address.getPointer(), size);
+      m_arguments[argument] = address;
     }
-    m_arguments[getArgument(index)] = value.clone();
+    else
+    {
+      // Deallocate existing argument
+      if (m_arguments.count(argument))
+      {
+        delete[] m_arguments[argument].data;
+      }
+
+      const llvm::Type *type = argument->getType();
+      if (type->isVectorTy())
+      {
+        value.num = type->getVectorNumElements();
+        value.size = getTypeSize(type->getVectorElementType());
+      }
+      m_arguments[argument] = value.clone();
+    }
   }
 }
 
@@ -467,14 +523,4 @@ TypedValueMap::const_iterator Kernel::args_begin() const
 TypedValueMap::const_iterator Kernel::args_end() const
 {
   return m_arguments.end();
-}
-
-list<const llvm::GlobalVariable*>::const_iterator Kernel::vars_begin() const
-{
-  return m_globalVariables.begin();
-}
-
-list<const llvm::GlobalVariable*>::const_iterator Kernel::vars_end() const
-{
-  return m_globalVariables.end();
 }

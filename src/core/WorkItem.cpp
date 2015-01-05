@@ -65,50 +65,13 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   // Set initial number of values to store based on cache
   m_values.resize(m_cache->valueIDs.size());
 
-  m_privateMemory = new Memory(AddrSpacePrivate, m_context);
+  m_privateMemory = kernel->getPrivateMemory()->clone();
 
-  // Store kernel arguments in private memory
+  // Initialise kernel arguments
   TypedValueMap::const_iterator argItr;
   for (argItr = kernel->args_begin(); argItr != kernel->args_end(); argItr++)
   {
-    TypedValue value = argItr->second;
-
-    if (argItr->first->getValueID() == llvm::Value::ArgumentVal &&
-        ((const llvm::Argument*)argItr->first)->hasByValAttr())
-    {
-      TypedValue address =
-      {
-        sizeof(size_t),
-        1,
-        m_pool.alloc(sizeof(size_t))
-      };
-      address.setPointer(m_privateMemory->allocateBuffer(value.size));
-      m_privateMemory->store(value.data, address.getPointer(), value.size);
-      setValue(argItr->first, m_pool.clone(address));
-    }
-    else
-    {
-      setValue(argItr->first, m_pool.clone(value));
-    }
-  }
-
-  list<const llvm::GlobalVariable*>::const_iterator varItr;
-  for (varItr = kernel->vars_begin(); varItr != kernel->vars_end(); varItr++)
-  {
-    const llvm::Constant *init = (*varItr)->getInitializer();
-    unsigned size = getTypeSize(init->getType());
-
-    size_t address = m_privateMemory->allocateBuffer(size);
-    m_privateMemory->store(getOperand(init).data, address, size);
-
-    TypedValue var =
-    {
-      sizeof(size_t),
-      1,
-      m_pool.alloc(sizeof(size_t))
-    };
-    var.setPointer(address);
-    setValue(*varItr, var);
+    setValue(argItr->first, m_pool.clone(argItr->second));
   }
 
   // Initialize interpreter state
