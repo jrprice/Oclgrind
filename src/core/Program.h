@@ -15,6 +15,7 @@ namespace clang
 
 namespace llvm
 {
+  class Function;
   class Module;
   template<typename T> class OwningPtr;
   class raw_string_ostream;
@@ -23,6 +24,7 @@ namespace llvm
 namespace oclgrind
 {
   class Context;
+  class InterpreterCache;
   class Kernel;
 
   class Program
@@ -51,6 +53,7 @@ namespace oclgrind
     size_t getBinarySize() const;
     unsigned int getBuildStatus() const;
     const Context *getContext() const;
+    InterpreterCache* getInterpreterCache(const llvm::Function *kernel) const;
     std::list<std::string> getKernelNames() const;
     unsigned int getNumKernels() const;
     const std::string& getSource() const;
@@ -75,5 +78,10 @@ namespace oclgrind
 
     bool legalize(llvm::raw_string_ostream& buildLog);
     void stripDebugIntrinsics();
+
+    typedef std::map<const llvm::Function*, InterpreterCache*>
+      InterpreterCacheMap;
+    mutable InterpreterCacheMap m_interpreterCache;
+    void clearInterpreterCache();
   };
 }

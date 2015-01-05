@@ -59,9 +59,8 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
 
   const Kernel *kernel = kernelInvocation->getKernel();
 
-  // Load or create interpreter cache
-  m_cache = InterpreterCache::get(kernel->getFunction());
-  assert(m_cache);
+  // Load interpreter cache
+  m_cache = kernel->getProgram()->getInterpreterCache(kernel->getFunction());
 
   // Set initial number of values to store based on cache
   m_values.resize(m_cache->valueIDs.size());
@@ -1422,43 +1421,11 @@ INSTRUCTION(zext)
 // WorkItem::InterpreterCache //
 ////////////////////////////////
 
-WorkItem::InterpreterCache::CacheMap WorkItem::InterpreterCache::m_cache;
-
-void WorkItem::InterpreterCache::clear(const llvm::Module *program)
-{
-  llvm::Module::const_iterator fItr;
-  for (fItr = program->begin(); fItr != program->end(); fItr++)
-  {
-    m_cache.erase(fItr);
-  }
-}
-
-WorkItem::InterpreterCache* WorkItem::InterpreterCache::get(
-  const llvm::Function *kernel)
-{
-  // Check for existing cache
-  CacheMap::iterator itr = m_cache.find(kernel);
-  if (itr != m_cache.end())
-  {
-    return itr->second;
-  }
-
-  // Create new cache
-  InterpreterCache *cache = new InterpreterCache;
-  m_cache[kernel] = cache;
-
-#if HAVE_CXX11
-  cache->valueIDs.reserve(1024); // TODO: Determine this number dynamically?
-#endif
-
-  return cache;
-}
-
-WorkItem::InterpreterCache::InterpreterCache()
+InterpreterCache::InterpreterCache()
 {
 }
 
-WorkItem::InterpreterCache::~InterpreterCache()
+InterpreterCache::~InterpreterCache()
 {
   ConstantMap::iterator constItr;
   for (constItr  = m_constants.begin();
@@ -1468,7 +1435,7 @@ WorkItem::InterpreterCache::~InterpreterCache()
   }
 }
 
-TypedValue WorkItem::InterpreterCache::getConstant(const llvm::Value *operand,
+TypedValue InterpreterCache::getConstant(const llvm::Value *operand,
                                                    const WorkItem *workItem)
 {
   // Check cache

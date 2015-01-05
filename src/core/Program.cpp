@@ -101,6 +101,8 @@ Program::Program(const Context *context, const string& source)
 
 Program::~Program()
 {
+  clearInterpreterCache();
+
   if (m_module)
   {
     delete m_module;
@@ -130,7 +132,7 @@ bool Program::build(const char *options, list<Header> headers)
 
   if (m_module)
   {
-    WorkItem::InterpreterCache::clear(m_module);
+    clearInterpreterCache();
 
     delete m_module;
     m_module = NULL;
@@ -440,6 +442,16 @@ bool Program::build(const char *options, list<Header> headers)
   return m_buildStatus == CL_BUILD_SUCCESS;
 }
 
+void Program::clearInterpreterCache()
+{
+  InterpreterCacheMap::iterator itr;
+  for (itr = m_interpreterCache.begin(); itr != m_interpreterCache.end(); itr++)
+  {
+    delete itr->second;
+  }
+  m_interpreterCache.clear();
+}
+
 Program* Program::createFromBitcode(const Context *context,
                                     const unsigned char *bitcode,
                                     size_t length)
@@ -610,6 +622,27 @@ unsigned long Program::generateUID() const
 {
   srand(now());
   return rand();
+}
+
+InterpreterCache* Program::getInterpreterCache(const llvm::Function *kernel)
+  const
+{
+  // Check for existing cache
+  InterpreterCacheMap::iterator itr = m_interpreterCache.find(kernel);
+  if (itr != m_interpreterCache.end())
+  {
+    return itr->second;
+  }
+
+  // Create new cache
+  InterpreterCache *cache = new InterpreterCache;
+  m_interpreterCache[kernel] = cache;
+
+#if HAVE_CXX11
+  cache->valueIDs.reserve(1024); // TODO: Determine this number dynamically?
+#endif
+
+  return cache;
 }
 
 list<string> Program::getKernelNames() const

@@ -52,6 +52,32 @@ namespace oclgrind
   extern BuiltinFunctionMap workItemBuiltins;
   extern BuiltinFunctionPrefixList workItemPrefixBuiltins;
 
+  // Per-kernel cache for various interpreter state information
+  class InterpreterCache
+  {
+  public:
+    typedef struct
+    {
+      BuiltinFunction function;
+      std::string name, overload;
+    } Builtin;
+
+    typedef std::MAP<const llvm::Value*, size_t> ValueMap;
+    typedef std::MAP<const llvm::Function*, Builtin> BuiltinMap;
+    typedef std::MAP<const llvm::Value*, TypedValue> ConstantMap;
+
+    InterpreterCache();
+    ~InterpreterCache();
+
+    ValueMap valueIDs;
+    BuiltinMap builtins;
+    TypedValue getConstant(const llvm::Value *operand,
+                           const WorkItem *workItem);
+
+  private:
+    ConstantMap m_constants;
+  };
+
   class WorkItem
   {
     friend class WorkItemBuiltins;
@@ -72,39 +98,6 @@ namespace oclgrind
       size_t m_offset;
       std::list<unsigned char *> m_blocks;
     } m_pool;
-
-  public:
-    // Per-program cache for various interpreter state information
-    class InterpreterCache
-    {
-    public:
-      typedef struct
-      {
-        BuiltinFunction function;
-        std::string name, overload;
-      } Builtin;
-
-      typedef std::MAP<const llvm::Value*, size_t> ValueMap;
-      typedef std::MAP<const llvm::Function*, Builtin> BuiltinMap;
-      typedef std::MAP<const llvm::Value*, TypedValue> ConstantMap;
-
-    public:
-      static void clear(const llvm::Module *program);
-      static InterpreterCache* get(const llvm::Function *kernel);
-
-      ValueMap valueIDs;
-      BuiltinMap builtins;
-      TypedValue getConstant(const llvm::Value *operand,
-                             const WorkItem *workItem);
-
-    private:
-      typedef std::MAP<const llvm::Function*, InterpreterCache*> CacheMap;
-      static CacheMap m_cache;
-
-      InterpreterCache();
-      ~InterpreterCache();
-      ConstantMap m_constants;
-    };
 
   public:
     WorkItem(const KernelInvocation *kernelInvocation,
