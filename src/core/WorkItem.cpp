@@ -709,66 +709,11 @@ INSTRUCTION(call)
     return;
   }
 
-  // Check function cache
-  InterpreterCache::BuiltinMap::iterator fItr;
-  fItr = m_cache->builtins.find(function);
-  if (fItr != m_cache->builtins.end())
-  {
-    fItr->second.function.func(this, callInst,
-                               fItr->second.name,
-                               fItr->second.overload,
-                               result,
-                               fItr->second.function.op);
-    return;
-  }
-
-  // Extract unmangled name and overload
-  string name, overload;
-  const string fullname = function->getName().str();
-  if (fullname.compare(0,2, "_Z") == 0)
-  {
-    int len = atoi(fullname.c_str()+2);
-    int start = fullname.find_first_not_of("0123456789", 2);
-    name = fullname.substr(start, len);
-    overload = fullname.substr(start + len);
-  }
-  else
-  {
-    name = fullname;
-    overload = "";
-  }
-
-  // Find builtin function in map
-  BuiltinFunctionMap::iterator bItr = workItemBuiltins.find(name);
-  if (bItr != workItemBuiltins.end())
-  {
-    bItr->second.func(this, callInst, name, overload, result, bItr->second.op);
-
-    const InterpreterCache::Builtin entry = {bItr->second, name, overload};
-    m_cache->builtins[function] = entry;
-
-    return;
-  }
-
-  // Check for builtin with matching prefix
-  BuiltinFunctionPrefixList::iterator pItr;
-  for (pItr = workItemPrefixBuiltins.begin();
-       pItr != workItemPrefixBuiltins.end(); pItr++)
-  {
-    if (name.compare(0, pItr->first.length(), pItr->first) == 0)
-    {
-      pItr->second.func(this, callInst, name,
-                        overload, result, pItr->second.op);
-
-      const InterpreterCache::Builtin entry = {pItr->second, name, overload};
-      m_cache->builtins[function] = entry;
-
-      return;
-    }
-  }
-
-  // Function didn't match any builtins
-  FATAL_ERROR("Undefined function: %s", name.c_str());
+  // Call builtin function
+  InterpreterCache::Builtin builtin = m_cache->getBuiltin(function);
+  builtin.function.func(this, callInst,
+                        builtin.name, builtin.overload,
+                        result, builtin.function.op);
 }
 
 INSTRUCTION(extractelem)
@@ -1434,6 +1379,63 @@ InterpreterCache::~InterpreterCache()
     delete[] constItr->second.data;
   }
 }
+
+InterpreterCache::Builtin InterpreterCache::getBuiltin(
+  const llvm::Function *function)
+{
+  // Check builtin cache
+  InterpreterCache::BuiltinMap::iterator fItr = m_builtins.find(function);
+  if (fItr != m_builtins.end())
+  {
+    return fItr->second;
+  }
+
+  // Extract unmangled name and overload
+  string name, overload;
+  const string fullname = function->getName().str();
+  if (fullname.compare(0,2, "_Z") == 0)
+  {
+    int len = atoi(fullname.c_str()+2);
+    int start = fullname.find_first_not_of("0123456789", 2);
+    name = fullname.substr(start, len);
+    overload = fullname.substr(start + len);
+  }
+  else
+  {
+    name = fullname;
+    overload = "";
+  }
+
+  // Find builtin function in map
+  BuiltinFunctionMap::iterator bItr = workItemBuiltins.find(name);
+  if (bItr != workItemBuiltins.end())
+  {
+    // Add builtin to cache
+    const InterpreterCache::Builtin builtin = {bItr->second, name, overload};
+    m_builtins[function] = builtin;
+
+    return builtin;
+  }
+
+  // Check for builtin with matching prefix
+  BuiltinFunctionPrefixList::iterator pItr;
+  for (pItr = workItemPrefixBuiltins.begin();
+       pItr != workItemPrefixBuiltins.end(); pItr++)
+  {
+    if (name.compare(0, pItr->first.length(), pItr->first) == 0)
+    {
+      // Add builtin to cache
+      const InterpreterCache::Builtin builtin = {pItr->second, name, overload};
+      m_builtins[function] = builtin;
+
+      return builtin;
+    }
+  }
+
+  // Function didn't match any builtins
+  FATAL_ERROR("Undefined builtin function: %s", name.c_str());
+}
+
 
 TypedValue InterpreterCache::getConstant(const llvm::Value *operand,
                                                    const WorkItem *workItem)
