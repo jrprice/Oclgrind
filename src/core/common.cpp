@@ -251,7 +251,6 @@ namespace oclgrind
   {
     if (constant->getValueID() == llvm::Value::UndefValueVal)
     {
-      memset(data, -1, getTypeSize(constant->getType()));
       return;
     }
 
