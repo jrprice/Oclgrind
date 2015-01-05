@@ -130,10 +130,10 @@ bool Program::build(const char *options, list<Header> headers)
 
   if (m_module)
   {
+    WorkItem::InterpreterCache::clear(m_module);
+
     delete m_module;
     m_module = NULL;
-
-    WorkItem::InterpreterCache::clear(m_module);
   }
 
   // Assign a new UID to this program
