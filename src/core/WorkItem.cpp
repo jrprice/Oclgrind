@@ -778,6 +778,8 @@ INSTRUCTION(fcmp)
     case llvm::CmpInst::FCMP_TRUE:
       r = true;
       break;
+    default:
+      FATAL_ERROR("Unsupported FCmp predicate: %d", pred);
     }
 
     // Deal with NaN operands
@@ -968,6 +970,8 @@ INSTRUCTION(icmp)
     case llvm::CmpInst::ICMP_SLE:
       r = sa <= sb;
       break;
+    default:
+      FATAL_ERROR("Unsupported ICmp predicate: %d", pred);
     }
 
     result.setUInt(r ? t : 0, i);
