@@ -506,10 +506,7 @@ void WorkItem::setValue(const llvm::Value *key, TypedValue value)
 
 WorkItem::State WorkItem::step()
 {
-  if (m_state != READY)
-  {
-    FATAL_ERROR("Attempting to step a work-item in state %d", m_state);
-  }
+  assert(m_state == READY);
 
   // Execute the next instruction
   execute(m_position->currInst);
