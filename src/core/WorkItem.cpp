@@ -1193,15 +1193,16 @@ INSTRUCTION(shuffle)
   const llvm::Type *type = v1->getType()->getVectorElementType();
   for (int i = 0; i < result.num; i++)
   {
-    const llvm::Value *src = v1;
-    unsigned int index = mask.getUInt(i);
-    if (index == -1)
+    if (shuffle->getMask()->getAggregateElement(i)->getValueID()
+          == llvm::Value::UndefValueVal)
     {
       // Don't care / undef
-      result.setUInt(-1, i);
       continue;
     }
-    else if (index >= num)
+
+    const llvm::Value *src = v1;
+    unsigned int index = mask.getUInt(i);
+    if (index >= num)
     {
       index -= num;
       src = v2;
