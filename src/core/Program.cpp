@@ -341,6 +341,12 @@ bool Program::build(const char *options, list<Header> headers)
     m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
     m_module = action->takeModule();
 
+    // Strip debug intrinsics if not in interactive mode
+    if (!checkEnv("OCLGRIND_INTERACTIVE"))
+    {
+      stripDebugIntrinsics();
+    }
+
     // Initialize pass managers
     llvm::PassManager modulePasses;
     llvm::FunctionPassManager functionPasses(m_module);
@@ -368,12 +374,6 @@ bool Program::build(const char *options, list<Header> headers)
       functionPasses.run(*fItr);
     functionPasses.doFinalization();
     modulePasses.run(*m_module);
-
-    // Strip debug intrinsics if not in interactive mode
-    if (!checkEnv("OCLGRIND_INTERACTIVE"))
-    {
-      stripDebugIntrinsics();
-    }
 
     // Attempt to legalize module
     if (legalize(buildLog))
