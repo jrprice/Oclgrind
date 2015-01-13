@@ -311,6 +311,9 @@ bool InteractiveDebugger::shouldShowPrompt(const WorkItem *workItem)
   if (workItem->getState() == WorkItem::FINISHED)
     return true;
 
+  if (!m_program->getNumSourceLines())
+    return true;
+
   size_t line = getCurrentLineNumber();
   if (m_next && workItem->getCallStack().size() > m_previousDepth)
     return false;
