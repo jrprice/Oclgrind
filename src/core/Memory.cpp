@@ -82,7 +82,6 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
   // Bounds check
   if (!isAddressValid(address, 4))
   {
-    logError(true, address, 4);
     return 0;
   }
 
@@ -138,7 +137,6 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   // Bounds check
   if (!isAddressValid(address, 4))
   {
-    logError(true, address, 4);
     return 0;
   }
 
@@ -257,7 +255,6 @@ bool Memory::copy(size_t dst, size_t src, size_t size)
   // Check source address
   if (!isAddressValid(src, size))
   {
-    logError(true, src, size);
     return false;
   }
   size_t src_offset = EXTRACT_OFFSET(src);
@@ -269,7 +266,6 @@ bool Memory::copy(size_t dst, size_t src, size_t size)
   // Check destination address
   if (!isAddressValid(dst, size))
   {
-    logError(false, dst, size);
     return false;
   }
   size_t dst_offset = EXTRACT_OFFSET(dst);
@@ -401,7 +397,6 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   // Bounds check
   if (!isAddressValid(address, size))
   {
-    logError(true, address, size);
     return false;
   }
 
@@ -413,21 +408,6 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   memcpy(dest, src->data + offset, size);
 
   return true;
-}
-
-void Memory::logError(bool read, size_t address, size_t size) const
-{
-  // Error info
-  Context::Message msg(ERROR, m_context);
-  msg << "Invalid " << (read ? "read" : "write")
-      << " of size " << size
-      << " at " << getAddressSpaceName(m_addressSpace)
-      << " memory address 0x" << hex << address << endl
-      << msg.INDENT
-      << "Kernel: " << msg.CURRENT_KERNEL << endl
-      << "Entity: " << msg.CURRENT_ENTITY << endl
-      << msg.CURRENT_LOCATION << endl;
-  msg.send();
 }
 
 unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
@@ -450,7 +430,6 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
   // Bounds check
   if (!isAddressValid(address, size))
   {
-    logError(false, address, size);
     return false;
   }
 

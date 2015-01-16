@@ -14,6 +14,7 @@
 #include "MemCheck.h"
 
 using namespace oclgrind;
+using namespace std;
 
 MemCheck::MemCheck(const Context *context)
  : Plugin(context)
@@ -63,8 +64,11 @@ void MemCheck::memoryStore(const Memory *memory, const WorkGroup *workGroup,
 void MemCheck::checkLoad(const Memory *memory, size_t address, size_t size)
 {
   const Memory::Buffer *buffer = memory->getBuffer(address);
-  if (!buffer)
+  if (!buffer || EXTRACT_OFFSET(address)+size > buffer->size)
+  {
+    logInvalidAccess(true, memory->getAddressSpace(), address, size);
     return;
+  }
 
   if (buffer->flags & CL_MEM_WRITE_ONLY)
   {
@@ -75,11 +79,29 @@ void MemCheck::checkLoad(const Memory *memory, size_t address, size_t size)
 void MemCheck::checkStore(const Memory *memory, size_t address, size_t size)
 {
   const Memory::Buffer *buffer = memory->getBuffer(address);
-  if (!buffer)
+  if (!buffer || EXTRACT_OFFSET(address)+size > buffer->size)
+  {
+    logInvalidAccess(false, memory->getAddressSpace(), address, size);
     return;
+  }
 
   if (buffer->flags & CL_MEM_READ_ONLY)
   {
     m_context->logError("Invalid write to read-only buffer");
   }
+}
+
+void MemCheck::logInvalidAccess(bool read, unsigned addrSpace,
+                                size_t address, size_t size) const
+{
+  Context::Message msg(ERROR, m_context);
+  msg << "Invalid " << (read ? "read" : "write")
+      << " of size " << size
+      << " at " << getAddressSpaceName(addrSpace)
+      << " memory address 0x" << hex << address << endl
+      << msg.INDENT
+      << "Kernel: " << msg.CURRENT_KERNEL << endl
+      << "Entity: " << msg.CURRENT_ENTITY << endl
+      << msg.CURRENT_LOCATION << endl;
+  msg.send();
 }

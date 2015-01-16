@@ -35,5 +35,7 @@ namespace oclgrind
   private:
     void checkLoad(const Memory *memory, size_t address, size_t size);
     void checkStore(const Memory *memory, size_t address, size_t size);
+    void logInvalidAccess(bool read, unsigned addrSpace,
+                          size_t address, size_t size) const;
   };
 }

@@ -51,7 +51,6 @@ namespace oclgrind
     size_t getTotalAllocated() const;
     bool isAddressValid(size_t address, size_t size=1) const;
     bool load(unsigned char *dst, size_t address, size_t size=1) const;
-    void logError(bool read, size_t address, size_t size) const;
     unsigned char* mapBuffer(size_t address, size_t offset, size_t size);
     bool store(const unsigned char *source, size_t address, size_t size=1);
 
