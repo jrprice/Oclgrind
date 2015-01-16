@@ -39,7 +39,9 @@ data-race/uniform_write_race
 memcheck/async_copy_out_of_bounds
 memcheck/dereference_null
 memcheck/read_out_of_bounds
+memcheck/read_write_only_memory
 memcheck/write_out_of_bounds
+memcheck/write_read_only_memory
 misc/array
 misc/reduce
 misc/vecadd
