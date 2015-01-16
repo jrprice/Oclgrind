@@ -71,6 +71,7 @@ namespace oclgrind
       size_t destStride,
       size_t event);
     void clearBarrier();
+    const llvm::Instruction* getCurrentBarrier() const;
     Size3 getGroupID() const;
     size_t getGroupIndex() const;
     Size3 getGroupSize() const;

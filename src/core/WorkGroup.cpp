@@ -261,6 +261,11 @@ void WorkGroup::clearBarrier()
   m_barrier = NULL;
 }
 
+const llvm::Instruction* WorkGroup::getCurrentBarrier() const
+{
+  return m_barrier ? m_barrier->instruction : NULL;
+}
+
 Size3 WorkGroup::getGroupID() const
 {
   return m_groupID;

@@ -390,11 +390,15 @@ Context::Message& Context::Message::operator<<(const special& id)
   {
     const llvm::Instruction *instruction = NULL;
     const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+    const WorkGroup *workGroup = m_kernelInvocation->getCurrentWorkGroup();
     if (workItem)
     {
       instruction = workItem->getCurrentInstruction();
     }
-    // TODO: Attempt to get work-group location (e.g. barrier)
+    else if (workGroup)
+    {
+      instruction = workGroup->getCurrentBarrier();
+    }
 
     *this << instruction;
     break;
