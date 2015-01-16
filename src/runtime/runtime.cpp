@@ -1144,6 +1144,7 @@ clCreateBuffer
   }
 
   // Create memory object
+  oclgrind::Memory *globalMemory = context->context->getGlobalMemory();
   cl_mem mem = new _cl_mem;
   mem->dispatch = m_dispatchTable;
   mem->context = context;
@@ -1155,13 +1156,12 @@ clCreateBuffer
   mem->refCount = 1;
   if (flags & CL_MEM_USE_HOST_PTR)
   {
-    mem->address = context->context->getGlobalMemory()->createHostBuffer(
-      size, host_ptr);
+    mem->address = globalMemory->createHostBuffer(size, host_ptr, flags);
     mem->hostPtr = host_ptr;
   }
   else
   {
-    mem->address = context->context->getGlobalMemory()->allocateBuffer(size);
+    mem->address = globalMemory->allocateBuffer(size, flags);
     mem->hostPtr = NULL;
   }
   if (!mem->address)
