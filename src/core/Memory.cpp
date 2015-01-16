@@ -323,6 +323,17 @@ unsigned int Memory::getAddressSpace() const
   return m_addressSpace;
 }
 
+const Memory::Buffer* Memory::getBuffer(size_t address) const
+{
+  size_t buf = EXTRACT_BUFFER(address);
+  if (buf == 0 || buf >= m_memory.size() || !m_memory[buf].data)
+  {
+    return NULL;
+  }
+
+  return &(m_memory[buf]);
+}
+
 size_t Memory::getMaxAllocSize()
 {
   return MAX_BUFFER_SIZE;

@@ -25,6 +25,14 @@ namespace oclgrind
   class Memory
   {
   public:
+    typedef struct
+    {
+      size_t size;
+      cl_mem_flags flags;
+      unsigned char *data;
+    } Buffer;
+
+  public:
     Memory(unsigned int addrSpace, const Context *context);
     virtual ~Memory();
 
@@ -38,6 +46,7 @@ namespace oclgrind
     void deallocateBuffer(size_t address);
     void dump() const;
     unsigned int getAddressSpace() const;
+    const Buffer* getBuffer(size_t address) const;
     void* getPointer(size_t address) const;
     size_t getTotalAllocated() const;
     bool isAddressValid(size_t address, size_t size=1) const;
@@ -49,13 +58,6 @@ namespace oclgrind
     static size_t getMaxAllocSize();
 
   private:
-    typedef struct
-    {
-      size_t size;
-      cl_mem_flags flags;
-      unsigned char *data;
-    } Buffer;
-
     const Context *m_context;
     std::queue<int> m_freeBuffers;
     std::vector<Buffer> m_memory;
