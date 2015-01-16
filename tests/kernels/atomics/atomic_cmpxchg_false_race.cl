@@ -19,12 +19,11 @@ kernel void atomic_cmpxchg_false_race(global int *data, local int *scratch)
     if (!done)
     {
       old = atomic_cmpxchg(scratch, before, before+1);
-    }
-
-    if (old == before)
-    {
-      done = true;
-      result = scratch[0];
+      if (old == before)
+      {
+        done = true;
+        result = scratch[0];
+      }
     }
   }
 
