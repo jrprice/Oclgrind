@@ -382,7 +382,7 @@ bool Memory::isAddressValid(size_t address, size_t size) const
   size_t offset = EXTRACT_OFFSET(address);
   if (buffer == 0 ||
       buffer >= m_memory.size() ||
-      !m_memory[buffer]->data ||
+      !m_memory[buffer] ||
       offset+size > m_memory[buffer]->size)
   {
     return false;
