@@ -163,6 +163,9 @@ void RaceDetector::registerAtomic(const Memory *memory,
                                   size_t address, size_t size,
                                   bool store)
 {
+  if (!memory->isAddressValid(address, size))
+    return;
+
   State *state = m_state[KEY(memory,address)].first + EXTRACT_OFFSET(address);
 
   // Get work-item index
@@ -206,6 +209,8 @@ void RaceDetector::registerLoadStore(const Memory *memory,
   if (!m_kernelInvocation)
     return;
   if (memory->getAddressSpace() == AddrSpacePrivate)
+    return;
+  if (!memory->isAddressValid(address, size))
     return;
 
   bool load = !storeData;

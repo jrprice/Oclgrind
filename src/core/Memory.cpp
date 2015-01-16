@@ -76,6 +76,9 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags)
 
 uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
 {
+  m_context->notifyMemoryAtomicLoad(this, op, address, 4);
+  m_context->notifyMemoryAtomicStore(this, op, address, 4);
+
   // Bounds check
   if (!isAddressValid(address, 4))
   {
@@ -83,12 +86,10 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
     return 0;
   }
 
-  // Get buffer and register access
+  // Get buffer
   size_t offset = EXTRACT_OFFSET(address);
   Buffer *buffer = m_memory[EXTRACT_BUFFER(address)];
   uint32_t *ptr = (uint32_t*)(buffer->data + offset);
-  m_context->notifyMemoryAtomicLoad(this, op, address, 4);
-  m_context->notifyMemoryAtomicStore(this, op, address, 4);
 
   uint32_t old = *ptr;
   switch(op)
@@ -132,6 +133,8 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
 
 uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
 {
+  m_context->notifyMemoryAtomicLoad(this, AtomicCmpXchg, address, 4);
+
   // Bounds check
   if (!isAddressValid(address, 4))
   {
@@ -142,7 +145,6 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   // Get buffer
   size_t offset = EXTRACT_OFFSET(address);
   Buffer *buffer = m_memory[EXTRACT_BUFFER(address)];
-  m_context->notifyMemoryAtomicLoad(this, AtomicCmpXchg, address, 4);
 
   // Perform cmpxchg
   uint32_t *ptr = (uint32_t*)(buffer->data + offset);
@@ -250,25 +252,29 @@ size_t Memory::createHostBuffer(size_t size, void *ptr, cl_mem_flags flags)
 
 bool Memory::copy(size_t dst, size_t src, size_t size)
 {
-  // Bounds checks
+  m_context->notifyMemoryLoad(this, src, size);
+
+  // Check source address
   if (!isAddressValid(src, size))
   {
     logError(true, src, size);
     return false;
   }
+  size_t src_offset = EXTRACT_OFFSET(src);
+  Buffer *src_buffer = m_memory.at(EXTRACT_BUFFER(src));
+
+
+  m_context->notifyMemoryStore(this, dst, size, src_buffer->data + src_offset);
+
+  // Check destination address
   if (!isAddressValid(dst, size))
   {
     logError(false, dst, size);
     return false;
   }
-
-  // Get buffers and register accesses
-  size_t src_offset = EXTRACT_OFFSET(src);
   size_t dst_offset = EXTRACT_OFFSET(dst);
-  Buffer *src_buffer = m_memory.at(EXTRACT_BUFFER(src));
   Buffer *dst_buffer = m_memory.at(EXTRACT_BUFFER(dst));
-  m_context->notifyMemoryLoad(this, src, size);
-  m_context->notifyMemoryStore(this, dst, size, src_buffer->data + src_offset);
+
 
   // Copy data
   memcpy(dst_buffer->data + dst_offset,
@@ -390,6 +396,8 @@ bool Memory::isAddressValid(size_t address, size_t size) const
 
 bool Memory::load(unsigned char *dest, size_t address, size_t size) const
 {
+  m_context->notifyMemoryLoad(this, address, size);
+
   // Bounds check
   if (!isAddressValid(address, size))
   {
@@ -397,10 +405,9 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
     return false;
   }
 
-  // Get buffer and register access
+  // Get buffer
   size_t offset = EXTRACT_OFFSET(address);
   Buffer *src = m_memory[EXTRACT_BUFFER(address)];
-  m_context->notifyMemoryLoad(this, address, size);
 
   // Load data
   memcpy(dest, src->data + offset, size);
@@ -438,6 +445,8 @@ unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
 
 bool Memory::store(const unsigned char *source, size_t address, size_t size)
 {
+  m_context->notifyMemoryStore(this, address, size, source);
+
   // Bounds check
   if (!isAddressValid(address, size))
   {
@@ -445,10 +454,9 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
     return false;
   }
 
-  // Get buffer and register access
+  // Get buffer
   size_t offset = EXTRACT_OFFSET(address);
   Buffer *dst = m_memory[EXTRACT_BUFFER(address)];
-  m_context->notifyMemoryStore(this, address, size, source);
 
   // Store data
   memcpy(dst->data + offset, source, size);
