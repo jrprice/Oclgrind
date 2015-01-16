@@ -29,6 +29,7 @@
 #include "plugins/InstructionCounter.h"
 #include "plugins/InteractiveDebugger.h"
 #include "plugins/Logger.h"
+#include "plugins/MemCheck.h"
 #include "plugins/RaceDetector.h"
 
 using namespace oclgrind;
@@ -58,6 +59,7 @@ void Context::loadPlugins()
 {
   // Create core plugins
   m_plugins.push_back(make_pair(new Logger(this), true));
+  m_plugins.push_back(make_pair(new MemCheck(this), true));
 
   if (checkEnv("OCLGRIND_INST_COUNTS"))
     m_plugins.push_back(make_pair(new InstructionCounter(this), true));
