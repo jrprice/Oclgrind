@@ -44,7 +44,8 @@ void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
 void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
                                    size_t size)
 {
-  if (memory->getAddressSpace() == AddrSpacePrivate)
+  if (memory->getAddressSpace() == AddrSpacePrivate ||
+      memory->getAddressSpace() == AddrSpaceConstant)
     return;
 
   m_state[KEY(memory,address)] = make_pair(new State[size], size);
@@ -66,7 +67,8 @@ void RaceDetector::memoryAtomicStore(const Memory *memory,
 
 void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
 {
-  if (memory->getAddressSpace() == AddrSpacePrivate)
+  if (memory->getAddressSpace() == AddrSpacePrivate ||
+      memory->getAddressSpace() == AddrSpaceConstant)
     return;
 
   delete[] m_state[KEY(memory,address)].first;
@@ -208,7 +210,8 @@ void RaceDetector::registerLoadStore(const Memory *memory,
 {
   if (!m_kernelInvocation)
     return;
-  if (memory->getAddressSpace() == AddrSpacePrivate)
+  if (memory->getAddressSpace() == AddrSpacePrivate ||
+      memory->getAddressSpace() == AddrSpaceConstant)
     return;
   if (!memory->isAddressValid(address, size))
     return;
