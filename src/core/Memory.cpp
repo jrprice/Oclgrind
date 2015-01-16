@@ -32,7 +32,7 @@ Memory::~Memory()
   clear();
 }
 
-size_t Memory::allocateBuffer(size_t size)
+size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags)
 {
   // Check requested size doesn't exceed maximum
   if (size > MAX_BUFFER_SIZE)
@@ -49,8 +49,8 @@ size_t Memory::allocateBuffer(size_t size)
 
   // Create buffer
   Buffer buffer = {
-    false,
     size,
+    flags,
     new unsigned char[size],
   };
 
@@ -167,7 +167,7 @@ void Memory::clear()
   {
     if (itr->data)
     {
-      if (!itr->hostPtr)
+      if (!(itr->flags & CL_MEM_USE_HOST_PTR))
       {
         delete[] itr->data;
       }
@@ -190,9 +190,9 @@ Memory* Memory::clone() const
   {
     Buffer src = m_memory[i];
     Buffer dest = {
-      src.hostPtr,
       src.size,
-      src.hostPtr ? src.data : new unsigned char[src.size],
+      src.flags,
+      (src.flags&CL_MEM_USE_HOST_PTR) ? src.data : new unsigned char[src.size],
     };
     memcpy(dest.data, src.data, src.size);
     mem->m_memory[i] = dest;
@@ -207,7 +207,7 @@ Memory* Memory::clone() const
   return mem;
 }
 
-size_t Memory::createHostBuffer(size_t size, void *ptr)
+size_t Memory::createHostBuffer(size_t size, void *ptr, cl_mem_flags flags)
 {
   // Check requested size doesn't exceed maximum
   if (size > MAX_BUFFER_SIZE)
@@ -224,8 +224,8 @@ size_t Memory::createHostBuffer(size_t size, void *ptr)
 
   // Create buffer
   Buffer buffer = {
-    true,
     size,
+    flags,
     (unsigned char*)ptr,
   };
 
@@ -282,7 +282,7 @@ void Memory::deallocateBuffer(size_t address)
   int buffer = EXTRACT_BUFFER(address);
   assert(buffer < m_memory.size() && m_memory[buffer].data);
 
-  if (!m_memory[buffer].hostPtr)
+  if (!(m_memory[buffer].flags & CL_MEM_USE_HOST_PTR))
   {
     delete[] m_memory[buffer].data;
   }
