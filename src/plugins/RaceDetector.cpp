@@ -186,8 +186,8 @@ void RaceDetector::registerAtomic(const Memory *memory,
 
     // Update state
     if (store)
-      state->canRead = false;
-    state->canWrite = false;
+      state->canLoad = false;
+    state->canStore = false;
     if (!state->wasWorkItem)
     {
       state->instruction = workItem->getCurrentInstruction();
@@ -228,7 +228,7 @@ void RaceDetector::registerLoadStore(const Memory *memory,
 
   for (size_t offset = 0; offset < size; offset++, state++)
   {
-    bool conflict = store ? !state->canWrite : !state->canRead;
+    bool conflict = store ? !state->canStore : !state->canLoad;
     if (m_allowUniformWrites && storeData)
     {
       uint8_t *ptr = (uint8_t*)(memory->getPointer(address));
@@ -242,7 +242,7 @@ void RaceDetector::registerLoadStore(const Memory *memory,
         )
     {
       // Report data-race
-      DataRaceType type = load|state->canRead ? ReadWriteRace : WriteWriteRace;
+      DataRaceType type = load|state->canLoad ? ReadWriteRace : WriteWriteRace;
       logRace(type, memory->getAddressSpace(),
               address + offset,
               state->workItem,
@@ -253,14 +253,14 @@ void RaceDetector::registerLoadStore(const Memory *memory,
     else
     {
       // Only update WI info if this operation is stronger than previous one
-      bool updateWI = store || (load && state->canWrite);
+      bool updateWI = store || (load && state->canStore);
 
       // Update state
       if (store)
         state->canAtomicLoad = false;
       state->canAtomicStore = false;
-      state->canRead &= load;
-      state->canWrite = false;
+      state->canLoad &= load;
+      state->canStore = false;
       if (updateWI)
       {
         state->workGroup = workGroupIndex;
@@ -294,8 +294,8 @@ void RaceDetector::synchronize(const Memory *memory, bool workGroup)
       if (!workGroup)
       {
         state->workGroup = -1;
-        state->canRead = true;
-        state->canWrite = true;
+        state->canLoad = true;
+        state->canStore = true;
       }
     }
   }
@@ -316,7 +316,7 @@ RaceDetector::State::State()
   workGroup = -1;
   canAtomicLoad = true;
   canAtomicStore = true;
-  canRead = true;
-  canWrite = true;
+  canLoad = true;
+  canStore = true;
   wasWorkItem = false;
 }

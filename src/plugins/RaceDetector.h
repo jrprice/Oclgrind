@@ -46,8 +46,8 @@ namespace oclgrind
       size_t workGroup;
       bool canAtomicLoad;
       bool canAtomicStore;
-      bool canRead;
-      bool canWrite;
+      bool canLoad;
+      bool canStore;
       bool wasWorkItem;
 
       State();
