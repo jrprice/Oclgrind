@@ -383,15 +383,11 @@ void Simulation::parseArgument(size_t index)
       {
         throw "'ro' and 'wo' are mutually exclusive";
       }
-      flags |= CL_MEM_READ_ONLY;
-    }
-    else if (token == "wo")
-    {
-      if (flags & CL_MEM_READ_ONLY)
+      if (addrSpace != CL_KERNEL_ARG_ADDRESS_GLOBAL)
       {
-        throw "'ro' and 'wo' are mutually exclusive";
+        throw "'ro' only valid for global memory buffers";
       }
-      flags |= CL_MEM_WRITE_ONLY;
+      flags |= CL_MEM_READ_ONLY;
     }
     else if (token.compare(0, 4, "size") == 0)
     {
@@ -408,6 +404,18 @@ void Simulation::parseArgument(size_t index)
       {
         throw "Invalid value for 'size'";
       }
+    }
+    else if (token == "wo")
+    {
+      if (flags & CL_MEM_READ_ONLY)
+      {
+        throw "'ro' and 'wo' are mutually exclusive";
+      }
+      if (addrSpace != CL_KERNEL_ARG_ADDRESS_GLOBAL)
+      {
+        throw "'wo' only valid for global memory buffers";
+      }
+      flags |= CL_MEM_WRITE_ONLY;
     }
     else
     {
