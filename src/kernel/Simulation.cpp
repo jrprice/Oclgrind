@@ -262,6 +262,7 @@ void Simulation::parseArgument(size_t index)
 {
   // Argument parsing parameters
   size_t size = -1;
+  cl_mem_flags flags = 0;
   ArgDataType type = TYPE_NONE;
   size_t typeSize = 0;
   bool null = false;
@@ -375,6 +376,22 @@ void Simulation::parseArgument(size_t index)
         throw "Expected =START:INC:END after 'range";
       }
       range = token.substr(6);
+    }
+    else if (token == "ro")
+    {
+      if (flags & CL_MEM_WRITE_ONLY)
+      {
+        throw "'ro' and 'wo' are mutually exclusive";
+      }
+      flags |= CL_MEM_READ_ONLY;
+    }
+    else if (token == "wo")
+    {
+      if (flags & CL_MEM_READ_ONLY)
+      {
+        throw "'ro' and 'wo' are mutually exclusive";
+      }
+      flags |= CL_MEM_WRITE_ONLY;
     }
     else if (token.compare(0, 4, "size") == 0)
     {
@@ -565,7 +582,7 @@ void Simulation::parseArgument(size_t index)
     {
       // Allocate buffer and store content
       Memory *globalMemory = m_context->getGlobalMemory();
-      size_t address = globalMemory->allocateBuffer(size);
+      size_t address = globalMemory->allocateBuffer(size, flags);
       globalMemory->store((unsigned char*)&data[0], address, size);
       value.data = new unsigned char[value.size];
       value.setPointer(address);
