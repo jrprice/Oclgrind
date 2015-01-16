@@ -38,6 +38,7 @@ data-race/local_read_write_race
 data-race/local_write_write_race
 data-race/uniform_write_race
 memcheck/async_copy_out_of_bounds
+memcheck/atomic_out_of_bounds
 memcheck/dereference_null
 memcheck/read_out_of_bounds
 memcheck/read_write_only_memory

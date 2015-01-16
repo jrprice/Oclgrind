@@ -1,0 +1,8 @@
+ERROR EXPECTED
+
+Argument 'counters': 16 bytes
+  counters[0] = 1
+  counters[1] = 1
+  counters[2] = 1
+  counters[3] = 1
+
