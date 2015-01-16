@@ -1,4 +1,4 @@
-kernel void atomic_cmpxchg_race(global int *data)
+kernel void atomic_cmpxchg_read_race(global int *data)
 {
   int i = get_global_id(0);
   if (i == 0)

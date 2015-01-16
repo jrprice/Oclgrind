@@ -1,0 +1,5 @@
+ERROR EXPECTED
+
+Argument 'data': 4 bytes
+  data[0] = 42
+

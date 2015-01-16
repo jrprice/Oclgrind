@@ -9,7 +9,8 @@ async_copy/async_copy_loop_divergent
 async_copy/async_copy_single_wi
 async_copy/async_copy_unwaited
 atomics/atomic_cmpxchg_false_race
-atomics/atomic_cmpxchg_race
+atomics/atomic_cmpxchg_read_race
+atomics/atomic_cmpxchg_write_race
 atomics/atomic_global_fence
 atomics/atomic_global_fence_race
 atomics/atomic_increment
