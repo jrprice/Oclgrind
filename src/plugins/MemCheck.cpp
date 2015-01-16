@@ -63,14 +63,13 @@ void MemCheck::memoryStore(const Memory *memory, const WorkGroup *workGroup,
 
 void MemCheck::checkLoad(const Memory *memory, size_t address, size_t size)
 {
-  const Memory::Buffer *buffer = memory->getBuffer(address);
-  if (!buffer || EXTRACT_OFFSET(address)+size > buffer->size)
+  if (!memory->isAddressValid(address, size))
   {
     logInvalidAccess(true, memory->getAddressSpace(), address, size);
     return;
   }
 
-  if (buffer->flags & CL_MEM_WRITE_ONLY)
+  if (memory->getBuffer(address)->flags & CL_MEM_WRITE_ONLY)
   {
     m_context->logError("Invalid read from write-only buffer");
   }
@@ -78,14 +77,13 @@ void MemCheck::checkLoad(const Memory *memory, size_t address, size_t size)
 
 void MemCheck::checkStore(const Memory *memory, size_t address, size_t size)
 {
-  const Memory::Buffer *buffer = memory->getBuffer(address);
-  if (!buffer || EXTRACT_OFFSET(address)+size > buffer->size)
+  if (!memory->isAddressValid(address, size))
   {
     logInvalidAccess(false, memory->getAddressSpace(), address, size);
     return;
   }
 
-  if (buffer->flags & CL_MEM_READ_ONLY)
+  if (memory->getBuffer(address)->flags & CL_MEM_READ_ONLY)
   {
     m_context->logError("Invalid write to read-only buffer");
   }
