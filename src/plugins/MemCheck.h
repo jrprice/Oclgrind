@@ -15,8 +15,12 @@ namespace oclgrind
   public:
     MemCheck(const Context *context);
 
-    virtual void memoryAtomic(const Memory *memory, const WorkItem *workItem,
-                              AtomicOp op, size_t address, size_t size);
+    virtual void memoryAtomicLoad(const Memory *memory,
+                                  const WorkItem *workItem,
+                                  AtomicOp op, size_t address, size_t size);
+    virtual void memoryAtomicStore(const Memory *memory,
+                                   const WorkItem *workItem,
+                                   AtomicOp op, size_t address, size_t size);
     virtual void memoryLoad(const Memory *memory, const WorkItem *workItem,
                             size_t address, size_t size);
     virtual void memoryLoad(const Memory *memory, const WorkGroup *workGroup,

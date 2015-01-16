@@ -37,8 +37,10 @@ namespace oclgrind
     void notifyKernelEnd(const KernelInvocation *kernelInvocation) const;
     void notifyMemoryAllocated(const Memory *memory, size_t address,
                                size_t size) const;
-    void notifyMemoryAtomic(const Memory *memory, AtomicOp op,
-                            size_t address, size_t size) const;
+    void notifyMemoryAtomicLoad(const Memory *memory, AtomicOp op,
+                                size_t address, size_t size) const;
+    void notifyMemoryAtomicStore(const Memory *memory, AtomicOp op,
+                                 size_t address, size_t size) const;
     void notifyMemoryDeallocated(const Memory *memory, size_t address) const;
     void notifyMemoryLoad(const Memory *memory, size_t address,
                           size_t size) const;

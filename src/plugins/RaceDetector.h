@@ -19,8 +19,12 @@ namespace oclgrind
     virtual void kernelEnd(const KernelInvocation *kernelInvocation);
     virtual void memoryAllocated(const Memory *memory, size_t address,
                                  size_t size);
-    virtual void memoryAtomic(const Memory *memory, const WorkItem *workItem,
-                              AtomicOp op, size_t address, size_t size);
+    virtual void memoryAtomicLoad(const Memory *memory,
+                                  const WorkItem *workItem,
+                                  AtomicOp op, size_t address, size_t size);
+    virtual void memoryAtomicStore(const Memory *memory,
+                                   const WorkItem *workItem,
+                                   AtomicOp op, size_t address, size_t size);
     virtual void memoryDeallocated(const Memory *memory, size_t address);
     virtual void memoryLoad(const Memory *memory, const WorkItem *workItem,
                             size_t address, size_t size);
@@ -40,7 +44,8 @@ namespace oclgrind
       const llvm::Instruction *instruction;
       size_t workItem;
       size_t workGroup;
-      bool canAtomic;
+      bool canAtomicLoad;
+      bool canAtomicStore;
       bool canRead;
       bool canWrite;
       bool wasWorkItem;
@@ -70,6 +75,10 @@ namespace oclgrind
                  size_t lastWorkGroup,
                  size_t lastWorkItem,
                  const llvm::Instruction *lastInstruction) const;
+    void registerAtomic(const Memory *memory,
+                        const WorkItem *workItem,
+                        size_t address, size_t size,
+                        bool store);
     void registerLoadStore(const Memory *memory,
                            const WorkItem *workItem,
                            const WorkGroup *workGroup,

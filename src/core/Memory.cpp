@@ -87,7 +87,8 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
   size_t offset = EXTRACT_OFFSET(address);
   Buffer *buffer = m_memory[EXTRACT_BUFFER(address)];
   uint32_t *ptr = (uint32_t*)(buffer->data + offset);
-  m_context->notifyMemoryAtomic(this, op, address, 4);
+  m_context->notifyMemoryAtomicLoad(this, op, address, 4);
+  m_context->notifyMemoryAtomicStore(this, op, address, 4);
 
   uint32_t old = *ptr;
   switch(op)
@@ -141,6 +142,7 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   // Get buffer
   size_t offset = EXTRACT_OFFSET(address);
   Buffer *buffer = m_memory[EXTRACT_BUFFER(address)];
+  m_context->notifyMemoryAtomicLoad(this, AtomicCmpXchg, address, 4);
 
   // Perform cmpxchg
   uint32_t *ptr = (uint32_t*)(buffer->data + offset);
@@ -149,11 +151,7 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   {
     *ptr = value;
 
-    m_context->notifyMemoryAtomic(this, AtomicCmpXchg, address, 4);
-  }
-  else
-  {
-    // TODO: Register read-only atomic access?
+    m_context->notifyMemoryAtomicStore(this, AtomicCmpXchg, address, 4);
   }
 
   return old;

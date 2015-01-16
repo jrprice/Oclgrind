@@ -20,12 +20,18 @@ MemCheck::MemCheck(const Context *context)
 {
 }
 
-void MemCheck::memoryAtomic(const Memory *memory, const WorkItem *workItem,
-                            AtomicOp op, size_t address, size_t size)
+void MemCheck::memoryAtomicLoad(const Memory *memory,
+                                const WorkItem *workItem,
+                                AtomicOp op, size_t address, size_t size)
 {
   checkLoad(memory, address, size);
-  if (op != AtomicCmpXchg)
-    checkStore(memory, address, size);
+}
+
+void MemCheck::memoryAtomicStore(const Memory *memory,
+                                 const WorkItem *workItem,
+                                 AtomicOp op, size_t address, size_t size)
+{
+  checkStore(memory, address, size);
 }
 
 void MemCheck::memoryLoad(const Memory *memory, const WorkItem *workItem,

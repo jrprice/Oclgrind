@@ -50,37 +50,18 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
   m_state[KEY(memory,address)] = make_pair(new State[size], size);
 }
 
-void RaceDetector::memoryAtomic(const Memory *memory, const WorkItem *workItem,
-                                AtomicOp op, size_t address, size_t size)
+void RaceDetector::memoryAtomicLoad(const Memory *memory,
+                                    const WorkItem *workItem,
+                                    AtomicOp op, size_t address, size_t size)
 {
-  State *state = m_state[KEY(memory,address)].first + EXTRACT_OFFSET(address);
+  registerAtomic(memory, workItem, address, size, false);
+}
 
-  // Get work-item index
-  size_t workItemIndex = workItem->getGlobalIndex();
-
-  for (size_t offset = 0; offset < size; offset++, state++)
-  {
-    // Check for races with non-atomic operations
-    if (!state->canAtomic && workItemIndex != state->workItem)
-    {
-      logRace(ReadWriteRace,
-              memory->getAddressSpace(),
-              address,
-              state->workItem,
-              state->workGroup,
-              state->instruction);
-    }
-
-    // Update state
-    state->canRead = false;
-    state->canWrite = false;
-    if (!state->wasWorkItem)
-    {
-      state->instruction = workItem->getCurrentInstruction();
-      state->workItem = workItemIndex;
-      state->wasWorkItem = true;
-    }
-  }
+void RaceDetector::memoryAtomicStore(const Memory *memory,
+                                     const WorkItem *workItem,
+                                     AtomicOp op, size_t address, size_t size)
+{
+  registerAtomic(memory, workItem, address, size, true);
 }
 
 void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
@@ -177,6 +158,45 @@ void RaceDetector::logRace(DataRaceType type,
   msg.send();
 }
 
+void RaceDetector::registerAtomic(const Memory *memory,
+                                  const WorkItem *workItem,
+                                  size_t address, size_t size,
+                                  bool store)
+{
+  State *state = m_state[KEY(memory,address)].first + EXTRACT_OFFSET(address);
+
+  // Get work-item index
+  size_t workItemIndex = workItem->getGlobalIndex();
+
+  bool race = false;
+  for (size_t offset = 0; offset < size; offset++, state++)
+  {
+    // Check for races with non-atomic operations
+    bool conflict = store ? !state->canAtomicStore : !state->canAtomicLoad;
+    if (!race && conflict && workItemIndex != state->workItem)
+    {
+      logRace(ReadWriteRace,
+              memory->getAddressSpace(),
+              address,
+              state->workItem,
+              state->workGroup,
+              state->instruction);
+      race = true;
+    }
+
+    // Update state
+    if (store)
+      state->canRead = false;
+    state->canWrite = false;
+    if (!state->wasWorkItem)
+    {
+      state->instruction = workItem->getCurrentInstruction();
+      state->workItem = workItemIndex;
+      state->wasWorkItem = true;
+    }
+  }
+}
+
 void RaceDetector::registerLoadStore(const Memory *memory,
                                      const WorkItem *workItem,
                                      const WorkGroup *workGroup,
@@ -236,7 +256,9 @@ void RaceDetector::registerLoadStore(const Memory *memory,
       bool updateWI = store || (load && state->canWrite);
 
       // Update state
-      state->canAtomic = false;
+      if (store)
+        state->canAtomicLoad = false;
+      state->canAtomicStore = false;
       state->canRead &= load;
       state->canWrite = false;
       if (updateWI)
@@ -264,7 +286,9 @@ void RaceDetector::synchronize(const Memory *memory, bool workGroup)
     pair<State*,size_t> obj = itr->second;
     for (State *state = obj.first; state < obj.first+obj.second; state++)
     {
-      state->canAtomic = true; // TODO: atomic_intergroup_race test failure
+      // TODO: atomic_intergroup_race test failure
+      state->canAtomicLoad = true;
+      state->canAtomicStore = true;
       state->workItem = -1;
       state->wasWorkItem = false;
       if (!workGroup)
@@ -290,7 +314,8 @@ RaceDetector::State::State()
   instruction = NULL;
   workItem = -1;
   workGroup = -1;
-  canAtomic = true;
+  canAtomicLoad = true;
+  canAtomicStore = true;
   canRead = true;
   canWrite = true;
   wasWorkItem = false;
