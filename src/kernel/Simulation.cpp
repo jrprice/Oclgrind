@@ -708,6 +708,7 @@ void Simulation::run(bool dumpGlobalMemory)
   KernelInvocation::run(m_context, m_kernel, 3, offset, m_ndrange, m_wgsize);
 
   // Dump individual arguments
+  cout << dec;
   list<DumpArg>::iterator itr;
   for (itr = m_dumpArguments.begin(); itr != m_dumpArguments.end(); itr++)
   {
