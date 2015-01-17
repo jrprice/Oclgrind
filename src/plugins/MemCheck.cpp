@@ -61,7 +61,8 @@ void MemCheck::memoryStore(const Memory *memory, const WorkGroup *workGroup,
   checkStore(memory, address, size);
 }
 
-void MemCheck::checkLoad(const Memory *memory, size_t address, size_t size)
+void MemCheck::checkLoad(const Memory *memory,
+                         size_t address, size_t size) const
 {
   if (!memory->isAddressValid(address, size))
   {
@@ -75,7 +76,8 @@ void MemCheck::checkLoad(const Memory *memory, size_t address, size_t size)
   }
 }
 
-void MemCheck::checkStore(const Memory *memory, size_t address, size_t size)
+void MemCheck::checkStore(const Memory *memory,
+                          size_t address, size_t size) const
 {
   if (!memory->isAddressValid(address, size))
   {

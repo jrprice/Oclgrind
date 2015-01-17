@@ -33,8 +33,8 @@ namespace oclgrind
                              const uint8_t *storeData);
 
   private:
-    void checkLoad(const Memory *memory, size_t address, size_t size);
-    void checkStore(const Memory *memory, size_t address, size_t size);
+    void checkLoad(const Memory *memory, size_t address, size_t size) const;
+    void checkStore(const Memory *memory, size_t address, size_t size) const;
     void logInvalidAccess(bool read, unsigned addrSpace,
                           size_t address, size_t size) const;
   };
