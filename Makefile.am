@@ -125,7 +125,7 @@ endif
 
 EXTRA_DIST = NEWS src/core/gen_clc_h.sh src/core/clc.h			\
  src/runtime/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
- src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_d3d10.h			\
+ src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_egl.h src/CL/cl_d3d10.h	\
  src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
  CMakeLists.txt tests/apps/CMakeLists.txt cmake_config.h.in		\
  src/core/gen_clc_h.cmake src/runtime/icd.def src/runtime/runtime.def	\
