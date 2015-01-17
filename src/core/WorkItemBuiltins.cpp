@@ -3171,7 +3171,6 @@ namespace oclgrind
 
     DEFINE_BUILTIN(llvm_dbg_declare)
     {
-      // TODO: Skip if not in interactive mode?
       const llvm::DbgDeclareInst *dbgInst =
         (const llvm::DbgDeclareInst*)callInst;
       const llvm::Value *addr = dbgInst->getAddress();
@@ -3182,7 +3181,6 @@ namespace oclgrind
 
     DEFINE_BUILTIN(llvm_dbg_value)
     {
-      // TODO: Skip if not in interactive mode?
       const llvm::DbgValueInst *dbgInst = (const llvm::DbgValueInst*)callInst;
       const llvm::Value *value = dbgInst->getValue();
       const llvm::MDNode *var = dbgInst->getVariable();
