@@ -72,6 +72,7 @@ namespace oclgrind
     ValueMap valueIDs;
     TypedValue getConstant(const llvm::Value *operand,
                            const WorkItem *workItem);
+    void addBuiltin(const llvm::Function *function);
     Builtin getBuiltin(const llvm::Function *function);
 
   private:

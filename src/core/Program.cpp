@@ -555,6 +555,8 @@ Kernel* Program::createKernel(const string name)
 
   try
   {
+    generateKernelCache(function);
+
     return new Kernel(this, function, m_module);
   }
   catch (FatalError& err)
@@ -566,6 +568,34 @@ Kernel* Program::createKernel(const string name)
          << endl;
     return NULL;
   }
+}
+
+void Program::generateKernelCache(llvm::Function *kernel) const
+{
+  // Check for existing cache
+  InterpreterCacheMap::iterator itr = m_interpreterCache.find(kernel);
+  if (itr != m_interpreterCache.end())
+  {
+    return;
+  }
+
+  // Create new cache
+  InterpreterCache *cache = new InterpreterCache;
+  m_interpreterCache[kernel] = cache;
+
+#if HAVE_CXX11
+  cache->valueIDs.reserve(1024); // TODO: Determine this number dynamically?
+#endif
+
+  // Add global variables to cache
+  // TODO: Only add variables that are used?
+  llvm::Module::global_iterator G;
+  for (G = m_module->global_begin(); G != m_module->global_end(); G++)
+  {
+    // TODO
+  }
+
+  populateCache(cache, kernel);
 }
 
 unsigned char* Program::getBinary() const
@@ -627,22 +657,7 @@ unsigned long Program::generateUID() const
 InterpreterCache* Program::getInterpreterCache(const llvm::Function *kernel)
   const
 {
-  // Check for existing cache
-  InterpreterCacheMap::iterator itr = m_interpreterCache.find(kernel);
-  if (itr != m_interpreterCache.end())
-  {
-    return itr->second;
-  }
-
-  // Create new cache
-  InterpreterCache *cache = new InterpreterCache;
-  m_interpreterCache[kernel] = cache;
-
-#if HAVE_CXX11
-  cache->valueIDs.reserve(1024); // TODO: Determine this number dynamically?
-#endif
-
-  return cache;
+  return m_interpreterCache[kernel];
 }
 
 list<string> Program::getKernelNames() const
@@ -803,6 +818,44 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
   }
 
   return true;
+}
+
+void Program::populateCache(InterpreterCache *cache,
+                            llvm::Function *kernel) const
+{
+  set<llvm::Function*> processed;
+  set<llvm::Function*> pending;
+
+  pending.insert(kernel);
+
+  while (!pending.empty())
+  {
+    // Get next function to process
+    llvm::Function *function = *pending.begin();
+    processed.insert(function);
+    pending.erase(function);
+
+    // Iterate through instruction in function
+    llvm::inst_iterator I;
+    for (I = inst_begin(function); I != inst_end(function); I++)
+    {
+      // Check for function calls
+      if (I->getOpcode() == llvm::Instruction::Call)
+      {
+        const llvm::CallInst *call = ((const llvm::CallInst*)&*I);
+        llvm::Function *callee = call->getCalledFunction();
+        if (callee->isDeclaration())
+        {
+          cache->addBuiltin(callee);
+        }
+        else if (!processed.count(callee))
+        {
+          // Process called function
+          pending.insert(callee);
+        }
+      }
+    }
+  }
 }
 
 void Program::stripDebugIntrinsics()

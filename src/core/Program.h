@@ -83,5 +83,9 @@ namespace oclgrind
       InterpreterCacheMap;
     mutable InterpreterCacheMap m_interpreterCache;
     void clearInterpreterCache();
+    void generateKernelCache(llvm::Function *kernel) const;
+    void populateCache(InterpreterCache *cache, llvm::Function *kernel) const;
+    void resolveBuiltin(InterpreterCache *cache,
+                        llvm::Function *function) const;
   };
 }

@@ -1340,14 +1340,14 @@ InterpreterCache::~InterpreterCache()
   }
 }
 
-InterpreterCache::Builtin InterpreterCache::getBuiltin(
+void InterpreterCache::addBuiltin(
   const llvm::Function *function)
 {
-  // Check builtin cache
+  // Check if already in cache
   InterpreterCache::BuiltinMap::iterator fItr = m_builtins.find(function);
   if (fItr != m_builtins.end())
   {
-    return fItr->second;
+    return;
   }
 
   // Extract unmangled name and overload
@@ -1373,8 +1373,7 @@ InterpreterCache::Builtin InterpreterCache::getBuiltin(
     // Add builtin to cache
     const InterpreterCache::Builtin builtin = {bItr->second, name, overload};
     m_builtins[function] = builtin;
-
-    return builtin;
+    return;
   }
 
   // Check for builtin with matching prefix
@@ -1387,8 +1386,7 @@ InterpreterCache::Builtin InterpreterCache::getBuiltin(
       // Add builtin to cache
       const InterpreterCache::Builtin builtin = {pItr->second, name, overload};
       m_builtins[function] = builtin;
-
-      return builtin;
+      return;
     }
   }
 
@@ -1396,6 +1394,11 @@ InterpreterCache::Builtin InterpreterCache::getBuiltin(
   FATAL_ERROR("Undefined builtin function: %s", name.c_str());
 }
 
+InterpreterCache::Builtin InterpreterCache::getBuiltin(
+  const llvm::Function *function)
+{
+  return m_builtins[function];
+}
 
 TypedValue InterpreterCache::getConstant(const llvm::Value *operand,
                                                    const WorkItem *workItem)
