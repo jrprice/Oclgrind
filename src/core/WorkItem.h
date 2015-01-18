@@ -69,11 +69,11 @@ namespace oclgrind
     InterpreterCache();
     ~InterpreterCache();
 
-    TypedValue getConstant(const llvm::Value *operand,
-                           const WorkItem *workItem);
-
     void addBuiltin(const llvm::Function *function);
     Builtin getBuiltin(const llvm::Function *function) const;
+
+    void addConstant(const llvm::Value *constant);
+    TypedValue getConstant(const llvm::Value *operand) const;
 
     size_t addValueID(const llvm::Value *value);
     size_t getValueID(const llvm::Value *value) const;
@@ -105,7 +105,7 @@ namespace oclgrind
       size_t m_blockSize;
       size_t m_offset;
       std::list<unsigned char *> m_blocks;
-    } m_pool;
+    } mutable m_pool;
 
   public:
     WorkItem(const KernelInvocation *kernelInvocation,

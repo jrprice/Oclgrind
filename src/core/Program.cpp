@@ -852,6 +852,7 @@ void Program::populateCache(InterpreterCache *cache,
         llvm::Function *callee = call->getCalledFunction();
         if (callee->isDeclaration())
         {
+          // Resolve builtin function calls
           cache->addBuiltin(callee);
         }
         else if (!processed.count(callee))
@@ -865,8 +866,21 @@ void Program::populateCache(InterpreterCache *cache,
       for (llvm::User::value_op_iterator O = I->value_op_begin();
            O != I->value_op_end(); O++)
       {
-        // TODO: What if operand is a constant expression?
-        cache->addValueID(*O);
+        // Resolve constant operands
+        // TODO: What if operand is a constant expression? Resolve?
+        if (O->getValueID() == llvm::Value::UndefValueVal            ||
+            O->getValueID() == llvm::Value::ConstantAggregateZeroVal ||
+            O->getValueID() == llvm::Value::ConstantDataArrayVal     ||
+            O->getValueID() == llvm::Value::ConstantDataVectorVal    ||
+            O->getValueID() == llvm::Value::ConstantIntVal           ||
+            O->getValueID() == llvm::Value::ConstantFPVal            ||
+            O->getValueID() == llvm::Value::ConstantArrayVal         ||
+            O->getValueID() == llvm::Value::ConstantStructVal        ||
+            O->getValueID() == llvm::Value::ConstantVectorVal        ||
+            O->getValueID() == llvm::Value::ConstantPointerNullVal)
+        {
+          cache->addConstant(*O);
+        }
       }
     }
   }

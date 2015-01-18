@@ -363,8 +363,33 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand) const
   //else if (valID == llvm::Value::BlockAddressVal)
   //{
   //}
-  else if (valID == llvm::Value::ConstantExprVal          ||
-           valID == llvm::Value::UndefValueVal            ||
+  else if (valID == llvm::Value::ConstantExprVal)
+  {
+    pair<unsigned,unsigned> size = getValueSize(operand);
+    TypedValue result;
+    result.size = size.first;
+    result.num  = size.second;
+    result.data = m_pool.alloc(getTypeSize(operand->getType()));
+
+    // Resolve constant expression
+    const llvm::Instruction *instruction =
+      getConstExprAsInstruction((const llvm::ConstantExpr*)operand);
+    try
+    {
+      // Use of const_cast here is ugly, but ConstExpr instructions
+      // shouldn't actually modify WorkItem state anyway
+      const_cast<WorkItem*>(this)->dispatch(instruction, result);
+      delete instruction;
+    }
+    catch (FatalError& err)
+    {
+      delete instruction;
+      throw err;
+    }
+
+    return result;
+  }
+  else if (valID == llvm::Value::UndefValueVal            ||
            valID == llvm::Value::ConstantAggregateZeroVal ||
            valID == llvm::Value::ConstantDataArrayVal     ||
            valID == llvm::Value::ConstantDataVectorVal    ||
@@ -375,7 +400,7 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand) const
            valID == llvm::Value::ConstantVectorVal        ||
            valID == llvm::Value::ConstantPointerNullVal)
   {
-    return m_cache->getConstant(operand, this);
+    return m_cache->getConstant(operand);
   }
   //else if (valID == llvm::Value::MDNodeVal)
   //{
@@ -1389,47 +1414,28 @@ InterpreterCache::Builtin InterpreterCache::getBuiltin(
   return m_builtins.at(function);
 }
 
-TypedValue InterpreterCache::getConstant(const llvm::Value *operand,
-                                                   const WorkItem *workItem)
+void InterpreterCache::addConstant(const llvm::Value *value)
 {
-  // Check cache
-  ConstantMap::iterator constItr = m_constants.find(operand);
-  if (constItr != m_constants.end())
+  // Check if constant already in cache
+  if (m_constants.count(value))
   {
-    return constItr->second;
+    return;
   }
 
   // Create constant and add to cache
-  pair<unsigned,unsigned> size = getValueSize(operand);
+  pair<unsigned,unsigned> size = getValueSize(value);
   TypedValue constant;
   constant.size = size.first;
   constant.num  = size.second;
-  constant.data = new unsigned char[getTypeSize(operand->getType())];
+  constant.data = new unsigned char[getTypeSize(value->getType())];
+  getConstantData(constant.data, (const llvm::Constant*)value);
 
-  if (operand->getValueID() == llvm::Value::ConstantExprVal)
-  {
-    const llvm::Instruction *instruction =
-      getConstExprAsInstruction((const llvm::ConstantExpr*)operand);
-    try
-    {
-      // Use of const_cast here is ugly, but ConstExpr instructions
-      // shouldn't actually modify WorkItem state anyway
-      const_cast<WorkItem*>(workItem)->dispatch(instruction, constant);
-      delete instruction;
-    }
-    catch (FatalError& err)
-    {
-      delete instruction;
-      throw err;
-    }
-  }
-  else
-  {
-    getConstantData(constant.data, (const llvm::Constant*)operand);
-  }
+  m_constants[value] = constant;
+}
 
-  m_constants[operand] = constant;
-  return constant;
+TypedValue InterpreterCache::getConstant(const llvm::Value *operand) const
+{
+  return m_constants.at(operand);
 }
 
 size_t InterpreterCache::addValueID(const llvm::Value *value)
