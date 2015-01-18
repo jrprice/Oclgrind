@@ -491,7 +491,6 @@ void WorkItem::setValue(const llvm::Value *key, TypedValue value)
   {
     // Assign next index to value
     size_t pos = m_cache->valueIDs.size();
-    m_cache->valueIDs[key] = pos;
     itr = m_cache->valueIDs.insert(make_pair(key, pos)).first;
   }
 
