@@ -583,18 +583,6 @@ void Program::generateKernelCache(llvm::Function *kernel) const
   InterpreterCache *cache = new InterpreterCache;
   m_interpreterCache[kernel] = cache;
 
-#if HAVE_CXX11
-  cache->valueIDs.reserve(1024); // TODO: Determine this number dynamically?
-#endif
-
-  // Add global variables to cache
-  // TODO: Only add variables that are used?
-  llvm::Module::global_iterator G;
-  for (G = m_module->global_begin(); G != m_module->global_end(); G++)
-  {
-    // TODO
-  }
-
   populateCache(cache, kernel);
 }
 
@@ -823,6 +811,15 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
 void Program::populateCache(InterpreterCache *cache,
                             llvm::Function *kernel) const
 {
+  // Add global variables to cache
+  // TODO: Only add variables that are used?
+  llvm::Module::global_iterator G;
+  for (G = m_module->global_begin(); G != m_module->global_end(); G++)
+  {
+    cache->addValueID(G);
+  }
+
+
   set<llvm::Function*> processed;
   set<llvm::Function*> pending;
 
@@ -835,10 +832,19 @@ void Program::populateCache(InterpreterCache *cache,
     processed.insert(function);
     pending.erase(function);
 
+    // Iterate through the function arguments
+    llvm::Function::arg_iterator A;
+    for (A = function->arg_begin(); A != function->arg_end(); A++)
+    {
+      cache->addValueID(A);
+    }
+
     // Iterate through instruction in function
     llvm::inst_iterator I;
     for (I = inst_begin(function); I != inst_end(function); I++)
     {
+      cache->addValueID(&*I);
+
       // Check for function calls
       if (I->getOpcode() == llvm::Instruction::Call)
       {
@@ -853,6 +859,14 @@ void Program::populateCache(InterpreterCache *cache,
           // Process called function
           pending.insert(callee);
         }
+      }
+
+      // Process operands
+      for (llvm::User::value_op_iterator O = I->value_op_begin();
+           O != I->value_op_end(); O++)
+      {
+        // TODO: What if operand is a constant expression?
+        cache->addValueID(*O);
       }
     }
   }

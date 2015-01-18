@@ -69,15 +69,21 @@ namespace oclgrind
     InterpreterCache();
     ~InterpreterCache();
 
-    ValueMap valueIDs;
     TypedValue getConstant(const llvm::Value *operand,
                            const WorkItem *workItem);
+
     void addBuiltin(const llvm::Function *function);
-    Builtin getBuiltin(const llvm::Function *function);
+    Builtin getBuiltin(const llvm::Function *function) const;
+
+    size_t addValueID(const llvm::Value *value);
+    size_t getValueID(const llvm::Value *value) const;
+    size_t getNumValues() const;
+    bool hasValue(const llvm::Value *value) const;
 
   private:
     BuiltinMap m_builtins;
     ConstantMap m_constants;
+    ValueMap m_valueIDs;
   };
 
   class WorkItem

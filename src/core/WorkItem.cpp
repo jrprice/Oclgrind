@@ -63,7 +63,7 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   m_cache = kernel->getProgram()->getInterpreterCache(kernel->getFunction());
 
   // Set initial number of values to store based on cache
-  m_values.resize(m_cache->valueIDs.size());
+  m_values.resize(m_cache->getNumValues());
 
   m_privateMemory = kernel->getPrivateMemory()->clone();
 
@@ -298,7 +298,7 @@ void WorkItem::execute(const llvm::Instruction *instruction)
 
 TypedValue WorkItem::getValue(const llvm::Value *key) const
 {
-  return m_values[m_cache->valueIDs[key]];
+  return m_values[m_cache->getValueID(key)];
 }
 
 const stack<const llvm::Instruction*>& WorkItem::getCallStack() const
@@ -438,7 +438,7 @@ const WorkGroup* WorkItem::getWorkGroup() const
 
 bool WorkItem::hasValue(const llvm::Value *key) const
 {
-  return m_cache->valueIDs.count(key);
+  return m_cache->hasValue(key);
 }
 
 bool WorkItem::printValue(const llvm::Value *value) const
@@ -486,21 +486,7 @@ bool WorkItem::printVariable(string name) const
 
 void WorkItem::setValue(const llvm::Value *key, TypedValue value)
 {
-  InterpreterCache::ValueMap::iterator itr = m_cache->valueIDs.find(key);
-  if (itr == m_cache->valueIDs.end())
-  {
-    // Assign next index to value
-    size_t pos = m_cache->valueIDs.size();
-    itr = m_cache->valueIDs.insert(make_pair(key, pos)).first;
-  }
-
-  // Resize vector if necessary
-  if (m_values.size() <= itr->second)
-  {
-    m_values.resize(m_cache->valueIDs.size());
-  }
-
-  m_values[itr->second] = value;
+  m_values[m_cache->getValueID(key)] = value;
 }
 
 WorkItem::State WorkItem::step()
@@ -1328,6 +1314,9 @@ INSTRUCTION(zext)
 
 InterpreterCache::InterpreterCache()
 {
+#if HAVE_CXX11
+  m_valueIDs.reserve(1024); // TODO: Determine this number dynamically?
+#endif
 }
 
 InterpreterCache::~InterpreterCache()
@@ -1395,9 +1384,9 @@ void InterpreterCache::addBuiltin(
 }
 
 InterpreterCache::Builtin InterpreterCache::getBuiltin(
-  const llvm::Function *function)
+  const llvm::Function *function) const
 {
-  return m_builtins[function];
+  return m_builtins.at(function);
 }
 
 TypedValue InterpreterCache::getConstant(const llvm::Value *operand,
@@ -1443,6 +1432,32 @@ TypedValue InterpreterCache::getConstant(const llvm::Value *operand,
   return constant;
 }
 
+size_t InterpreterCache::addValueID(const llvm::Value *value)
+{
+  ValueMap::iterator itr = m_valueIDs.find(value);
+  if (itr == m_valueIDs.end())
+  {
+    // Assign next index to value
+    size_t pos = m_valueIDs.size();
+    itr = m_valueIDs.insert(make_pair(value, pos)).first;
+  }
+  return itr->second;
+}
+
+size_t InterpreterCache::getValueID(const llvm::Value *value) const
+{
+  return m_valueIDs.at(value);
+}
+
+size_t InterpreterCache::getNumValues() const
+{
+  return m_valueIDs.size();
+}
+
+bool InterpreterCache::hasValue(const llvm::Value *value) const
+{
+  return m_valueIDs.count(value);
+}
 
 //////////////////////////
 // WorkItem::MemoryPool //
