@@ -1438,24 +1438,24 @@ TypedValue InterpreterCache::getConstant(const llvm::Value *operand) const
   return m_constants.at(operand);
 }
 
-size_t InterpreterCache::addValueID(const llvm::Value *value)
+unsigned InterpreterCache::addValueID(const llvm::Value *value)
 {
   ValueMap::iterator itr = m_valueIDs.find(value);
   if (itr == m_valueIDs.end())
   {
     // Assign next index to value
-    size_t pos = m_valueIDs.size();
+    unsigned pos = m_valueIDs.size();
     itr = m_valueIDs.insert(make_pair(value, pos)).first;
   }
   return itr->second;
 }
 
-size_t InterpreterCache::getValueID(const llvm::Value *value) const
+unsigned InterpreterCache::getValueID(const llvm::Value *value) const
 {
   return m_valueIDs.at(value);
 }
 
-size_t InterpreterCache::getNumValues() const
+unsigned InterpreterCache::getNumValues() const
 {
   return m_valueIDs.size();
 }

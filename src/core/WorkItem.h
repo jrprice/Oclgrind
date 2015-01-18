@@ -62,7 +62,7 @@ namespace oclgrind
       std::string name, overload;
     } Builtin;
 
-    typedef std::MAP<const llvm::Value*, size_t> ValueMap;
+    typedef std::MAP<const llvm::Value*, unsigned> ValueMap;
     typedef std::MAP<const llvm::Function*, Builtin> BuiltinMap;
     typedef std::MAP<const llvm::Value*, TypedValue> ConstantMap;
 
@@ -75,9 +75,9 @@ namespace oclgrind
     void addConstant(const llvm::Value *constant);
     TypedValue getConstant(const llvm::Value *operand) const;
 
-    size_t addValueID(const llvm::Value *value);
-    size_t getValueID(const llvm::Value *value) const;
-    size_t getNumValues() const;
+    unsigned addValueID(const llvm::Value *value);
+    unsigned getValueID(const llvm::Value *value) const;
+    unsigned getNumValues() const;
     bool hasValue(const llvm::Value *value) const;
 
   private:
