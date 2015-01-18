@@ -642,8 +642,8 @@ unsigned long Program::generateUID() const
   return rand();
 }
 
-InterpreterCache* Program::getInterpreterCache(const llvm::Function *kernel)
-  const
+const InterpreterCache* Program::getInterpreterCache(
+  const llvm::Function *kernel) const
 {
   return m_interpreterCache[kernel];
 }

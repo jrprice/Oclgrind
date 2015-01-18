@@ -208,6 +208,6 @@ namespace oclgrind
     bool hasValue(const llvm::Value *key) const;
     void setValue(const llvm::Value *key, TypedValue value);
 
-    InterpreterCache *m_cache;
+    const InterpreterCache *m_cache;
   };
 }

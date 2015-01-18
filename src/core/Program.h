@@ -53,7 +53,8 @@ namespace oclgrind
     size_t getBinarySize() const;
     unsigned int getBuildStatus() const;
     const Context *getContext() const;
-    InterpreterCache* getInterpreterCache(const llvm::Function *kernel) const;
+    const InterpreterCache* getInterpreterCache(
+      const llvm::Function *kernel) const;
     std::list<std::string> getKernelNames() const;
     unsigned int getNumKernels() const;
     const std::string& getSource() const;
