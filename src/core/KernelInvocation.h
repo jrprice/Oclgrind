@@ -54,11 +54,11 @@ namespace oclgrind
     Size3  m_numGroups;
 
     // Current execution state
-    WorkGroup *m_currentWorkGroup;
-    WorkItem  *m_currentWorkItem;
     std::list<Size3>      m_pendingGroups;
     std::list<WorkGroup*> m_runningGroups;
 
-    bool nextWorkItem();
+    // Worker threads
+    void runWorker();
+    unsigned m_numWorkers;
   };
 }

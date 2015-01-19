@@ -7,7 +7,10 @@
 // source code.
 
 #include "common.h"
+
+#include <mutex>
 #include <sstream>
+#include <thread>
 
 #include "Context.h"
 #include "Kernel.h"
@@ -18,6 +21,20 @@
 
 using namespace oclgrind;
 using namespace std;
+
+// TODO: Remove this when thread_local fixed on OS X
+#ifdef __APPLE__
+#define THREAD_LOCAL __thread
+#else
+#define THREAD_LOCAL thread_local
+#endif
+struct
+{
+  WorkGroup *workGroup;
+  WorkItem  *workItem;
+} static THREAD_LOCAL workerState;
+
+static mutex workerMutex;
 
 KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
                                    unsigned int workDim,
@@ -35,6 +52,18 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   m_numGroups.x = m_globalSize.x/m_localSize.x;
   m_numGroups.y = m_globalSize.y/m_localSize.y;
   m_numGroups.z = m_globalSize.z/m_localSize.z;
+
+  // TODO: Add option to disable multi-threading
+  m_numWorkers = thread::hardware_concurrency();
+  if (!m_numWorkers)
+    m_numWorkers = 1;
+
+  // TODO: Disable multi-threading if DRD enabled?
+  //       Or improve DRD efficiency for multi-threaded case.
+
+  // Disable multi-threading if in interactive mode
+  if (checkEnv("OCLGRIND_INTERACTIVE"))
+    m_numWorkers = 1;
 
   // Check for quick-mode environment variable
   if (checkEnv("OCLGRIND_QUICK"))
@@ -58,9 +87,6 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
       }
     }
   }
-
-  m_currentWorkGroup = NULL;
-  m_currentWorkItem = NULL;
 }
 
 KernelInvocation::~KernelInvocation()
@@ -71,11 +97,6 @@ KernelInvocation::~KernelInvocation()
     delete m_runningGroups.front();
     m_runningGroups.pop_front();
   }
-  if (m_currentWorkGroup)
-  {
-    delete m_currentWorkGroup;
-    m_currentWorkGroup = NULL;
-  }
 }
 
 const Context* KernelInvocation::getContext() const
@@ -85,12 +106,12 @@ const Context* KernelInvocation::getContext() const
 
 const WorkGroup* KernelInvocation::getCurrentWorkGroup() const
 {
-  return m_currentWorkGroup;
+  return workerState.workGroup;
 }
 
 const WorkItem* KernelInvocation::getCurrentWorkItem() const
 {
-  return m_currentWorkItem;
+  return workerState.workItem;
 }
 
 Size3 KernelInvocation::getGlobalOffset() const
@@ -123,64 +144,6 @@ size_t KernelInvocation::getWorkDim() const
   return m_workDim;
 }
 
-bool KernelInvocation::nextWorkItem()
-{
-  m_currentWorkItem = NULL;
-  if (m_currentWorkGroup)
-  {
-    // Switch to next ready work-item
-    m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
-    if (m_currentWorkItem)
-    {
-      return true;
-    }
-
-    // No work-items in READY state
-    // Check if there are work-items at a barrier
-    if (m_currentWorkGroup->hasBarrier())
-    {
-      // Resume execution
-      m_currentWorkGroup->clearBarrier();
-      m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
-      return true;
-    }
-
-    // All work-items must have finished, destroy work-group
-    m_context->notifyWorkGroupComplete(m_currentWorkGroup);
-    delete m_currentWorkGroup;
-    m_currentWorkGroup = NULL;
-  }
-
-  // Switch to next work-group
-  if (!m_runningGroups.empty())
-  {
-    // Take work-group from running pool
-    m_currentWorkGroup = m_runningGroups.front();
-    m_runningGroups.pop_front();
-  }
-  else if (!m_pendingGroups.empty())
-  {
-    // Take work-group from pending pool
-    Size3 group = m_pendingGroups.front();
-    m_pendingGroups.pop_front();
-    m_currentWorkGroup = new WorkGroup(this, group);
-  }
-  else
-  {
-    return false;
-  }
-
-  m_currentWorkItem = m_currentWorkGroup->getNextWorkItem();
-
-  // Check if this work-group has already finished
-  if (!m_currentWorkItem)
-  {
-    return nextWorkItem();
-  }
-
-  return true;
-}
-
 void KernelInvocation::run(const Context *context, Kernel *kernel,
                            unsigned int workDim,
                            Size3 globalOffset,
@@ -210,22 +173,9 @@ void KernelInvocation::run(const Context *context, Kernel *kernel,
                                               globalSize,
                                               localSize);
 
-  context->notifyKernelBegin(ki);
-
   // Run kernel
-  try
-  {
-    ki->run();
-  }
-  catch (FatalError& err)
-  {
-    ostringstream info;
-    info << endl << "OCLGRIND FATAL ERROR "
-         << "(" << err.getFile() << ":" << err.getLine() << ")"
-         << endl << err.what();
-    context->logError(info.str().c_str());
-  }
-
+  context->notifyKernelBegin(ki);
+  ki->run();
   context->notifyKernelEnd(ki);
 
   delete ki;
@@ -236,27 +186,110 @@ void KernelInvocation::run(const Context *context, Kernel *kernel,
 
 void KernelInvocation::run()
 {
-  // Run until there are no more work-items
-  while (nextWorkItem())
+  // Create worker threads
+  // TODO: Run in main thread if only 1 worker
+  vector<thread> threads;
+  for (int i = 0; i < m_numWorkers; i++)
   {
-    // Run current work-item as far as possible
-    while (m_currentWorkItem->getState() == WorkItem::READY)
+    threads.push_back(thread(&KernelInvocation::runWorker, this));
+  }
+
+  // Wait for workers to complete
+  for (int i = 0; i < m_numWorkers; i++)
+  {
+    threads[i].join();
+  }
+}
+
+void KernelInvocation::runWorker()
+{
+  workerState.workGroup = NULL;
+  workerState.workItem = NULL;
+  try
+  {
+    while (true)
     {
-      m_currentWorkItem->step();
+      // Move to next work-group
+      workerMutex.lock();
+      if (!m_runningGroups.empty())
+      {
+        // Take next work-group from running pool
+        workerState.workGroup = m_runningGroups.front();
+        m_runningGroups.pop_front();
+        workerMutex.unlock();
+      }
+      else if (!m_pendingGroups.empty())
+      {
+        // Take next work-group from pending pool
+        Size3 group = m_pendingGroups.front();
+        m_pendingGroups.pop_front();
+        workerMutex.unlock();
+
+        workerState.workGroup = new WorkGroup(this, group);
+      }
+      else
+      {
+        // No more work to do
+        workerMutex.unlock();
+        break;
+      }
+
+      // Execute work-group
+      workerState.workItem = workerState.workGroup->getNextWorkItem();
+      while (workerState.workItem)
+      {
+        // Run work-item until complete or at barrier
+        while (workerState.workItem->getState() == WorkItem::READY)
+        {
+          workerState.workItem->step();
+        }
+
+        // Move to next work-item
+        workerState.workItem = workerState.workGroup->getNextWorkItem();
+        if (workerState.workItem)
+          continue;
+
+        // No more work-items in READY state
+        // Check if there are work-items at a barrier
+        if (workerState.workGroup->hasBarrier())
+        {
+          // Resume execution
+          workerState.workGroup->clearBarrier();
+          workerState.workItem = workerState.workGroup->getNextWorkItem();
+        }
+      }
+
+      // Work-group has finished
+      m_context->notifyWorkGroupComplete(workerState.workGroup);
+      delete workerState.workGroup;
+      workerState.workGroup = NULL;
     }
+  }
+  catch (FatalError& err)
+  {
+    ostringstream info;
+    info << endl << "OCLGRIND FATAL ERROR "
+         << "(" << err.getFile() << ":" << err.getLine() << ")"
+         << endl << err.what();
+    m_context->logError(info.str().c_str());
+
+    if (workerState.workGroup)
+      delete workerState.workGroup;
   }
 }
 
 bool KernelInvocation::switchWorkItem(const Size3 gid)
 {
+  assert(m_numWorkers == 1);
+
   // Compute work-group ID
   Size3 group(gid.x/m_localSize.x, gid.y/m_localSize.y, gid.z/m_localSize.z);
 
   bool found = false;
-  WorkGroup *previousWorkGroup = m_currentWorkGroup;
+  WorkGroup *previousWorkGroup = workerState.workGroup;
 
   // Check if we're already running the work-group
-  if (group == m_currentWorkGroup->getGroupID())
+  if (group == previousWorkGroup->getGroupID())
   {
     found = true;
   }
@@ -269,7 +302,7 @@ bool KernelInvocation::switchWorkItem(const Size3 gid)
     {
       if (group == (*rItr)->getGroupID())
       {
-        m_currentWorkGroup = *rItr;
+        workerState.workGroup = *rItr;
         m_runningGroups.erase(rItr);
         found = true;
         break;
@@ -285,7 +318,7 @@ bool KernelInvocation::switchWorkItem(const Size3 gid)
     {
       if (group == *pItr)
       {
-        m_currentWorkGroup = new WorkGroup(this, group);
+        workerState.workGroup = new WorkGroup(this, group);
         m_pendingGroups.erase(pItr);
         found = true;
         break;
@@ -298,14 +331,14 @@ bool KernelInvocation::switchWorkItem(const Size3 gid)
     return false;
   }
 
-  if (previousWorkGroup != m_currentWorkGroup)
+  if (previousWorkGroup != workerState.workGroup)
   {
     m_runningGroups.push_back(previousWorkGroup);
   }
 
   // Get work-item
   Size3 lid(gid.x%m_localSize.x, gid.y%m_localSize.y, gid.z%m_localSize.z);
-  m_currentWorkItem = m_currentWorkGroup->getWorkItem(lid);
+  workerState.workItem = workerState.workGroup->getWorkItem(lid);
 
   return true;
 }
