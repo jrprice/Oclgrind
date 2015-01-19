@@ -1,0 +1,6 @@
+ERROR EXPECTED
+
+Argument 'output': 8 bytes
+  output[0] = 42
+  output[1] = 42
+

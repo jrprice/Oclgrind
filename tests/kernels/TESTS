@@ -32,6 +32,7 @@ data-race/global_read_write_race
 data-race/global_write_write_race
 data-race/increment
 data-race/intergroup_hidden_race
+data-race/intragroup_hidden_race
 data-race/intergroup_race
 data-race/local_only_fence
 data-race/local_read_write_race
