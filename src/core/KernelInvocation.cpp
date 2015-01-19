@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-#include <mutex>
+#include <atomic>
 #include <sstream>
 #include <thread>
 
@@ -34,7 +34,7 @@ struct
   WorkItem  *workItem;
 } static THREAD_LOCAL workerState;
 
-static mutex workerMutex;
+static atomic<unsigned> nextGroupIndex;
 
 KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
                                    unsigned int workDim,
@@ -88,8 +88,8 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
     // Only run first and last work-groups in quick-mode
     Size3 firstGroup(0, 0, 0);
     Size3 lastGroup(m_numGroups.x-1, m_numGroups.y-1, m_numGroups.z-1);
-    m_pendingGroups.push_back(firstGroup);
-    m_pendingGroups.push_back(lastGroup);
+    m_workGroups.push_back(firstGroup);
+    m_workGroups.push_back(lastGroup);
   }
   else
   {
@@ -99,7 +99,7 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
       {
         for (size_t i = 0; i < m_numGroups.x; i++)
         {
-          m_pendingGroups.push_back(Size3(i, j, k));
+          m_workGroups.push_back(Size3(i, j, k));
         }
       }
     }
@@ -203,6 +203,8 @@ void KernelInvocation::run(const Context *context, Kernel *kernel,
 
 void KernelInvocation::run()
 {
+  nextGroupIndex = 0;
+
   // Create worker threads
   // TODO: Run in main thread if only 1 worker
   vector<thread> threads;
@@ -227,28 +229,21 @@ void KernelInvocation::runWorker()
     while (true)
     {
       // Move to next work-group
-      workerMutex.lock();
       if (!m_runningGroups.empty())
       {
         // Take next work-group from running pool
         workerState.workGroup = m_runningGroups.front();
         m_runningGroups.pop_front();
-        workerMutex.unlock();
-      }
-      else if (!m_pendingGroups.empty())
-      {
-        // Take next work-group from pending pool
-        Size3 group = m_pendingGroups.front();
-        m_pendingGroups.pop_front();
-        workerMutex.unlock();
-
-        workerState.workGroup = new WorkGroup(this, group);
       }
       else
       {
-        // No more work to do
-        workerMutex.unlock();
-        break;
+        // Take next work-group from pending pool
+        unsigned index = nextGroupIndex++;
+        if (index >= m_workGroups.size())
+          // No more work to do
+          break;
+
+        workerState.workGroup = new WorkGroup(this, m_workGroups[index]);
       }
 
       // Execute work-group
@@ -330,16 +325,23 @@ bool KernelInvocation::switchWorkItem(const Size3 gid)
   // Check if work-group is in pending pool
   if (!found)
   {
-    std::list<Size3>::iterator pItr;
-    for (pItr = m_pendingGroups.begin(); pItr != m_pendingGroups.end(); pItr++)
+    std::vector<Size3>::iterator pItr;
+    for (pItr = m_workGroups.begin()+nextGroupIndex;
+         pItr != m_workGroups.end(); pItr++)
     {
-      if (group == *pItr)
-      {
-        workerState.workGroup = new WorkGroup(this, group);
-        m_pendingGroups.erase(pItr);
-        found = true;
-        break;
-      }
+     if (group == *pItr)
+     {
+       workerState.workGroup = new WorkGroup(this, group);
+       found = true;
+
+       // Re-order list of groups accordingly
+       // Safe since this is not in a multi-threaded context
+       m_workGroups.erase(pItr);
+       m_workGroups.insert(m_workGroups.begin()+nextGroupIndex, group);
+       nextGroupIndex++;
+
+       break;
+     }
     }
   }
 

@@ -54,7 +54,7 @@ namespace oclgrind
     Size3  m_numGroups;
 
     // Current execution state
-    std::list<Size3>      m_pendingGroups;
+    std::vector<Size3>    m_workGroups;
     std::list<WorkGroup*> m_runningGroups;
 
     // Worker threads
