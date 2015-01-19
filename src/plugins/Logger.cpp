@@ -62,7 +62,7 @@ Logger::~Logger()
 
 void Logger::log(MessageType type, const char *message)
 {
-  logMutex.lock();
+  lock_guard<mutex> lock(logMutex);
 
   // Limit number of errors/warning printed
   if (type == ERROR || type == WARNING)
@@ -74,13 +74,8 @@ void Logger::log(MessageType type, const char *message)
              << endl << endl;
     }
     if (m_numErrors++ >= m_maxErrors)
-    {
-      logMutex.unlock();
       return;
-    }
   }
 
   *m_log << endl << message << endl;
-
-  logMutex.unlock();
 }
