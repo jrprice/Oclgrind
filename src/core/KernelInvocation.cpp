@@ -53,8 +53,23 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   m_numGroups.y = m_globalSize.y/m_localSize.y;
   m_numGroups.z = m_globalSize.z/m_localSize.z;
 
-  // TODO: Add option to disable multi-threading
-  m_numWorkers = thread::hardware_concurrency();
+
+  // Check for user overriding number of threads
+  m_numWorkers = 0;
+  const char *numThreads = getenv("OCLGRIND_NUM_THREADS");
+  if (numThreads)
+  {
+    char *next;
+    m_numWorkers = strtoul(numThreads, &next, 10);
+    if (strlen(next))
+    {
+      cerr << "Oclgrind: Invalid value for OCLGRIND_NUM_THREADS" << endl;
+    }
+  }
+  else
+  {
+    m_numWorkers = thread::hardware_concurrency();
+  }
   if (!m_numWorkers)
     m_numWorkers = 1;
 

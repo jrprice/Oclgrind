@@ -34,6 +34,8 @@ function usage
   echo          "Redirect log/error messages to a file"
   echo -n "     --max-errors     NUM      "
   echo          "Limit the number of error/warning messages"
+  echo -n "     --num-threads    NUM      "
+  echo          "Set the number of worker threads to use"
   echo -n "     --pch-dir        DIR      "
   echo          "Override directory containing precompiled headers"
   echo -n "     --plugins        PLUGINS  "
@@ -87,6 +89,10 @@ do
   then
     shift
     export OCLGRIND_MAX_ERRORS="$1"
+  elif [ "$1" == "--num-threads" ]
+  then
+    shift
+    export OCLGRIND_NUM_THREADS="$1"
   elif [ "$1" == "--pch-dir" ]
   then
     shift

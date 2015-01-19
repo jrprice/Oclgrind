@@ -103,6 +103,15 @@ static bool parseArguments(int argc, char *argv[])
       }
       setEnvironment("OCLGRIND_MAX_ERRORS", argv[i]);
     }
+    else if (!strcmp(argv[i], "--num-threads"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --num-threads" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_NUM_THREADS", argv[i]);
+    }
     else if (!strcmp(argv[i], "--pch-dir"))
     {
       if (++i >= argc)
@@ -196,6 +205,8 @@ static void printUsage()
              "Redirect log/error messages to a file" << endl
     << "     --max-errors     NUM      "
              "Limit the number of error/warning messages" << endl
+    << "     --num-threads    NUM      "
+             "Set the number of worker threads to use" << endl
     << "     --pch-dir        DIR      "
              "Override directory containing precompiled headers" << endl
     << "     --plugins        PLUGINS  "
