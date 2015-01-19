@@ -9,6 +9,7 @@
 #include "core/common.h"
 
 #include <fstream>
+#include <mutex>
 
 #include "Logger.h"
 
@@ -18,6 +19,8 @@ using namespace std;
 #define DEFAULT_MAX_ERRORS 1000
 
 unsigned Logger::m_numErrors = 0;
+
+static mutex logMutex;
 
 Logger::Logger(const Context *context)
  : Plugin(context)
@@ -59,6 +62,8 @@ Logger::~Logger()
 
 void Logger::log(MessageType type, const char *message)
 {
+  logMutex.lock();
+
   // Limit number of errors/warning printed
   if (type == ERROR || type == WARNING)
   {
@@ -69,8 +74,13 @@ void Logger::log(MessageType type, const char *message)
              << endl << endl;
     }
     if (m_numErrors++ >= m_maxErrors)
+    {
+      logMutex.unlock();
       return;
+    }
   }
 
   *m_log << endl << message << endl;
+
+  logMutex.unlock();
 }
