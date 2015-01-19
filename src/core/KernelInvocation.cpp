@@ -58,8 +58,10 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   if (!m_numWorkers)
     m_numWorkers = 1;
 
-  // TODO: Disable multi-threading if DRD enabled?
-  //       Or improve DRD efficiency for multi-threaded case.
+  // Disable multi-threading if race-detection enabled
+  // TODO: Improve DRD efficiency for multi-threaded case instead.
+  if (checkEnv("OCLGRIND_DATA_RACES"))
+    m_numWorkers = 1;
 
   // Disable multi-threading if in interactive mode
   if (checkEnv("OCLGRIND_INTERACTIVE"))
