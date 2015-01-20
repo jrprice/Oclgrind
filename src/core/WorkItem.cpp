@@ -372,22 +372,10 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand) const
     result.num  = size.second;
     result.data = m_pool.alloc(getTypeSize(operand->getType()));
 
-    // Resolve constant expression
-    const llvm::Instruction *instruction =
-      getConstExprAsInstruction((const llvm::ConstantExpr*)operand);
-    try
-    {
-      // Use of const_cast here is ugly, but ConstExpr instructions
-      // shouldn't actually modify WorkItem state anyway
-      const_cast<WorkItem*>(this)->dispatch(instruction, result);
-      delete instruction;
-    }
-    catch (FatalError& err)
-    {
-      delete instruction;
-      throw err;
-    }
-
+    // Use of const_cast here is ugly, but ConstExpr instructions
+    // shouldn't actually modify WorkItem state anyway
+    const_cast<WorkItem*>(this)->dispatch(
+      m_cache->getConstantExpr(operand), result);
     return result;
   }
   else if (valID == llvm::Value::UndefValueVal            ||
@@ -1414,6 +1402,13 @@ InterpreterCache::~InterpreterCache()
   {
     delete[] constItr->second.data;
   }
+
+  ConstExprMap::iterator constExprItr;
+  for (constExprItr  = m_constExpressions.begin();
+       constExprItr != m_constExpressions.end(); constExprItr++)
+  {
+    delete constExprItr->second;
+  }
 }
 
 void InterpreterCache::addBuiltin(
@@ -1505,6 +1500,17 @@ TypedValue InterpreterCache::getConstant(const llvm::Value *operand) const
   return itr->second;
 }
 
+const llvm::Instruction* InterpreterCache::getConstantExpr(
+  const llvm::Value *expr) const
+{
+  ConstExprMap::const_iterator itr = m_constExpressions.find(expr);
+  if (itr == m_constExpressions.end())
+  {
+    FATAL_ERROR("Constant expression not found in cache");
+  }
+  return itr->second;
+}
+
 unsigned InterpreterCache::addValueID(const llvm::Value *value)
 {
   ValueMap::iterator itr = m_valueIDs.find(value);
@@ -1557,12 +1563,17 @@ void InterpreterCache::addOperand(const llvm::Value *operand)
   }
   else if (operand->getValueID() == llvm::Value::ConstantExprVal)
   {
-    // TODO: Resolve constant expressions?
+    // Resolve constant expressions
     const llvm::ConstantExpr *expr = (const llvm::ConstantExpr*)operand;
-    for (llvm::User::const_op_iterator O = expr->op_begin();
-         O != expr->op_end(); O++)
+    if (!m_constExpressions.count(expr))
     {
-      addOperand(*O);
+      for (llvm::User::const_op_iterator O = expr->op_begin();
+           O != expr->op_end(); O++)
+      {
+        addOperand(*O);
+      }
+      m_constExpressions[expr] = getConstExprAsInstruction(expr);
+      // TODO: Resolve actual value?
     }
   }
 }

@@ -18,6 +18,7 @@
 namespace llvm
 {
   class CallInst;
+  class ConstExpr;
   class DbgValueInst;
   class Function;
   class Module;
@@ -70,6 +71,7 @@ namespace oclgrind
 
     void addConstant(const llvm::Value *constant);
     TypedValue getConstant(const llvm::Value *operand) const;
+    const llvm::Instruction* getConstantExpr(const llvm::Value *expr) const;
 
     unsigned addValueID(const llvm::Value *value);
     unsigned getValueID(const llvm::Value *value) const;
@@ -80,9 +82,11 @@ namespace oclgrind
     typedef std::MAP<const llvm::Value*, unsigned> ValueMap;
     typedef std::MAP<const llvm::Function*, Builtin> BuiltinMap;
     typedef std::MAP<const llvm::Value*, TypedValue> ConstantMap;
+    typedef std::MAP<const llvm::Value*, const llvm::Instruction*> ConstExprMap;
 
     BuiltinMap m_builtins;
     ConstantMap m_constants;
+    ConstExprMap m_constExpressions;
     ValueMap m_valueIDs;
 
     void addOperand(const llvm::Value *value);
