@@ -62,11 +62,7 @@ namespace oclgrind
       std::string name, overload;
     } Builtin;
 
-    typedef std::MAP<const llvm::Value*, unsigned> ValueMap;
-    typedef std::MAP<const llvm::Function*, Builtin> BuiltinMap;
-    typedef std::MAP<const llvm::Value*, TypedValue> ConstantMap;
-
-    InterpreterCache();
+    InterpreterCache(llvm::Function *kernel);
     ~InterpreterCache();
 
     void addBuiltin(const llvm::Function *function);
@@ -81,9 +77,15 @@ namespace oclgrind
     bool hasValue(const llvm::Value *value) const;
 
   private:
+    typedef std::MAP<const llvm::Value*, unsigned> ValueMap;
+    typedef std::MAP<const llvm::Function*, Builtin> BuiltinMap;
+    typedef std::MAP<const llvm::Value*, TypedValue> ConstantMap;
+
     BuiltinMap m_builtins;
     ConstantMap m_constants;
     ValueMap m_valueIDs;
+
+    void addOperand(const llvm::Value *value);
   };
 
   class WorkItem

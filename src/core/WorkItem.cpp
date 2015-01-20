@@ -15,6 +15,7 @@
 #include "llvm/Instructions.h"
 #include "llvm/IntrinsicInst.h"
 #include "llvm/Module.h"
+#include "llvm/Support/InstIterator.h"
 
 #include "Context.h"
 #include "Kernel.h"
@@ -1337,11 +1338,72 @@ INSTRUCTION(zext)
 // WorkItem::InterpreterCache //
 ////////////////////////////////
 
-InterpreterCache::InterpreterCache()
+InterpreterCache::InterpreterCache(llvm::Function *kernel)
 {
 #if HAVE_CXX11
   m_valueIDs.reserve(1024); // TODO: Determine this number dynamically?
 #endif
+
+  // Add global variables to cache
+  // TODO: Only add variables that are used?
+  const llvm::Module *module = kernel->getParent();
+  llvm::Module::const_global_iterator G;
+  for (G = module->global_begin(); G != module->global_end(); G++)
+  {
+    addValueID(G);
+  }
+
+
+  set<llvm::Function*> processed;
+  set<llvm::Function*> pending;
+
+  pending.insert(kernel);
+
+  while (!pending.empty())
+  {
+    // Get next function to process
+    llvm::Function *function = *pending.begin();
+    processed.insert(function);
+    pending.erase(function);
+
+    // Iterate through the function arguments
+    llvm::Function::arg_iterator A;
+    for (A = function->arg_begin(); A != function->arg_end(); A++)
+    {
+      addValueID(A);
+    }
+
+    // Iterate through instructions in function
+    llvm::inst_iterator I;
+    for (I = inst_begin(function); I != inst_end(function); I++)
+    {
+      addValueID(&*I);
+
+      // Check for function calls
+      if (I->getOpcode() == llvm::Instruction::Call)
+      {
+        const llvm::CallInst *call = ((const llvm::CallInst*)&*I);
+        llvm::Function *callee = call->getCalledFunction();
+        if (callee->isDeclaration())
+        {
+          // Resolve builtin function calls
+          addBuiltin(callee);
+        }
+        else if (!processed.count(callee))
+        {
+          // Process called function
+          pending.insert(callee);
+        }
+      }
+
+      // Process operands
+      for (llvm::User::value_op_iterator O = I->value_op_begin();
+           O != I->value_op_end(); O++)
+      {
+        addOperand(*O);
+      }
+    }
+  }
 }
 
 InterpreterCache::~InterpreterCache()
@@ -1474,6 +1536,37 @@ bool InterpreterCache::hasValue(const llvm::Value *value) const
 {
   return m_valueIDs.count(value);
 }
+
+void InterpreterCache::addOperand(const llvm::Value *operand)
+{
+  addValueID(operand);
+
+  // Resolve constants
+  if (operand->getValueID() == llvm::Value::UndefValueVal            ||
+      operand->getValueID() == llvm::Value::ConstantAggregateZeroVal ||
+      operand->getValueID() == llvm::Value::ConstantDataArrayVal     ||
+      operand->getValueID() == llvm::Value::ConstantDataVectorVal    ||
+      operand->getValueID() == llvm::Value::ConstantIntVal           ||
+      operand->getValueID() == llvm::Value::ConstantFPVal            ||
+      operand->getValueID() == llvm::Value::ConstantArrayVal         ||
+      operand->getValueID() == llvm::Value::ConstantStructVal        ||
+      operand->getValueID() == llvm::Value::ConstantVectorVal        ||
+      operand->getValueID() == llvm::Value::ConstantPointerNullVal)
+  {
+    addConstant(operand);
+  }
+  else if (operand->getValueID() == llvm::Value::ConstantExprVal)
+  {
+    // TODO: Resolve constant expressions?
+    const llvm::ConstantExpr *expr = (const llvm::ConstantExpr*)operand;
+    for (llvm::User::const_op_iterator O = expr->op_begin();
+         O != expr->op_end(); O++)
+    {
+      addOperand(*O);
+    }
+  }
+}
+
 
 //////////////////////////
 // WorkItem::MemoryPool //

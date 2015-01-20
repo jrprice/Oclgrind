@@ -555,7 +555,12 @@ Kernel* Program::createKernel(const string name)
 
   try
   {
-    generateKernelCache(function);
+    // Create cache if none already
+    InterpreterCacheMap::iterator itr = m_interpreterCache.find(function);
+    if (itr == m_interpreterCache.end())
+    {
+      m_interpreterCache[function] = new InterpreterCache(function);
+    }
 
     return new Kernel(this, function, m_module);
   }
@@ -568,22 +573,6 @@ Kernel* Program::createKernel(const string name)
          << endl;
     return NULL;
   }
-}
-
-void Program::generateKernelCache(llvm::Function *kernel) const
-{
-  // Check for existing cache
-  InterpreterCacheMap::iterator itr = m_interpreterCache.find(kernel);
-  if (itr != m_interpreterCache.end())
-  {
-    return;
-  }
-
-  // Create new cache
-  InterpreterCache *cache = new InterpreterCache;
-  m_interpreterCache[kernel] = cache;
-
-  populateCache(cache, kernel);
 }
 
 unsigned char* Program::getBinary() const
@@ -806,84 +795,6 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
   }
 
   return true;
-}
-
-void Program::populateCache(InterpreterCache *cache,
-                            llvm::Function *kernel) const
-{
-  // Add global variables to cache
-  // TODO: Only add variables that are used?
-  llvm::Module::global_iterator G;
-  for (G = m_module->global_begin(); G != m_module->global_end(); G++)
-  {
-    cache->addValueID(G);
-  }
-
-
-  set<llvm::Function*> processed;
-  set<llvm::Function*> pending;
-
-  pending.insert(kernel);
-
-  while (!pending.empty())
-  {
-    // Get next function to process
-    llvm::Function *function = *pending.begin();
-    processed.insert(function);
-    pending.erase(function);
-
-    // Iterate through the function arguments
-    llvm::Function::arg_iterator A;
-    for (A = function->arg_begin(); A != function->arg_end(); A++)
-    {
-      cache->addValueID(A);
-    }
-
-    // Iterate through instruction in function
-    llvm::inst_iterator I;
-    for (I = inst_begin(function); I != inst_end(function); I++)
-    {
-      cache->addValueID(&*I);
-
-      // Check for function calls
-      if (I->getOpcode() == llvm::Instruction::Call)
-      {
-        const llvm::CallInst *call = ((const llvm::CallInst*)&*I);
-        llvm::Function *callee = call->getCalledFunction();
-        if (callee->isDeclaration())
-        {
-          // Resolve builtin function calls
-          cache->addBuiltin(callee);
-        }
-        else if (!processed.count(callee))
-        {
-          // Process called function
-          pending.insert(callee);
-        }
-      }
-
-      // Process operands
-      for (llvm::User::value_op_iterator O = I->value_op_begin();
-           O != I->value_op_end(); O++)
-      {
-        // Resolve constant operands
-        // TODO: What if operand is a constant expression? Resolve?
-        if (O->getValueID() == llvm::Value::UndefValueVal            ||
-            O->getValueID() == llvm::Value::ConstantAggregateZeroVal ||
-            O->getValueID() == llvm::Value::ConstantDataArrayVal     ||
-            O->getValueID() == llvm::Value::ConstantDataVectorVal    ||
-            O->getValueID() == llvm::Value::ConstantIntVal           ||
-            O->getValueID() == llvm::Value::ConstantFPVal            ||
-            O->getValueID() == llvm::Value::ConstantArrayVal         ||
-            O->getValueID() == llvm::Value::ConstantStructVal        ||
-            O->getValueID() == llvm::Value::ConstantVectorVal        ||
-            O->getValueID() == llvm::Value::ConstantPointerNullVal)
-        {
-          cache->addConstant(*O);
-        }
-      }
-    }
-  }
 }
 
 void Program::stripDebugIntrinsics()
