@@ -364,9 +364,6 @@ bool Program::build(const char *options, list<Header> headers)
       builder.populateFunctionPassManager(functionPasses);
     }
 
-    // Assign identifiers to unnamed temporaries
-    functionPasses.add(llvm::createInstructionNamerPass());
-
     // Run passes
     functionPasses.doInitialization();
     llvm::Module::iterator fItr;
