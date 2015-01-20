@@ -791,6 +791,42 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
     (*global)->removeFromParent();
   }
 
+  // Get all cast instructions
+  set<llvm::CastInst*> casts;
+  for (llvm::Module::iterator F = m_module->begin(); F != m_module->end(); F++)
+  {
+    for (llvm::inst_iterator I = inst_begin(F), E = inst_end(F); I != E; I++)
+    {
+      if (I->getOpcode() == llvm::Instruction::BitCast)
+      {
+        casts.insert((llvm::CastInst*)&*I);
+      }
+    }
+  }
+
+  // Check for address space casts
+  set<llvm::CastInst*>::iterator castItr;
+  for (castItr = casts.begin(); castItr != casts.end(); castItr++)
+  {
+    llvm::BitCastInst *cast = (llvm::BitCastInst*)*castItr;
+    llvm::Value *op = cast->getOperand(0);
+    llvm::Type *srcType = op->getType();
+    llvm::Type *dstType = cast->getType();
+    unsigned srcAddrSpace = srcType->getPointerAddressSpace();
+    unsigned dstAddrSpace = dstType->getPointerAddressSpace();
+    if (srcAddrSpace != dstAddrSpace)
+    {
+      llvm::Type *elemType = dstType->getPointerElementType();
+      llvm::Type *type = elemType->getPointerTo(srcAddrSpace);
+      llvm::CastInst *newCast =
+        llvm::CastInst::CreatePointerCast(op, type, "", cast);
+
+      // TODO: Replace uses of user recursively?
+      cast->replaceAllUsesWith(newCast);
+      cast->removeFromParent();
+    }
+  }
+
   return true;
 }
 
