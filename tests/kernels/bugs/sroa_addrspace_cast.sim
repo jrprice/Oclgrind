@@ -1,0 +1,7 @@
+sroa_addrspace_cast.cl
+sroa_addrspace_cast
+1 1 1
+1 1 1
+
+<size=4 float fill=42.24>
+<size=4 fill=0 dump>

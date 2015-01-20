@@ -25,6 +25,7 @@ bugs/gvn_arbitrary_integers
 bugs/kernel_struct_argument
 bugs/multidim_array_in_struct
 bugs/null_argument
+bugs/sroa_addrspace_cast
 data-race/broadcast
 data-race/global_fence
 data-race/global_only_fence
