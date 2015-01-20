@@ -1435,7 +1435,12 @@ void InterpreterCache::addConstant(const llvm::Value *value)
 
 TypedValue InterpreterCache::getConstant(const llvm::Value *operand) const
 {
-  return m_constants.at(operand);
+  ConstantMap::const_iterator itr = m_constants.find(operand);
+  if (itr == m_constants.end())
+  {
+    FATAL_ERROR("Constant not found in cache (ID %d)", operand->getValueID());
+  }
+  return itr->second;
 }
 
 unsigned InterpreterCache::addValueID(const llvm::Value *value)
@@ -1452,7 +1457,12 @@ unsigned InterpreterCache::addValueID(const llvm::Value *value)
 
 unsigned InterpreterCache::getValueID(const llvm::Value *value) const
 {
-  return m_valueIDs.at(value);
+  ValueMap::const_iterator itr = m_valueIDs.find(value);
+  if (itr == m_valueIDs.end())
+  {
+    FATAL_ERROR("Value not found in cache (ID %d)", value->getValueID());
+  }
+  return itr->second;
 }
 
 unsigned InterpreterCache::getNumValues() const
