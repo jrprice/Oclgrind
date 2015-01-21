@@ -812,6 +812,9 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
     llvm::Value *op = cast->getOperand(0);
     llvm::Type *srcType = op->getType();
     llvm::Type *dstType = cast->getType();
+    if (!srcType->isPointerTy() || !dstType->isPointerTy())
+      continue;
+
     unsigned srcAddrSpace = srcType->getPointerAddressSpace();
     unsigned dstAddrSpace = dstType->getPointerAddressSpace();
     if (srcAddrSpace != dstAddrSpace)
