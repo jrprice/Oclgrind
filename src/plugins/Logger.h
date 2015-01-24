@@ -16,7 +16,7 @@ namespace oclgrind
     Logger(const Context *context);
     virtual ~Logger();
 
-    virtual void log(MessageType type, const char *message);
+    virtual void log(MessageType type, const char *message) override;
 
   private:
     std::ostream *m_log;
