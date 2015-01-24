@@ -17,20 +17,22 @@ namespace oclgrind
 
     virtual void memoryAtomicLoad(const Memory *memory,
                                   const WorkItem *workItem,
-                                  AtomicOp op, size_t address, size_t size);
+                                  AtomicOp op,
+                                  size_t address, size_t size) override;
     virtual void memoryAtomicStore(const Memory *memory,
                                    const WorkItem *workItem,
-                                   AtomicOp op, size_t address, size_t size);
+                                   AtomicOp op,
+                                   size_t address, size_t size) override;
     virtual void memoryLoad(const Memory *memory, const WorkItem *workItem,
-                            size_t address, size_t size);
+                            size_t address, size_t size) override;
     virtual void memoryLoad(const Memory *memory, const WorkGroup *workGroup,
-                            size_t address, size_t size);
+                            size_t address, size_t size) override;
     virtual void memoryStore(const Memory *memory, const WorkItem *workItem,
                              size_t address, size_t size,
-                             const uint8_t *storeData);
+                             const uint8_t *storeData) override;
     virtual void memoryStore(const Memory *memory, const WorkGroup *workGroup,
                              size_t address, size_t size,
-                             const uint8_t *storeData);
+                             const uint8_t *storeData) override;
 
   private:
     void checkLoad(const Memory *memory, size_t address, size_t size) const;
