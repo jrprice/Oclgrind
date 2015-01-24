@@ -19,10 +19,10 @@ namespace oclgrind
 
     virtual void instructionExecuted(const WorkItem *workItem,
                                      const llvm::Instruction *instruction,
-                                     const TypedValue& result);
-    virtual void kernelBegin(const KernelInvocation *kernelInvocation);
-    virtual void kernelEnd(const KernelInvocation *kernelInvocation);
-    virtual void log(MessageType type, const char *message);
+                                     const TypedValue& result) override;
+    virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
+    virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
+    virtual void log(MessageType type, const char *message) override;
 
     std::string getOpcodeName(unsigned opcode) const;
   private:
