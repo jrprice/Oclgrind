@@ -1,3 +1,9 @@
 #define PACKAGE_VERSION "@Oclgrind_VERSION_MAJOR@.@Oclgrind_VERSION_MINOR@"
 
 #define HAVE_READLINE @HAVE_READLINE@
+
+#ifdef __has_feature
+#if __has_feature(cxx_alignas)
+#define alignas(x)
+#endif
+#endif
