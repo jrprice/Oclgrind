@@ -1328,9 +1328,8 @@ INSTRUCTION(zext)
 
 InterpreterCache::InterpreterCache(llvm::Function *kernel)
 {
-#if HAVE_CXX11
-  m_valueIDs.reserve(1024); // TODO: Determine this number dynamically?
-#endif
+  // TODO: Determine this number dynamically?
+  m_valueIDs.reserve(1024);
 
   // Add global variables to cache
   // TODO: Only add variables that are used?
