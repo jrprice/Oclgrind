@@ -15,28 +15,31 @@ namespace oclgrind
   public:
     RaceDetector(const Context *context);
 
-    virtual void kernelBegin(const KernelInvocation *kernelInvocation);
-    virtual void kernelEnd(const KernelInvocation *kernelInvocation);
+    virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
+    virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
     virtual void memoryAllocated(const Memory *memory, size_t address,
-                                 size_t size);
+                                 size_t size) override;
     virtual void memoryAtomicLoad(const Memory *memory,
                                   const WorkItem *workItem,
-                                  AtomicOp op, size_t address, size_t size);
+                                  AtomicOp op,
+                                  size_t address, size_t size) override;
     virtual void memoryAtomicStore(const Memory *memory,
                                    const WorkItem *workItem,
-                                   AtomicOp op, size_t address, size_t size);
+                                   AtomicOp op,
+                                   size_t address, size_t size) override;
     virtual void memoryDeallocated(const Memory *memory, size_t address);
     virtual void memoryLoad(const Memory *memory, const WorkItem *workItem,
-                            size_t address, size_t size);
+                            size_t address, size_t size) override;
     virtual void memoryLoad(const Memory *memory, const WorkGroup *workGroup,
-                            size_t address, size_t size);
+                            size_t address, size_t size) override;
     virtual void memoryStore(const Memory *memory, const WorkItem *workItem,
                              size_t address, size_t size,
-                             const uint8_t *storeData);
+                             const uint8_t *storeData) override;
     virtual void memoryStore(const Memory *memory, const WorkGroup *workGroup,
                              size_t address, size_t size,
-                             const uint8_t *storeData);
-    virtual void workGroupBarrier(const WorkGroup *workGroup, uint32_t flags);
+                             const uint8_t *storeData) override;
+    virtual void workGroupBarrier(const WorkGroup *workGroup,
+                                  uint32_t flags) override;
 
   private:
     struct State
