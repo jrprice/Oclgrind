@@ -35,8 +35,8 @@ LT_INIT
 
 oclgrind_extra_libs=
 
-# Enable C++11 if available
-AX_CXX_COMPILE_STDCXX_11(, [optional])
+# Check for C++11
+AX_CXX_COMPILE_STDCXX_11(, [mandatory])
 
 # Add LLVM required macro definitions
 CPPFLAGS="$CPPFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
