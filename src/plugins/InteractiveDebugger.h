@@ -24,7 +24,6 @@ namespace oclgrind
     virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
     virtual void log(MessageType type, const char *message) override;
 
-    std::string getOpcodeName(unsigned opcode) const;
   private:
 
     bool m_continue;
