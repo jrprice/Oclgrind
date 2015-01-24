@@ -43,6 +43,11 @@ if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "-std=c99")
 endif()
 
+# Enable C++11 for Clang/GCC
+if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  set(CMAKE_CXX_FLAGS "-std=c++11")
+endif()
+
 # Disable min/max macros on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   add_definitions(-DNOMINMAX)
