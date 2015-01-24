@@ -8,13 +8,6 @@
 
 #include "common.h"
 
-#if HAVE_CXX11
-#include <unordered_map>
-#define MAP unordered_map
-#else
-#define MAP map
-#endif
-
 namespace llvm
 {
   class CallInst;
@@ -46,7 +39,7 @@ namespace oclgrind
                      void*),
                      void *o) : func(f), op(o) {};
   } BuiltinFunction;
-  typedef std::MAP<std::string,BuiltinFunction> BuiltinFunctionMap;
+  typedef std::unordered_map<std::string,BuiltinFunction> BuiltinFunctionMap;
   typedef std::list< std::pair<std::string, BuiltinFunction> >
     BuiltinFunctionPrefixList;
 
@@ -79,10 +72,11 @@ namespace oclgrind
     bool hasValue(const llvm::Value *value) const;
 
   private:
-    typedef std::MAP<const llvm::Value*, unsigned> ValueMap;
-    typedef std::MAP<const llvm::Function*, Builtin> BuiltinMap;
-    typedef std::MAP<const llvm::Value*, TypedValue> ConstantMap;
-    typedef std::MAP<const llvm::Value*, const llvm::Instruction*> ConstExprMap;
+    typedef std::unordered_map<const llvm::Value*, unsigned> ValueMap;
+    typedef std::unordered_map<const llvm::Function*, Builtin> BuiltinMap;
+    typedef std::unordered_map<const llvm::Value*, TypedValue> ConstantMap;
+    typedef std::unordered_map<const llvm::Value*, const llvm::Instruction*>
+      ConstExprMap;
 
     BuiltinMap m_builtins;
     ConstantMap m_constants;

@@ -25,6 +25,7 @@
 #include <stack>
 #include <stdexcept>
 #include <stdint.h>
+#include <unordered_map>
 #include <vector>
 
 #define BIG_SEPARATOR   "================================"
