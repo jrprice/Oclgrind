@@ -22,9 +22,9 @@ namespace oclgrind
 
     virtual void instructionExecuted(const WorkItem *workItem,
                                      const llvm::Instruction *instruction,
-                                     const TypedValue& result);
-    virtual void kernelBegin(const KernelInvocation *kernelInvocation);
-    virtual void kernelEnd(const KernelInvocation *kernelInvocation);
+                                     const TypedValue& result) override;
+    virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
+    virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
   private:
     std::vector<size_t> m_instructionCounts;
     std::vector<size_t> m_memopBytes;
