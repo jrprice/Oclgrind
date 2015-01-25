@@ -24,6 +24,8 @@ namespace oclgrind
     virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
     virtual void log(MessageType type, const char *message) override;
 
+    virtual bool isThreadSafe() const override;
+
   private:
 
     bool m_continue;

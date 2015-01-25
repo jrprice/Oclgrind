@@ -149,6 +149,11 @@ void InteractiveDebugger::instructionExecuted(
   }
 }
 
+bool InteractiveDebugger::isThreadSafe() const
+{
+  return false;
+}
+
 void InteractiveDebugger::kernelBegin(const KernelInvocation *kernelInvocation)
 {
   m_continue      = false;
