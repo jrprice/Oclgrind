@@ -31,6 +31,7 @@ RaceDetector::RaceDetector(const Context *context)
 
 bool RaceDetector::isThreadSafe() const
 {
+  // TODO: Improve DRD efficiency for multi-threaded case instead.
   return false;
 }
 

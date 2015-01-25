@@ -73,11 +73,6 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   if (!m_numWorkers || !m_context->isThreadSafe())
     m_numWorkers = 1;
 
-  // Disable multi-threading if race-detection enabled
-  // TODO: Improve DRD efficiency for multi-threaded case instead.
-  if (checkEnv("OCLGRIND_DATA_RACES"))
-    m_numWorkers = 1;
-
   // Check for quick-mode environment variable
   if (checkEnv("OCLGRIND_QUICK"))
   {
