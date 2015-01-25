@@ -50,6 +50,16 @@ Context::~Context()
   unloadPlugins();
 }
 
+bool Context::isThreadSafe() const
+{
+  for (const PluginEntry &p : m_plugins)
+  {
+    if (!p.first->isThreadSafe())
+      return false;
+  }
+  return true;
+}
+
 Memory* Context::getGlobalMemory() const
 {
   return m_globalMemory;

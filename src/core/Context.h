@@ -26,7 +26,7 @@ namespace oclgrind
     virtual ~Context();
 
     Memory* getGlobalMemory() const;
-
+    bool isThreadSafe() const;
     void logError(const char* error) const;
 
     // Simulation callbacks
