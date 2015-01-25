@@ -14,3 +14,8 @@ Plugin::Plugin(const Context *context)
   : m_context(context)
 {
 }
+
+bool Plugin::isThreadSafe() const
+{
+  return true;
+}
