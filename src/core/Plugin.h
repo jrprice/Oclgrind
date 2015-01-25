@@ -36,7 +36,7 @@ namespace oclgrind
     virtual void kernelEnd(const KernelInvocation *kernelInvocation){}
     virtual void log(MessageType type, const char *message){}
     virtual void memoryAllocated(const Memory *memory, size_t address,
-                                 size_t size){}
+                                 size_t size, cl_mem_flags flags){}
     virtual void memoryAtomicLoad(const Memory *memory,
                                   const WorkItem *workItem,
                                   AtomicOp op, size_t address, size_t size){}

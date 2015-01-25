@@ -69,7 +69,7 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags)
 
   size_t address = ((size_t)b) << NUM_ADDRESS_BITS;
 
-  m_context->notifyMemoryAllocated(this, address, size);
+  m_context->notifyMemoryAllocated(this, address, size, flags);
 
   return address;
 }
@@ -199,7 +199,7 @@ Memory* Memory::clone() const
     memcpy(dst->data, src->data, src->size);
     mem->m_memory[i] = dst;
     m_context->notifyMemoryAllocated(mem, ((size_t)i<<NUM_ADDRESS_BITS),
-                                     src->size);
+                                     src->size, src->flags);
   }
 
   // Clone state
@@ -243,7 +243,7 @@ size_t Memory::createHostBuffer(size_t size, void *ptr, cl_mem_flags flags)
 
   size_t address = ((size_t)b) << NUM_ADDRESS_BITS;
 
-  m_context->notifyMemoryAllocated(this, address, size);
+  m_context->notifyMemoryAllocated(this, address, size, flags);
 
   return address;
 }

@@ -48,7 +48,7 @@ void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
 }
 
 void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
-                                   size_t size)
+                                   size_t size, cl_mem_flags flags)
 {
   if (memory->getAddressSpace() == AddrSpacePrivate ||
       memory->getAddressSpace() == AddrSpaceConstant)

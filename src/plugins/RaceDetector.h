@@ -18,7 +18,7 @@ namespace oclgrind
     virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
     virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
     virtual void memoryAllocated(const Memory *memory, size_t address,
-                                 size_t size) override;
+                                 size_t size, cl_mem_flags flags) override;
     virtual void memoryAtomicLoad(const Memory *memory,
                                   const WorkItem *workItem,
                                   AtomicOp op,
