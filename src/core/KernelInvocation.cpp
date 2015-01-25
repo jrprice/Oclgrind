@@ -50,11 +50,9 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   m_globalSize   = globalSize;
   m_localSize    = localSize;
 
-  // Create pool of pending work-groups
   m_numGroups.x = m_globalSize.x/m_localSize.x;
   m_numGroups.y = m_globalSize.y/m_localSize.y;
   m_numGroups.z = m_globalSize.z/m_localSize.z;
-
 
   // Check for user overriding number of threads
   m_numWorkers = 0;
