@@ -25,6 +25,9 @@ namespace oclgrind
                                      const TypedValue& result) override;
     virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
     virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
+
+    virtual bool isThreadSafe() const override;
+
   private:
     std::vector<size_t> m_instructionCounts;
     std::vector<size_t> m_memopBytes;

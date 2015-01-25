@@ -122,6 +122,11 @@ void InstructionCounter::instructionExecuted(
   m_instructionCounts[opcode]++;
 }
 
+bool InstructionCounter::isThreadSafe() const
+{
+  return false;
+}
+
 void InstructionCounter::kernelBegin(const KernelInvocation *kernelInvocation)
 {
   m_instructionCounts.clear();
