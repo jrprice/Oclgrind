@@ -235,6 +235,7 @@ void KernelInvocation::runWorker()
           break;
 
         workerState.workGroup = new WorkGroup(this, m_workGroups[index]);
+        m_context->notifyWorkGroupBegin(workerState.workGroup);
       }
 
       // Execute work-group

@@ -55,7 +55,9 @@ namespace oclgrind
                              size_t address, size_t size,
                              const uint8_t *storeData){}
     virtual void workGroupBarrier(const WorkGroup *workGroup, uint32_t flags){}
+    virtual void workGroupBegin(const WorkGroup *workGroup){}
     virtual void workGroupComplete(const WorkGroup *workGroup){}
+    virtual void workItemBegin(const WorkItem *workItem){}
     virtual void workItemComplete(const WorkItem *workItem){}
 
     virtual bool isThreadSafe() const;

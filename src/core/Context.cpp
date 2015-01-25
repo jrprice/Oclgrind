@@ -305,9 +305,19 @@ void Context::notifyWorkGroupBarrier(const WorkGroup *workGroup,
   NOTIFY(workGroupBarrier, workGroup, flags);
 }
 
+void Context::notifyWorkGroupBegin(const WorkGroup *workGroup) const
+{
+  NOTIFY(workGroupBegin, workGroup);
+}
+
 void Context::notifyWorkGroupComplete(const WorkGroup *workGroup) const
 {
   NOTIFY(workGroupComplete, workGroup);
+}
+
+void Context::notifyWorkItemBegin(const WorkItem *workItem) const
+{
+  NOTIFY(workItemBegin, workItem);
 }
 
 void Context::notifyWorkItemComplete(const WorkItem *workItem) const
