@@ -41,6 +41,8 @@ namespace oclgrind
     virtual void workGroupBarrier(const WorkGroup *workGroup,
                                   uint32_t flags) override;
 
+    virtual bool isThreadSafe() const override;
+
   private:
     struct State
     {

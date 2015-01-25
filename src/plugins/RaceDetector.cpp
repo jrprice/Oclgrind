@@ -8,8 +8,6 @@
 
 #include "core/common.h"
 
-#include <mutex>
-
 #include "core/Context.h"
 #include "core/KernelInvocation.h"
 #include "core/Memory.h"
@@ -23,14 +21,17 @@ using namespace std;
 
 #define KEY(memory,address) make_pair(memory, EXTRACT_BUFFER(address))
 
-static mutex raceMutex;
-
 RaceDetector::RaceDetector(const Context *context)
  : Plugin(context)
 {
   m_kernelInvocation = NULL;
 
   m_allowUniformWrites = !checkEnv("OCLGRIND_UNIFORM_WRITES");
+}
+
+bool RaceDetector::isThreadSafe() const
+{
+  return false;
 }
 
 void RaceDetector::kernelBegin(const KernelInvocation *kernelInvocation)
@@ -52,7 +53,6 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
       memory->getAddressSpace() == AddrSpaceConstant)
     return;
 
-  lock_guard<mutex> lock(raceMutex);
   m_state[KEY(memory,address)] = make_pair(new State[size], size);
 }
 
@@ -60,7 +60,6 @@ void RaceDetector::memoryAtomicLoad(const Memory *memory,
                                     const WorkItem *workItem,
                                     AtomicOp op, size_t address, size_t size)
 {
-  lock_guard<mutex> lock(raceMutex);
   registerAtomic(memory, workItem, address, size, false);
 }
 
@@ -68,7 +67,6 @@ void RaceDetector::memoryAtomicStore(const Memory *memory,
                                      const WorkItem *workItem,
                                      AtomicOp op, size_t address, size_t size)
 {
-  lock_guard<mutex> lock(raceMutex);
   registerAtomic(memory, workItem, address, size, true);
 }
 
@@ -78,7 +76,6 @@ void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
       memory->getAddressSpace() == AddrSpaceConstant)
     return;
 
-  lock_guard<mutex> lock(raceMutex);
   delete[] m_state[KEY(memory,address)].first;
   m_state.erase(KEY(memory,address));
 }
@@ -86,7 +83,6 @@ void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
 void RaceDetector::memoryLoad(const Memory *memory, const WorkItem *workItem,
                               size_t address, size_t size)
 {
-  lock_guard<mutex> lock(raceMutex);
   registerLoadStore(memory, workItem, workItem->getWorkGroup(),
                     address, size, NULL);
 }
@@ -94,7 +90,6 @@ void RaceDetector::memoryLoad(const Memory *memory, const WorkItem *workItem,
 void RaceDetector::memoryLoad(const Memory *memory, const WorkGroup *workGroup,
                               size_t address, size_t size)
 {
-  lock_guard<mutex> lock(raceMutex);
   registerLoadStore(memory, NULL, workGroup, address, size, NULL);
 }
 
@@ -102,7 +97,6 @@ void RaceDetector::memoryStore(const Memory *memory, const WorkItem *workItem,
                                size_t address, size_t size,
                                const uint8_t *storeData)
 {
-  lock_guard<mutex> lock(raceMutex);
   registerLoadStore(memory, workItem, workItem->getWorkGroup(),
                     address, size, storeData);
 }
@@ -111,7 +105,6 @@ void RaceDetector::memoryStore(const Memory *memory, const WorkGroup *workGroup,
                                size_t address, size_t size,
                                const uint8_t *storeData)
 {
-  lock_guard<mutex> lock(raceMutex);
   registerLoadStore(memory, NULL, workGroup, address, size, storeData);
 }
 
@@ -323,7 +316,6 @@ void RaceDetector::synchronize(const Memory *memory, bool workGroup)
 
 void RaceDetector::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
 {
-  lock_guard<mutex> lock(raceMutex);
   if (flags & CLK_LOCAL_MEM_FENCE)
     synchronize(workGroup->getLocalMemory(), false);
   if (flags & CLK_GLOBAL_MEM_FENCE)
