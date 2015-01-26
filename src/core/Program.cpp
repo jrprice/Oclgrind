@@ -819,14 +819,20 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
     unsigned dstAddrSpace = dstType->getPointerAddressSpace();
     if (srcAddrSpace != dstAddrSpace)
     {
+      // Create new bitcast that maintains correct address space
       llvm::Type *elemType = dstType->getPointerElementType();
       llvm::Type *type = elemType->getPointerTo(srcAddrSpace);
       llvm::CastInst *newCast =
         llvm::CastInst::CreatePointerCast(op, type, "", cast);
 
-      // TODO: Replace uses of user recursively?
-      cast->replaceAllUsesWith(newCast);
-      cast->removeFromParent();
+      // Replace users of cast with new cast
+      llvm::User::use_iterator U;
+      for (U = cast->use_begin(); U != cast->use_end(); U++)
+      {
+        // TODO: What if user is another bitcast? Replace recursively?
+        U->replaceUsesOfWith(cast, newCast);
+      }
+      cast->eraseFromParent();
     }
   }
 
