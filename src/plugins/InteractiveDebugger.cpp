@@ -519,7 +519,9 @@ bool InteractiveDebugger::help(vector<string> args)
   }
   else if (args[1] == "print" || args[1] == "p")
   {
-    cout << "Print the values of one or more variables." << endl;
+    cout << "Print the values of one or more variables." << endl
+         << "'print x y' prints the values of x and y" << endl
+         << "'print foo[i]' prints a value at a constant array index" << endl;
   }
   else if (args[1] == "quit" || args[1] == "q")
   {
