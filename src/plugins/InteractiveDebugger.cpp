@@ -525,8 +525,7 @@ bool InteractiveDebugger::help(vector<string> args)
   }
   else if (args[1] == "quit" || args[1] == "q")
   {
-    cout << "Quit interactive debugger "
-        << "(and terminate current kernel invocation)." << endl;
+    cout << "Quit interactive debugger." << endl;
   }
   else if (args[1] == "step" || args[1] == "s")
   {
