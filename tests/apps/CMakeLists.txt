@@ -20,8 +20,8 @@ foreach(test
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
   else()
     add_test(app_${test} "${test}/${test}")
-    set_target_properties(${test} PROPERTIES
-      RUNTIME_OUTPUT_DIRECTORY "${test}")
+    set_target_properties(${test} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${test}")
+    set_target_properties(${test} PROPERTIES LINKER_LANGUAGE CXX)
   endif()
 
   set_tests_properties(app_${test} PROPERTIES DEPENDS ${test})
