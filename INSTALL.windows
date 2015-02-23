@@ -1,0 +1,8 @@
+To install Oclgrind, run 'install.bat' as an Administrator. This will
+install Oclgrind to 'C:\Program Files\Oclgrind' and create a registry
+entry for the OpenCL ICD loader. Oclgrind can be uninstalled by
+running 'uninstall.bat' as an Administrator.
+
+Alternatively, Oclgrind can be run from any other directory. You will
+need to manually create OpenCL ICD loading points by editing the
+registry (see oclgrind-icd.reg).
