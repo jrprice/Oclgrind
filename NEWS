@@ -1,8 +1,23 @@
 For more information, please visit the Oclgrind Wiki:
 https://github.com/jrprice/Oclgrind/wiki
 
-Oclgrind 14.12
+Oclgrind 15.5
 =============
+This release significantly improves simulation performance, and fixes
+several bugs impacting on usage and stability.
+
+- Added detection for violations of read-only/write-only attributes
+- Added --build-options argument to append additional compiler flags
+- Added hostMemoryLoad and hostMemoryStore callbacks
+- Added workGroupBegin and workItemBegin callbacks
+- Split atomic callbacks into separate load and store
+- Multi-threaded simulation to improve performance
+- Various other performance improvements
+- Several general bug fixes and stability improvements
+
+
+Oclgrind 14.12
+==============
 This release incorporates a new plugin system, to allow third-party
 developers to build tools that utilise Oclgrind. More information can
 be found on the Wiki:
