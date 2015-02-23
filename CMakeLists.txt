@@ -76,8 +76,8 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 
   message(STATUS ${CMAKE_REQUIRED_LIBRARIES})
 
-  check_include_files(readline/readline.h HAVE_READLINE_H)
-  check_include_files(readline/history.h HAVE_HISTORY_H)
+  check_include_files("stdio.h;readline/readline.h" HAVE_READLINE_H)
+  check_include_files("stdio.h;readline/history.h" HAVE_HISTORY_H)
   check_library_exists(readline readline "${READLINE_DIR}/lib" HAVE_READLINE_LIB)
   check_library_exists(readline add_history "${READLINE_DIR}/lib" HAVE_HISTORY_LIB)
   if (HAVE_READLINE_H AND HAVE_HISTORY_H AND
