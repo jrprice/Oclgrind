@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-#define NUM_BUFFER_BITS 16
+#define NUM_BUFFER_BITS ( (sizeof(size_t)==32) ? 8 : 16)
 #define MAX_NUM_BUFFERS ((size_t)1 << NUM_BUFFER_BITS)
 #define NUM_ADDRESS_BITS ((sizeof(size_t)<<3) - NUM_BUFFER_BITS)
 #define MAX_BUFFER_SIZE ((size_t)1 << NUM_ADDRESS_BITS)
