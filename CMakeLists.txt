@@ -109,6 +109,7 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     list(APPEND CORE_EXTRA_LIBS "pthread")
+    list(APPEND CORE_EXTRA_LIBS "dl")
   endif()
 endif()
 
