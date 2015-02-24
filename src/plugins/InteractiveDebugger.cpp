@@ -11,6 +11,10 @@
 #include <iterator>
 #include <sstream>
 
+#if !defined(_WIN32) || defined(__MINGW32__)
+#include <signal.h>
+#endif
+
 #if HAVE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -34,6 +38,16 @@ using namespace oclgrind;
 using namespace std;
 
 #define LIST_LENGTH 10
+
+static bool sigintBreak = false;
+#if !defined(_WIN32) || defined(__MINGW32__)
+static struct sigaction m_oldSignalHandler;
+void handleSignal(int s)
+{
+  if (s == SIGINT)
+    sigintBreak = true;
+}
+#endif
 
 InteractiveDebugger::InteractiveDebugger(const Context *context)
   : Plugin(context)
@@ -72,7 +86,13 @@ void InteractiveDebugger::instructionExecuted(
   if (!shouldShowPrompt(workItem))
     return;
 
+#if !defined(_WIN32) || defined(__MINGW32__)
+  // Restore old signal handler
+  sigaction(SIGINT, &m_oldSignalHandler, NULL);
+#endif
+
   m_forceBreak = false;
+  sigintBreak  = false;
 
   // Print function if changed
   if (m_previousDepth != workItem->getCallStack().size() &&
@@ -170,6 +190,11 @@ void InteractiveDebugger::kernelBegin(const KernelInvocation *kernelInvocation)
 void InteractiveDebugger::kernelEnd(const KernelInvocation *kernelInvocation)
 {
   m_kernelInvocation = NULL;
+
+#if !defined(_WIN32) || defined(__MINGW32__)
+  // Restore old signal handler
+  sigaction(SIGINT, &m_oldSignalHandler, NULL);
+#endif
 }
 
 void InteractiveDebugger::log(MessageType type, const char *message)
@@ -302,7 +327,7 @@ bool InteractiveDebugger::shouldShowPrompt(const WorkItem *workItem)
   if (!m_running)
     return false;
 
-  if (m_forceBreak)
+  if (m_forceBreak || sigintBreak)
     return true;
 
   if (hasHitBreakpoint())
@@ -392,6 +417,15 @@ bool InteractiveDebugger::brk(vector<string> args)
 
 bool InteractiveDebugger::cont(vector<string> args)
 {
+#if !defined(_WIN32) || defined(__MINGW32__)
+  // Register a signal handler to catch interrupts
+  struct sigaction sigHandler;
+  sigHandler.sa_handler = handleSignal;
+  sigemptyset(&sigHandler.sa_mask);
+  sigHandler.sa_flags = 0;
+  sigaction(SIGINT, &sigHandler, &m_oldSignalHandler);
+#endif
+
   m_continue = true;
   return true;
 }
@@ -906,6 +940,11 @@ bool InteractiveDebugger::print(vector<string> args)
 
 bool InteractiveDebugger::quit(vector<string> args)
 {
+#if !defined(_WIN32) || defined(__MINGW32__)
+  // Restore old signal handler
+  sigaction(SIGINT, &m_oldSignalHandler, NULL);
+#endif
+
   m_running = false;
   return true;
 }
