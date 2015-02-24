@@ -48,9 +48,9 @@ src/core/clc_h.cpp: src/core/gen_clc_h.sh	src/core/clc.h
 	$(top_srcdir)/src/core/gen_clc_h.sh $(top_srcdir)/src/core/clc.h $@
 
 install-data-hook:
-	cp -p include/oclgrind/clc.h           $(DESTDIR)$(includedir)/oclgrind/
-	cp -p include/oclgrind/clc32.pch       $(DESTDIR)$(includedir)/oclgrind/
-	cp -p include/oclgrind/clc64.pch       $(DESTDIR)$(includedir)/oclgrind/
+	cp -p src/include/oclgrind/clc.h      $(DESTDIR)$(includedir)/oclgrind/
+	cp -p src/include/oclgrind/clc32.pch  $(DESTDIR)$(includedir)/oclgrind/
+	cp -p src/include/oclgrind/clc64.pch  $(DESTDIR)$(includedir)/oclgrind/
 
 uninstall-hook:
 	rm -rf $(DESTDIR)$(includedir)/oclgrind/clc.h
@@ -80,26 +80,26 @@ oclgrind: $(top_srcdir)/src/runtime/oclgrind
 	| $(SED) 's|__VERSION__|'$(VERSION)'|g' \
 	>$@
 noinst_SCRIPTS = oclgrind.icd \
- include/oclgrind/clc.h \
- include/oclgrind/clc32.pch \
- include/oclgrind/clc64.pch
+ src/include/oclgrind/clc.h \
+ src/include/oclgrind/clc32.pch \
+ src/include/oclgrind/clc64.pch
 oclgrind.icd: liboclgrind-rt-icd.la
 	printf $(libdir)/ >$@
 	$(GREP) dlname $< | $(AWK) -F "'" '{print $$2}' >>$@
 
-include/oclgrind/clc.h: $(top_srcdir)/src/core/clc.h
-	mkdir -p include/oclgrind
+src/include/oclgrind/clc.h: $(top_srcdir)/src/core/clc.h
+	mkdir -p src/include/oclgrind
 	cp $< $@
 
-include/oclgrind/clc32.pch: include/oclgrind/clc.h
+src/include/oclgrind/clc32.pch: src/include/oclgrind/clc.h
 	$(clang_spir) \
 		-cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown \
-		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
+		-relocatable-pch -isysroot $(abs_builddir)/src/include/oclgrind \
 		$< -o $@
-include/oclgrind/clc64.pch: include/oclgrind/clc.h
+src/include/oclgrind/clc64.pch: src/include/oclgrind/clc.h
 	$(clang_spir) \
 		-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
-		-relocatable-pch -isysroot $(abs_builddir)/include/oclgrind \
+		-relocatable-pch -isysroot $(abs_builddir)/src/include/oclgrind \
 		$< -o $@
 
 check_PROGRAMS = tests/apps/vecadd/vecadd
@@ -110,7 +110,9 @@ TEST_EXTENSIONS = .sim
 SIM_LOG_COMPILER = $(PYTHON)				\
   $(top_srcdir)/tests/kernels/run_kernel_test.py	\
   ${abs_top_builddir}/oclgrind-kernel
-AM_TESTS_ENVIRONMENT = export AM_TESTS=1;
+AM_TESTS_ENVIRONMENT = \
+  export AM_TESTS=1; \
+  export OCLGRIND_PCH_DIR=$(abs_builddir)/src/include/oclgrind;
 
 if HAVE_PYTHON
 TESTS += $(KERNEL_TESTS)
