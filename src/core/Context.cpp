@@ -15,6 +15,8 @@
 #include <dlfcn.h>
 #endif
 
+#include <mutex>
+
 #include "llvm/DebugInfo.h"
 #include "llvm/Instruction.h"
 
@@ -430,6 +432,10 @@ Context::Message& Context::Message::operator<<(const special& id)
 Context::Message& Context::Message::operator<<(
   const llvm::Instruction *instruction)
 {
+  // Use mutex as some part of LLVM used by dumpInstruction() is not thread-safe
+  static std::mutex mtx;
+  std::lock_guard<std::mutex> lock(mtx);
+
   if (instruction)
   {
     // Output instruction
