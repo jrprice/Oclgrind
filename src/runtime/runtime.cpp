@@ -4983,6 +4983,11 @@ clEnqueueWaitForEvents
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
+  // Enqueue command
+  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
+  asyncEnqueue(command_queue, CL_COMMAND_BARRIER, cmd,
+               num_events, event_list, NULL);
+
   return CL_SUCCESS;
 }
 
