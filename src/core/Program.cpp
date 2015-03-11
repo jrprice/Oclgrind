@@ -158,9 +158,8 @@ bool Program::build(const char *options, list<Header> headers)
     args.push_back(EXTENSIONS[i]);
   }
 
-  // Disable Clang's optimizations due to issues with certain LLVM passes.
-  // Notably, GVN and SROA are known to 'break' SPIR in LLVM 3.2.
-  // We'll add our own hand-picked passes later on.
+  // Disable Clang's optimizations.
+  // We will manually run optimization passes and legalize the IR later.
   args.push_back("-O0");
 
   bool optimize = true;
