@@ -2369,7 +2369,6 @@ namespace oclgrind
     {
       for (int i = 0; i < result.num; i++)
       {
-        uint64_t nancode = UARGV(0, i);
         result.setFloat(nan(""), i);
       }
     }
