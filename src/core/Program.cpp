@@ -663,9 +663,9 @@ unsigned int Program::getNumKernels() const
 {
   assert(m_module != NULL);
 
-  // Iterate over functions in module to find kernels
-  unsigned int num = 0;
+  // Extract kernels from metadata
   llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
+
   // No kernels in module
   if (!tuple)
     return 0;
