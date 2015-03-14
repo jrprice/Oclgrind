@@ -2016,7 +2016,7 @@ namespace oclgrind
             result.setUInt(uresult, i);
             break;
           case 'j':
-            uresult = _min_<uint64_t>(uresult, UINT16_MAX);
+            uresult = _min_<uint64_t>(uresult, UINT32_MAX);
             result.setUInt(uresult, i);
             break;
           case 'm':
