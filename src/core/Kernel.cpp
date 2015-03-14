@@ -86,7 +86,7 @@ Kernel::Kernel(const Program *program,
   llvm::NamedMDNode *md = module->getNamedMetadata("opencl.kernels");
   if (md)
   {
-    for (int i = 0; i < md->getNumOperands(); i++)
+    for (unsigned i = 0; i < md->getNumOperands(); i++)
     {
       llvm::MDNode *node = md->getOperand(i);
       if (node->getOperand(0)->getName() == m_name)
@@ -185,7 +185,7 @@ const llvm::Argument* Kernel::getArgument(unsigned int index) const
   assert(index < getNumArguments());
 
   llvm::Function::const_arg_iterator argItr = m_function->arg_begin();
-  for (int i = 0; i < index; i++)
+  for (unsigned i = 0; i < index; i++)
   {
     argItr++;
   }
@@ -262,7 +262,7 @@ const llvm::MDNode* Kernel::getArgumentMetadata(string name) const
   }
 
   // Loop over all metadata nodes for this kernel
-  for (int i = 0; i < m_metadata->getNumOperands(); i++)
+  for (unsigned i = 0; i < m_metadata->getNumOperands(); i++)
   {
     const llvm::Value *value = m_metadata->getOperand(i);
     if (value->getType()->getTypeID() == llvm::Type::MetadataTyID)
@@ -350,7 +350,7 @@ size_t Kernel::getArgumentSize(unsigned int index) const
 string Kernel::getAttributes() const
 {
   ostringstream attributes("");
-  for (int i = 0; i < m_metadata->getNumOperands(); i++)
+  for (unsigned i = 0; i < m_metadata->getNumOperands(); i++)
   {
     llvm::Value *op = m_metadata->getOperand(i);
     if (op->getValueID() == llvm::Value::MDNodeVal)
@@ -431,7 +431,7 @@ const Program* Kernel::getProgram() const
 void Kernel::getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const
 {
   memset(reqdWorkGroupSize, 0, 3*sizeof(size_t));
-  for (int i = 0; i < m_metadata->getNumOperands(); i++)
+  for (unsigned i = 0; i < m_metadata->getNumOperands(); i++)
   {
     llvm::Value *op = m_metadata->getOperand(i);
     if (op->getValueID() == llvm::Value::MDNodeVal)

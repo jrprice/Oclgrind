@@ -199,13 +199,13 @@ void KernelInvocation::run()
   // Create worker threads
   // TODO: Run in main thread if only 1 worker
   vector<thread> threads;
-  for (int i = 0; i < m_numWorkers; i++)
+  for (unsigned i = 0; i < m_numWorkers; i++)
   {
     threads.push_back(thread(&KernelInvocation::runWorker, this));
   }
 
   // Wait for workers to complete
-  for (int i = 0; i < m_numWorkers; i++)
+  for (unsigned i = 0; i < m_numWorkers; i++)
   {
     threads[i].join();
   }
