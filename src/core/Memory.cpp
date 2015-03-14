@@ -41,7 +41,7 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags)
   }
 
   // Find first unallocated buffer slot
-  int b = getNextBuffer();
+  unsigned b = getNextBuffer();
   if (b < 0 || b >= MAX_NUM_BUFFERS)
   {
     return 0;
@@ -176,7 +176,7 @@ void Memory::clear()
   }
   m_memory.resize(1);
   m_memory[0] = NULL;
-  m_freeBuffers = queue<int>();
+  m_freeBuffers = queue<unsigned>();
   m_totalAllocated = 0;
 }
 
@@ -187,7 +187,7 @@ Memory* Memory::clone() const
   // Clone buffers
   mem->m_memory.resize(m_memory.size());
   mem->m_memory[0] = NULL;
-  for (int i = 1; i < m_memory.size(); i++)
+  for (unsigned i = 1; i < m_memory.size(); i++)
   {
     Buffer *src = m_memory[i];
     Buffer *dst = new Buffer;
@@ -218,7 +218,7 @@ size_t Memory::createHostBuffer(size_t size, void *ptr, cl_mem_flags flags)
   }
 
   // Find first unallocated buffer slot
-  int b = getNextBuffer();
+  unsigned b = getNextBuffer();
   if (b < 0 || b >= MAX_NUM_BUFFERS)
   {
     return 0;
@@ -282,7 +282,7 @@ bool Memory::copy(size_t dst, size_t src, size_t size)
 
 void Memory::deallocateBuffer(size_t address)
 {
-  int buffer = EXTRACT_BUFFER(address);
+  unsigned buffer = EXTRACT_BUFFER(address);
   assert(buffer < m_memory.size() && m_memory[buffer]);
 
   if (!(m_memory[buffer]->flags & CL_MEM_USE_HOST_PTR))
@@ -301,14 +301,14 @@ void Memory::deallocateBuffer(size_t address)
 
 void Memory::dump() const
 {
-  for (int b = 0; b < m_memory.size(); b++)
+  for (unsigned b = 0; b < m_memory.size(); b++)
   {
     if (!m_memory[b]->data)
     {
       continue;
     }
 
-    for (int i = 0; i < m_memory[b]->size; i++)
+    for (unsigned i = 0; i < m_memory[b]->size; i++)
     {
       if (i%4 == 0)
       {
@@ -344,7 +344,7 @@ size_t Memory::getMaxAllocSize()
   return MAX_BUFFER_SIZE;
 }
 
-int Memory::getNextBuffer()
+unsigned Memory::getNextBuffer()
 {
   if (m_freeBuffers.empty())
   {
@@ -352,7 +352,7 @@ int Memory::getNextBuffer()
   }
   else
   {
-    int b = m_freeBuffers.front();
+    unsigned b = m_freeBuffers.front();
     m_freeBuffers.pop();
     return b;
   }

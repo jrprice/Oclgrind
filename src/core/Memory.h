@@ -58,11 +58,11 @@ namespace oclgrind
 
   private:
     const Context *m_context;
-    std::queue<int> m_freeBuffers;
+    std::queue<unsigned> m_freeBuffers;
     std::vector<Buffer*> m_memory;
     unsigned int m_addressSpace;
     size_t m_totalAllocated;
 
-    int getNextBuffer();
+    unsigned getNextBuffer();
   };
 }
