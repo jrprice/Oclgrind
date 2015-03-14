@@ -10,8 +10,6 @@
 #include <algorithm>
 #include <fenv.h>
 
-#pragma STDC FENV_ACCESS ON
-
 #include "llvm/Instructions.h"
 #include "llvm/IntrinsicInst.h"
 #include "llvm/Metadata.h"
