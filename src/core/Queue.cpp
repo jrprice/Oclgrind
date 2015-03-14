@@ -50,9 +50,9 @@ void Queue::executeCopyBufferRect(CopyRectCommand *cmd)
 {
   // Perform copy
   Memory *memory = m_context->getGlobalMemory();
-  for (int z = 0; z < cmd->region[2]; z++)
+  for (unsigned z = 0; z < cmd->region[2]; z++)
   {
-    for (int y = 0; y < cmd->region[1]; y++)
+    for (unsigned y = 0; y < cmd->region[1]; y++)
     {
       // Compute addresses
       size_t src =
@@ -75,7 +75,7 @@ void Queue::executeCopyBufferRect(CopyRectCommand *cmd)
 void Queue::executeFillBuffer(FillBufferCommand *cmd)
 {
   Memory *memory = m_context->getGlobalMemory();
-  for (int i = 0; i < cmd->size/cmd->pattern_size; i++)
+  for (unsigned i = 0; i < cmd->size/cmd->pattern_size; i++)
   {
     memory->store(cmd->pattern,
                   cmd->address + i*cmd->pattern_size,
@@ -87,11 +87,11 @@ void Queue::executeFillImage(FillImageCommand *cmd)
 {
   Memory *memory = m_context->getGlobalMemory();
 
-  for (int z = 0; z < cmd->region[2]; z++)
+  for (unsigned z = 0; z < cmd->region[2]; z++)
   {
-    for (int y = 0; y < cmd->region[1]; y++)
+    for (unsigned y = 0; y < cmd->region[1]; y++)
     {
-      for (int x = 0; x < cmd->region[0]; x++)
+      for (unsigned x = 0; x < cmd->region[0]; x++)
       {
         size_t address = cmd->base
                        + (cmd->origin[0] + x) * cmd->pixelSize
@@ -128,9 +128,9 @@ void Queue::executeReadBuffer(BufferCommand *cmd)
 void Queue::executeReadBufferRect(BufferRectCommand *cmd)
 {
   Memory *memory = m_context->getGlobalMemory();
-  for (int z = 0; z < cmd->region[2]; z++)
+  for (unsigned z = 0; z < cmd->region[2]; z++)
   {
-    for (int y = 0; y < cmd->region[1]; y++)
+    for (unsigned y = 0; y < cmd->region[1]; y++)
     {
       unsigned char *host =
         cmd->ptr +
@@ -156,9 +156,9 @@ void Queue::executeWriteBufferRect(BufferRectCommand *cmd)
 {
   // Perform write
   Memory *memory = m_context->getGlobalMemory();
-  for (int z = 0; z < cmd->region[2]; z++)
+  for (unsigned z = 0; z < cmd->region[2]; z++)
   {
-    for (int y = 0; y < cmd->region[1]; y++)
+    for (unsigned y = 0; y < cmd->region[1]; y++)
     {
       const unsigned char *host =
         cmd->ptr +

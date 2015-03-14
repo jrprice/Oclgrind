@@ -151,7 +151,7 @@ void InstructionCounter::kernelEnd(const KernelInvocation *kernelInvocation)
 
   // Generate list named instructions and their counts
   vector< pair<string,size_t> > namedCounts;
-  for (int i = 0; i < m_instructionCounts.size(); i++)
+  for (unsigned i = 0; i < m_instructionCounts.size(); i++)
   {
     if (m_instructionCounts[i] == 0)
     {
@@ -171,7 +171,7 @@ void InstructionCounter::kernelEnd(const KernelInvocation *kernelInvocation)
   sort(namedCounts.begin(), namedCounts.end(), compareNamedCount);
 
   // Output sorted instruction counts
-  for (int i = 0; i < namedCounts.size(); i++)
+  for (unsigned i = 0; i < namedCounts.size(); i++)
   {
     cout << setw(16) << dec << namedCounts[i].second << " - "
          << namedCounts[i].first << endl;

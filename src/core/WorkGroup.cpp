@@ -58,7 +58,7 @@ WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid)
 WorkGroup::~WorkGroup()
 {
   // Delete work-items
-  for (int i = 0; i < m_workItems.size(); i++)
+  for (unsigned i = 0; i < m_workItems.size(); i++)
   {
     delete m_workItems[i];
   }
@@ -214,7 +214,7 @@ void WorkGroup::clearBarrier()
       size_t src = itr->src;
       size_t dest = itr->dest;
       unsigned char *buffer = new unsigned char[itr->size];
-      for (int i = 0; i < itr->num; i++)
+      for (unsigned i = 0; i < itr->num; i++)
       {
         srcMem->load(buffer, src, itr->size);
         destMem->store(buffer, dest, itr->size);

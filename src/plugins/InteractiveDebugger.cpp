@@ -771,7 +771,7 @@ bool InteractiveDebugger::mem(vector<string> args)
 
   // Output data
   unsigned char *data = (unsigned char*)memory->getPointer(address);
-  for (int i = 0; i < size; i++)
+  for (unsigned i = 0; i < size; i++)
   {
     if (i%4 == 0)
     {
@@ -823,17 +823,17 @@ bool InteractiveDebugger::print(vector<string> args)
   }
 
   const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
-  for (int i = 1; i < args.size(); i++)
+  for (unsigned i = 1; i < args.size(); i++)
   {
     cout << args[i] << " = ";
 
     // Check for subscript operator
     size_t start = args[i].find("[");
-    if (start != -1)
+    if (start != string::npos)
     {
       // Find end of subscript
       size_t end = args[i].find(']');
-      if (end == -1)
+      if (end == string::npos)
       {
         cout << "missing ']'" << endl;
         return false;
@@ -980,7 +980,7 @@ bool InteractiveDebugger::workitem(vector<string> args)
 {
   // TODO: Take offsets into account?
   Size3 gid(0,0,0);
-  for (int i = 1; i < args.size(); i++)
+  for (unsigned i = 1; i < args.size(); i++)
   {
     // Parse argument as a target line number
     istringstream ss(args[i]);

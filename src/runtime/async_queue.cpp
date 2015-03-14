@@ -33,7 +33,7 @@ void asyncEnqueue(cl_command_queue queue,
                   cl_event *eventOut)
 {
   // Add event wait list to command
-  for (int i = 0; i < numEvents; i++)
+  for (unsigned i = 0; i < numEvents; i++)
   {
     cmd->waitList.push_back(waitList[i]->event);
     waitListMap[cmd].push_back(waitList[i]);

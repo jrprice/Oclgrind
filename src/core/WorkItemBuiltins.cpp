@@ -67,7 +67,7 @@ namespace oclgrind
                       const string& name, const string& overload,
                       TypedValue& result, double (*func)(double))
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setFloat(func(FARGV(0, i)), i);
       }
@@ -76,7 +76,7 @@ namespace oclgrind
                       const string& name, const string& overload,
                       TypedValue& result, double (*func)(double, double))
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setFloat(func(FARGV(0, i), FARGV(1, i)), i);
       }
@@ -85,7 +85,7 @@ namespace oclgrind
                       const string& name, const string& overload,
                       TypedValue& result, double (*func)(double, double, double))
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setFloat(func(FARGV(0, i), FARGV(1, i), FARGV(2, i)), i);
       }
@@ -94,7 +94,7 @@ namespace oclgrind
                       const string& name, const string& overload,
                       TypedValue& result, uint64_t (*func)(uint64_t))
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setUInt(func(UARGV(0, i)), i);
       }
@@ -103,7 +103,7 @@ namespace oclgrind
                       const string& name, const string& overload,
                       TypedValue& result, uint64_t (*func)(uint64_t, uint64_t))
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setUInt(func(UARGV(0, i), UARGV(1, i)), i);
       }
@@ -112,7 +112,7 @@ namespace oclgrind
                       const string& name, const string& overload,
                       TypedValue& result, uint64_t (*func)(uint64_t, uint64_t, uint64_t))
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setUInt(func(UARGV(0, i), UARGV(1, i), UARGV(2, i)), i);
       }
@@ -121,7 +121,7 @@ namespace oclgrind
                       const string& name, const string& overload,
                       TypedValue& result, int64_t (*func)(int64_t))
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setSInt(func(SARGV(0, i)), i);
       }
@@ -130,7 +130,7 @@ namespace oclgrind
                       const string& name, const string& overload,
                       TypedValue& result, int64_t (*func)(int64_t, int64_t))
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setSInt(func(SARGV(0, i), SARGV(1, i)), i);
       }
@@ -139,7 +139,7 @@ namespace oclgrind
                       const string& name, const string& overload,
                       TypedValue& result, int64_t (*func)(int64_t, int64_t, int64_t))
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setSInt(func(SARGV(0, i), SARGV(1, i), SARGV(2, i)), i);
       }
@@ -149,7 +149,7 @@ namespace oclgrind
                         TypedValue& result, int64_t (*func)(double))
     {
       int64_t t = result.num > 1 ? -1 : 1;
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setSInt(func(FARGV(0, i))*t, i);
       }
@@ -159,7 +159,7 @@ namespace oclgrind
                         TypedValue& result, int64_t (*func)(double, double))
     {
       int64_t t = result.num > 1 ? -1 : 1;
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setSInt(func(FARGV(0, i), FARGV(1, i))*t, i);
       }
@@ -242,7 +242,7 @@ namespace oclgrind
       uint64_t num = UARG(0);
       size_t address = PARG(1);
       list<size_t> events;
-      for (int i = 0; i < num; i++)
+      for (unsigned i = 0; i < num; i++)
       {
         size_t event;
         if (!workItem->m_privateMemory->load((unsigned char*)&event,
@@ -466,7 +466,7 @@ namespace oclgrind
           }
           else
           {
-            for (int i = 0; i < result.num; i++)
+            for (unsigned i = 0; i < result.num; i++)
             {
               double x = FARGV(0, i);
               double minval = FARG(1);
@@ -505,7 +505,7 @@ namespace oclgrind
           }
           else
           {
-            for (int i = 0; i < result.num; i++)
+            for (unsigned i = 0; i < result.num; i++)
             {
               double x = FARGV(0, i);
               double y = FARG(1);
@@ -543,7 +543,7 @@ namespace oclgrind
           }
           else
           {
-            for (int i = 0; i < result.num; i++)
+            for (unsigned i = 0; i < result.num; i++)
             {
               double x = FARGV(0, i);
               double y = FARG(1);
@@ -571,7 +571,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(mix)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
         double y = FARGV(1, i);
@@ -583,7 +583,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(smoothstep)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double edge0 = ARG(0)->getType()->isVectorTy() ? FARGV(0, i) : FARG(0);
         double edge1 = ARG(1)->getType()->isVectorTy() ? FARGV(1, i) : FARG(1);
@@ -596,7 +596,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(step)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double edge = ARG(0)->getType()->isVectorTy() ? FARGV(0, i) : FARG(0);
         double x = FARGV(1, i);
@@ -626,14 +626,14 @@ namespace oclgrind
 
     DEFINE_BUILTIN(dot)
     {
-      int num = 1;
+      unsigned num = 1;
       if (ARG(0)->getType()->isVectorTy())
       {
         num = ARG(0)->getType()->getVectorNumElements();
       }
 
       double r = 0.f;
-      for (int i = 0; i < num; i++)
+      for (unsigned i = 0; i < num; i++)
       {
         double a = FARGV(0, i);
         double b = FARGV(1, i);
@@ -644,14 +644,14 @@ namespace oclgrind
 
     DEFINE_BUILTIN(distance)
     {
-      int num = 1;
+      unsigned num = 1;
       if (ARG(0)->getType()->isVectorTy())
       {
         num = ARG(0)->getType()->getVectorNumElements();
       }
 
       double distSq = 0.0;
-      for (int i = 0; i < num; i++)
+      for (unsigned i = 0; i < num; i++)
       {
         double diff = FARGV(0,i) - FARGV(1,i);
         distSq += diff*diff;
@@ -661,14 +661,14 @@ namespace oclgrind
 
     DEFINE_BUILTIN(length)
     {
-      int num = 1;
+      unsigned num = 1;
       if (ARG(0)->getType()->isVectorTy())
       {
         num = ARG(0)->getType()->getVectorNumElements();
       }
 
       double lengthSq = 0.0;
-      for (int i = 0; i < num; i++)
+      for (unsigned i = 0; i < num; i++)
       {
         lengthSq += FARGV(0, i) * FARGV(0, i);
       }
@@ -678,13 +678,13 @@ namespace oclgrind
     DEFINE_BUILTIN(normalize)
     {
       double lengthSq = 0.0;
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         lengthSq += FARGV(0, i) * FARGV(0, i);
       }
       double length = sqrt(lengthSq);
 
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setFloat(FARGV(0, i)/length, i);
       }
@@ -1525,7 +1525,7 @@ namespace oclgrind
       // Generate channel values
       Memory *memory = workItem->getMemory(AddrSpaceGlobal);
       unsigned char *data = workItem->m_pool.alloc(channelSize*numChannels);
-      for (int i = 0; i < numChannels; i++)
+      for (unsigned i = 0; i < numChannels; i++)
       {
         switch (image->format.image_channel_data_type)
         {
@@ -1627,7 +1627,7 @@ namespace oclgrind
       // Generate channel values
       Memory *memory = workItem->getMemory(AddrSpaceGlobal);
       unsigned char *data = workItem->m_pool.alloc(channelSize*numChannels);
-      for (int i = 0; i < numChannels; i++)
+      for (unsigned i = 0; i < numChannels; i++)
       {
         switch (image->format.image_channel_data_type)
         {
@@ -1717,7 +1717,7 @@ namespace oclgrind
       // Generate channel values
       Memory *memory = workItem->getMemory(AddrSpaceGlobal);
       unsigned char *data = workItem->m_pool.alloc(channelSize*numChannels);
-      for (int i = 0; i < numChannels; i++)
+      for (unsigned i = 0; i < numChannels; i++)
       {
         switch (image->format.image_channel_data_type)
         {
@@ -1747,7 +1747,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(abs_builtin)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         switch (getOverloadArgType(overload))
         {
@@ -1772,7 +1772,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(abs_diff)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         switch (getOverloadArgType(overload))
         {
@@ -1805,7 +1805,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(add_sat)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         uint64_t uresult = UARGV(0,i) + UARGV(1,i);
         int64_t  sresult = SARGV(0,i) + SARGV(1,i);
@@ -1856,7 +1856,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(clz)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         uint64_t x = UARGV(0, i);
         int nz = 0;
@@ -1873,7 +1873,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(hadd)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         switch (getOverloadArgType(overload))
         {
@@ -1967,7 +1967,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(mad_hi)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         switch (getOverloadArgType(overload))
         {
@@ -2000,7 +2000,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(mad_sat)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         uint64_t uresult = UARGV(0,i)*UARGV(1,i) + UARGV(2,i);
         int64_t  sresult = SARGV(0,i)*SARGV(1,i) + SARGV(2,i);
@@ -2071,7 +2071,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(mul_hi)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         switch (getOverloadArgType(overload))
         {
@@ -2113,7 +2113,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(rhadd)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         switch (getOverloadArgType(overload))
         {
@@ -2148,7 +2148,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(rotate)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         uint64_t width = (result.size << 3);
         uint64_t v  = UARGV(0, i);
@@ -2160,7 +2160,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(sub_sat)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         uint64_t uresult = UARGV(0,i) - UARGV(1,i);
         int64_t  sresult = SARGV(0,i) - SARGV(1,i);
@@ -2211,7 +2211,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(upsample)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         uint64_t r = (UARGV(0,i)<<(result.size<<2)) | UARGV(1, i);
         result.setUInt(r, i);
@@ -2282,7 +2282,7 @@ namespace oclgrind
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
       size_t iptr = PARG(1);
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
         double fl = floor(x);
@@ -2305,7 +2305,7 @@ namespace oclgrind
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
       size_t iptr = PARG(1);
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         int32_t e;
         double r = frexp(FARGV(0, i), &e);
@@ -2316,7 +2316,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(ilogb_builtin)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setSInt(ilogb(FARGV(0, i)), i);
       }
@@ -2324,7 +2324,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(ldexp_builtin)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setFloat(ldexp(FARGV(0, i), SARGV(1, i)), i);
       }
@@ -2336,7 +2336,7 @@ namespace oclgrind
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
       size_t signp = PARG(1);
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double r = lgamma(FARGV(0, i));
         int32_t s = (tgamma(FARGV(0, i)) < 0 ? -1 : 1);
@@ -2351,7 +2351,7 @@ namespace oclgrind
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
       size_t iptr = PARG(1);
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
         double integral = trunc(x);
@@ -2366,7 +2366,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(nan_builtin)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setFloat(nan(""), i);
       }
@@ -2374,7 +2374,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(pown)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
         int32_t y = SARGV(1, i);
@@ -2388,7 +2388,7 @@ namespace oclgrind
         workItem->getMemory(ARG(2)->getType()->getPointerAddressSpace());
 
       size_t quop = PARG(2);
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
         double y = FARGV(1, i);
@@ -2402,7 +2402,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(rootn)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
         int y = SARGV(1, i);
@@ -2416,7 +2416,7 @@ namespace oclgrind
         workItem->getMemory(ARG(1)->getType()->getPointerAddressSpace());
 
       size_t cv = PARG(1);
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         double x = FARGV(0, i);
         size_t offset = i*result.size;
@@ -2433,7 +2433,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(shuffle_builtin)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         result.setUInt(UARGV(0, UARGV(1, i)), i);
       }
@@ -2441,7 +2441,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(shuffle2_builtin)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         uint64_t m = 1;
         if (ARG(0)->getType()->isVectorTy())
@@ -2482,13 +2482,13 @@ namespace oclgrind
 
     DEFINE_BUILTIN(all)
     {
-      int num = 1;
+      unsigned num = 1;
       if (ARG(0)->getType()->isVectorTy())
       {
         num = ARG(0)->getType()->getVectorNumElements();
       }
 
-      for (int i = 0; i < num; i++)
+      for (unsigned i = 0; i < num; i++)
       {
         if (!(SARGV(0, i) & INT64_MIN))
         {
@@ -2501,13 +2501,13 @@ namespace oclgrind
 
     DEFINE_BUILTIN(any)
     {
-      int num = 1;
+      unsigned num = 1;
       if (ARG(0)->getType()->isVectorTy())
       {
         num = ARG(0)->getType()->getVectorNumElements();
       }
 
-      for (int i = 0; i < num; i++)
+      for (unsigned i = 0; i < num; i++)
       {
         if (SARGV(0, i) & INT64_MIN)
         {
@@ -2559,7 +2559,7 @@ namespace oclgrind
     DEFINE_BUILTIN(select_builtin)
     {
       char type = getOverloadArgType(overload);
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         int64_t c = SARGV(2, i);
         bool _c = (result.num > 1) ? c & INT64_MIN : c;
@@ -2659,7 +2659,7 @@ namespace oclgrind
                                               address, size);
 
       // Convert to floats
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         ((float*)result.data)[i] = halfToFloat(halfData[i]);
       }
@@ -2694,7 +2694,7 @@ namespace oclgrind
       else if (fnName.find("_rtp") != std::string::npos)
         rmode = Half_RTP;
 
-      for (int i = 0; i < num; i++)
+      for (unsigned i = 0; i < num; i++)
       {
         halfData[i] = floatToHalf(((float*)data)[i], rmode);
       }
@@ -2785,7 +2785,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(convert_float)
     {
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         switch (getOverloadArgType(overload))
         {
@@ -2823,7 +2823,7 @@ namespace oclgrind
       else if (fnName.find("_rtp") != std::string::npos)
         rmode = Half_RTP;
       const char srcType = getOverloadArgType(overload);
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         switch (srcType)
         {
@@ -2889,7 +2889,7 @@ namespace oclgrind
       const int origRnd = fegetround();
       setConvertRoundingMode(fnName);
 
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         uint64_t r;
         switch (getOverloadArgType(overload))
@@ -2974,7 +2974,7 @@ namespace oclgrind
       const int origRnd = fegetround();
       setConvertRoundingMode(fnName);
 
-      for (int i = 0; i < result.num; i++)
+      for (unsigned i = 0; i < result.num; i++)
       {
         int64_t r;
         switch (getOverloadArgType(overload))
@@ -3074,7 +3074,7 @@ namespace oclgrind
               case 'c':
               case 'd':
               case 'i':
-                for (int i = 0; i < vectorWidth; i++)
+                for (unsigned i = 0; i < vectorWidth; i++)
                 {
                   if (i > 0)
                     printf(",");
@@ -3088,7 +3088,7 @@ namespace oclgrind
               case 'x':
               case 'X':
               case 'p':
-                for (int i = 0; i < vectorWidth; i++)
+                for (unsigned i = 0; i < vectorWidth; i++)
                 {
                   if (i > 0)
                     printf(",");
@@ -3105,7 +3105,7 @@ namespace oclgrind
               case 'G':
               case 'a':
               case 'A':
-                for (int i = 0; i < vectorWidth; i++)
+                for (unsigned i = 0; i < vectorWidth; i++)
                 {
                   if (i > 0)
                     printf(",");

@@ -152,7 +152,7 @@ bool Program::build(const char *options, list<Header> headers)
     args.push_back("spir64-unknown-unknown");
 
   // Define extensions
-  for (int i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
+  for (unsigned i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
   {
     args.push_back("-D");
     args.push_back(EXTENSIONS[i]);

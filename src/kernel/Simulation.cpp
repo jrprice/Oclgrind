@@ -216,7 +216,7 @@ bool Simulation::load(const char *filename)
 
     // Parse kernel arguments
     m_dumpArguments.clear();
-    for (int index = 0; index < m_kernel->getNumArguments(); index++)
+    for (unsigned index = 0; index < m_kernel->getNumArguments(); index++)
     {
       parseArgument(index);
     }

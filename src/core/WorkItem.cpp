@@ -539,7 +539,7 @@ INSTRUCTION(add)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) + opB.getUInt(i), i);
   }
@@ -565,7 +565,7 @@ INSTRUCTION(ashr)
   uint64_t shiftMask =
     (result.num > 1 ? result.size : max((size_t)result.size, sizeof(uint32_t)))
     * 8 - 1;
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getSInt(i) >> (opB.getUInt(i) & shiftMask), i);
   }
@@ -613,7 +613,7 @@ INSTRUCTION(bwand)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) & opB.getUInt(i), i);
   }
@@ -623,7 +623,7 @@ INSTRUCTION(bwor)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) | opB.getUInt(i), i);
   }
@@ -633,7 +633,7 @@ INSTRUCTION(bwxor)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) ^ opB.getUInt(i), i);
   }
@@ -697,7 +697,7 @@ INSTRUCTION(extractval)
   // Compute offset for target value
   int offset = 0;
   const llvm::Type *type = agg->getType();
-  for (int i = 0; i < indices.size(); i++)
+  for (unsigned i = 0; i < indices.size(); i++)
   {
     if (type->isArrayTy())
     {
@@ -724,7 +724,7 @@ INSTRUCTION(fadd)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setFloat(opA.getFloat(i) + opB.getFloat(i), i);
   }
@@ -739,7 +739,7 @@ INSTRUCTION(fcmp)
   TypedValue opB = getOperand(instruction->getOperand(1));
 
   uint64_t t = result.num > 1 ? -1 : 1;
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     double a = opA.getFloat(i);
     double b = opB.getFloat(i);
@@ -795,7 +795,7 @@ INSTRUCTION(fdiv)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setFloat(opA.getFloat(i) / opB.getFloat(i), i);
   }
@@ -805,7 +805,7 @@ INSTRUCTION(fmul)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setFloat(opA.getFloat(i) * opB.getFloat(i), i);
   }
@@ -814,7 +814,7 @@ INSTRUCTION(fmul)
 INSTRUCTION(fpext)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setFloat(op.getFloat(i), i);
   }
@@ -823,7 +823,7 @@ INSTRUCTION(fpext)
 INSTRUCTION(fptosi)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setSInt((int64_t)op.getFloat(i), i);
   }
@@ -832,7 +832,7 @@ INSTRUCTION(fptosi)
 INSTRUCTION(fptoui)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt((uint64_t)op.getFloat(i), i);
   }
@@ -842,7 +842,7 @@ INSTRUCTION(frem)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setFloat(fmod(opA.getFloat(i), opB.getFloat(i)), i);
   }
@@ -851,7 +851,7 @@ INSTRUCTION(frem)
 INSTRUCTION(fptrunc)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setFloat(op.getFloat(i), i);
   }
@@ -861,7 +861,7 @@ INSTRUCTION(fsub)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setFloat(opA.getFloat(i) - opB.getFloat(i), i);
   }
@@ -928,7 +928,7 @@ INSTRUCTION(icmp)
   TypedValue opB = getOperand(instruction->getOperand(1));
 
   uint64_t t = result.num > 1 ? -1 : 1;
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     // Load operands
     uint64_t ua = opA.getUInt(i);
@@ -999,7 +999,7 @@ INSTRUCTION(insertval)
   int offset = 0;
   llvm::ArrayRef<unsigned int> indices = insert->getIndices();
   const llvm::Type *type = agg->getType();
-  for (int i = 0; i < indices.size(); i++)
+  for (unsigned i = 0; i < indices.size(); i++)
   {
     if (type->isArrayTy())
     {
@@ -1027,7 +1027,7 @@ INSTRUCTION(insertval)
 INSTRUCTION(inttoptr)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setPointer(op.getUInt(i), i);
   }
@@ -1036,7 +1036,7 @@ INSTRUCTION(inttoptr)
 INSTRUCTION(itrunc)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     memcpy(result.data+i*result.size, op.data+i*op.size, result.size);
   }
@@ -1066,7 +1066,7 @@ INSTRUCTION(lshr)
   uint64_t shiftMask =
     (result.num > 1 ? result.size : max((size_t)result.size, sizeof(uint32_t)))
     * 8 - 1;
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) >> (opB.getUInt(i) & shiftMask), i);
   }
@@ -1076,7 +1076,7 @@ INSTRUCTION(mul)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) * opB.getUInt(i), i);
   }
@@ -1093,7 +1093,7 @@ INSTRUCTION(phi)
 INSTRUCTION(ptrtoint)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(op.getPointer(i), i);
   }
@@ -1129,7 +1129,7 @@ INSTRUCTION(sdiv)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     int64_t a = opA.getSInt(i);
     int64_t b = opB.getSInt(i);
@@ -1146,7 +1146,7 @@ INSTRUCTION(select)
 {
   const llvm::SelectInst *selectInst = (const llvm::SelectInst*)instruction;
   TypedValue opCondition = getOperand(selectInst->getCondition());
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     const bool cond =
       selectInst->getCondition()->getType()->isVectorTy() ?
@@ -1165,7 +1165,7 @@ INSTRUCTION(sext)
 {
   const llvm::Value *operand = instruction->getOperand(0);
   TypedValue value = getOperand(operand);
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     int64_t val = value.getSInt(i);
     if (operand->getType()->getPrimitiveSizeInBits() == 1)
@@ -1183,7 +1183,7 @@ INSTRUCTION(shl)
   uint64_t shiftMask =
     (result.num > 1 ? result.size : max((size_t)result.size, sizeof(uint32_t)))
     * 8 - 1;
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) << (opB.getUInt(i) & shiftMask), i);
   }
@@ -1199,7 +1199,7 @@ INSTRUCTION(shuffle)
   TypedValue mask = getOperand(shuffle->getMask());
 
   unsigned num = v1->getType()->getVectorNumElements();
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     if (shuffle->getMask()->getAggregateElement(i)->getValueID()
           == llvm::Value::UndefValueVal)
@@ -1223,7 +1223,7 @@ INSTRUCTION(shuffle)
 INSTRUCTION(sitofp)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setFloat(op.getSInt(i), i);
   }
@@ -1233,7 +1233,7 @@ INSTRUCTION(srem)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     int64_t a = opA.getSInt(i);
     int64_t b = opB.getSInt(i);
@@ -1269,7 +1269,7 @@ INSTRUCTION(sub)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) - opB.getUInt(i), i);
   }
@@ -1289,7 +1289,7 @@ INSTRUCTION(udiv)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     uint64_t a = opA.getUInt(i);
     uint64_t b = opB.getUInt(i);
@@ -1300,7 +1300,7 @@ INSTRUCTION(udiv)
 INSTRUCTION(uitofp)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setFloat(op.getUInt(i), i);
   }
@@ -1310,7 +1310,7 @@ INSTRUCTION(urem)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     uint64_t a = opA.getUInt(i);
     uint64_t b = opB.getUInt(i);
@@ -1321,7 +1321,7 @@ INSTRUCTION(urem)
 INSTRUCTION(zext)
 {
   TypedValue operand = getOperand(instruction->getOperand(0));
-  for (int i = 0; i < result.num; i++)
+  for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(operand.getUInt(i), i);
   }
