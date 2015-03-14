@@ -66,7 +66,7 @@ using namespace oclgrind;
 using namespace std;
 
 Program::Program(const Context *context, llvm::Module *module)
-  : m_context(context), m_module(module)
+  : m_module(module), m_context(context)
 {
   m_action = NULL;
   m_buildLog = "";
