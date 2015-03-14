@@ -1930,7 +1930,7 @@ namespace oclgrind
         uint64_t ah = a >> 32;
         uint64_t  b = ((al + xlyh)>>32) + ah;
 
-        return xh*yh + b;
+        return xhyh + b;
       }
       else
       {
@@ -1958,7 +1958,7 @@ namespace oclgrind
         int64_t ah = a >> 32;
         int64_t  b = ((al + xlyh)>>32) + ah;
 
-        return xh*yh + b;
+        return xhyh + b;
       }
       else
       {
