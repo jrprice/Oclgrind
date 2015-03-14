@@ -42,7 +42,7 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags)
 
   // Find first unallocated buffer slot
   unsigned b = getNextBuffer();
-  if (b < 0 || b >= MAX_NUM_BUFFERS)
+  if (b >= MAX_NUM_BUFFERS)
   {
     return 0;
   }
@@ -219,7 +219,7 @@ size_t Memory::createHostBuffer(size_t size, void *ptr, cl_mem_flags flags)
 
   // Find first unallocated buffer slot
   unsigned b = getNextBuffer();
-  if (b < 0 || b >= MAX_NUM_BUFFERS)
+  if (b >= MAX_NUM_BUFFERS)
   {
     return 0;
   }
