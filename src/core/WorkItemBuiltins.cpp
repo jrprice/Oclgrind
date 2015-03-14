@@ -3184,9 +3184,10 @@ namespace oclgrind
       const llvm::DbgValueInst *dbgInst = (const llvm::DbgValueInst*)callInst;
       const llvm::Value *value = dbgInst->getValue();
       const llvm::MDNode *var = dbgInst->getVariable();
-      uint64_t offset = dbgInst->getOffset();
 
       // TODO: Use offset?
+      //uint64_t offset = dbgInst->getOffset();
+
       const llvm::MDString *name = ((const llvm::MDString*)var->getOperand(2));
       workItem->m_variables[name->getString().str()] = value;
     }
