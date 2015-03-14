@@ -23,6 +23,7 @@ namespace oclgrind
   {
   public:
     Plugin(const Context *context);
+    virtual ~Plugin();
 
     virtual void hostMemoryLoad(const Memory *memory,
                                 size_t address, size_t size){}

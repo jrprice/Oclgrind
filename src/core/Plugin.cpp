@@ -15,6 +15,10 @@ Plugin::Plugin(const Context *context)
 {
 }
 
+Plugin::~Plugin()
+{
+}
+
 bool Plugin::isThreadSafe() const
 {
   return true;
