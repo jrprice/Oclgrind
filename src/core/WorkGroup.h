@@ -85,7 +85,6 @@ namespace oclgrind
     void notifyFinished(WorkItem *workItem);
 
   private:
-    unsigned int m_workDim;
     size_t m_groupIndex;
     Size3 m_groupID;
     Size3 m_groupSize;
