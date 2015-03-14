@@ -1190,7 +1190,6 @@ INSTRUCTION(shuffle)
   TypedValue mask = getOperand(shuffle->getMask());
 
   unsigned num = v1->getType()->getVectorNumElements();
-  const llvm::Type *type = v1->getType()->getVectorElementType();
   for (int i = 0; i < result.num; i++)
   {
     if (shuffle->getMask()->getAggregateElement(i)->getValueID()
