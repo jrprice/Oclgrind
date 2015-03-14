@@ -1942,7 +1942,6 @@ namespace oclgrind
     {
       if (bits == 64)
       {
-        // TODO: Sometimes 1 out
         int64_t xl = x & UINT32_MAX;
         int64_t xh = x >> 32;
         int64_t yl = y & UINT32_MAX;
@@ -1953,7 +1952,7 @@ namespace oclgrind
         int64_t xhyl = xh*yl;
         int64_t xhyh = xh*yh;
 
-        int64_t  a = xhyl + ((xlyl)>>32);
+        int64_t  a = xhyl + ((xlyl>>32) & UINT32_MAX);
         int64_t al = a & UINT32_MAX;
         int64_t ah = a >> 32;
         int64_t  b = ((al + xlyh)>>32) + ah;
