@@ -562,9 +562,12 @@ INSTRUCTION(ashr)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
+  uint64_t shiftMask =
+    (result.num > 1 ? result.size : max((size_t)result.size, sizeof(uint32_t)))
+    * 8 - 1;
   for (int i = 0; i < result.num; i++)
   {
-    result.setUInt(opA.getSInt(i) >> opB.getUInt(i), i);
+    result.setUInt(opA.getSInt(i) >> (opB.getUInt(i) & shiftMask), i);
   }
 }
 
@@ -1060,9 +1063,12 @@ INSTRUCTION(lshr)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
+  uint64_t shiftMask =
+    (result.num > 1 ? result.size : max((size_t)result.size, sizeof(uint32_t)))
+    * 8 - 1;
   for (int i = 0; i < result.num; i++)
   {
-    result.setUInt(opA.getUInt(i) >> opB.getUInt(i), i);
+    result.setUInt(opA.getUInt(i) >> (opB.getUInt(i) & shiftMask), i);
   }
 }
 
@@ -1174,9 +1180,12 @@ INSTRUCTION(shl)
 {
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
+  uint64_t shiftMask =
+    (result.num > 1 ? result.size : max((size_t)result.size, sizeof(uint32_t)))
+    * 8 - 1;
   for (int i = 0; i < result.num; i++)
   {
-    result.setUInt(opA.getUInt(i) << opB.getUInt(i), i);
+    result.setUInt(opA.getUInt(i) << (opB.getUInt(i) & shiftMask), i);
   }
 }
 
