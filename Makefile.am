@@ -9,7 +9,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/
+AM_CPPFLAGS = -I$(top_srcdir)/src/ -Wall
 
 lib_LTLIBRARIES = liboclgrind.la liboclgrind-rt.la liboclgrind-rt-icd.la
 
