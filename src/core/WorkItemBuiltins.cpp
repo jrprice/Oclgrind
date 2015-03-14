@@ -2943,6 +2943,7 @@ namespace oclgrind
 
         result.setUInt(r, i);
       }
+      fesetround(origRnd);
     }
 
     DEFINE_BUILTIN(convert_sint)
