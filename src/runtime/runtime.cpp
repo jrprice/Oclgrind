@@ -4072,7 +4072,7 @@ clEnqueueFillImage
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, fill_color);
   }
-  if (!(region[0] & region[1] & region[2]))
+  if (!region[0] || !region[1] || !region[2])
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
                     "Values in region cannot be 0");
@@ -4616,7 +4616,7 @@ clEnqueueMapImage
                  "Image flags specify host will not read data");
     return NULL;
   }
-  if (!(region[0] & region[1] & region[2]))
+  if (!region[0] || !region[1] || !region[2])
   {
     SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
                  "Values in region cannot be 0");
