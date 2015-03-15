@@ -4072,6 +4072,11 @@ clEnqueueFillImage
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, fill_color);
   }
+  if (!(region[0] & region[1] & region[2]))
+  {
+    ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
+                    "Values in region cannot be 0");
+  }
 
   // Get image dimensions
   cl_image *img = (cl_image*)image;
