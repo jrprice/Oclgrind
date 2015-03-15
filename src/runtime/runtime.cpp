@@ -4083,9 +4083,15 @@ clEnqueueFillImage
   size_t width = img->desc.image_width;
   size_t height = img->desc.image_height;
   size_t depth = img->desc.image_depth;
+  size_t arraySize = img->desc.image_array_size;
   size_t pixelSize = getPixelSize(&img->format);
   size_t row_pitch = width * pixelSize;
   size_t slice_pitch = height * row_pitch;
+
+  if (img->desc.image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY)
+    height = arraySize;
+  if (img->desc.image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
+    depth = arraySize;
 
   // Ensure region is within image bounds
   if (origin[0] + region[0] > width)
@@ -4627,9 +4633,15 @@ clEnqueueMapImage
   size_t width = img->desc.image_width;
   size_t height = img->desc.image_height;
   size_t depth = img->desc.image_depth;
+  size_t arraySize = img->desc.image_array_size;
   size_t pixelSize = getPixelSize(&img->format);
   size_t row_pitch = width * pixelSize;
   size_t slice_pitch = height * row_pitch;
+
+  if (img->desc.image_type == CL_MEM_OBJECT_IMAGE1D_ARRAY)
+    height = arraySize;
+  if (img->desc.image_type == CL_MEM_OBJECT_IMAGE2D_ARRAY)
+    depth = arraySize;
 
   // Ensure region is within image bounds
   if (origin[0] + region[0] > width)
