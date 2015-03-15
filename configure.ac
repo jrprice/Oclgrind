@@ -33,6 +33,10 @@ AH_BOTTOM([
 
 LT_INIT
 
+# Check if we're compiling with Clang
+AS_CASE([`$CC --version`], [*clang*], [using_clang=yes])
+AM_CONDITIONAL([USING_CLANG], [test "$using_clang" == "yes"])
+
 oclgrind_extra_libs=
 
 # Check for C++11

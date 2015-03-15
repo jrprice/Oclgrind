@@ -11,6 +11,11 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/ -Wall
 
+# Suppress warnings from OpenCL runtime API headers
+if USING_CLANG
+AM_CPPFLAGS += -Wno-ignored-attributes -Wno-gcc-compat -Wno-availability
+endif USING_CLANG
+
 lib_LTLIBRARIES = liboclgrind.la liboclgrind-rt.la liboclgrind-rt-icd.la
 
 liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp		\
