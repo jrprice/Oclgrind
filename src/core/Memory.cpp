@@ -10,6 +10,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <mutex>
 
 #include "Context.h"
 #include "Memory.h"
@@ -18,6 +19,8 @@
 
 using namespace oclgrind;
 using namespace std;
+
+mutex atomicMutex;
 
 Memory::Memory(unsigned int addrSpace, const Context *context)
 {
@@ -90,6 +93,9 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
   Buffer *buffer = m_memory[EXTRACT_BUFFER(address)];
   uint32_t *ptr = (uint32_t*)(buffer->data + offset);
 
+  if (m_addressSpace == AddrSpaceGlobal)
+    atomicMutex.lock();
+
   uint32_t old = *ptr;
   switch(op)
   {
@@ -127,6 +133,10 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
     *ptr = old ^ value;
     break;
   }
+
+  if (m_addressSpace == AddrSpaceGlobal)
+    atomicMutex.unlock();
+
   return old;
 }
 
@@ -143,9 +153,12 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   // Get buffer
   size_t offset = EXTRACT_OFFSET(address);
   Buffer *buffer = m_memory[EXTRACT_BUFFER(address)];
+  uint32_t *ptr = (uint32_t*)(buffer->data + offset);
+
+  if (m_addressSpace == AddrSpaceGlobal)
+    atomicMutex.lock();
 
   // Perform cmpxchg
-  uint32_t *ptr = (uint32_t*)(buffer->data + offset);
   uint32_t old = *ptr;
   if (old == cmp)
   {
@@ -153,6 +166,9 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
 
     m_context->notifyMemoryAtomicStore(this, AtomicCmpXchg, address, 4);
   }
+
+  if (m_addressSpace == AddrSpaceGlobal)
+    atomicMutex.unlock();
 
   return old;
 }
