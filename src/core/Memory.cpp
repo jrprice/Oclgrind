@@ -20,7 +20,11 @@
 using namespace oclgrind;
 using namespace std;
 
-mutex atomicMutex;
+// Multiple mutexes to mitigate risk of unnecessary synchronisation in atomics
+#define NUM_ATOMIC_MUTEXES 64 // Must be power of two
+mutex atomicMutex[NUM_ATOMIC_MUTEXES];
+#define ATOMIC_MUTEX(offset) \
+  atomicMutex[(((offset)>>2) & (NUM_ATOMIC_MUTEXES-1))]
 
 Memory::Memory(unsigned int addrSpace, const Context *context)
 {
@@ -94,7 +98,7 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
   uint32_t *ptr = (uint32_t*)(buffer->data + offset);
 
   if (m_addressSpace == AddrSpaceGlobal)
-    atomicMutex.lock();
+    ATOMIC_MUTEX(offset).lock();
 
   uint32_t old = *ptr;
   switch(op)
@@ -135,7 +139,7 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
   }
 
   if (m_addressSpace == AddrSpaceGlobal)
-    atomicMutex.unlock();
+    ATOMIC_MUTEX(offset).unlock();
 
   return old;
 }
@@ -156,7 +160,7 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   uint32_t *ptr = (uint32_t*)(buffer->data + offset);
 
   if (m_addressSpace == AddrSpaceGlobal)
-    atomicMutex.lock();
+    ATOMIC_MUTEX(offset).lock();
 
   // Perform cmpxchg
   uint32_t old = *ptr;
@@ -168,7 +172,7 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   }
 
   if (m_addressSpace == AddrSpaceGlobal)
-    atomicMutex.unlock();
+    ATOMIC_MUTEX(offset).unlock();
 
   return old;
 }
