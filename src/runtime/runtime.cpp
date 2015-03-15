@@ -4631,6 +4631,29 @@ clEnqueueMapImage
   size_t row_pitch = width * pixelSize;
   size_t slice_pitch = height * row_pitch;
 
+  // Ensure region is within image bounds
+  if (origin[0] + region[0] > width)
+  {
+    SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
+                 "origin[0] + region[0] > width ("
+                 << origin[0] << " + " << region[0] << " > " << width
+                 << " )");
+  }
+  if (origin[1] + region[1] > height)
+  {
+    SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
+                 "origin[1] + region[1] > height ("
+                 << origin[1] << " + " << region[1] << " > " << height
+                 << " )");
+  }
+  if (origin[2] + region[2] > depth)
+  {
+    SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
+                 "origin[2] + region[2] > depth ("
+                 << origin[2] << " + " << region[2] << " > " << depth
+                 << " )");
+  }
+
   // Compute byte offset and size
   size_t offset = origin[0] * pixelSize
                 + origin[1] * row_pitch
@@ -4638,14 +4661,6 @@ clEnqueueMapImage
   size_t size = region[0] * pixelSize
               + (region[1]-1) * row_pitch
               + (region[2]-1) * slice_pitch;
-
-  // Check map region
-  if (offset+size > image->size)
-  {
-    SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                 "Region exceeds image size (" << image->size << " bytes)");
-    return NULL;
-  }
 
   // Map image
   void *ptr = image->context->context->getGlobalMemory()->mapBuffer(
