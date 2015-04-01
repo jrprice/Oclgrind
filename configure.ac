@@ -10,7 +10,6 @@ AC_INIT([Oclgrind], [15.2], , [oclgrind], [https://github.com/jrprice/Oclgrind])
 AC_PREREQ([2.63])
 AC_CONFIG_SRCDIR([src/])
 AM_INIT_AUTOMAKE([foreign 1.12])
-AC_PROG_CC_C99
 AC_LANG(C++)
 AC_PROG_CXX
 AC_CONFIG_MACRO_DIR([m4])

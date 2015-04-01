@@ -9,6 +9,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
+AM_CFLAGS   = -std=c99
 AM_CPPFLAGS = -I$(top_srcdir)/src/ -Wall
 
 # Suppress warnings from OpenCL runtime API headers
