@@ -23,6 +23,7 @@ barrier/barrier_different_instructions
 barrier/barrier_divergence
 bugs/gvn_arbitrary_integers
 bugs/kernel_struct_argument
+bugs/many_alloca
 bugs/multidim_array_in_struct
 bugs/null_argument
 bugs/sroa_addrspace_cast
