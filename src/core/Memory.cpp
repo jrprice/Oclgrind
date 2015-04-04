@@ -321,7 +321,7 @@ void Memory::deallocateBuffer(size_t address)
 
 void Memory::dump() const
 {
-  for (unsigned b = 0; b < m_memory.size(); b++)
+  for (unsigned b = 1; b < m_memory.size(); b++)
   {
     if (!m_memory[b]->data)
     {
