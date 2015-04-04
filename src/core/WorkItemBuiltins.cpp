@@ -3500,6 +3500,7 @@ namespace oclgrind
     ADD_BUILTIN("llvm.lifetime.start", llvm_lifetime_start, NULL);
     ADD_BUILTIN("llvm.lifetime.end", llvm_lifetime_end, NULL);
     ADD_PREFIX_BUILTIN("llvm.memcpy", llvm_memcpy, NULL);
+    ADD_PREFIX_BUILTIN("llvm.memmove", llvm_memcpy, NULL);
     ADD_PREFIX_BUILTIN("llvm.memset", llvm_memset, NULL);
     ADD_PREFIX_BUILTIN("llvm.fmuladd", f3arg, F3ARG(_fma_));
     ADD_BUILTIN("llvm.trap", llvm_trap, NULL);
