@@ -554,6 +554,8 @@ INSTRUCTION(alloc)
   // Perform allocation
   unsigned size = getTypeSize(type);
   size_t address = m_privateMemory->allocateBuffer(size);
+  if (!address)
+    FATAL_ERROR("Insufficient private memory (alloca)");
 
   // Create pointer to alloc'd memory
   result.setPointer(address);
