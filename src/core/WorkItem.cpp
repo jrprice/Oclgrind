@@ -35,6 +35,7 @@ struct WorkItem::Position
   llvm::Function::const_iterator       nextBlock;
   llvm::BasicBlock::const_iterator     currInst;
   std::stack<const llvm::Instruction*> callStack;
+  std::stack< std::list<size_t> >      allocations;
 };
 
 WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
@@ -556,6 +557,10 @@ INSTRUCTION(alloc)
 
   // Create pointer to alloc'd memory
   result.setPointer(address);
+
+  // Track allocation in stack frame
+  if (!m_position->allocations.empty())
+    m_position->allocations.top().push_back(address);
 }
 
 INSTRUCTION(ashr)
@@ -657,6 +662,7 @@ INSTRUCTION(call)
   if (!function->isDeclaration())
   {
     m_position->callStack.push(m_position->currInst);
+    m_position->allocations.push(list<size_t>());
     m_position->nextBlock = function->begin();
 
     // Set function arguments
@@ -1115,6 +1121,15 @@ INSTRUCTION(ret)
     {
       setValue(m_position->currInst, m_pool.clone(getOperand(returnVal)));
     }
+
+    // Clear stack allocations
+    list<size_t>& allocs = m_position->allocations.top();
+    list<size_t>::iterator itr;
+    for (itr = allocs.begin(); itr != allocs.end(); itr++)
+    {
+      m_privateMemory->deallocateBuffer(*itr);
+    }
+    m_position->allocations.pop();
   }
   else
   {
