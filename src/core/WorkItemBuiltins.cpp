@@ -10,9 +10,9 @@
 #include <algorithm>
 #include <fenv.h>
 
-#include "llvm/Instructions.h"
-#include "llvm/IntrinsicInst.h"
-#include "llvm/Metadata.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Metadata.h"
 
 #include "CL/cl.h"
 #include "Context.h"
@@ -3172,7 +3172,8 @@ namespace oclgrind
         (const llvm::DbgDeclareInst*)callInst;
       const llvm::Value *addr = dbgInst->getAddress();
       const llvm::MDNode *var = dbgInst->getVariable();
-      const llvm::MDString *name = ((const llvm::MDString*)var->getOperand(2));
+      const llvm::MDString *name =
+        llvm::dyn_cast<llvm::MDString>(var->getOperand(2));
       workItem->m_variables[name->getString().str()] = addr;
     }
 
@@ -3185,7 +3186,8 @@ namespace oclgrind
       // TODO: Use offset?
       //uint64_t offset = dbgInst->getOffset();
 
-      const llvm::MDString *name = ((const llvm::MDString*)var->getOperand(2));
+      const llvm::MDString *name =
+        llvm::dyn_cast<llvm::MDString>(var->getOperand(2));
       workItem->m_variables[name->getString().str()] = value;
     }
 

@@ -9,7 +9,7 @@
 #include "common.h"
 #include <sstream>
 
-#include "llvm/Module.h"
+#include "llvm/IR/Module.h"
 
 #include "Context.h"
 #include "Kernel.h"

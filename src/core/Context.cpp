@@ -17,8 +17,8 @@
 
 #include <mutex>
 
-#include "llvm/DebugInfo.h"
-#include "llvm/Instruction.h"
+#include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/Instruction.h"
 
 #include "Context.h"
 #include "Kernel.h"

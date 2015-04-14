@@ -155,7 +155,7 @@ target_link_libraries(oclgrind ${CORE_EXTRA_LIBS}
   clangFrontend clangLex clangParse clangSema clangSerialization
   LLVMBitReader LLVMBitWriter LLVMAsmParser LLVMInstrumentation
   LLVMipo LLVMipa LLVMInstCombine LLVMLinker LLVMMC LLVMMCParser
-  LLVMScalarOpts LLVMTarget LLVMTransformUtils LLVMVectorize
+  LLVMOption LLVMScalarOpts LLVMTarget LLVMTransformUtils LLVMVectorize
   LLVMAnalysis LLVMCore LLVMSupport)
 
 # Sources for OpenCL runtime API frontend

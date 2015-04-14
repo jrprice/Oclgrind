@@ -15,16 +15,18 @@
 #include <dlfcn.h>
 #endif
 
-#include "llvm/Assembly/AssemblyAnnotationWriter.h"
 #include "llvm/Bitcode/ReaderWriter.h"
-#include "llvm/DataLayout.h"
-#include "llvm/Instructions.h"
-#include "llvm/Support/InstIterator.h"
-#include "llvm/Linker.h"
-#include "llvm/LLVMContext.h"
-#include "llvm/Module.h"
+#include "llvm/IR/AssemblyAnnotationWriter.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/InstIterator.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Linker/Linker.h"
 #include "llvm/PassManager.h"
-#include "llvm/Support/system_error.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils/Cloning.h"
@@ -68,7 +70,6 @@ using namespace std;
 Program::Program(const Context *context, llvm::Module *module)
   : m_module(module), m_context(context)
 {
-  m_action = NULL;
   m_buildLog = "";
   m_buildOptions = "";
   m_buildStatus = CL_BUILD_SUCCESS;
@@ -79,8 +80,6 @@ Program::Program(const Context *context, const string& source)
   : m_context(context)
 {
   m_source = source;
-  m_module = NULL;
-  m_action = NULL;
   m_buildLog = "";
   m_buildOptions = "";
   m_buildStatus = CL_BUILD_NONE;
@@ -102,16 +101,6 @@ Program::Program(const Context *context, const string& source)
 Program::~Program()
 {
   clearInterpreterCache();
-
-  if (m_module)
-  {
-    delete m_module;
-  }
-
-  if (m_action)
-  {
-    delete m_action;
-  }
 }
 
 bool Program::build(const char *options, list<Header> headers)
@@ -133,9 +122,7 @@ bool Program::build(const char *options, list<Header> headers)
   if (m_module)
   {
     clearInterpreterCache();
-
-    delete m_module;
-    m_module = NULL;
+    m_module.reset();
   }
 
   // Assign a new UID to this program
@@ -288,57 +275,48 @@ bool Program::build(const char *options, list<Header> headers)
   clang::DiagnosticOptions *diagOpts = new clang::DiagnosticOptions();
   llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(
     new clang::DiagnosticIDs());
-  clang::TextDiagnosticPrinter diagConsumer(buildLog, diagOpts);
-  clang::DiagnosticsEngine diags(diagID, diagOpts, &diagConsumer, false);
-
-  // Create compiler invocation
-  llvm::OwningPtr<clang::CompilerInvocation> invocation(
-    new clang::CompilerInvocation);
-  clang::CompilerInvocation::CreateFromArgs(*invocation,
-                                            &args[0], &args[0] + args.size(),
-                                            diags);
+  clang::TextDiagnosticPrinter *diagConsumer =
+    new clang::TextDiagnosticPrinter(buildLog, diagOpts);
+  clang::DiagnosticsEngine diags(diagID, diagOpts, diagConsumer);
 
   // Create compiler instance
   clang::CompilerInstance compiler;
-  compiler.setInvocation(invocation.take());
+  compiler.createDiagnostics(diagConsumer, false);
+
+  // Create compiler invocation
+  clang::CompilerInvocation *invocation = new clang::CompilerInvocation;
+  clang::CompilerInvocation::CreateFromArgs(*invocation,
+                                            &args[0], &args[0] + args.size(),
+                                            compiler.getDiagnostics());
+  compiler.setInvocation(invocation);
 
   // Remap include files
-  llvm::MemoryBuffer *buffer;
+  std::unique_ptr<llvm::MemoryBuffer> buffer;
   compiler.getHeaderSearchOpts().AddPath(REMAP_DIR, clang::frontend::Quoted,
-                                         false, false, false);
+                                         false, false);
   list<Header>::iterator itr;
   for (itr = headers.begin(); itr != headers.end(); itr++)
   {
     buffer = llvm::MemoryBuffer::getMemBuffer(itr->second->m_source, "", false);
     compiler.getPreprocessorOpts().addRemappedFile(REMAP_DIR + itr->first,
-                                                   buffer);
+                                                   buffer.release());
   }
 
   // Remap clc.h
   buffer = llvm::MemoryBuffer::getMemBuffer(CLC_H_DATA, "", false);
-  compiler.getPreprocessorOpts().addRemappedFile(CLC_H_PATH, buffer);
+  compiler.getPreprocessorOpts().addRemappedFile(CLC_H_PATH, buffer.release());
 
   // Remap input file
   buffer = llvm::MemoryBuffer::getMemBuffer(m_source, "", false);
-  compiler.getPreprocessorOpts().addRemappedFile(REMAP_INPUT, buffer);
-
-  // Prepare diagnostics
-  compiler.createDiagnostics(args.size(), &args[0], &diagConsumer, false);
-  if (!compiler.hasDiagnostics())
-  {
-    m_buildStatus = CL_BUILD_ERROR;
-    return false;
-  }
+  compiler.getPreprocessorOpts().addRemappedFile(REMAP_INPUT, buffer.release());
 
   // Compile
   llvm::LLVMContext& context = llvm::getGlobalContext();
-  clang::CodeGenAction *action = new clang::EmitLLVMOnlyAction(&context);
-
-  if (compiler.ExecuteAction(*action))
+  clang::EmitLLVMOnlyAction action(&context);
+  if (compiler.ExecuteAction(action))
   {
     // Retrieve module
-    m_action = new llvm::OwningPtr<clang::CodeGenAction>(action);
-    m_module = action->takeModule();
+    m_module = action.takeModule();
 
     // Strip debug intrinsics if not in interactive mode
     if (!checkEnv("OCLGRIND_INTERACTIVE"))
@@ -348,9 +326,9 @@ bool Program::build(const char *options, list<Header> headers)
 
     // Initialize pass managers
     llvm::PassManager modulePasses;
-    llvm::FunctionPassManager functionPasses(m_module);
-    modulePasses.add(new llvm::DataLayout(m_module->getDataLayout()));
-    functionPasses.add(new llvm::DataLayout(m_module->getDataLayout()));
+    llvm::FunctionPassManager functionPasses(m_module.get());
+    modulePasses.add(new llvm::DataLayoutPass());
+    functionPasses.add(new llvm::DataLayoutPass());
 
     // Run optimizations on module
     if (optimize)
@@ -371,6 +349,7 @@ bool Program::build(const char *options, list<Header> headers)
     functionPasses.doFinalization();
     modulePasses.run(*m_module);
 
+    // TODO: Don't need this anymore?
     // Attempt to legalize module
     if (legalize(buildLog))
     {
@@ -414,15 +393,15 @@ bool Program::build(const char *options, list<Header> headers)
     if (m_buildStatus == CL_BUILD_SUCCESS)
     {
       // Dump IR
-      string err;
-      llvm::raw_fd_ostream ir(tempIR, err);
+      std::error_code err;
+      llvm::raw_fd_ostream ir(tempIR, err, llvm::sys::fs::F_None);
       llvm::AssemblyAnnotationWriter asmWriter;
       m_module->print(ir, &asmWriter);
       ir.close();
 
       // Dump bitcode
-      llvm::raw_fd_ostream bc(tempBC, err);
-      llvm::WriteBitcodeToFile(m_module, bc);
+      llvm::raw_fd_ostream bc(tempBC, err, llvm::sys::fs::F_None);
+      llvm::WriteBitcodeToFile(m_module.get(), bc);
       bc.close();
     }
 
@@ -453,43 +432,46 @@ Program* Program::createFromBitcode(const Context *context,
                                     size_t length)
 {
   // Load bitcode from file
-  llvm::MemoryBuffer *buffer;
   llvm::StringRef data((const char*)bitcode, length);
-  buffer = llvm::MemoryBuffer::getMemBuffer(data, "", false);
+  unique_ptr<llvm::MemoryBuffer> buffer =
+    llvm::MemoryBuffer::getMemBuffer(data, "", false);
   if (!buffer)
   {
     return NULL;
   }
 
   // Parse bitcode into IR module
-  llvm::Module *module = ParseBitcodeFile(buffer, llvm::getGlobalContext());
+  llvm::ErrorOr<llvm::Module*> module =
+    parseBitcodeFile(buffer->getMemBufferRef(), llvm::getGlobalContext());
   if (!module)
   {
     return NULL;
   }
 
-  return new Program(context, module);
+  return new Program(context, module.get());
 }
 
 Program* Program::createFromBitcodeFile(const Context *context,
                                         const string filename)
 {
   // Load bitcode from file
-  llvm::OwningPtr<llvm::MemoryBuffer> buffer;
-  if (llvm::MemoryBuffer::getFile(filename, buffer))
+  llvm::ErrorOr<unique_ptr<llvm::MemoryBuffer>> buffer =
+    llvm::MemoryBuffer::getFile(filename);
+  if (!buffer)
   {
     return NULL;
   }
 
   // Parse bitcode into IR module
-  llvm::Module *module = ParseBitcodeFile(buffer.get(),
-                                          llvm::getGlobalContext());
+  llvm::ErrorOr<llvm::Module*> module =
+    parseBitcodeFile(buffer->get()->getMemBufferRef(),
+                     llvm::getGlobalContext());
   if (!module)
   {
     return NULL;
   }
 
-  return new Program(context, module);
+  return new Program(context, module.get());
 }
 
 Program* Program::createFromPrograms(const Context *context,
@@ -497,19 +479,19 @@ Program* Program::createFromPrograms(const Context *context,
 {
   llvm::Module *module = new llvm::Module("oclgrind_linked",
                                           llvm::getGlobalContext());
-  llvm::Linker linker("oclgrind", module);
+  llvm::Linker linker(module);
 
   // Link modules
   list<const Program*>::iterator itr;
   for (itr = programs.begin(); itr != programs.end(); itr++)
   {
-    if (linker.LinkInModule(CloneModule((*itr)->m_module)))
+    if (linker.linkInModule(CloneModule((*itr)->m_module.get())))
     {
       return NULL;
     }
   }
 
-  return new Program(context, linker.releaseModule());
+  return new Program(context, linker.getModule());
 }
 
 Kernel* Program::createKernel(const string name)
@@ -529,8 +511,14 @@ Kernel* Program::createKernel(const string name)
   for (unsigned i = 0; i < tuple->getNumOperands(); ++i)
   {
     llvm::MDNode* kernel = tuple->getOperand(i);
-    llvm::Function* kernelFunction =
-      llvm::dyn_cast<llvm::Function>(kernel->getOperand(0));
+
+    llvm::ConstantAsMetadata *cam =
+      llvm::dyn_cast<llvm::ConstantAsMetadata>(kernel->getOperand(0).get());
+    if (!cam)
+      continue;
+
+    llvm::Function *kernelFunction =
+      llvm::dyn_cast<llvm::Function>(cam->getValue());
 
     // Shouldn't really happen - this would mean an invalid Module as input
     if (!kernelFunction)
@@ -558,7 +546,7 @@ Kernel* Program::createKernel(const string name)
       m_interpreterCache[function] = new InterpreterCache(function);
     }
 
-    return new Kernel(this, function, m_module);
+    return new Kernel(this, function, m_module.get());
   }
   catch (FatalError& err)
   {
@@ -580,7 +568,7 @@ unsigned char* Program::getBinary() const
 
   std::string str;
   llvm::raw_string_ostream stream(str);
-  llvm::WriteBitcodeToFile(m_module, stream);
+  llvm::WriteBitcodeToFile(m_module.get(), stream);
   stream.str();
   unsigned char *bitcode = new unsigned char[str.length()];
   memcpy(bitcode, str.c_str(), str.length());
@@ -596,7 +584,7 @@ size_t Program::getBinarySize() const
 
   std::string str;
   llvm::raw_string_ostream stream(str);
-  llvm::WriteBitcodeToFile(m_module, stream);
+  llvm::WriteBitcodeToFile(m_module.get(), stream);
   stream.str();
   return str.length();
 }
@@ -644,15 +632,21 @@ list<string> Program::getKernelNames() const
   {
     for (unsigned i = 0; i < tuple->getNumOperands(); ++i)
     {
-      llvm::MDNode* Kernel = tuple->getOperand(i);
-      llvm::Function* KernelFunction =
-        llvm::dyn_cast<llvm::Function>(Kernel->getOperand(0));
+      llvm::MDNode* kernel = tuple->getOperand(i);
 
-      // Shouldn't really happen - this would mean an invalid Module as input
-      if (!KernelFunction)
+      llvm::ConstantAsMetadata *cam =
+      llvm::dyn_cast<llvm::ConstantAsMetadata>(kernel->getOperand(0).get());
+      if (!cam)
         continue;
 
-      names.push_back(KernelFunction->getName());
+      llvm::Function *kernelFunction =
+        llvm::dyn_cast<llvm::Function>(cam->getValue());
+
+      // Shouldn't really happen - this would mean an invalid Module as input
+      if (!kernelFunction)
+        continue;
+
+      names.push_back(kernelFunction->getName());
     }
   }
 
@@ -661,7 +655,7 @@ list<string> Program::getKernelNames() const
 
 unsigned int Program::getNumKernels() const
 {
-  assert(m_module != NULL);
+  assert(m_module);
 
   // Extract kernels from metadata
   llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
@@ -744,19 +738,19 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
     llvm::Value::use_iterator use;
     for (use = (*global)->use_begin(); use != (*global)->use_end(); use++)
     {
-      unsigned useType = use->getValueID();
+      unsigned useType = use->get()->getValueID();
       switch (useType)
       {
       case llvm::Value::ConstantExprVal:
       {
-        unsigned opcode = ((llvm::ConstantExpr*)*use)->getOpcode();
+        unsigned opcode = ((llvm::ConstantExpr*)use->get())->getOpcode();
         switch (opcode)
         {
         case llvm::Instruction::BitCast:
         {
           llvm::Constant *expr =
-            llvm::ConstantExpr::getBitCast(newGlobal, use->getType());
-          use->replaceAllUsesWith(expr);
+            llvm::ConstantExpr::getBitCast(newGlobal, use->get()->getType());
+          use->get()->replaceAllUsesWith(expr);
           break;
         }
         default:
@@ -769,7 +763,7 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
       default:
         if (useType >= llvm::Value::InstructionVal)
         {
-          llvm::Instruction *instruction = ((llvm::Instruction*)*use);
+          llvm::Instruction *instruction = ((llvm::Instruction*)use->get());
           switch (instruction->getOpcode())
           {
             default:
@@ -829,7 +823,7 @@ bool Program::legalize(llvm::raw_string_ostream& buildLog)
       for (U = cast->use_begin(); U != cast->use_end(); U++)
       {
         // TODO: What if user is another bitcast? Replace recursively?
-        U->replaceUsesOfWith(cast, newCast);
+        U->getUser()->replaceUsesOfWith(cast, newCast);
       }
       cast->eraseFromParent();
     }

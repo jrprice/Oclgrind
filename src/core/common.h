@@ -40,7 +40,9 @@ namespace llvm
 {
   class Constant;
   class ConstantExpr;
+  class ConstantInt;
   class Instruction;
+  class MDOperand;
   class StructType;
   class Type;
   class Value;
@@ -143,6 +145,9 @@ namespace oclgrind
   // Creates an instruction from a constant expression
   const llvm::Instruction* getConstExprAsInstruction(
     const llvm::ConstantExpr *expr);
+
+  // Get the ConstantInt object for an MDOperand
+  const llvm::ConstantInt* getMDOpAsConstInt(const llvm::MDOperand& op);
 
   // Get the byte offset of a struct member
   unsigned getStructMemberOffset(const llvm::StructType *type, unsigned index);

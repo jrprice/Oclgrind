@@ -38,12 +38,12 @@ liboclgrind_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
 -lclangDriver -lclangSerialization -lclangCodeGen -lclangParse		\
 -lclangSema -lclangStaticAnalyzerFrontend				\
 -lclangStaticAnalyzerCheckers -lclangStaticAnalyzerCore			\
--lclangAnalysis -lclangARCMigrate -lclangRewriteFrontend		\
--lclangRewriteCore -lclangEdit -lclangAST -lclangLex -lclangBasic	\
--lLLVMBitReader -lLLVMBitWriter -lLLVMAsmParser -lLLVMInstrumentation	\
--lLLVMipo -lLLVMipa -lLLVMInstCombine -lLLVMLinker -lLLVMMC		\
--lLLVMMCParser -lLLVMScalarOpts -lLLVMTarget -lLLVMTransformUtils	\
--lLLVMVectorize -lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lpthread	\
+-lclangAnalysis -lclangARCMigrate -lclangRewriteFrontend -lclangEdit	\
+-lclangAST -lclangLex -lclangBasic -lLLVMBitReader -lLLVMBitWriter	\
+-lLLVMAsmParser -lLLVMInstrumentation -lLLVMipo -lLLVMipa		\
+-lLLVMInstCombine -lLLVMLinker -lLLVMMC -lLLVMMCParser -lLLVMOption	\
+-lLLVMScalarOpts -lLLVMTarget -lLLVMTransformUtils -lLLVMVectorize	\
+-lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lpthread			\
 $(oclgrind_extra_libs) -shared
 oclgrind_includedir = $(includedir)/oclgrind
 oclgrind_include_HEADERS = src/core/common.h src/core/Context.h	\

@@ -9,9 +9,9 @@
 #include "common.h"
 #include <sstream>
 
-#include "llvm/Constants.h"
-#include "llvm/DerivedTypes.h"
-#include "llvm/Module.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Support/raw_os_ostream.h"
 
 #include "Kernel.h"
@@ -89,7 +89,14 @@ Kernel::Kernel(const Program *program,
     for (unsigned i = 0; i < md->getNumOperands(); i++)
     {
       llvm::MDNode *node = md->getOperand(i);
-      if (node->getOperand(0)->getName() == m_name)
+
+      llvm::ConstantAsMetadata *cam =
+        llvm::dyn_cast<llvm::ConstantAsMetadata>(node->getOperand(0).get());
+      if (!cam)
+        continue;
+
+      llvm::Function *function = ((llvm::Function*)cam->getValue());
+      if (function->getName() == m_name)
       {
         m_metadata = node;
         break;
@@ -204,16 +211,18 @@ unsigned int Kernel::getArgumentAccessQualifier(unsigned int index) const
   }
 
   // Get qualifier string
-  string str = node->getOperand(index+1)->getName();
-  if (str == "read_only")
+  llvm::MDString *str
+    = llvm::dyn_cast<llvm::MDString>(node->getOperand(index+1));
+  string access = str->getString();
+  if (access == "read_only")
   {
     return CL_KERNEL_ARG_ACCESS_READ_ONLY;
   }
-  else if (str == "write_only")
+  else if (access == "write_only")
   {
     return CL_KERNEL_ARG_ACCESS_WRITE_ONLY;
   }
-  else if (str == "read_write")
+  else if (access == "read_write")
   {
     return CL_KERNEL_ARG_ACCESS_READ_WRITE;
   }
@@ -231,15 +240,8 @@ unsigned int Kernel::getArgumentAddressQualifier(unsigned int index) const
     return -1;
   }
 
-  // TODO: Remove this when kernel arg info metadata fixed in compiler
-  // This has been fixed by Pedro's clang patch in r198868, llvm bug 18419
-  if (getArgumentTypeName(index).startswith("image"))
-  {
-    return CL_KERNEL_ARG_ADDRESS_GLOBAL;
-  }
-
   // Get address space
-  switch(((llvm::ConstantInt*)node->getOperand(index+1))->getZExtValue())
+  switch(getMDOpAsConstInt(node->getOperand(index+1))->getZExtValue())
   {
     case AddrSpacePrivate:
       return CL_KERNEL_ARG_ADDRESS_PRIVATE;
@@ -264,12 +266,12 @@ const llvm::MDNode* Kernel::getArgumentMetadata(string name) const
   // Loop over all metadata nodes for this kernel
   for (unsigned i = 0; i < m_metadata->getNumOperands(); i++)
   {
-    const llvm::Value *value = m_metadata->getOperand(i);
-    if (value->getType()->getTypeID() == llvm::Type::MetadataTyID)
+    const llvm::MDOperand& op = m_metadata->getOperand(i);
+    if (llvm::MDNode *node = llvm::dyn_cast<llvm::MDNode>(op.get()))
     {
       // Check if node matches target name
-      const llvm::MDNode *node = (llvm::MDNode*)value;
-      if (node->getNumOperands() > 0 && node->getOperand(0)->getName() == name)
+      if (node->getNumOperands() > 0 &&
+          ((llvm::MDString*)(node->getOperand(0).get()))->getString() == name)
       {
         return node;
       }
@@ -294,7 +296,7 @@ const llvm::StringRef Kernel::getArgumentTypeName(unsigned int index) const
     return "";
   }
 
-  return node->getOperand(index+1)->getName();
+  return llvm::dyn_cast<llvm::MDString>(node->getOperand(index+1))->getString();
 }
 
 unsigned int Kernel::getArgumentTypeQualifier(unsigned int index) const
@@ -309,7 +311,9 @@ unsigned int Kernel::getArgumentTypeQualifier(unsigned int index) const
   }
 
   // Get qualifiers
-  istringstream iss(node->getOperand(index+1)->getName().str());
+  llvm::MDString *str =
+    llvm::dyn_cast<llvm::MDString>(node->getOperand(index+1));
+  istringstream iss(str->getString().str());
 
   unsigned int result = CL_KERNEL_ARG_TYPE_NONE;
   while (!iss.eof())
@@ -352,29 +356,33 @@ string Kernel::getAttributes() const
   ostringstream attributes("");
   for (unsigned i = 0; i < m_metadata->getNumOperands(); i++)
   {
-    llvm::Value *op = m_metadata->getOperand(i);
-    if (op->getValueID() == llvm::Value::MDNodeVal)
+    llvm::MDNode *op = llvm::dyn_cast<llvm::MDNode>(m_metadata->getOperand(i));
+    if (op)
     {
       llvm::MDNode *val = ((llvm::MDNode*)op);
-      string name = val->getOperand(0)->getName().str();
+      llvm::MDString *str =
+        llvm::dyn_cast<llvm::MDString>(val->getOperand(0).get());
+      string name = str->getString().str();
 
       if (name == "reqd_work_group_size" ||
           name == "work_group_size_hint")
       {
         attributes << name << "("
                    <<
-          ((const llvm::ConstantInt*)val->getOperand(1))->getZExtValue()
+          getMDOpAsConstInt(val->getOperand(1))->getZExtValue()
                    << "," <<
-          ((const llvm::ConstantInt*)val->getOperand(2))->getZExtValue()
+          getMDOpAsConstInt(val->getOperand(2))->getZExtValue()
                    << "," <<
-          ((const llvm::ConstantInt*)val->getOperand(3))->getZExtValue()
+          getMDOpAsConstInt(val->getOperand(3))->getZExtValue()
                    << ") ";
       }
       else if (name == "vec_type_hint")
       {
         // Get type hint
         size_t n = 1;
-        const llvm::Type *type = val->getOperand(1)->getType();
+        llvm::Metadata *md = val->getOperand(1).get();
+        llvm::ValueAsMetadata *vam = llvm::dyn_cast<llvm::ValueAsMetadata>(md);
+        const llvm::Type *type = vam->getType();
         if (type->isVectorTy())
         {
           n = type->getVectorNumElements();
@@ -433,17 +441,17 @@ void Kernel::getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const
   memset(reqdWorkGroupSize, 0, 3*sizeof(size_t));
   for (unsigned i = 0; i < m_metadata->getNumOperands(); i++)
   {
-    llvm::Value *op = m_metadata->getOperand(i);
-    if (op->getValueID() == llvm::Value::MDNodeVal)
+    const llvm::MDOperand& op = m_metadata->getOperand(i);
+    if (llvm::MDNode *val = llvm::dyn_cast<llvm::MDNode>(op.get()))
     {
-      llvm::MDNode *val = ((llvm::MDNode*)op);
-      string name = val->getOperand(0)->getName().str();
-      if (name == "reqd_work_group_size")
+      llvm::MDString *str =
+        llvm::dyn_cast<llvm::MDString>(val->getOperand(0).get());
+      if (str->getString() == "reqd_work_group_size")
       {
         for (int j = 0; j < 3; j++)
         {
           reqdWorkGroupSize[j] =
-            ((const llvm::ConstantInt*)val->getOperand(j+1))->getZExtValue();
+            getMDOpAsConstInt(val->getOperand(j+1))->getZExtValue();
         }
       }
     }

@@ -20,10 +20,10 @@
 #include <readline/history.h>
 #endif
 
-#include "llvm/DebugInfo.h"
-#include "llvm/Function.h"
-#include "llvm/Instruction.h"
-#include "llvm/Instructions.h"
+#include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
 
 #include "InteractiveDebugger.h"
 #include "core/Context.h"

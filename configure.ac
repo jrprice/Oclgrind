@@ -16,20 +16,6 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
 
-# Disable alignas attribute for Clang due to bug in LLVM 3.2 Support/AlignOf.h
-DISABLE_ALIGNAS="
-#ifdef __has_feature
-#if __has_feature(cxx_alignas)
-#define alignas(x)
-#endif
-#endif"
-AH_BOTTOM([
-#ifdef __has_feature
-#if __has_feature(cxx_alignas)
-#define alignas(x)
-#endif
-#endif])
-
 LT_INIT
 
 # Check if we're compiling with Clang
@@ -44,6 +30,7 @@ AX_CXX_COMPILE_STDCXX_11(, [mandatory])
 # Add LLVM required macro definitions
 CPPFLAGS="$CPPFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
 
+# TODO: Rename to with-llvm
 # --with-spir option to specify root of Clang/SPIR generator
 AC_ARG_WITH(
         spir,
@@ -55,10 +42,9 @@ AC_ARG_WITH(
 
 # Check for LLVM/Clang headers/libraries
 AC_CHECK_HEADERS(
-        [llvm/Instruction.h clang/CodeGen/CodeGenAction.h],
+        [llvm/IR/Instruction.h clang/CodeGen/CodeGenAction.h],
         [:],
-        [AC_MSG_ERROR([LLVM/Clang includes not found (use --with-spir=)])],
-        [$DISABLE_ALIGNAS])
+        [AC_MSG_ERROR([LLVM/Clang includes not found (use --with-spir=)])])
 
 AC_CHECK_LIB(
         [clang],

@@ -10,10 +10,10 @@
 
 #include <sstream>
 
-#include "llvm/Function.h"
-#include "llvm/Instruction.h"
-#include "llvm/Instructions.h"
-#include "llvm/Type.h"
+#include "llvm/IR/Function.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Type.h"
 
 #include "InstructionCounter.h"
 

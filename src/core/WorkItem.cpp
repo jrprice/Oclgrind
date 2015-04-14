@@ -8,14 +8,14 @@
 
 #include "common.h"
 
-#include "llvm/DebugInfo.h"
-#include "llvm/GlobalVariable.h"
-#include "llvm/InstrTypes.h"
-#include "llvm/Instruction.h"
-#include "llvm/Instructions.h"
-#include "llvm/IntrinsicInst.h"
-#include "llvm/Module.h"
-#include "llvm/Support/InstIterator.h"
+#include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/InstrTypes.h"
+#include "llvm/IR/Instruction.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/InstIterator.h"
 
 #include "Context.h"
 #include "Kernel.h"

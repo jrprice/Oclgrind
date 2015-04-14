@@ -8,16 +8,10 @@
 
 #include "common.h"
 
-namespace clang
-{
-  class CodeGenAction;
-}
-
 namespace llvm
 {
   class Function;
   class Module;
-  template<typename T> class OwningPtr;
   class raw_string_ostream;
 }
 
@@ -65,8 +59,7 @@ namespace oclgrind
   private:
     Program(const Context *context, llvm::Module *module);
 
-    llvm::OwningPtr<clang::CodeGenAction> *m_action;
-    llvm::Module *m_module;
+    std::unique_ptr<llvm::Module> m_module;
     std::string m_source;
     std::string m_buildLog;
     std::string m_buildOptions;

@@ -6,6 +6,8 @@
 // license terms please see the LICENSE file distributed with this
 // source code.
 
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
+
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;

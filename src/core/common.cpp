@@ -14,8 +14,9 @@
 #include <sys/time.h>
 #endif
 
-#include "llvm/Instructions.h"
-#include "llvm/Operator.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Metadata.h"
+#include "llvm/IR/Operator.h"
 #include "llvm/Support/raw_os_ostream.h"
 
 using namespace oclgrind;
@@ -416,6 +417,16 @@ namespace oclgrind
 
       return binaryOp;
     }
+  }
+
+  const llvm::ConstantInt* getMDOpAsConstInt(const llvm::MDOperand& op)
+  {
+    llvm::Metadata *md = op.get();
+    llvm::ConstantAsMetadata *cam =
+      llvm::dyn_cast<llvm::ConstantAsMetadata>(md);
+    if (!cam)
+      return NULL;
+    return llvm::dyn_cast<llvm::ConstantInt>(cam->getValue());
   }
 
   unsigned getStructMemberOffset(const llvm::StructType *type, unsigned index)
