@@ -41,9 +41,10 @@ liboclgrind_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
 -lclangAnalysis -lclangARCMigrate -lclangRewriteFrontend -lclangEdit	\
 -lclangAST -lclangLex -lclangBasic -lLLVMBitReader -lLLVMBitWriter	\
 -lLLVMAsmParser -lLLVMInstrumentation -lLLVMipo -lLLVMipa		\
--lLLVMInstCombine -lLLVMLinker -lLLVMMC -lLLVMMCParser -lLLVMOption	\
+-lLLVMInstCombine -lLLVMIRReader -lLLVMLinker -lLLVMMC -lLLVMMCParser	\
+-lLLVMObjCARCOpts -lLLVMObject -lLLVMOption -lLLVMProfileData		\
 -lLLVMScalarOpts -lLLVMTarget -lLLVMTransformUtils -lLLVMVectorize	\
--lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lpthread			\
+-lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lz -lpthread		\
 $(oclgrind_extra_libs) -shared
 oclgrind_includedir = $(includedir)/oclgrind
 oclgrind_include_HEADERS = src/core/common.h src/core/Context.h	\
