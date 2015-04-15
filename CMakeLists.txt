@@ -106,6 +106,8 @@ include_directories("src/" "${PROJECT_BINARY_DIR}")
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CORE_LIB_TYPE "SHARED")
   list(APPEND CORE_EXTRA_LIBS "${CMAKE_DL_LIBS}")
+  list(APPEND CORE_EXTRA_LIBS "z")
+  list(APPEND CORE_EXTRA_LIBS "curses")
 
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     list(APPEND CORE_EXTRA_LIBS "pthread")
@@ -154,8 +156,9 @@ target_link_libraries(oclgrind ${CORE_EXTRA_LIBS}
   clangAnalysis clangAST clangBasic clangCodeGen clangDriver clangEdit
   clangFrontend clangLex clangParse clangSema clangSerialization
   LLVMBitReader LLVMBitWriter LLVMAsmParser LLVMInstrumentation
-  LLVMipo LLVMipa LLVMInstCombine LLVMLinker LLVMMC LLVMMCParser
-  LLVMOption LLVMScalarOpts LLVMTarget LLVMTransformUtils LLVMVectorize
+  LLVMipo LLVMipa LLVMInstCombine LLVMIRReader LLVMLinker LLVMMC
+  LLVMMCParser LLVMObjCARCOpts LLVMObject LLVMOption LLVMProfileData
+  LLVMScalarOpts LLVMTarget LLVMTransformUtils LLVMVectorize
   LLVMAnalysis LLVMCore LLVMSupport)
 
 # Sources for OpenCL runtime API frontend
