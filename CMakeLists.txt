@@ -209,7 +209,8 @@ add_custom_command(
   POST_BUILD
   COMMAND
     ${SPIR_ROOT}/bin/clang
-    -cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown
+    -cc1 -x cl -cl-std=CL1.2 -O0 -g -fno-builtin
+    -emit-pch -triple spir-unknown-unknown
     -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
     ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
     -o include/oclgrind/clc32.pch
@@ -220,7 +221,8 @@ add_custom_command(
   POST_BUILD
   COMMAND
     ${SPIR_ROOT}/bin/clang
-    -cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown
+    -cc1 -x cl -cl-std=CL1.2 -O0 -g -fno-builtin
+    -emit-pch -triple spir64-unknown-unknown
     -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
     ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
     -o include/oclgrind/clc64.pch
