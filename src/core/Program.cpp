@@ -130,6 +130,7 @@ bool Program::build(const char *options, list<Header> headers)
 
   // Set compiler arguments
   vector<const char*> args;
+  args.push_back("-cl-std=CL1.2");
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-g");
   args.push_back("-triple");

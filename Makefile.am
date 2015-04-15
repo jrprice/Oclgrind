@@ -99,12 +99,12 @@ src/include/oclgrind/clc.h: $(top_srcdir)/src/core/clc.h
 
 src/include/oclgrind/clc32.pch: src/include/oclgrind/clc.h
 	$(clang_spir) \
-		-cc1 -x cl -O0 -g -emit-pch -triple spir-unknown-unknown \
+		-cc1 -x cl -cl-std=CL1.2 -O0 -g -emit-pch -triple spir-unknown-unknown \
 		-relocatable-pch -isysroot $(abs_builddir)/src/include/oclgrind \
 		$< -o $@
 src/include/oclgrind/clc64.pch: src/include/oclgrind/clc.h
 	$(clang_spir) \
-		-cc1 -x cl -O0 -g -emit-pch -triple spir64-unknown-unknown \
+		-cc1 -x cl -cl-std=CL1.2 -O0 -g -emit-pch -triple spir64-unknown-unknown \
 		-relocatable-pch -isysroot $(abs_builddir)/src/include/oclgrind \
 		$< -o $@
 
