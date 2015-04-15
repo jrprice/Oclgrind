@@ -785,6 +785,9 @@ INSTRUCTION(fcmp)
     case llvm::CmpInst::FCMP_TRUE:
       r = true;
       break;
+    case llvm::CmpInst::FCMP_ORD:
+    case llvm::CmpInst::FCMP_UNO:
+      break;
     default:
       FATAL_ERROR("Unsupported FCmp predicate: %d", pred);
     }

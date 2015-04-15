@@ -3389,6 +3389,7 @@ namespace oclgrind
     ADD_BUILTIN("minmag", f2arg, _minmag_);
     ADD_BUILTIN("modf", modf_builtin, NULL);
     ADD_BUILTIN("nan", nan_builtin, NULL);
+    ADD_BUILTIN("nanf", nan_builtin, NULL);
     ADD_BUILTIN("nextafter", f2arg, F2ARG(nextafter));
     ADD_BUILTIN("pow", f2arg, F2ARG(pow));
     ADD_BUILTIN("pown", pown, NULL);

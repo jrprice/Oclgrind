@@ -122,7 +122,7 @@ TYPEDEF_VECTOR(double);
 #define MAXFLOAT ((float)3.40282346638528860e+38)
 #define HUGE_VALF __builtin_huge_valf()
 #define INFINITY __builtin_inff()
-#define NAN __builtin_nanf((const char*)"")
+#define NAN __builtin_nanf(0)
 
 #define CLK_SNORM_INT8 0x10D0
 #define CLK_SNORM_INT16 0x10D1
