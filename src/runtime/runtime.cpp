@@ -2995,19 +2995,26 @@ clGetKernelArgInfo
 
   size_t dummy = 0;
   size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
-  cl_uint return_integer;
-  const void* return_data = &return_integer;
+  union
+  {
+    cl_kernel_arg_address_qualifier addressQual;
+    cl_kernel_arg_access_qualifier accessQual;
+    cl_kernel_arg_type_qualifier typeQual;
+  } result_data;
+
   std::string str_data;
 
   switch (param_name)
   {
   case CL_KERNEL_ARG_ADDRESS_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_address_qualifier);
-    return_integer = kernel->kernel->getArgumentAddressQualifier(arg_indx);
+    result_data.addressQual =
+      kernel->kernel->getArgumentAddressQualifier(arg_indx);
     break;
   case CL_KERNEL_ARG_ACCESS_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_access_qualifier);
-    return_integer = kernel->kernel->getArgumentAccessQualifier(arg_indx);
+    result_data.accessQual =
+      kernel->kernel->getArgumentAccessQualifier(arg_indx);
     break;
   case CL_KERNEL_ARG_TYPE_NAME:
     str_data = kernel->kernel->getArgumentTypeName(arg_indx).str();
@@ -3015,7 +3022,7 @@ clGetKernelArgInfo
     break;
   case CL_KERNEL_ARG_TYPE_QUALIFIER:
     result_size = sizeof(cl_kernel_arg_type_qualifier);
-    return_integer = kernel->kernel->getArgumentTypeQualifier(arg_indx);
+    result_data.typeQual = kernel->kernel->getArgumentTypeQualifier(arg_indx);
     break;
   case CL_KERNEL_ARG_NAME:
     str_data = kernel->kernel->getArgumentName(arg_indx).str();
@@ -3037,7 +3044,7 @@ clGetKernelArgInfo
     if (str_data.size())
       memcpy(param_value, str_data.c_str(), result_size);
     else
-      memcpy(param_value, return_data, result_size);
+      memcpy(param_value, &result_data, result_size);
   }
 
   return CL_SUCCESS;
