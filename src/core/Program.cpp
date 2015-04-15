@@ -132,6 +132,7 @@ bool Program::build(const char *options, list<Header> headers)
   vector<const char*> args;
   args.push_back("-cl-std=CL1.2");
   args.push_back("-cl-kernel-arg-info");
+  args.push_back("-fno-builtin");
   args.push_back("-g");
   args.push_back("-triple");
   if (sizeof(size_t) == 4)
