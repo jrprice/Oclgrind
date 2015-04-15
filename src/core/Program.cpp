@@ -311,7 +311,7 @@ bool Program::build(const char *options, list<Header> headers)
   // Remap include files
   std::unique_ptr<llvm::MemoryBuffer> buffer;
   compiler.getHeaderSearchOpts().AddPath(REMAP_DIR, clang::frontend::Quoted,
-                                         false, false);
+                                         false, true);
   list<Header>::iterator itr;
   for (itr = headers.begin(); itr != headers.end(); itr++)
   {
