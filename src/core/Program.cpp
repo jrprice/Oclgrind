@@ -152,6 +152,7 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-O0");
 
   bool optimize = true;
+  bool cl12     = true;
 
   // Add OpenCL build options
   const char *mainOptions = options;
@@ -162,8 +163,7 @@ bool Program::build(const char *options, list<Header> headers)
     extraOptions = "";
   char *tmpOptions = new char[strlen(mainOptions) + strlen(extraOptions) + 2];
   sprintf(tmpOptions, "%s %s", mainOptions, extraOptions);
-  char *opt = strtok(tmpOptions, " ");
-  while (opt)
+  for (char *opt = strtok(tmpOptions, " "); opt; opt = strtok(NULL, " "))
   {
     // Ignore options that break PCH
     if (strcmp(opt, "-cl-fast-relaxed-math") != 0 &&
@@ -173,23 +173,38 @@ bool Program::build(const char *options, list<Header> headers)
       if (strcmp(opt, "-O0") == 0 || strcmp(opt, "-cl-opt-disable") == 0)
       {
         optimize = false;
+        continue;
       }
       else if (strncmp(opt, "-O", 2) == 0)
       {
         optimize = true;
+        continue;
       }
-      else
+
+      // Check for -cl-std flag
+      if (strncmp(opt, "-cl-std=", 8) == 0)
       {
-        args.push_back(opt);
+        if (strcmp(opt+8, "CL1.2") != 0)
+        {
+          cl12 = false;
+          args.push_back(opt);
+        }
+        continue;
       }
+
+      args.push_back(opt);
     }
-    opt = strtok(NULL, " ");
+  }
+
+  if (cl12)
+  {
+    args.push_back("-cl-std=CL1.2");
   }
 
   // Pre-compiled header
   char *pchdir = NULL;
   char *pch    = NULL;
-  if (!checkEnv("OCLGRIND_DISABLE_PCH"))
+  if (!checkEnv("OCLGRIND_DISABLE_PCH") && cl12)
   {
     const char *pchdirOverride = getenv("OCLGRIND_PCH_DIR");
     if (pchdirOverride)
