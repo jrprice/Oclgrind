@@ -1395,7 +1395,8 @@ InterpreterCache::InterpreterCache(llvm::Function *kernel)
       if (I->getOpcode() == llvm::Instruction::Call)
       {
         const llvm::CallInst *call = ((const llvm::CallInst*)&*I);
-        llvm::Function *callee = call->getCalledFunction();
+        llvm::Function *callee =
+          (llvm::Function*)call->getCalledValue()->stripPointerCasts();
         if (callee->isDeclaration())
         {
           // Resolve builtin function calls

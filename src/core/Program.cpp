@@ -843,7 +843,9 @@ void Program::stripDebugIntrinsics()
       if (I->getOpcode() == llvm::Instruction::Call)
       {
         llvm::CallInst *call = (llvm::CallInst*)&*I;
-        if (call->getCalledFunction()->getName().startswith("llvm.dbg"))
+        llvm::Function *function =
+          (llvm::Function*)call->getCalledValue()->stripPointerCasts();
+        if (function->getName().startswith("llvm.dbg"))
         {
           intrinsics.insert(&*I);
         }
