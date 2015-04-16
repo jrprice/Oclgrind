@@ -121,6 +121,7 @@ TYPEDEF_VECTOR(double);
 
 #define MAXFLOAT ((float)3.40282346638528860e+38)
 #define HUGE_VALF __builtin_huge_valf()
+#define HUGE_VAL __builtin_huge_val()
 #define INFINITY __builtin_inff()
 #define NAN __builtin_nanf(0)
 
