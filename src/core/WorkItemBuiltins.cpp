@@ -2370,6 +2370,17 @@ namespace oclgrind
       }
     }
 
+    DEFINE_BUILTIN(nextafter_builtin)
+    {
+      for (unsigned i = 0; i < result.num; i++)
+      {
+        if (result.size == 4)
+          result.setFloat(nextafterf(FARGV(0, i), FARGV(1, i)), i);
+        else
+          result.setFloat(nextafter(FARGV(0, i), FARGV(1, i)), i);
+      }
+    }
+
     DEFINE_BUILTIN(pown)
     {
       for (unsigned i = 0; i < result.num; i++)
@@ -3390,7 +3401,7 @@ namespace oclgrind
     ADD_BUILTIN("modf", modf_builtin, NULL);
     ADD_BUILTIN("nan", nan_builtin, NULL);
     ADD_BUILTIN("nanf", nan_builtin, NULL);
-    ADD_BUILTIN("nextafter", f2arg, F2ARG(nextafter));
+    ADD_BUILTIN("nextafter", nextafter_builtin, NULL);
     ADD_BUILTIN("pow", f2arg, F2ARG(pow));
     ADD_BUILTIN("pown", pown, NULL);
     ADD_BUILTIN("powr", f2arg, F2ARG(pow));
