@@ -9,6 +9,7 @@
 #include "common.h"
 #include <algorithm>
 #include <fenv.h>
+#include <mutex>
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -43,6 +44,8 @@ using namespace std;
 
 namespace oclgrind
 {
+  static mutex printfMutex;
+
   class WorkItemBuiltins
   {
     // Utility macros for creating builtins
@@ -3031,6 +3034,8 @@ namespace oclgrind
 
     DEFINE_BUILTIN(printf_builtin)
     {
+      lock_guard<mutex> lck(printfMutex);
+
       size_t formatPtr = workItem->getOperand(ARG(0)).getPointer();
       Memory *memory = workItem->getMemory(AddrSpaceGlobal);
 
