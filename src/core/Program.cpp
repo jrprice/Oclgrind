@@ -24,7 +24,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Linker/Linker.h"
-#include "llvm/PassManager.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
@@ -343,8 +343,8 @@ bool Program::build(const char *options, list<Header> headers)
     }
 
     // Initialize pass managers
-    llvm::PassManager modulePasses;
-    llvm::FunctionPassManager functionPasses(m_module.get());
+    llvm::legacy::PassManager modulePasses;
+    llvm::legacy::FunctionPassManager functionPasses(m_module.get());
     modulePasses.add(new llvm::DataLayoutPass());
     functionPasses.add(new llvm::DataLayoutPass());
 
