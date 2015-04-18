@@ -129,6 +129,7 @@ if HAVE_PYTHON
 TESTS += $(KERNEL_TESTS)
 XFAIL_TESTS =							\
 	tests/kernels/atomics/atomic_intergroup_race.sim 	\
+	tests/kernels/bugs/ternary_vector_scalar.sim 	\
 	tests/kernels/data-race/intragroup_hidden_race.sim
 else
 check-local:
