@@ -56,15 +56,17 @@ endif()
 # Add LLVM required macro definitions
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
-# Require that SPIR_ROOT is set and pointing to a Clang/SPIR generator
-set(SPIR_ROOT " " CACHE PATH "Root of Clang/SPIR generator.")
-if (NOT EXISTS ${SPIR_ROOT}/include/clang)
-  message(FATAL_ERROR "Clang/SPIR generator not found (set SPIR_ROOT).")
+# Require that LLVM_ROOT is set and pointing to a usable LLVM/Clang build
+# TODO: Detect if LLVM/Clang already on path
+# TODO: Check version of LLVM
+set(LLVM_ROOT " " CACHE PATH "Root of LLVM/Clang installation.")
+if (NOT EXISTS ${LLVM_ROOT}/include/clang)
+  message(FATAL_ERROR "LLVM/Clang not found (set LLVM_ROOT).")
 endif()
 
-# Add LLVM/Clang libraries and includes from SPIR generator
-include_directories(${SPIR_ROOT}/include)
-link_directories(${SPIR_ROOT}/lib)
+# Add LLVM/Clang library and include directories
+include_directories(${LLVM_ROOT}/include)
+link_directories(${LLVM_ROOT}/lib)
 
 # Check for GNU readline library
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
@@ -211,7 +213,7 @@ add_custom_command(
   OUTPUT include/oclgrind/clc32.pch
   POST_BUILD
   COMMAND
-    ${SPIR_ROOT}/bin/clang
+    ${LLVM_ROOT}/bin/clang
     -cc1 -x cl -cl-std=CL1.2 -O0 -g -fno-builtin
     -emit-pch -triple spir-unknown-unknown
     -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
@@ -223,7 +225,7 @@ add_custom_command(
   OUTPUT include/oclgrind/clc64.pch
   POST_BUILD
   COMMAND
-    ${SPIR_ROOT}/bin/clang
+    ${LLVM_ROOT}/bin/clang
     -cc1 -x cl -cl-std=CL1.2 -O0 -g -fno-builtin
     -emit-pch -triple spir64-unknown-unknown
     -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/

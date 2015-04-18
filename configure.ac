@@ -30,30 +30,31 @@ AX_CXX_COMPILE_STDCXX_11(, [mandatory])
 # Add LLVM required macro definitions
 CPPFLAGS="$CPPFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
 
-# TODO: Rename to with-llvm
-# --with-spir option to specify root of Clang/SPIR generator
+# --with-llvm option to specify root of LLVM/Clang installation
 AC_ARG_WITH(
-        spir,
-        [AS_HELP_STRING([--with-spir],
-                       [directory containing Clang/SPIR generator ])],
+        llvm,
+        [AS_HELP_STRING([--with-llvm],
+                       [directory containing LLVM/Clang installation])],
         [CPPFLAGS="$CPPFLAGS -I$withval/include";
          LDFLAGS="$LDFLAGS -L$withval/lib";
-         AC_SUBST(clang_spir, $withval/bin/clang)])
+         AC_SUBST(clang, $withval/bin/clang)])
 
 # Check for LLVM/Clang headers/libraries
 AC_CHECK_HEADERS(
         [llvm/IR/Instruction.h clang/CodeGen/CodeGenAction.h],
         [:],
-        [AC_MSG_ERROR([LLVM/Clang includes not found (use --with-spir=)])])
+        [AC_MSG_ERROR([LLVM/Clang includes not found (use --with-llvm=)])])
 
 AC_CHECK_LIB(
         [clang],
         [clang_getClangVersion],
         [:],
-        [AC_MSG_ERROR([Clang library not found (use --with-spir)])])
+        [AC_MSG_ERROR([Clang library not found (use --with-llvm)])])
 
-# Find Clang/SPIR binary (assume clang on PATH if --with-spir not used)
-AC_CHECK_PROG(clang_spir, [clang], `which clang`)
+# Find clang binary (assume clang on PATH if --with-llvm not used)
+AC_CHECK_PROG(clang, [clang], `which clang`)
+
+# TODO: Check version of LLVM
 
 
 # GNU readline library (for interactive debugger)
