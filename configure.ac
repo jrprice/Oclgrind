@@ -37,7 +37,24 @@ AC_ARG_WITH(
                        [directory containing LLVM/Clang installation])],
         [CPPFLAGS="$CPPFLAGS -I$withval/include";
          LDFLAGS="$LDFLAGS -L$withval/lib";
-         AC_SUBST(clang, $withval/bin/clang)])
+         AC_SUBST(clang, $withval/bin/clang)
+         AC_SUBST(llvm_config, $withval/bin/llvm-config)])
+
+# Find LLVM/Clang binaries (assume on PATH if --with-llvm not used)
+AC_CHECK_PROG(clang, [clang], `which clang`)
+AC_CHECK_PROG(llvm_config, [llvm-config], `which llvm-config`)
+
+# Check version of LLVM
+AC_MSG_CHECKING([llvm version])
+llvm_full_version=`$llvm_config --version`
+llvm_version=`echo $llvm_full_version | cut -b 1,3`
+AC_MSG_RESULT($llvm_full_version)
+if test $llvm_version -lt 36; then
+  AC_MSG_ERROR([LLVM version must be >= 3.6])
+fi
+AC_DEFINE_UNQUOTED([LLVM_VERSION],
+                   [$llvm_version],
+                   [Version of LLVM we are building against])
 
 # Check for LLVM/Clang headers/libraries
 AC_CHECK_HEADERS(
@@ -50,12 +67,6 @@ AC_CHECK_LIB(
         [clang_getClangVersion],
         [:],
         [AC_MSG_ERROR([Clang library not found (use --with-llvm)])])
-
-# Find clang binary (assume clang on PATH if --with-llvm not used)
-AC_CHECK_PROG(clang, [clang], `which clang`)
-
-# TODO: Check version of LLVM
-
 
 # GNU readline library (for interactive debugger)
 AC_ARG_WITH(

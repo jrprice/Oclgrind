@@ -58,11 +58,22 @@ add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
 # Require that LLVM_ROOT is set and pointing to a usable LLVM/Clang build
 # TODO: Detect if LLVM/Clang already on path
-# TODO: Check version of LLVM
 set(LLVM_ROOT " " CACHE PATH "Root of LLVM/Clang installation.")
 if (NOT EXISTS ${LLVM_ROOT}/include/clang)
   message(FATAL_ERROR "LLVM/Clang not found (set LLVM_ROOT).")
 endif()
+
+# Check version of LLVM
+execute_process(
+  COMMAND ${LLVM_ROOT}/bin/llvm-config --version
+  OUTPUT_VARIABLE LLVM_FULL_VERSION
+)
+string(REGEX MATCH "[0-9]+.[0-9]+" LLVM_VERSION ${LLVM_FULL_VERSION})
+string(REPLACE "." "" LLVM_VERSION ${LLVM_VERSION})
+if (${LLVM_VERSION} LESS 36)
+  message(FATAL_ERROR "LLVM version must be >= 3.6")
+endif()
+set(LLVM_VERSION ${LLVM_VERSION})
 
 # Add LLVM/Clang library and include directories
 include_directories(${LLVM_ROOT}/include)
