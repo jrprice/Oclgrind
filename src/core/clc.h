@@ -913,7 +913,7 @@ size_t get_group_id(uint dim);
 size_t get_local_id(uint dim);
 size_t get_local_size(uint dim);
 size_t get_num_groups(uint dim);
-uint get_work_dim();
+uint get_work_dim(void);
 
 
 
