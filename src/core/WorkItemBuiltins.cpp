@@ -3188,9 +3188,19 @@ namespace oclgrind
         (const llvm::DbgDeclareInst*)callInst;
       const llvm::Value *addr = dbgInst->getAddress();
       const llvm::MDNode *var = dbgInst->getVariable();
-      const llvm::MDString *name =
-        llvm::dyn_cast<llvm::MDString>(var->getOperand(2));
-      workItem->m_variables[name->getString().str()] = addr;
+
+      llvm::MDString *str = llvm::dyn_cast<llvm::MDString>(var->getOperand(0));
+      if (str)
+      {
+        // TODO: There must be a better way of getting the variable name...
+        unsigned length = str->getLength();
+        const char *name = str->getString().str().c_str();
+        if (length > strlen(name) + 1)
+        {
+          name += strlen(name) + 1;
+          workItem->m_variables[name] = addr;
+        }
+      }
     }
 
     DEFINE_BUILTIN(llvm_dbg_value)
@@ -3202,9 +3212,18 @@ namespace oclgrind
       // TODO: Use offset?
       //uint64_t offset = dbgInst->getOffset();
 
-      const llvm::MDString *name =
-        llvm::dyn_cast<llvm::MDString>(var->getOperand(2));
-      workItem->m_variables[name->getString().str()] = value;
+      llvm::MDString *str = llvm::dyn_cast<llvm::MDString>(var->getOperand(0));
+      if (str)
+      {
+        // TODO: There must be a better way of getting the variable name...
+        unsigned length = str->getLength();
+        const char *name = str->getString().str().c_str();
+        if (length > strlen(name) + 1)
+        {
+          name += strlen(name) + 1;
+          workItem->m_variables[name] = value;
+        }
+      }
     }
 
     DEFINE_BUILTIN(llvm_lifetime_start)
