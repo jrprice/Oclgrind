@@ -14,6 +14,9 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Metadata.h"
+#if LLVM_VERSION > 36
+#include "llvm/IR/DebugInfoMetadata.h"
+#endif
 
 #include "CL/cl.h"
 #include "Context.h"
@@ -3187,8 +3190,12 @@ namespace oclgrind
       const llvm::DbgDeclareInst *dbgInst =
         (const llvm::DbgDeclareInst*)callInst;
       const llvm::Value *addr = dbgInst->getAddress();
-      const llvm::MDNode *var = dbgInst->getVariable();
 
+#if LLVM_VERSION > 36
+     const llvm::MDLocalVariable *var = dbgInst->getVariable();
+     workItem->m_variables[var->getName()] = addr;
+#else
+      const llvm::MDNode *var = dbgInst->getVariable();
       llvm::MDString *str = llvm::dyn_cast<llvm::MDString>(var->getOperand(0));
       if (str)
       {
@@ -3201,17 +3208,22 @@ namespace oclgrind
           workItem->m_variables[name] = addr;
         }
       }
+#endif
     }
 
     DEFINE_BUILTIN(llvm_dbg_value)
     {
       const llvm::DbgValueInst *dbgInst = (const llvm::DbgValueInst*)callInst;
       const llvm::Value *value = dbgInst->getValue();
-      const llvm::MDNode *var = dbgInst->getVariable();
 
       // TODO: Use offset?
       //uint64_t offset = dbgInst->getOffset();
 
+#if LLVM_VERSION > 36
+      const llvm::MDLocalVariable *var = dbgInst->getVariable();
+      workItem->m_variables[var->getName()] = value;
+#else
+      const llvm::MDNode *var = dbgInst->getVariable();
       llvm::MDString *str = llvm::dyn_cast<llvm::MDString>(var->getOperand(0));
       if (str)
       {
@@ -3224,6 +3236,7 @@ namespace oclgrind
           workItem->m_variables[name] = value;
         }
       }
+#endif
     }
 
     DEFINE_BUILTIN(llvm_lifetime_start)

@@ -224,8 +224,12 @@ size_t InteractiveDebugger::getLineNumber(
   llvm::MDNode *md = instruction->getMetadata("dbg");
   if (md)
   {
-    llvm::DILocation loc(md);
+    llvm::DILocation loc((llvm::MDLocation*)md);
+#if LLVM_VERSION > 36
+    return loc->getLine();
+#else
     return loc.getLineNumber();
+#endif
   }
   return 0;
 }

@@ -345,8 +345,10 @@ bool Program::build(const char *options, list<Header> headers)
     // Initialize pass managers
     llvm::legacy::PassManager modulePasses;
     llvm::legacy::FunctionPassManager functionPasses(m_module.get());
+#if LLVM_VERSION < 37
     modulePasses.add(new llvm::DataLayoutPass());
     functionPasses.add(new llvm::DataLayoutPass());
+#endif
 
     // Run optimizations on module
     if (optimize)

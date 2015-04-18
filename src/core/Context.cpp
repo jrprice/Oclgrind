@@ -450,14 +450,22 @@ Context::Message& Context::Message::operator<<(
     }
     else
     {
-      llvm::DILocation loc(md);
+      llvm::DILocation loc((llvm::MDLocation*)md);
 
-      *this << "At line " << dec << loc.getLineNumber()
-           << " of " << loc.getFilename().str() << ":" << endl;
+#if LLVM_VERSION > 36
+      unsigned lineNumber = loc->getLine();
+      llvm::StringRef filename = loc->getFilename();
+#else
+      unsigned lineNumber = loc.getLineNumber();
+      llvm::StringRef filename = loc.getFilename();
+#endif
+
+      *this << "At line " << dec << lineNumber
+           << " of " << filename.str() << ":" << endl;
 
       // Get source line
       const Program *program = m_kernelInvocation->getKernel()->getProgram();
-      const char *line = program->getSourceLine(loc.getLineNumber());
+      const char *line = program->getSourceLine(lineNumber);
       if (line)
       {
         while (isspace(line[0]))
