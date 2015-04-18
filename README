@@ -9,10 +9,10 @@ an OpenCL runtime with ICD support. The goal is to provide a platform
 for creating tools to aid OpenCL development. In particular, this
 project currently implements utilities for debugging memory access
 errors, detecting data-races and barrier divergence, collecting
-instruction histograms, and for interactive OpenCL kernel
-debugging. The simulator is built on an interpreter for SPIR. This is
-a side-project is being undertaken by James Price (a PhD student at
-the University of Bristol).
+instruction histograms, and for interactive OpenCL kernel debugging.
+The simulator is built on an interpreter for LLVM IR. This project is
+being developed by James Price and Simon McIntosh-Smith at the
+University of Bristol.
 
 Binary releases can be found on the GitHub releases page:
 
@@ -21,17 +21,14 @@ Binary releases can be found on the GitHub releases page:
 
 Building
 --------
-To build this project you will require a version of Clang that is
-capable of generating SPIR. The Khronos working group has made a
-patched version of Clang 3.2 that can generate SPIR available on
-GitHub:
-
-    https://github.com/KhronosGroup/SPIR
-
-Follow the instructions in the README.md file in that repository to
-build the Clang/SPIR generator. To improve the performance of
-Oclgrind, it is recommended to build for release mode (i.e. set
+To build this project, you will require the LLVM and Clang 3.6
+development libraries and headers. With some modifications, it may
+also be possible to use other (recent) versions of LLVM. If building
+LLVM from source, it is recommended to enable optimizations to improve
+the performance of Oclgrind (configure with --enable-optimized, or set
 CMAKE_BUILD_TYPE to RelWithDebInfo).
+
+You will also need to use a compiler that supports C++11.
 
 
 Building on Linux and OS X
@@ -42,14 +39,14 @@ required if you are using a released source package.
 
 Run ./configure to generate the Makefile, optionally using
 --prefix=PATH to specify the target installation directory. If you
-don't have the Clang/SPIR generator includes and libraries on your
-search path, you can specify the location of the generator using the
---with-spir=PATH option. For example:
+don't have the LLVM/Clang includes and libraries on your search path,
+you can specify the location of your LLVM installation using the
+--with-llvm=PATH option. For example:
 
-./configure --prefix=$PWD/build/ --with-spir=PATH/TO/CLANG/SPIR/INSTALL
+./configure --prefix=$PWD/build/ --with-llvm=PATH/TO/LLVM/INSTALL
 
-This path should be the directory in which the Clang/SPIR generator is
-installed (e.g. the path specified to --prefix or CMAKE_INSTALL_PATH).
+This path should be the directory in which§q LLVM is installed
+(e.g. the path specified to --prefix or CMAKE_INSTALL_PATH).
 
 Next, build and install with make:
 
@@ -60,7 +57,7 @@ make install
 If installing to a non-default location, you should add the bin/
 directory to the PATH environment variable in order to make use of the
 oclgrind command. If you wish to use Oclgrind via the OpenCL ICD
-(optional), then you create an ICD loading point by copying the
+(optional), then you should create an ICD loading point by copying the
 oclgrind.icd file from the build directory to /etc/OpenCL/vendors/.
 
 Building on Windows
@@ -70,8 +67,8 @@ present, this only works with Visual Studio 2013 (or newer), and
 Windows 7.
 
 When configuring the CMake build, you will be prompted to supply a
-value for the SPIR_ROOT parameter. This should be set to the root
-directory of the Clang/SPIR generator installation, (for example
+value for the LLVM_ROOT parameter. This should be set to the root
+directory of the LLVM/Clang generator installation, (for example
 C:\Program Files\LLVM).
 
 If you wish to use Oclgrind via the OpenCL ICD (optional), then you
@@ -89,7 +86,6 @@ HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Khronos\OpenCL\Vendors
 
 Usage
 -----
-
 The recommended method of running an application with Oclgrind is to
 use the oclgrind command, for example:
 
@@ -105,16 +101,16 @@ your system.
 If it encounters any invalid memory accesses, Oclgrind will
 report the details to stderr, for example:
 
-> Invalid read of size 4 at global memory address 1000000000040
->         Work-item:  Global(16,0,0) Local(0,0,0)
->         Work-group: (16,0,0)
->         Kernel:     vecadd
->         %tmp8 = load float addrspace(1)* %tmp7, align 4, !dbg !47
->         At line 16 of input.cl
+> Invalid read of size 4 at global memory address 0x1000000000040
+>     Kernel:  vecadd
+>     Entity:  Global(16,0,0) Local(0,0,0) Group(16,0,0)
+>     store i32 %tmp9, i32 addrspace(1)* %tmp15, align 4
+>     At line 4 of input.cl
+>       c[i] = a[i] + b[i]
 
 Since it is interpreting an abstract intermediate representation and
-bounds-checking each memory access, Oclgrind will run very slowly
-(typically a few orders of magnitude slower than a regular CPU
+bounds-checking each memory access, Oclgrind will run quite slowly
+(typically a couple of orders of magnitude slower than a regular CPU
 implementation). Therefore, it is recommended to run with a small
 problem if possible.
 
@@ -138,5 +134,5 @@ GitHub issues page:
 
     https://github.com/jrprice/Oclgrind/issues
 
-You can also contact the developer via email:
+You can also contact the primary developer via email:
 James Price <j.price@bristol.ac.uk>
