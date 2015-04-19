@@ -43,6 +43,9 @@ AC_ARG_WITH(
 # Find LLVM/Clang binaries (assume on PATH if --with-llvm not used)
 AC_CHECK_PROG(clang, [clang], `which clang`)
 AC_CHECK_PROG(llvm_config, [llvm-config], `which llvm-config`)
+if test -z $llvm_config; then
+  AC_MSG_ERROR([[llvm-config not found (use --with-llvm=)]])
+fi
 
 # Check version of LLVM
 AC_MSG_CHECKING([llvm version])
