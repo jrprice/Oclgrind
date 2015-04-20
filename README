@@ -45,8 +45,8 @@ you can specify the location of your LLVM installation using the
 
 ./configure --prefix=$PWD/build/ --with-llvm=PATH/TO/LLVM/INSTALL
 
-This path should be the directory in which§q LLVM is installed
-(e.g. the path specified to --prefix or CMAKE_INSTALL_PATH).
+This path should be the directory in which LLVM is installed (e.g. the
+path specified to --prefix or CMAKE_INSTALL_PATH when LLVM was built).
 
 Next, build and install with make:
 
