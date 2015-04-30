@@ -451,7 +451,7 @@ Context::Message& Context::Message::operator<<(
     else
     {
 #if LLVM_VERSION > 36
-      llvm::MDLocation *loc = (llvm::MDLocation*)md;
+      llvm::DILocation *loc = (llvm::DILocation*)md;
       unsigned lineNumber = loc->getLine();
       llvm::StringRef filename = loc->getFilename();
 #else

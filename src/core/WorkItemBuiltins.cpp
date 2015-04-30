@@ -3192,7 +3192,7 @@ namespace oclgrind
       const llvm::Value *addr = dbgInst->getAddress();
 
 #if LLVM_VERSION > 36
-     const llvm::MDLocalVariable *var = dbgInst->getVariable();
+     const llvm::DILocalVariable *var = dbgInst->getVariable();
      workItem->m_variables[var->getName()] = addr;
 #else
       const llvm::MDNode *var = dbgInst->getVariable();
@@ -3220,7 +3220,7 @@ namespace oclgrind
       //uint64_t offset = dbgInst->getOffset();
 
 #if LLVM_VERSION > 36
-      const llvm::MDLocalVariable *var = dbgInst->getVariable();
+      const llvm::DILocalVariable *var = dbgInst->getVariable();
       workItem->m_variables[var->getName()] = value;
 #else
       const llvm::MDNode *var = dbgInst->getVariable();
