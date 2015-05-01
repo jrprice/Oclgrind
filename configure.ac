@@ -66,8 +66,8 @@ AC_CHECK_HEADERS(
         [AC_MSG_ERROR([LLVM/Clang includes not found (use --with-llvm=)])])
 
 AC_CHECK_LIB(
-        [clang],
-        [clang_getClangVersion],
+        [clangFrontend],
+        [main],
         [:],
         [AC_MSG_ERROR([Clang library not found (use --with-llvm)])])
 
