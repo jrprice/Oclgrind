@@ -79,6 +79,20 @@ set(LLVM_VERSION ${LLVM_VERSION})
 include_directories(${LLVM_ROOT}/include)
 link_directories(${LLVM_ROOT}/lib)
 
+# Get LLVM libraries for linking
+execute_process(
+  COMMAND ${LLVM_ROOT}/bin/llvm-config --libs bitreader bitwriter core
+            instrumentation ipo irreader linker mcparser objcarcopts option
+  OUTPUT_VARIABLE LLVM_LIBS
+)
+string(STRIP ${LLVM_LIBS} LLVM_LIBS)
+execute_process(
+  COMMAND ${LLVM_ROOT}/bin/llvm-config --system-libs
+  OUTPUT_VARIABLE LLVM_SYSTEM_LIBS
+)
+string(STRIP ${LLVM_SYSTEM_LIBS} LLVM_SYSTEM_LIBS)
+set(LLVM_LIBS "${LLVM_LIBS} ${LLVM_SYSTEM_LIBS}")
+
 # Check for GNU readline library
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(READLINE_DIR "" CACHE PATH "Location of GNU readline library")
@@ -118,14 +132,6 @@ include_directories("src/" "${PROJECT_BINARY_DIR}")
 
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CORE_LIB_TYPE "SHARED")
-  list(APPEND CORE_EXTRA_LIBS "${CMAKE_DL_LIBS}")
-  list(APPEND CORE_EXTRA_LIBS "z")
-  list(APPEND CORE_EXTRA_LIBS "curses")
-
-  if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-    list(APPEND CORE_EXTRA_LIBS "pthread")
-    list(APPEND CORE_EXTRA_LIBS "dl")
-  endif()
 endif()
 
 set(CORE_HEADERS
@@ -168,11 +174,7 @@ add_library(oclgrind ${CORE_LIB_TYPE}
 target_link_libraries(oclgrind ${CORE_EXTRA_LIBS}
   clangAnalysis clangAST clangBasic clangCodeGen clangDriver clangEdit
   clangFrontend clangLex clangParse clangSema clangSerialization
-  LLVMBitReader LLVMBitWriter LLVMAsmParser LLVMInstrumentation
-  LLVMipo LLVMipa LLVMInstCombine LLVMIRReader LLVMLinker LLVMMC
-  LLVMMCParser LLVMObjCARCOpts LLVMObject LLVMOption LLVMProfileData
-  LLVMScalarOpts LLVMTarget LLVMTransformUtils LLVMVectorize
-  LLVMAnalysis LLVMCore LLVMSupport)
+  ${LLVM_LIBS})
 
 # Sources for OpenCL runtime API frontend
 set(RUNTIME_SOURCES

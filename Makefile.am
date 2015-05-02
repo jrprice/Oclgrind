@@ -19,6 +19,9 @@ endif USING_CLANG
 
 lib_LTLIBRARIES = liboclgrind.la liboclgrind-rt.la liboclgrind-rt-icd.la
 
+LLVM_LIBS = `$(llvm_config) --system-libs --libs bitreader bitwriter	\
+ core instrumentation ipo irreader linker mcparser objcarcopts option`
+
 liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp		\
  src/core/Context.h src/core/Context.cpp src/core/half.h		\
  src/core/Kernel.h src/core/Kernel.cpp src/core/KernelInvocation.h	\
@@ -34,18 +37,10 @@ liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp		\
  src/plugins/MemCheck.cpp src/plugins/RaceDetector.h			\
  src/plugins/RaceDetector.cpp
 nodist_liboclgrind_la_SOURCES = src/core/clc_h.cpp config.h
-liboclgrind_la_LDFLAGS = -lclangFrontendTool -lclangFrontend		\
--lclangDriver -lclangSerialization -lclangCodeGen -lclangParse		\
--lclangSema -lclangStaticAnalyzerFrontend				\
--lclangStaticAnalyzerCheckers -lclangStaticAnalyzerCore			\
--lclangAnalysis -lclangARCMigrate -lclangRewriteFrontend -lclangEdit	\
--lclangAST -lclangLex -lclangBasic -lLLVMBitReader -lLLVMBitWriter	\
--lLLVMAsmParser -lLLVMInstrumentation -lLLVMipo -lLLVMipa		\
--lLLVMInstCombine -lLLVMIRReader -lLLVMLinker -lLLVMMC -lLLVMMCParser	\
--lLLVMObjCARCOpts -lLLVMObject -lLLVMOption -lLLVMProfileData		\
--lLLVMScalarOpts -lLLVMTarget -lLLVMTransformUtils -lLLVMVectorize	\
--lLLVMAnalysis -lLLVMCore -lLLVMSupport -ldl -lz -lpthread		\
-$(oclgrind_extra_libs) -shared
+liboclgrind_la_LDFLAGS = -lclangFrontend -lclangDriver		\
+-lclangSerialization -lclangCodeGen -lclangParse -lclangSema	\
+-lclangAnalysis -lclangEdit -lclangAST -lclangLex -lclangBasic	\
+${LLVM_LIBS} $(oclgrind_extra_libs) -shared
 oclgrind_includedir = $(includedir)/oclgrind
 oclgrind_include_HEADERS = src/core/common.h src/core/Context.h	\
  src/core/half.h src/core/Kernel.h src/core/KernelInvocation.h	\
