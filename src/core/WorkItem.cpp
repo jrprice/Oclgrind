@@ -1490,7 +1490,7 @@ void InterpreterCache::addBuiltin(
   }
 
   // Function didn't match any builtins
-  FATAL_ERROR("Undefined builtin function: %s", name.c_str());
+  FATAL_ERROR("Undefined external function: %s", name.c_str());
 }
 
 InterpreterCache::Builtin InterpreterCache::getBuiltin(
