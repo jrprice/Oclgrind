@@ -66,10 +66,10 @@ A CMake build system is provided for building Oclgrind on Windows. At
 present, this only works with Visual Studio 2013 (or newer), and
 Windows 7.
 
-When configuring the CMake build, you will be prompted to supply a
-value for the LLVM_ROOT parameter. This should be set to the root
-directory of the LLVM/Clang generator installation, (for example
-C:\Program Files\LLVM).
+When configuring the CMake build, you may be prompted to supply a
+value for the LLVM_DIR parameter. This should be set to the directory
+containing your LLVM installations's LLVMConfig.cmake file, (for
+example C:\Program Files\LLVM\share\llvm\cmake\).
 
 If you wish to use Oclgrind via the OpenCL ICD (optional), then you
 should also create an ICD loading point. To do this, you should add a
