@@ -1676,7 +1676,7 @@ clGetSupportedImageFormats
   // Calculate total number of formats
   size_t numCatagories = sizeof(orders)/sizeof(cl_channel_order*);
   size_t numFormats = 0;
-  for (int c = 0; c < numCatagories; c++)
+  for (size_t c = 0; c < numCatagories; c++)
   {
     numFormats += numOrders[c] * numTypes[c];
   }
@@ -1688,12 +1688,12 @@ clGetSupportedImageFormats
   // Generate list of all valid order/type combinations
   if (image_formats)
   {
-    int i = 0;
-    for (int c = 0; c < numCatagories; c++)
+    unsigned i = 0;
+    for (size_t c = 0; c < numCatagories; c++)
     {
-      for (int o = 0; o < numOrders[c]; o++)
+      for (size_t o = 0; o < numOrders[c]; o++)
       {
-        for (int t = 0; t < numTypes[c]; t++)
+        for (size_t t = 0; t < numTypes[c]; t++)
         {
           if (i >= num_entries)
           {
