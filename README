@@ -101,7 +101,7 @@ your system.
 If it encounters any invalid memory accesses, Oclgrind will
 report the details to stderr, for example:
 
-> Invalid read of size 4 at global memory address 0x1000000000040
+> Invalid write of size 4 at global memory address 0x1000000000040
 >     Kernel:  vecadd
 >     Entity:  Global(16,0,0) Local(0,0,0) Group(16,0,0)
 >     store i32 %tmp9, i32 addrspace(1)* %tmp15, align 4
@@ -111,8 +111,8 @@ report the details to stderr, for example:
 Since it is interpreting an abstract intermediate representation and
 bounds-checking each memory access, Oclgrind will run quite slowly
 (typically a couple of orders of magnitude slower than a regular CPU
-implementation). Therefore, it is recommended to run with a small
-problem if possible.
+implementation). Therefore, it is recommended to run your application
+with a small problem if possible.
 
 To enable an interactive, GDB-style debugging session, supply the -i
 flag to the oclgrind command, or export the environment variable
