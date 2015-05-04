@@ -12,7 +12,6 @@ namespace llvm
 {
   class Function;
   class Module;
-  class raw_string_ostream;
 }
 
 namespace oclgrind
@@ -70,7 +69,6 @@ namespace oclgrind
     unsigned long m_uid;
     unsigned long generateUID() const;
 
-    bool legalize(llvm::raw_string_ostream& buildLog);
     void stripDebugIntrinsics();
 
     typedef std::map<const llvm::Function*, InterpreterCache*>
