@@ -2124,7 +2124,7 @@ clCreateProgramWithSource
 
   // Concatenate sources into a single string
   std::string source;
-  for (int i = 0; i < count; i++)
+  for (unsigned i = 0; i < count; i++)
   {
     size_t length = (lengths && lengths[i]) ? lengths[i] : strlen(strings[i]);
     source.append(strings[i], length);
@@ -2373,7 +2373,7 @@ clCompileProgram
 
   // Prepare headers
   list<oclgrind::Program::Header> headers;
-  for (int i = 0; i < num_input_headers; i++)
+  for (unsigned i = 0; i < num_input_headers; i++)
   {
     headers.push_back(make_pair(header_include_names[i],
                                 input_headers[i]->program));
@@ -2440,7 +2440,7 @@ clLinkProgram
 
   // Prepare programs
   list<const oclgrind::Program*> programs;
-  for (int i = 0; i < num_input_programs; i++)
+  for (unsigned i = 0; i < num_input_programs; i++)
   {
     programs.push_back(input_programs[i]->program);
   }
@@ -3159,7 +3159,7 @@ clWaitForEvents
   while (!complete)
   {
     complete = true;
-    for (int i = 0; i < num_events; i++)
+    for (unsigned i = 0; i < num_events; i++)
     {
       // Skip event if already complete
       if (isComplete(event_list[i]))
@@ -3191,7 +3191,7 @@ clWaitForEvents
   }
 
   // Check if any command terminated unsuccessfully
-  for (int i = 0; i < num_events; i++)
+  for (unsigned i = 0; i < num_events; i++)
   {
     if (event_list[i]->event->state < 0)
     {
@@ -4125,7 +4125,7 @@ clEnqueueFillImage
 
   // Generate color data with correct order and data type
   unsigned char *color = new unsigned char[pixelSize];
-  for (int output = 0; output < getNumChannels(&img->format); output++)
+  for (unsigned output = 0; output < getNumChannels(&img->format); output++)
   {
     // Get input channel index
     int input = output;
@@ -4799,7 +4799,7 @@ clEnqueueNDRangeKernel
   }
 
   // Check global and local sizes are valid
-  for (int i = 0; i < work_dim; i++)
+  for (unsigned i = 0; i < work_dim; i++)
   {
     if (!global_work_size[i])
     {
@@ -4913,7 +4913,7 @@ clEnqueueNativeKernel
 
   // Replace mem objects with real pointers
   oclgrind::Memory *memory = command_queue->context->context->getGlobalMemory();
-  for (int i = 0; i < num_mem_objects; i++)
+  for (unsigned i = 0; i < num_mem_objects; i++)
   {
     if (!mem_list[i])
     {
@@ -4935,7 +4935,7 @@ clEnqueueNativeKernel
     new oclgrind::Queue::NativeKernelCommand(user_func, args, cb_args);
 
   // Retain memory objects
-  for (int i = 0; i < num_mem_objects; i++)
+  for (unsigned i = 0; i < num_mem_objects; i++)
   {
     asyncQueueRetain(cmd, mem_list[i]);
   }
