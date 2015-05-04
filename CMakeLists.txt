@@ -53,45 +53,29 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   add_definitions(-DNOMINMAX)
 endif()
 
-# Add LLVM required macro definitions
-add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
-# Require that LLVM_ROOT is set and pointing to a usable LLVM/Clang build
-# TODO: Detect if LLVM/Clang already on path
-set(LLVM_ROOT " " CACHE PATH "Root of LLVM/Clang installation.")
-if (NOT EXISTS ${LLVM_ROOT}/include/clang)
-  message(FATAL_ERROR "LLVM/Clang not found (set LLVM_ROOT).")
-endif()
+# Find LLVM
+find_package(LLVM REQUIRED CONFIG NO_CMAKE_BUILDS_PATH)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-# Check version of LLVM
-execute_process(
-  COMMAND ${LLVM_ROOT}/bin/llvm-config --version
-  OUTPUT_VARIABLE LLVM_FULL_VERSION
-)
-string(REGEX MATCH "[0-9]+.[0-9]+" LLVM_VERSION ${LLVM_FULL_VERSION})
-string(REPLACE "." "" LLVM_VERSION ${LLVM_VERSION})
-if (${LLVM_VERSION} LESS 36)
+# Check LLVM version
+if (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.6")
   message(FATAL_ERROR "LLVM version must be >= 3.6")
 endif()
-set(LLVM_VERSION ${LLVM_VERSION})
+set(LLVM_VERSION ${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR})
 
-# Add LLVM/Clang library and include directories
-include_directories(${LLVM_ROOT}/include)
-link_directories(${LLVM_ROOT}/lib)
+# Add flags for LLVM
+add_definitions(${LLVM_DEFINITIONS})
+include_directories(${LLVM_INCLUDE_DIRS})
+link_directories(${LLVM_LIBRARY_DIRS})
+set(CLANG ${LLVM_TOOLS_BINARY_DIR}/clang)
 
 # Get LLVM libraries for linking
-execute_process(
-  COMMAND ${LLVM_ROOT}/bin/llvm-config --libs bitreader bitwriter core
-            instrumentation ipo irreader linker mcparser objcarcopts option
-  OUTPUT_VARIABLE LLVM_LIBS
-)
-string(STRIP ${LLVM_LIBS} LLVM_LIBS)
-execute_process(
-  COMMAND ${LLVM_ROOT}/bin/llvm-config --system-libs
-  OUTPUT_VARIABLE LLVM_SYSTEM_LIBS
-)
-string(STRIP ${LLVM_SYSTEM_LIBS} LLVM_SYSTEM_LIBS)
-set(LLVM_LIBS "${LLVM_LIBS} ${LLVM_SYSTEM_LIBS}")
+llvm_map_components_to_libnames(LLVM_LIBS
+  bitreader bitwriter core instrumentation ipo irreader
+  linker mcparser objcarcopts option)
+
 
 # Check for GNU readline library
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
@@ -226,7 +210,7 @@ add_custom_command(
   OUTPUT include/oclgrind/clc32.pch
   POST_BUILD
   COMMAND
-    ${LLVM_ROOT}/bin/clang
+    ${CLANG}
     -cc1 -x cl -cl-std=CL1.2 -O0 -g -fno-builtin
     -emit-pch -triple spir-unknown-unknown
     -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
@@ -238,7 +222,7 @@ add_custom_command(
   OUTPUT include/oclgrind/clc64.pch
   POST_BUILD
   COMMAND
-    ${LLVM_ROOT}/bin/clang
+    ${CLANG}
     -cc1 -x cl -cl-std=CL1.2 -O0 -g -fno-builtin
     -emit-pch -triple spir64-unknown-unknown
     -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
