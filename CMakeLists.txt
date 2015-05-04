@@ -9,7 +9,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 15)
-set(Oclgrind_VERSION_MINOR 2)
+set(Oclgrind_VERSION_MINOR 5)
 
 include(CheckIncludeFiles)
 include(CheckLibraryExists)
