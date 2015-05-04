@@ -25,7 +25,10 @@ AM_CONDITIONAL([USING_CLANG], [test "$using_clang" == "yes"])
 oclgrind_extra_libs=
 
 # Check for C++11
-AX_CXX_COMPILE_STDCXX_11(, [mandatory])
+AX_CHECK_COMPILE_FLAG([-std=c++11], [],
+                      [AC_MSG_ERROR([C++11 support is required])])
+CXXFLAGS="$CXXFLAGS -std=c++11"
+CPPFLAGS="$CPPFLAGS -std=c++11"
 
 # Add LLVM required macro definitions
 CPPFLAGS="$CPPFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
