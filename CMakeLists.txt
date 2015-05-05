@@ -6,7 +6,7 @@
 # license terms please see the LICENSE file distributed with this
 # source code.
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.12)
 project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 15)
 set(Oclgrind_VERSION_MINOR 5)
