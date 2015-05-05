@@ -43,6 +43,11 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   add_definitions(-DNOMINMAX)
 endif()
 
+# Suppress warnings from OpenCL runtime API headers
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes -Wno-gcc-compat -Wno-availability")
+endif()
+
 
 # Find LLVM
 find_package(LLVM REQUIRED CONFIG NO_CMAKE_BUILDS_PATH)
