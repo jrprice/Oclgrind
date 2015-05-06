@@ -5399,7 +5399,7 @@ clCreateFromDX9MediaSurfaceKHR
   cl_int *                       errcode_ret
 ) CL_API_SUFFIX__VERSION_1_2
 {
-  SetErrorInfo(NULL, CL_INVALID_CONTEXT, context, "CL/DX interop not implemented");
+  SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/DX interop not implemented");
   return NULL;
 }
 
