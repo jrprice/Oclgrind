@@ -19,6 +19,9 @@ if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "-std=c99")
 endif()
 
+# Enable rpath on OS X
+set(CMAKE_MACOSX_RPATH 1)
+
 # Enable C++11 for Clang/GCC
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CMAKE_CXX_FLAGS "-std=c++11")
