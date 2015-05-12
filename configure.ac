@@ -30,17 +30,12 @@ AX_CHECK_COMPILE_FLAG([-std=c++11], [],
 CXXFLAGS="$CXXFLAGS -std=c++11"
 CPPFLAGS="$CPPFLAGS -std=c++11"
 
-# Add LLVM required macro definitions
-CPPFLAGS="$CPPFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
-
 # --with-llvm option to specify root of LLVM/Clang installation
 AC_ARG_WITH(
         llvm,
         [AS_HELP_STRING([--with-llvm],
                        [directory containing LLVM/Clang installation])],
-        [CPPFLAGS="$CPPFLAGS -I$withval/include";
-         LDFLAGS="$LDFLAGS -L$withval/lib";
-         AC_SUBST(clang, $withval/bin/clang)
+        [AC_SUBST(clang, $withval/bin/clang)
          AC_SUBST(llvm_config, $withval/bin/llvm-config)])
 
 # Find LLVM/Clang binaries (assume on PATH if --with-llvm not used)
@@ -61,6 +56,10 @@ fi
 AC_DEFINE_UNQUOTED([LLVM_VERSION],
                    [$llvm_version],
                    [Version of LLVM we are building against])
+
+# Add flags for LLVM
+CPPFLAGS="$CPPFLAGS `$llvm_config --cppflags`"
+LDFLAGS="$LDFLAGS `$llvm_config --ldflags`"
 
 # Check for LLVM/Clang headers/libraries
 AC_CHECK_HEADERS(
