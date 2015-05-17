@@ -27,6 +27,7 @@ bugs/many_alloca
 bugs/multidim_array_in_struct
 bugs/null_argument
 bugs/sroa_addrspace_cast
+bugs/write_vector_write_only_fp
 data-race/broadcast
 data-race/global_fence
 data-race/global_only_fence
