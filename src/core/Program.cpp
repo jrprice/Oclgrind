@@ -338,32 +338,32 @@ bool Program::build(const char *options, list<Header> headers)
       stripDebugIntrinsics();
     }
 
-    // Initialize pass managers
-    llvm::legacy::PassManager modulePasses;
-    llvm::legacy::FunctionPassManager functionPasses(m_module.get());
-#if LLVM_VERSION < 37
-    modulePasses.add(new llvm::DataLayoutPass());
-    functionPasses.add(new llvm::DataLayoutPass());
-#endif
-
     // Run optimizations on module
     if (optimize)
     {
+      // Initialize pass managers
+      llvm::legacy::PassManager modulePasses;
+      llvm::legacy::FunctionPassManager functionPasses(m_module.get());
+#if LLVM_VERSION < 37
+      modulePasses.add(new llvm::DataLayoutPass());
+      functionPasses.add(new llvm::DataLayoutPass());
+#endif
+
       // Populate pass managers with -Oz
       llvm::PassManagerBuilder builder;
       builder.OptLevel = 2;
       builder.SizeLevel = 2;
       builder.populateModulePassManager(modulePasses);
       builder.populateFunctionPassManager(functionPasses);
-    }
 
-    // Run passes
-    functionPasses.doInitialization();
-    llvm::Module::iterator fItr;
-    for (fItr = m_module->begin(); fItr != m_module->end(); fItr++)
-      functionPasses.run(*fItr);
-    functionPasses.doFinalization();
-    modulePasses.run(*m_module);
+      // Run passes
+      functionPasses.doInitialization();
+      llvm::Module::iterator fItr;
+      for (fItr = m_module->begin(); fItr != m_module->end(); fItr++)
+        functionPasses.run(*fItr);
+      functionPasses.doFinalization();
+      modulePasses.run(*m_module);
+    }
 
     m_buildStatus = CL_BUILD_SUCCESS;
   }
