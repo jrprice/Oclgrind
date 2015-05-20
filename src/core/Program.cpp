@@ -722,7 +722,6 @@ void Program::stripDebugIntrinsics()
   set<llvm::Instruction*>::iterator itr;
   for (itr = intrinsics.begin(); itr != intrinsics.end(); itr++)
   {
-    (*itr)->removeFromParent();
-    delete *itr;
+    (*itr)->eraseFromParent();
   }
 }
