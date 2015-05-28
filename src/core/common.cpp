@@ -517,16 +517,9 @@ namespace oclgrind
     }
     else
     {
-      // For some reason, getScalarSizeInBits is not const
-      llvm::Type* nonConstTy = const_cast<llvm::Type*>(type);
-
       // Round up for types that have a bit size not multiple of 8
       // like "bool".
-      unsigned ret = nonConstTy->getScalarSizeInBits() / 8;
-      if (nonConstTy->getScalarSizeInBits() % 8)
-        ret++;
-
-      return ret;
+      return (type->getScalarSizeInBits() + 7) >> 3;
     }
   }
 
@@ -584,7 +577,7 @@ namespace oclgrind
       numElements = 1;
     }
 
-    unsigned elemSize = bits >> 3;
+    unsigned elemSize = (bits+7) >> 3;
 
     // Special case for pointer types
     if (type->isPointerTy())
