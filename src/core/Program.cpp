@@ -841,7 +841,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       v2SourceIsDest = true;
 
     // Get mask indices that don't correspond to the destination vector
-    vector<unsigned> indices;
+    stack<unsigned> indices;
     for (unsigned i = 0; i < maskSize; i++)
     {
       int idx = shuffle->getMaskValue(i);
@@ -861,7 +861,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 
       // Add non-destination index
       if (!sourceIsDest)
-        indices.push_back(i);
+        indices.push(i);
     }
 
     // Check if destination is actually used as a source in the mask
@@ -869,9 +869,10 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       return;
 
     // Create a scalar store for each shuffle index
-    for (unsigned i = 0; i < indices.size(); i++)
+    while (!indices.empty())
     {
-      unsigned index = indices[i];
+      unsigned index = indices.top();
+      indices.pop();
 
       // Create GEP for scalar value
       llvm::GetElementPtrInst *scalarPtr = NULL;
