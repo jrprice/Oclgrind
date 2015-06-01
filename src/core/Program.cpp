@@ -776,8 +776,11 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         indices.push_back(*idx);
       }
       indices.push_back(index);
-      scalarPtr = llvm::GetElementPtrInst::Create(gep->getPointerOperand(),
-                                                  indices);
+      scalarPtr = llvm::GetElementPtrInst::Create(
+#if LLVM_VERSION > 36
+        gep->getPointerOperandType()->getPointerElementType(),
+#endif
+        gep->getPointerOperand(), indices);
     }
     else
     {
@@ -785,7 +788,11 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       std::vector<llvm::Value*> indices;
       indices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
       indices.push_back(index);
-      scalarPtr = llvm::GetElementPtrInst::Create(vectorPtr, indices);
+      scalarPtr = llvm::GetElementPtrInst::Create(
+#if LLVM_VERSION > 36
+        vectorPtr->getType()->getPointerElementType(),
+#endif
+        vectorPtr, indices);
     }
     scalarPtr->insertAfter(store);
 
@@ -876,8 +883,11 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
           gepIndices.push_back(*idx);
         }
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
-        scalarPtr = llvm::GetElementPtrInst::Create(gep->getPointerOperand(),
-                                                    gepIndices);
+        scalarPtr = llvm::GetElementPtrInst::Create(
+#if LLVM_VERSION > 36
+          gep->getPointerOperandType()->getPointerElementType(),
+#endif
+          gep->getPointerOperand(), gepIndices);
       }
       else
       {
@@ -885,7 +895,11 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         std::vector<llvm::Value*> gepIndices;
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
-        scalarPtr = llvm::GetElementPtrInst::Create(vectorPtr, gepIndices);
+        scalarPtr = llvm::GetElementPtrInst::Create(
+#if LLVM_VERSION > 36
+          vectorPtr->getType()->getPointerElementType(),
+#endif
+          vectorPtr, gepIndices);
       }
       scalarPtr->insertAfter(store);
 
