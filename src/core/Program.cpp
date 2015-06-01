@@ -906,11 +906,12 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       scalarPtr->insertAfter(store);
 
       // Get source vector and index
-      unsigned idx = shuffle->getMaskValue(index);
+      unsigned idx   = shuffle->getMaskValue(index);
+      unsigned v1num = v1->getType()->getVectorNumElements();
       llvm::Value *src = v1;
-      if (idx >= maskSize)
+      if (idx >= v1num)
       {
-        idx -= maskSize;
+        idx -= v1num;
         src = v2;
       }
 
@@ -928,12 +929,25 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       }
       else
       {
-        // TODO: If extracting from a shuffle, trace back to last non-shuffle
-        // and then prune shuffles if possible
+        // If extracting from a shuffle, trace back to last non-shuffle
+        while (auto shfl = llvm::dyn_cast<llvm::ShuffleVectorInst>(src))
+        {
+          llvm::Value *v1 = shfl->getOperand(0);
+          llvm::Value *v2 = shfl->getOperand(1);
+          unsigned v1num  = v1->getType()->getVectorNumElements();
 
-        // If source is non-constant, use extractelement
+          // Get source vector and index
+          idx = shfl->getMaskValue(idx);
+          src = v1;
+          if (idx >= v1num)
+          {
+            idx -= v1num;
+            src = v2;
+          }
+        }
+
         llvm::ExtractElementInst *extract = llvm::ExtractElementInst::Create(
-            src, llvm::ConstantInt::getSigned(gepIndexType, idx));
+          src, llvm::ConstantInt::getSigned(gepIndexType, idx));
         extract->setDebugLoc(shuffle->getDebugLoc());
         extract->insertAfter(scalarPtr);
 
