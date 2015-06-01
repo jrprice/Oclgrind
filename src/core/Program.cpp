@@ -757,8 +757,6 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
   llvm::Value *storeValue = store->getValueOperand();
   llvm::Value *vectorPtr  = store->getPointerOperand();
 
-  // TODO: Preserve debug info in new instructions
-
   if (auto insert = llvm::dyn_cast<llvm::InsertElementInst>(storeValue))
   {
     llvm::Value *vector = insert->getOperand(0);
@@ -794,12 +792,14 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 #endif
         vectorPtr, indices);
     }
+    scalarPtr->setDebugLoc(store->getDebugLoc());
     scalarPtr->insertAfter(store);
 
     // Create direct scalar store
     llvm::StoreInst *scalarStore = new llvm::StoreInst(
       value, scalarPtr, store->isVolatile(),
       getTypeAlignment(value->getType()));
+    scalarStore->setDebugLoc(store->getDebugLoc());
     scalarStore->insertAfter(scalarPtr);
 
     // Check if the input to the insertelement instruction came from something
@@ -811,6 +811,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       llvm::StoreInst *_store = new llvm::StoreInst(
         vector, store->getPointerOperand(),
         store->isVolatile(), store->getAlignment());
+      _store->setDebugLoc(store->getDebugLoc());
       _store->insertAfter(store);
 
       // Repeat process with new store
@@ -901,6 +902,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 #endif
           vectorPtr, gepIndices);
       }
+      scalarPtr->setDebugLoc(store->getDebugLoc());
       scalarPtr->insertAfter(store);
 
       // Get source vector and index
@@ -921,7 +923,8 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         llvm::StoreInst *scalarStore = new llvm::StoreInst(
           src, scalarPtr, store->isVolatile(),
           getTypeAlignment(src->getType()));
-          scalarStore->insertAfter(scalarPtr);
+        scalarStore->setDebugLoc(store->getDebugLoc());
+        scalarStore->insertAfter(scalarPtr);
       }
       else
       {
@@ -931,11 +934,13 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         // If source is non-constant, use extractelement
         llvm::ExtractElementInst *extract = llvm::ExtractElementInst::Create(
             src, llvm::ConstantInt::getSigned(gepIndexType, idx));
+        extract->setDebugLoc(shuffle->getDebugLoc());
         extract->insertAfter(scalarPtr);
 
         llvm::StoreInst *scalarStore = new llvm::StoreInst(
           extract, scalarPtr, store->isVolatile(),
           getTypeAlignment(extract->getType()));
+        scalarStore->setDebugLoc(store->getDebugLoc());
         scalarStore->insertAfter(extract);
       }
     }
