@@ -365,6 +365,8 @@ bool Program::build(const char *options, list<Header> headers)
       modulePasses.run(*m_module);
     }
 
+    removeLValueLoads();
+
     m_buildStatus = CL_BUILD_SUCCESS;
   }
   else
@@ -695,6 +697,239 @@ size_t Program::getNumSourceLines() const
 unsigned long Program::getUID() const
 {
   return m_uid;
+}
+
+void Program::pruneDeadCode(llvm::Instruction *instruction)
+{
+  // Remove instructions that have no uses
+  if (instruction->getNumUses() == 0)
+  {
+    // Get list of operands
+    set<llvm::Value*> operands;
+    {
+      llvm::Instruction::op_iterator op;
+      for (op = instruction->op_begin(); op != instruction->op_end(); op++)
+      {
+        operands.insert(*op);
+      }
+    }
+
+    // Remove instruction
+    instruction->eraseFromParent();
+
+    // Prune operands
+    set<llvm::Value*>::iterator op;
+    for (op = operands.begin(); op != operands.end(); op++)
+    {
+      if (auto inst = llvm::dyn_cast<llvm::Instruction>(*op))
+        pruneDeadCode(inst);
+    }
+  }
+}
+
+void Program::removeLValueLoads()
+{
+  // Get list of aggregate store instructions
+  set<llvm::StoreInst*> aggStores;
+  for (llvm::Module::iterator F = m_module->begin(); F != m_module->end(); F++)
+  {
+    for (llvm::inst_iterator I = inst_begin(F), E = inst_end(F); I != E; I++)
+    {
+      if (auto store = llvm::dyn_cast<llvm::StoreInst>(&*I))
+        aggStores.insert(store);
+    }
+  }
+
+  // Replace aggregate modify-write sequences with direct scalar writes
+  set<llvm::StoreInst*>::iterator itr;
+  for (itr = aggStores.begin(); itr != aggStores.end(); itr++)
+  {
+    scalarizeAggregateStore(*itr);
+  }
+}
+
+void Program::scalarizeAggregateStore(llvm::StoreInst *store)
+{
+  llvm::IntegerType *gepIndexType = (sizeof(size_t)==8) ?
+      llvm::Type::getInt64Ty(m_module.get()->getContext()) :
+      llvm::Type::getInt32Ty(m_module.get()->getContext());
+
+  llvm::Value *storeValue = store->getValueOperand();
+  llvm::Value *vectorPtr  = store->getPointerOperand();
+
+  // TODO: Preserve debug info in new instructions
+
+  if (auto insert = llvm::dyn_cast<llvm::InsertElementInst>(storeValue))
+  {
+    llvm::Value *vector = insert->getOperand(0);
+    llvm::Value *value  = insert->getOperand(1);
+    llvm::Value *index  = insert->getOperand(2);
+
+    // Create GEP for scalar value
+    llvm::GetElementPtrInst *scalarPtr = NULL;
+    if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(vectorPtr))
+    {
+      // Create GEP from existing GEP
+      std::vector<llvm::Value*> indices;
+      for (auto idx = gep->idx_begin(); idx != gep->idx_end(); idx++)
+      {
+        indices.push_back(*idx);
+      }
+      indices.push_back(index);
+      scalarPtr = llvm::GetElementPtrInst::Create(gep->getPointerOperand(),
+                                                  indices);
+    }
+    else
+    {
+      // Create GEP from non-GEP pointer
+      std::vector<llvm::Value*> indices;
+      indices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
+      indices.push_back(index);
+      scalarPtr = llvm::GetElementPtrInst::Create(vectorPtr, indices);
+    }
+    scalarPtr->insertAfter(store);
+
+    // Create direct scalar store
+    llvm::StoreInst *scalarStore = new llvm::StoreInst(
+      value, scalarPtr, store->isVolatile(),
+      getTypeAlignment(value->getType()));
+    scalarStore->insertAfter(scalarPtr);
+
+    // Check if the input to the insertelement instruction came from something
+    // other than a load to the same address as the store
+    llvm::LoadInst *load = llvm::dyn_cast<llvm::LoadInst>(vector);
+    if (!(load && load->getPointerOperand() == store->getPointerOperand()))
+    {
+      // Replace value in store with the input to the insertelement instruction
+      llvm::StoreInst *_store = new llvm::StoreInst(
+        vector, store->getPointerOperand(),
+        store->isVolatile(), store->getAlignment());
+      _store->insertAfter(store);
+
+      // Repeat process with new store
+      if (_store)
+        scalarizeAggregateStore(_store);
+    }
+
+    // Remove vector store and any dead code
+    store->eraseFromParent();
+    pruneDeadCode(insert);
+  }
+  else if (auto shuffle = llvm::dyn_cast<llvm::ShuffleVectorInst>(storeValue))
+  {
+    llvm::Value *v1      = shuffle->getOperand(0);
+    llvm::Value *v2      = shuffle->getOperand(1);
+    llvm::Constant *mask = shuffle->getMask();
+    unsigned maskSize    = mask->getType()->getVectorNumElements();
+
+    // Check if shuffle sources came from a load with same address as the store
+    llvm::LoadInst *load;
+    bool v1SourceIsDest = false, v2SourceIsDest = false;
+    if ((load = llvm::dyn_cast<llvm::LoadInst>(v1)) &&
+         load->getPointerOperand() == vectorPtr)
+      v1SourceIsDest = true;
+    if ((load = llvm::dyn_cast<llvm::LoadInst>(v2)) &&
+         load->getPointerOperand() == vectorPtr)
+      v2SourceIsDest = true;
+
+    // Get mask indices that don't correspond to the destination vector
+    vector<unsigned> indices;
+    for (unsigned i = 0; i < maskSize; i++)
+    {
+      int idx = shuffle->getMaskValue(i);
+
+      // Skip undef indices
+      if (idx == -1)
+        continue;
+
+      // Check if source is the store destination
+      bool sourceIsDest =
+        ((unsigned)idx < v1->getType()->getVectorNumElements() ?
+          v1SourceIsDest : v2SourceIsDest);
+
+      // If destination is used in non-identity position, leave shuffle as is
+      if (sourceIsDest && (unsigned)idx != i)
+        return;
+
+      // Add non-destination index
+      if (!sourceIsDest)
+        indices.push_back(i);
+    }
+
+    // Check if destination is actually used as a source in the mask
+    if (indices.size() == maskSize)
+      return;
+
+    // Create a scalar store for each shuffle index
+    for (unsigned i = 0; i < indices.size(); i++)
+    {
+      unsigned index = indices[i];
+
+      // Create GEP for scalar value
+      llvm::GetElementPtrInst *scalarPtr = NULL;
+      if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(vectorPtr))
+      {
+        // Create GEP from existing GEP
+        std::vector<llvm::Value*> gepIndices;
+        for (auto idx = gep->idx_begin(); idx != gep->idx_end(); idx++)
+        {
+          gepIndices.push_back(*idx);
+        }
+        gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
+        scalarPtr = llvm::GetElementPtrInst::Create(gep->getPointerOperand(),
+                                                    gepIndices);
+      }
+      else
+      {
+        // Create GEP from non-GEP pointer
+        std::vector<llvm::Value*> gepIndices;
+        gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
+        gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
+        scalarPtr = llvm::GetElementPtrInst::Create(vectorPtr, gepIndices);
+      }
+      scalarPtr->insertAfter(store);
+
+      // Get source vector and index
+      unsigned idx = shuffle->getMaskValue(index);
+      llvm::Value *src = v1;
+      if (idx >= maskSize)
+      {
+        idx -= maskSize;
+        src = v2;
+      }
+
+      // Create direct scalar store
+      if (auto cnst = llvm::dyn_cast<llvm::ConstantVector>(src))
+      {
+        // If source is a constant, extract scalar constant
+        src = cnst->getAggregateElement(idx);
+
+        llvm::StoreInst *scalarStore = new llvm::StoreInst(
+          src, scalarPtr, store->isVolatile(),
+          getTypeAlignment(src->getType()));
+          scalarStore->insertAfter(scalarPtr);
+      }
+      else
+      {
+        // TODO: If extracting from a shuffle, trace back to last non-shuffle
+        // and then prune shuffles if possible
+
+        // If source is non-constant, use extractelement
+        llvm::ExtractElementInst *extract = llvm::ExtractElementInst::Create(
+            src, llvm::ConstantInt::getSigned(gepIndexType, idx));
+        extract->insertAfter(scalarPtr);
+
+        llvm::StoreInst *scalarStore = new llvm::StoreInst(
+          extract, scalarPtr, store->isVolatile(),
+          getTypeAlignment(extract->getType()));
+        scalarStore->insertAfter(extract);
+      }
+    }
+
+    // Prune old store and dead any code
+    store->eraseFromParent();
+    pruneDeadCode(shuffle);
+  }
 }
 
 void Program::stripDebugIntrinsics()

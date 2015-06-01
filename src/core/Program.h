@@ -12,6 +12,7 @@ namespace llvm
 {
   class Function;
   class Module;
+  class StoreInst;
 }
 
 namespace oclgrind
@@ -69,6 +70,9 @@ namespace oclgrind
     unsigned long m_uid;
     unsigned long generateUID() const;
 
+    void pruneDeadCode(llvm::Instruction*);
+    void removeLValueLoads();
+    void scalarizeAggregateStore(llvm::StoreInst *store);
     void stripDebugIntrinsics();
 
     typedef std::map<const llvm::Function*, InterpreterCache*>
