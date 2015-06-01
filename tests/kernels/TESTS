@@ -49,6 +49,7 @@ memcheck/read_write_only_memory
 memcheck/write_out_of_bounds
 memcheck/write_read_only_memory
 misc/array
+misc/lvalue_loads
 misc/reduce
 misc/vecadd
 wait_event/wait_event_chained

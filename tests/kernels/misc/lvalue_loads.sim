@@ -1,0 +1,29 @@
+lvalue_loads.cl
+lvalue_loads
+1 1 1
+1 1 1
+
+# Vector input
+<size=16 range=16:1:19>
+
+# Vector outputs
+<size=16 range=1:1:4 dump wo>
+<size=16 range=1:1:4 dump wo>
+<size=16 range=1:1:4 dump wo>
+<size=16 range=1:1:4 dump>
+<size=16 range=1:1:4 dump>
+<size=16 range=1:1:4 dump>
+<size=16 range=1:1:4 dump wo>
+<size=16 range=1:1:4 dump wo>
+<size=32 range=1:1:8 dump>
+
+# Structure input
+<size=16 int range=16:1:19>
+
+# Structure outputs
+<size=16 int range=1:1:4 dump wo>
+<size=16 int range=1:1:4 dump>
+<size=16 int range=1:1:4 dump wo>
+
+# NOP
+<size=0 fill=0>
