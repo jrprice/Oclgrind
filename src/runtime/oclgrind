@@ -44,6 +44,8 @@ function usage
   echo          "Only run first and last work-group"
   echo -n "     --uniform-writes          "
   echo          "Don't suppress uniform write-write data-races"
+  echo -n "     --uninitialized           "
+  echo          "Report loads from uninitialized memory locations"
   echo -n "  -v --version                 "
   echo          "Display version information"
   echo
@@ -107,6 +109,9 @@ do
   elif [ "$1" == "--uniform-writes" ]
   then
     export OCLGRIND_UNIFORM_WRITES=1
+  elif [ "$1" == "--uninitialized" ]
+  then
+    export OCLGRIND_UNINITIALIZED=1
   elif [ "$1" == "-v" -o "$1" == "--version" ]
   then
     echo

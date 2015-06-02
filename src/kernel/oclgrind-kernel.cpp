@@ -138,6 +138,10 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_UNIFORM_WRITES", "1");
     }
+    else if (!strcmp(argv[i], "--uninitialized"))
+    {
+      setEnvironment("OCLGRIND_UNINITIALIZED", "1");
+    }
     else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
     {
       cout << endl;
@@ -215,6 +219,8 @@ static void printUsage()
              "Only run first and last work-group" << endl
     << "     --uniform-writes          "
              "Don't suppress uniform write-write data-races" << endl
+    << "     --uninitialized           "
+             "Report loads from uninitialized memory locations" << endl
     << "  -v --version                 "
              "Display version information" << endl
     << endl
