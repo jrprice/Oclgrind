@@ -866,7 +866,28 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 
     // Check if destination is actually used as a source in the mask
     if (indices.size() == maskSize)
+    {
+      // Check for any unused loads with the same address as the store
+      // These would usually be caught by DCE, but if optimisations are
+      // disabled we need to prune these manually
+      list<llvm::LoadInst*> lvalueloads;
+      for (auto user  = vectorPtr->user_begin();
+                user != vectorPtr->user_end() ;
+                user++)
+      {
+        if (auto load = llvm::dyn_cast<llvm::LoadInst>(*user))
+        {
+          if (load->getNumUses() == 0)
+            lvalueloads.push_back(load);
+        }
+      }
+      for (auto load = lvalueloads.begin(); load != lvalueloads.end(); load++)
+      {
+        (*load)->eraseFromParent();
+      }
+
       return;
+    }
 
     // Create a scalar store for each shuffle index
     while (!indices.empty())
