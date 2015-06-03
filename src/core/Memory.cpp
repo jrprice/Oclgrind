@@ -39,7 +39,8 @@ Memory::~Memory()
   clear();
 }
 
-size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags)
+size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags,
+                              const uint8_t *initData)
 {
   // Check requested size doesn't exceed maximum
   if (size > MAX_BUFFER_SIZE)
@@ -60,9 +61,6 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags)
   buffer->flags  = flags;
   buffer->data   = new unsigned char[size];
 
-  // Initialize contents to 0
-  memset(buffer->data, 0, size);
-
   if (b >= m_memory.size())
   {
     m_memory.push_back(buffer);
@@ -74,9 +72,15 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags)
 
   m_totalAllocated += size;
 
+  // Initialize contents of buffer
+  if (initData)
+    memcpy(buffer->data, initData, size);
+  else
+    memset(buffer->data, 0, size);
+
   size_t address = ((size_t)b) << NUM_ADDRESS_BITS;
 
-  m_context->notifyMemoryAllocated(this, address, size, flags, NULL);
+  m_context->notifyMemoryAllocated(this, address, size, flags, initData);
 
   return address;
 }
