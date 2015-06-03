@@ -1,0 +1,8 @@
+uninitialized_global_buffer.cl
+uninitialized_global_buffer
+1 1 1
+1 1 1
+
+<size=4 noinit>
+
+<size=4 fill=0 dump>

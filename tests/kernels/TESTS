@@ -53,6 +53,7 @@ misc/lvalue_loads
 misc/reduce
 misc/vecadd
 uninitialized/private_array_initializer_list
+uninitialized/uninitialized_global_buffer
 uninitialized/uninitialized_local_array
 uninitialized/uninitialized_local_ptr
 uninitialized/uninitialized_local_variable
