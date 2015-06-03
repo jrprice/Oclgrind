@@ -204,35 +204,6 @@ void Memory::clear()
   m_totalAllocated = 0;
 }
 
-Memory* Memory::clone() const
-{
-  Memory *mem = new Memory(m_addressSpace, m_context);
-
-  // Clone buffers
-  mem->m_memory.resize(m_memory.size());
-  mem->m_memory[0] = NULL;
-  for (unsigned i = 1; i < m_memory.size(); i++)
-  {
-    Buffer *src = m_memory[i];
-    Buffer *dst = new Buffer;
-    dst->size   = src->size;
-    dst->flags  = src->flags,
-    dst->data   =
-      (src->flags&CL_MEM_USE_HOST_PTR) ?
-        src->data : new unsigned char[src->size],
-    memcpy(dst->data, src->data, src->size);
-    mem->m_memory[i] = dst;
-    m_context->notifyMemoryAllocated(mem, ((size_t)i<<NUM_ADDRESS_BITS),
-                                     src->size, src->flags, src->data);
-  }
-
-  // Clone state
-  mem->m_freeBuffers = m_freeBuffers;
-  mem->m_totalAllocated = m_totalAllocated;
-
-  return mem;
-}
-
 size_t Memory::createHostBuffer(size_t size, void *ptr, cl_mem_flags flags)
 {
   // Check requested size doesn't exceed maximum
