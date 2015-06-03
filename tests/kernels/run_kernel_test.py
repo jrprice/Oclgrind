@@ -40,7 +40,8 @@ else:
 # Run oclgrind-kernel
 out = open(test_out, 'w')
 os.chdir(test_dir)
-retval = subprocess.call([test_exe, '--data-races', test_file],
+retval = subprocess.call([test_exe,
+                          '--data-races', '--uninitialized', test_file],
                          stdout=out, stderr=out)
 out.close()
 if retval != 0:
