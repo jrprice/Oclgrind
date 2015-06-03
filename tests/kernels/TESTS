@@ -52,6 +52,11 @@ misc/array
 misc/lvalue_loads
 misc/reduce
 misc/vecadd
+uninitialized/private_array_initializer_list
+uninitialized/uninitialized_local_array
+uninitialized/uninitialized_local_ptr
+uninitialized/uninitialized_local_variable
+uninitialized/uninitialized_private_array
 wait_event/wait_event_chained
 wait_event/wait_event_divergent
 wait_event/wait_event_duplicates

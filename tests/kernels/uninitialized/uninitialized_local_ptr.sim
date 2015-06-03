@@ -1,0 +1,8 @@
+uninitialized_local_ptr.cl
+uninitialized_local_ptr
+16 1 1
+16 1 1
+
+<size=64>
+
+<size=64 fill=0 dump>
