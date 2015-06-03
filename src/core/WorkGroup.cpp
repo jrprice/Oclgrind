@@ -33,7 +33,19 @@ WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid)
                   kernelInvocation->getNumGroups().x));
 
   // Allocate local memory
-  m_localMemory = kernelInvocation->getKernel()->getLocalMemory()->clone();
+  m_localMemory = new Memory(AddrSpaceLocal, m_context);
+  const Kernel *kernel = kernelInvocation->getKernel();
+  for (auto value = kernel->values_begin();
+            value != kernel->values_end();
+            value++)
+  {
+    const llvm::Type *type = value->first->getType();
+    if (type->isPointerTy() && type->getPointerAddressSpace() == AddrSpaceLocal)
+    {
+      size_t ptr = m_localMemory->allocateBuffer(value->second.size);
+      m_localAddresses[value->first] = ptr;
+    }
+  }
 
   // Initialise work-items
   for (size_t k = 0; k < m_groupSize.z; k++)
@@ -285,6 +297,11 @@ Size3 WorkGroup::getGroupSize() const
 Memory* WorkGroup::getLocalMemory() const
 {
   return m_localMemory;
+}
+
+size_t WorkGroup::getLocalMemoryAddress(const llvm::Value *value) const
+{
+  return m_localAddresses.at(value);
 }
 
 WorkItem* WorkGroup::getNextWorkItem() const

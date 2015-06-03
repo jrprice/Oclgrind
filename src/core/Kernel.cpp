@@ -25,9 +25,6 @@ Kernel::Kernel(const Program *program,
                const llvm::Function *function, const llvm::Module *module)
  : m_program(program), m_function(function), m_name(function->getName())
 {
-  m_localMemory = new Memory(AddrSpaceLocal, program->getContext());
-  m_privateMemory = new Memory(AddrSpacePrivate, program->getContext());
-
   // Set-up global variables
   llvm::Module::const_global_iterator itr;
   for (itr = module->global_begin(); itr != module->global_end(); itr++)
@@ -37,24 +34,12 @@ Kernel::Kernel(const Program *program,
     {
     case AddrSpacePrivate:
     {
+      // Get initializer data
       const llvm::Constant *init = itr->getInitializer();
-
-      // Allocate private memory for variable
       unsigned size = getTypeSize(init->getType());
-      size_t address = m_privateMemory->allocateBuffer(size);
-
-      // Initialize variable
-      void *ptr = m_privateMemory->getPointer(address);
-      getConstantData((unsigned char*)ptr, init);
-
-      TypedValue value =
-      {
-        sizeof(size_t),
-        1,
-        new unsigned char[sizeof(size_t)]
-      };
-      value.setPointer(address);
-      m_arguments[itr] = value;
+      TypedValue value = {size, 1, new uint8_t[size]};
+      getConstantData(value.data, init);
+      m_values[itr] = value;
 
       break;
     }
@@ -63,15 +48,11 @@ Kernel::Kernel(const Program *program,
       break;
     case AddrSpaceLocal:
     {
-      // Allocate buffer
-      unsigned size = getTypeSize(itr->getInitializer()->getType());
-      TypedValue v = {
-        sizeof(size_t),
-        1,
-        new unsigned char[sizeof(size_t)]
+      // Get size of allocation
+      TypedValue allocSize = {
+        getTypeSize(itr->getInitializer()->getType()), 1, NULL
       };
-      v.setPointer(m_localMemory->allocateBuffer(size));
-      m_arguments[itr] = v;
+      m_values[itr] = allocSize;
 
       break;
     }
@@ -111,26 +92,19 @@ Kernel::Kernel(const Kernel& kernel)
   m_function = kernel.m_function;
   m_constants = kernel.m_constants;
   m_constantBuffers = kernel.m_constantBuffers;
-  m_localMemory = kernel.m_localMemory->clone();
-  m_privateMemory = kernel.m_privateMemory->clone();
   m_name = kernel.m_name;
   m_metadata = kernel.m_metadata;
 
-  TypedValueMap::const_iterator itr;
-  for (itr = kernel.m_arguments.begin();
-       itr != kernel.m_arguments.end(); itr++)
+  for (auto itr = kernel.m_values.begin(); itr != kernel.m_values.end(); itr++)
   {
-    m_arguments[itr->first] = itr->second.clone();
+    m_values[itr->first] = itr->second.clone();
   }
 }
 
 Kernel::~Kernel()
 {
-  delete m_localMemory;
-  delete m_privateMemory;
-
   TypedValueMap::iterator itr;
-  for (itr = m_arguments.begin(); itr != m_arguments.end(); itr++)
+  for (itr = m_values.begin(); itr != m_values.end(); itr++)
   {
     delete[] itr->second.data;
   }
@@ -141,7 +115,7 @@ bool Kernel::allArgumentsSet() const
   llvm::Function::const_arg_iterator itr;
   for (itr = m_function->arg_begin(); itr != m_function->arg_end(); itr++)
   {
-    if (!m_arguments.count(itr))
+    if (!m_values.count(itr))
     {
       return false;
     }
@@ -157,22 +131,29 @@ void Kernel::allocateConstants(Memory *memory)
     const llvm::Constant *initializer = (*itr)->getInitializer();
     const llvm::Type *type = initializer->getType();
 
-    // Allocate buffer
+    // Deallocate existing pointer
+    if (m_values.count(*itr))
+    {
+      delete[] m_values[*itr].data;
+    }
+
+    // Get initializer data
     unsigned size = getTypeSize(type);
-    TypedValue v = {
+    unsigned char *data = new unsigned char[size];
+    getConstantData(data, (const llvm::Constant*)initializer);
+
+    // Allocate buffer
+    TypedValue address = {
       sizeof(size_t),
       1,
       new unsigned char[sizeof(size_t)]
     };
-    size_t address = memory->allocateBuffer(size);
-    v.setPointer(address);
-    m_constantBuffers.push_back(address);
-    m_arguments[*itr] = v;
+    size_t ptr = memory->allocateBuffer(size, 0, data);
+    address.setPointer(ptr);
 
-    // Initialise buffer contents
-    unsigned char *data = new unsigned char[size];
-    getConstantData(data, (const llvm::Constant*)initializer);
-    memory->store(data, address, size);
+    m_values[*itr] = address;
+    m_constantBuffers.push_back(ptr);
+
     delete[] data;
   }
 }
@@ -406,14 +387,18 @@ const llvm::Function* Kernel::getFunction() const
   return m_function;
 }
 
-const Memory* Kernel::getLocalMemory() const
-{
-  return m_localMemory;
-}
-
 size_t Kernel::getLocalMemorySize() const
 {
-  return m_localMemory->getTotalAllocated();
+  size_t sz = 0;
+  for (auto value = m_values.begin(); value != m_values.end(); value++)
+  {
+    const llvm::Type *type = value->first->getType();
+    if (type->isPointerTy() && type->getPointerAddressSpace() == AddrSpaceLocal)
+    {
+      sz += value->second.size;
+    }
+  }
+  return sz;
 }
 
 const std::string& Kernel::getName() const
@@ -424,11 +409,6 @@ const std::string& Kernel::getName() const
 unsigned int Kernel::getNumArguments() const
 {
   return m_function->arg_size();
-}
-
-const Memory* Kernel::getPrivateMemory() const
-{
-  return m_privateMemory;
 }
 
 const Program* Kernel::getProgram() const
@@ -463,72 +443,22 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
   assert(index < m_function->arg_size());
 
   const llvm::Value *argument = getArgument(index);
-  unsigned int type = getArgumentAddressQualifier(index);
-  if (type == CL_KERNEL_ARG_ADDRESS_LOCAL)
+
+  // Deallocate existing argument
+  if (m_values.count(argument))
   {
-    // Deallocate existing argument
-    if (m_arguments.count(argument))
-    {
-      m_localMemory->deallocateBuffer(m_arguments[argument].getPointer());
-      delete[] m_arguments[argument].data;
-    }
-
-    // Allocate local memory buffer
-    TypedValue v = {
-      sizeof(size_t),
-      1,
-      new unsigned char[sizeof(size_t)]
-    };
-    v.setPointer(m_localMemory->allocateBuffer(value.size));
-    m_arguments[argument] = v;
+    delete[] m_values[argument].data;
   }
-  else
-  {
-    if (((const llvm::Argument*)argument)->hasByValAttr())
-    {
-      // Deallocate existing argument
-      if (m_arguments.count(argument))
-      {
-        m_privateMemory->deallocateBuffer(m_arguments[argument].getPointer());
-        delete[] m_arguments[argument].data;
-      }
 
-      TypedValue address =
-      {
-        sizeof(size_t),
-        1,
-        new unsigned char[sizeof(size_t)]
-      };
-      size_t size = value.size*value.num;
-      address.setPointer(m_privateMemory->allocateBuffer(size));
-      m_privateMemory->store(value.data, address.getPointer(), size);
-      m_arguments[argument] = address;
-    }
-    else
-    {
-      // Deallocate existing argument
-      if (m_arguments.count(argument))
-      {
-        delete[] m_arguments[argument].data;
-      }
-
-      const llvm::Type *type = argument->getType();
-      if (type->isVectorTy())
-      {
-        value.num = type->getVectorNumElements();
-        value.size = getTypeSize(type->getVectorElementType());
-      }
-      m_arguments[argument] = value.clone();
-    }
-  }
+  m_values[argument] = value.clone();
 }
 
-TypedValueMap::const_iterator Kernel::args_begin() const
+TypedValueMap::const_iterator Kernel::values_begin() const
 {
-  return m_arguments.begin();
+  return m_values.begin();
 }
 
-TypedValueMap::const_iterator Kernel::args_end() const
+TypedValueMap::const_iterator Kernel::values_end() const
 {
-  return m_arguments.end();
+  return m_values.end();
 }

@@ -76,6 +76,7 @@ namespace oclgrind
     size_t getGroupIndex() const;
     Size3 getGroupSize() const;
     Memory* getLocalMemory() const;
+    size_t getLocalMemoryAddress(const llvm::Value *value) const;
     WorkItem *getNextWorkItem() const;
     WorkItem *getWorkItem(Size3 localID) const;
     bool hasBarrier() const;
@@ -89,7 +90,10 @@ namespace oclgrind
     Size3 m_groupID;
     Size3 m_groupSize;
     const Context *m_context;
+
     Memory *m_localMemory;
+    std::map<const llvm::Value*,size_t> m_localAddresses;
+
     std::vector<WorkItem*> m_workItems;
 
     Barrier *m_barrier;

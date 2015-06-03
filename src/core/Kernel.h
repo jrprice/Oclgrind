@@ -33,24 +33,22 @@ namespace oclgrind
     Kernel(const Kernel& kernel);
     virtual ~Kernel();
 
-    TypedValueMap::const_iterator args_begin() const;
-    TypedValueMap::const_iterator args_end() const;
+    TypedValueMap::const_iterator values_begin() const;
+    TypedValueMap::const_iterator values_end() const;
     bool allArgumentsSet() const;
     void allocateConstants(Memory *memory);
     void deallocateConstants(Memory *memory);
-    size_t getArgumentSize(unsigned int index) const;
     unsigned int getArgumentAccessQualifier(unsigned int index) const;
     unsigned int getArgumentAddressQualifier(unsigned int index) const;
     const llvm::StringRef getArgumentName(unsigned int index) const;
+    size_t getArgumentSize(unsigned int index) const;
     const llvm::StringRef getArgumentTypeName(unsigned int index) const;
     unsigned int getArgumentTypeQualifier(unsigned int index) const;
     std::string getAttributes() const;
     const llvm::Function* getFunction() const;
-    const Memory* getLocalMemory() const;
     size_t getLocalMemorySize() const;
     const std::string& getName() const;
     unsigned int getNumArguments() const;
-    const Memory* getPrivateMemory() const;
     const Program* getProgram() const;
     void getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const;
     void setArgument(unsigned int index, TypedValue value);
@@ -58,13 +56,12 @@ namespace oclgrind
   private:
     const Program *m_program;
     const llvm::Function *m_function;
-    TypedValueMap m_arguments;
     std::list<const llvm::GlobalVariable*> m_constants;
     std::list<size_t> m_constantBuffers;
-    Memory *m_localMemory;
     const llvm::MDNode *m_metadata;
     std::string m_name;
-    Memory *m_privateMemory;
+
+    TypedValueMap m_values;
 
     const llvm::Argument* getArgument(unsigned int index) const;
     const llvm::MDNode* getArgumentMetadata(std::string name) const;

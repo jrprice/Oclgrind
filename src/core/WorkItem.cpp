@@ -67,13 +67,38 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   // Set initial number of values to store based on cache
   m_values.resize(m_cache->getNumValues());
 
-  m_privateMemory = kernel->getPrivateMemory()->clone();
+  m_privateMemory = new Memory(AddrSpacePrivate, m_context);
 
-  // Initialise kernel arguments
-  TypedValueMap::const_iterator argItr;
-  for (argItr = kernel->args_begin(); argItr != kernel->args_end(); argItr++)
+  // Initialise kernel arguments and global variables
+  for (auto value  = kernel->values_begin();
+            value != kernel->values_end();
+            value++)
   {
-    setValue(argItr->first, m_pool.clone(argItr->second));
+    pair<unsigned,unsigned> size = getValueSize(value->first);
+    TypedValue v = {
+      size.first,
+      size.second,
+      m_pool.alloc(size.first*size.second)
+    };
+
+    const llvm::Type *type = value->first->getType();
+    if (type->isPointerTy() &&
+        type->getPointerAddressSpace() == AddrSpacePrivate)
+    {
+      size_t sz = value->second.size*value->second.num;
+      v.setPointer(m_privateMemory->allocateBuffer(sz, 0, value->second.data));
+    }
+    else if (type->isPointerTy() &&
+             type->getPointerAddressSpace() == AddrSpaceLocal)
+    {
+      v.setPointer(m_workGroup->getLocalMemoryAddress(value->first));
+    }
+    else
+    {
+      memcpy(v.data, value->second.data, v.size*v.num);
+    }
+
+    setValue(value->first, v);
   }
 
   // Initialize interpreter state

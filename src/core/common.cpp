@@ -214,8 +214,15 @@ namespace oclgrind
     TypedValue result;
     result.size = size;
     result.num  = num;
-    result.data = new unsigned char[size*num];
-    memcpy(result.data, data, size*num);
+    if (data)
+    {
+      result.data = new unsigned char[size*num];
+      memcpy(result.data, data, size*num);
+    }
+    else
+    {
+      result.data = NULL;
+    }
     return result;
   }
 
