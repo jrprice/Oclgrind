@@ -1,0 +1,7 @@
+
+Argument 'output': 16 bytes
+  output[0] = 7
+  output[1] = 42
+  output[2] = 0
+  output[3] = -1
+

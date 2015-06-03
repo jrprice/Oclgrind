@@ -50,6 +50,7 @@ memcheck/write_out_of_bounds
 memcheck/write_read_only_memory
 misc/array
 misc/lvalue_loads
+misc/program_scope_constant_array
 misc/reduce
 misc/vecadd
 uninitialized/private_array_initializer_list
