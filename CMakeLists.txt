@@ -58,7 +58,7 @@ set(CLANG ${LLVM_TOOLS_BINARY_DIR}/clang)
 # Get LLVM libraries for linking
 llvm_map_components_to_libnames(LLVM_LIBS
   bitreader bitwriter core instrumentation ipo irreader
-  linker mcparser objcarcopts option)
+  linker mcparser objcarcopts option target)
 
 
 # Check for GNU readline library

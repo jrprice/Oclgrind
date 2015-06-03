@@ -20,7 +20,7 @@ endif USING_CLANG
 lib_LTLIBRARIES = liboclgrind.la liboclgrind-rt.la liboclgrind-rt-icd.la
 
 LLVM_LIBS = `$(llvm_config) --system-libs --libs bitreader bitwriter	\
- core instrumentation ipo irreader linker mcparser objcarcopts option`
+ core instrumentation ipo irreader linker mcparser objcarcopts option target`
 
 liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp		\
  src/core/Context.h src/core/Context.cpp src/core/half.h		\
