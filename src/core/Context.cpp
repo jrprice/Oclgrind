@@ -225,9 +225,10 @@ void Context::notifyKernelEnd(const KernelInvocation *kernelInvocation) const
 }
 
 void Context::notifyMemoryAllocated(const Memory *memory, size_t address,
-                                    size_t size, cl_mem_flags flags) const
+                                    size_t size, cl_mem_flags flags,
+                                    const uint8_t *initData) const
 {
-  NOTIFY(memoryAllocated, memory, address, size, flags);
+  NOTIFY(memoryAllocated, memory, address, size, flags, initData);
 }
 
 void Context::notifyMemoryAtomicLoad(const Memory *memory, AtomicOp op,

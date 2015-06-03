@@ -19,7 +19,8 @@ namespace oclgrind
                                  size_t address, size_t size,
                                  const uint8_t *storeData) override;
     virtual void memoryAllocated(const Memory *memory, size_t address,
-                                 size_t size, cl_mem_flags flags) override;
+                                 size_t size, cl_mem_flags flags,
+                                 const uint8_t *initData) override;
     virtual void memoryAtomicLoad(const Memory *memory,
                                   const WorkItem *workItem,
                                   AtomicOp op,

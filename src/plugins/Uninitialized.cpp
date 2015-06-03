@@ -31,9 +31,12 @@ void Uninitialized::hostMemoryStore(const Memory *memory,
 }
 
 void Uninitialized::memoryAllocated(const Memory *memory, size_t address,
-                                    size_t size, cl_mem_flags flags)
+                                    size_t size, cl_mem_flags flags,
+                                    const uint8_t *initData)
 {
   m_state[KEY(memory,address)] = new bool[size]();
+  if (initData)
+    setState(memory, address, size);
 }
 
 void Uninitialized::memoryAtomicLoad(const Memory *memory,
