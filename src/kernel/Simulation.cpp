@@ -267,6 +267,7 @@ void Simulation::parseArgument(size_t index)
   size_t typeSize = 0;
   bool null = false;
   bool dump = false;
+  bool noinit = false;
   string fill = "";
   string range = "";
   string name = m_kernel->getArgumentName(index).str();
@@ -360,6 +361,15 @@ void Simulation::parseArgument(size_t index)
       m_lineBuffer.setf(ios_base::hex);
       m_lineBuffer.unsetf(ios_base::dec | ios_base::oct);
     }
+    else if (token == "noinit")
+    {
+      if (addrSpace != CL_KERNEL_ARG_ADDRESS_GLOBAL &&
+          addrSpace != CL_KERNEL_ARG_ADDRESS_CONSTANT)
+      {
+        throw "'noinit' only valid for buffer arguments";
+      }
+      noinit = true;
+    }
     else if (token == "null")
     {
       if (addrSpace != CL_KERNEL_ARG_ADDRESS_GLOBAL &&
@@ -429,7 +439,7 @@ void Simulation::parseArgument(size_t index)
   // Ensure size given
   if (null)
   {
-    if (size != -1 || !fill.empty() || !range.empty())
+    if (size != -1 || !fill.empty() || !range.empty() || noinit || dump)
     {
       throw "'null' not valid with other argument descriptors";
     }
@@ -482,10 +492,16 @@ void Simulation::parseArgument(size_t index)
     {
       throw "'dump' only valid for memory objects";
     }
-    if (null)
-    {
-      throw "'dump' not valid with 'null' specifier";
-    }
+  }
+
+  // Ensure only one initializer given
+  unsigned numInitializers = 0;
+  if (noinit) numInitializers++;
+  if (!fill.empty()) numInitializers++;
+  if (!range.empty()) numInitializers++;
+  if (numInitializers > 1)
+  {
+    throw "Multiple initializers present";
   }
 
   // Generate argument data
@@ -506,7 +522,8 @@ void Simulation::parseArgument(size_t index)
   {
     // Parse argument data
     unsigned char *data = new unsigned char[size];
-    if (!fill.empty())
+    if (noinit){}
+    else if (!fill.empty())
     {
       istringstream fillStream(fill);
       fillStream.copyfmt(m_lineBuffer);
@@ -591,7 +608,8 @@ void Simulation::parseArgument(size_t index)
       // Allocate buffer and store content
       Memory *globalMemory = m_context->getGlobalMemory();
       size_t address = globalMemory->allocateBuffer(size, flags);
-      globalMemory->store((unsigned char*)&data[0], address, size);
+      if (!noinit)
+        globalMemory->store((unsigned char*)&data[0], address, size);
       value.data = new unsigned char[value.size];
       value.setPointer(address);
       delete[] data;
