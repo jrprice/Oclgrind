@@ -1,4 +1,5 @@
 
-Argument 'output': 4 bytes
+Argument 'output': 8 bytes
   output[0] = 42
+  output[1] = 42
 

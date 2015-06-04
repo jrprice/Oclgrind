@@ -698,7 +698,30 @@ INSTRUCTION(call)
          argItr != function->arg_end(); argItr++)
     {
       const llvm::Value *arg = callInst->getArgOperand(argItr->getArgNo());
-      setValue(argItr, m_pool.clone(getOperand(arg)));
+      TypedValue value = getOperand(arg);
+
+      if (argItr->hasByValAttr())
+      {
+        // Make new copy of value in private memory
+        void *data = m_privateMemory->getPointer(value.getPointer());
+        size_t size = getTypeSize(argItr->getType()->getPointerElementType());
+        size_t ptr  = m_privateMemory->allocateBuffer(size, 0, (uint8_t*)data);
+        m_position->allocations.top().push_back(ptr);
+
+        // Pass new allocation to function
+        TypedValue address =
+        {
+          sizeof(size_t),
+          1,
+          m_pool.alloc(sizeof(size_t))
+        };
+        address.setPointer(ptr);
+        setValue(argItr, address);
+      }
+      else
+      {
+        setValue(argItr, m_pool.clone(value));
+      }
     }
 
     return;
