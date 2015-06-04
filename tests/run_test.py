@@ -23,31 +23,45 @@ if not os.path.isfile(sys.argv[1]):
 test_exe    = sys.argv[1]
 test_dir    = os.path.dirname(os.path.realpath(test_exe))
 test_name   = os.path.splitext(os.path.basename(test_exe))[0]
-test_out = test_dir + os.path.sep + test_name + '.out'
 
 # Enable race detection and uninitialized memory plugins
 os.environ["OCLGRIND_CHECK_API"] = "1"
 os.environ["OCLGRIND_DATA_RACES"] = "1"
 os.environ["OCLGRIND_UNINITIALIZED"] = "1"
 
-# Run oclgrind-kernel
-out = open(test_out, 'w')
-retval = subprocess.call([test_exe], stdout=out, stderr=out)
-out.close()
-if retval != 0:
-  print test_name + ' returned non-zero value (' + str(retval) + ')'
-  sys.exit(retval)
+def run(output_suffix):
 
-# Open output file
-out = open(test_out).read().splitlines()
+  test_out = test_dir + os.path.sep + test_name + output_suffix + '.out'
 
-# Check that an error was produced iff an error was expected
-# Assume any text in output is an error
-# TODO: Allow a test to require an error
-# TODO: Improve this so that more details about the error are checked
-if len(out) > 0:
-  print 'Error reported, but no error expected'
-  sys.exit(1)
+  # Run test
+  out = open(test_out, 'w')
+  retval = subprocess.call([test_exe], stdout=out, stderr=out)
+  out.close()
+  if retval != 0:
+    print test_name + ' returned non-zero value (' + str(retval) + ')'
+    sys.exit(retval)
+
+  # Open output file
+  out = open(test_out).read().splitlines()
+
+  # Check that an error was produced iff an error was expected
+  # Assume any text in output is an error
+  # TODO: Allow a test to require an error
+  # TODO: Improve this so that more details about the error are checked
+  if len(out) > 0:
+    print 'Error reported, but no error expected'
+    sys.exit(1)
+
+
+print 'Running test with optimisations'
+run('')
+print 'PASSED'
+
+print
+print 'Running test without optimisations'
+os.environ["OCLGRIND_BUILD_OPTIONS"] = "-cl-opt-disable"
+run('_noopt')
+print 'PASSED'
 
 # Test passed
 sys.exit(0)

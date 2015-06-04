@@ -134,8 +134,7 @@ XFAIL_TESTS =							\
 	tests/kernels/data-race/intragroup_hidden_race.sim
 
 clean-local:
-	find tests/apps -name '*.out' -exec rm -f {} \;
-	find tests/runtime -name '*.out' -exec rm -f {} \;
+	find tests/ -name '*.out' -exec rm -f {} \;
 
 else
 check-local:
@@ -156,5 +155,4 @@ EXTRA_DIST = NEWS src/core/gen_clc_h.sh src/core/clc.h			\
  src/install/oclgrind-icd.reg tests/run_test.py				\
  tests/kernels/run_kernel_test.py tests/kernels/TESTS			\
  $(KERNEL_TEST_INPUTS)
-CLEANFILES = src/core/clc_h.cpp $(bin_SCRIPTS) $(noinst_SCRIPTS)	\
- $(KERNEL_TEST_OUTPUTS)
+CLEANFILES = src/core/clc_h.cpp $(bin_SCRIPTS) $(noinst_SCRIPTS)
