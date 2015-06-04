@@ -297,5 +297,6 @@ else()
   message(WARNING "Kernel tests will not be run (Python required)")
 endif()
 
-# Add app tests
+# Add app and runtime tests
 add_subdirectory(tests/apps)
+add_subdirectory(tests/runtime)

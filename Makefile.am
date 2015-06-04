@@ -109,8 +109,11 @@ src/include/oclgrind/clc64.pch: src/include/oclgrind/clc.h
                 -isysroot $(abs_builddir)/src/include/oclgrind \
 		$< -o $@
 
-check_PROGRAMS = tests/apps/vecadd/vecadd
+check_PROGRAMS = \
+  tests/apps/vecadd/vecadd \
+  tests/runtime/map_buffer
 tests_apps_vecadd_vecadd_LDADD = liboclgrind-rt.la
+tests_runtime_map_buffer_LDADD = liboclgrind-rt.la
 TESTS = $(check_PROGRAMS)
 
 TEST_EXTENSIONS = .sim
