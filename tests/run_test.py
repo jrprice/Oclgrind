@@ -25,6 +25,10 @@ test_dir    = os.path.dirname(os.path.realpath(test_exe))
 test_name   = os.path.splitext(os.path.basename(test_exe))[0]
 test_out = test_dir + os.path.sep + test_name + '.out'
 
+# Enable race detection and uninitialized memory plugins
+os.environ["OCLGRIND_DATA_RACES"] = "1"
+os.environ["OCLGRIND_UNINITIALIZED"] = "1"
+
 # Run oclgrind-kernel
 out = open(test_out, 'w')
 retval = subprocess.call([test_exe], stdout=out, stderr=out)
