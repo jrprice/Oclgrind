@@ -71,6 +71,13 @@ void Uninitialized::memoryLoad(const Memory *memory, const WorkGroup *workGroup,
   checkState(memory, address, size);
 }
 
+void Uninitialized::memoryMap(const Memory *memory, size_t address,
+                              size_t offset, size_t size, cl_map_flags flags)
+{
+  if (flags != CL_MAP_READ)
+    setState(memory, address+offset, size);
+}
+
 void Uninitialized::memoryStore(const Memory *memory, const WorkItem *workItem,
                                size_t address, size_t size,
                                const uint8_t *storeData)
