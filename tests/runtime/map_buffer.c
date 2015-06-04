@@ -138,7 +138,8 @@ int main(int argc, char *argv[])
       errors++;
     }
   }
-  printf("%d errors detected\n", errors);
+  if (errors)
+    printf("%d errors detected\n", errors);
 
   clEnqueueUnmapMemObject(queue, d_c, h_c, 0, NULL, NULL);
   checkError(err, "unmapping d_c");

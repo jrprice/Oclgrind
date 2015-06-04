@@ -50,26 +50,14 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  // Get list of platforms
-  cl_uint numPlatforms = 0;
-  cl_platform_id platforms[MAX_PLATFORMS];
-  err = clGetPlatformIDs(MAX_PLATFORMS, platforms, &numPlatforms);
-  checkError(err, "getting platforms");
+  err = clGetPlatformIDs(1, &platform, NULL);
+  checkError(err, "getting platform");
 
-  // Find Oclgrind
-  platform = NULL;
-  for (int i = 0; i < numPlatforms; i++)
-  {
-    char name[256];
-    err = clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, 256, name, NULL);
-    checkError(err, "getting platform name");
-    if (!strcmp(name, "Oclgrind"))
-    {
-      platform = platforms[i];
-      break;
-    }
-  }
-  if (!platform)
+  // Check platform is Oclgrind
+  char name[256];
+  err = clGetPlatformInfo(platform, CL_PLATFORM_NAME, 256, name, NULL);
+  checkError(err, "getting platform name");
+  if (strcmp(name, "Oclgrind"))
   {
     fprintf(stderr, "Unable to find Oclgrind platform\n");
     exit(1);
@@ -110,7 +98,7 @@ int main(int argc, char *argv[])
   h_a = malloc(dataSize);
   h_b = malloc(dataSize);
   h_c = malloc(dataSize);
-  for (int i = 0; i < N; i++)
+  for (unsigned i = 0; i < N; i++)
   {
     h_a[i] = rand()/(float)RAND_MAX;
     h_b[i] = rand()/(float)RAND_MAX;
@@ -151,8 +139,8 @@ int main(int argc, char *argv[])
   checkError(err, "reading d_c data");
 
   // Check results
-  int errors = 0;
-  for (int i = 0; i < N; i++)
+  unsigned errors = 0;
+  for (unsigned i = 0; i < N; i++)
   {
     float ref = h_a[i] + h_b[i];
     if (fabs(ref - h_c[i]) > TOL)
@@ -164,7 +152,8 @@ int main(int argc, char *argv[])
       errors++;
     }
   }
-  printf("%d errors detected\n", errors);
+  if (errors)
+    printf("%d errors detected\n", errors);
 
   free(h_a);
   free(h_b);
