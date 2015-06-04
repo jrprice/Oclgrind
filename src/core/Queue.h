@@ -25,7 +25,8 @@ namespace oclgrind
   {
   public:
     enum CommandType {EMPTY, COPY, COPY_RECT, FILL_BUFFER, FILL_IMAGE, KERNEL,
-                      NATIVE_KERNEL, READ, READ_RECT, WRITE, WRITE_RECT};
+                      MAP, NATIVE_KERNEL, READ, READ_RECT, UNMAP, WRITE,
+                      WRITE_RECT};
     struct Command
     {
       CommandType type;
@@ -155,6 +156,27 @@ namespace oclgrind
         }
       }
     };
+    struct MapCommand : Command
+    {
+      void *ptr;
+      size_t address;
+      size_t offset;
+      size_t size;
+      cl_map_flags flags;
+      MapCommand()
+      {
+        type = MAP;
+      }
+    };
+    struct UnmapCommand : Command
+    {
+      void *ptr;
+      size_t address;
+      UnmapCommand()
+      {
+        type = UNMAP;
+      }
+    };
 
   public:
     Queue(const Context *context);
@@ -167,9 +189,11 @@ namespace oclgrind
     void executeFillBuffer(FillBufferCommand *cmd);
     void executeFillImage(FillImageCommand *cmd);
     void executeKernel(KernelCommand *cmd);
+    void executeMap(MapCommand *cmd);
     void executeNativeKernel(NativeKernelCommand *cmd);
     void executeReadBuffer(BufferCommand *cmd);
     void executeReadBufferRect(BufferRectCommand *cmd);
+    void executeUnmap(UnmapCommand *cmd);
     void executeWriteBuffer(BufferCommand *cmd);
     void executeWriteBufferRect(BufferRectCommand *cmd);
 

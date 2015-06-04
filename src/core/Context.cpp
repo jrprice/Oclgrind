@@ -279,6 +279,13 @@ void Context::notifyMemoryLoad(const Memory *memory, size_t address,
   }
 }
 
+void Context::notifyMemoryMap(const Memory *memory, size_t address,
+                              size_t offset, size_t size,
+                              cl_mem_flags flags) const
+{
+  NOTIFY(memoryMap, memory, address, offset, size, flags);
+}
+
 void Context::notifyMemoryStore(const Memory *memory, size_t address,
                                 size_t size, const uint8_t *storeData) const
 {
@@ -304,6 +311,12 @@ void Context::notifyMemoryStore(const Memory *memory, size_t address,
 void Context::notifyMessage(MessageType type, const char *message) const
 {
   NOTIFY(log, type, message);
+}
+
+void Context::notifyMemoryUnmap(const Memory *memory, size_t address,
+                                void *ptr) const
+{
+  NOTIFY(memoryUnmap, memory, address, ptr);
 }
 
 void Context::notifyWorkGroupBarrier(const WorkGroup *workGroup,

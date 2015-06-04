@@ -114,6 +114,12 @@ void Queue::executeKernel(KernelCommand *cmd)
                         cmd->localSize);
 }
 
+void Queue::executeMap(MapCommand *cmd)
+{
+  m_context->notifyMemoryMap(m_context->getGlobalMemory(),
+                             cmd->address, cmd->offset, cmd->size, cmd->flags);
+}
+
 void Queue::executeNativeKernel(NativeKernelCommand *cmd)
 {
   // Run kernel
@@ -145,6 +151,12 @@ void Queue::executeReadBufferRect(BufferRectCommand *cmd)
       memory->load(host, buff, cmd->region[0]);
     }
   }
+}
+
+void Queue::executeUnmap(UnmapCommand *cmd)
+{
+  m_context->notifyMemoryUnmap(m_context->getGlobalMemory(),
+                               cmd->address, cmd->ptr);
 }
 
 void Queue::executeWriteBuffer(BufferCommand *cmd)
@@ -238,8 +250,14 @@ Queue::Command* Queue::update()
   case KERNEL:
     executeKernel((KernelCommand*)cmd);
     break;
+  case MAP:
+    executeMap((MapCommand*)cmd);
+    break;
   case NATIVE_KERNEL:
     executeNativeKernel((NativeKernelCommand*)cmd);
+    break;
+  case UNMAP:
+    executeUnmap((UnmapCommand*)cmd);
     break;
   case WRITE:
     executeWriteBuffer((BufferCommand*)cmd);

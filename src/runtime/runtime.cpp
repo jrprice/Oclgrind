@@ -4568,7 +4568,11 @@ clEnqueueMapBuffer
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
+  oclgrind::Queue::MapCommand *cmd = new oclgrind::Queue::MapCommand();
+  cmd->address = buffer->address;
+  cmd->offset  = offset;
+  cmd->size    = cb;
+  cmd->flags   = map_flags;
   asyncQueueRetain(cmd, buffer);
   asyncEnqueue(command_queue, CL_COMMAND_MAP_BUFFER, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4697,7 +4701,11 @@ clEnqueueMapImage
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
+  oclgrind::Queue::MapCommand *cmd = new oclgrind::Queue::MapCommand();
+  cmd->address = image->address;
+  cmd->offset  = offset;
+  cmd->size    = size;
+  cmd->flags   = map_flags;
   asyncQueueRetain(cmd, image);
   asyncEnqueue(command_queue, CL_COMMAND_MAP_IMAGE, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4733,7 +4741,9 @@ clEnqueueUnmapMemObject
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
+  oclgrind::Queue::UnmapCommand *cmd = new oclgrind::Queue::UnmapCommand();
+  cmd->address = memobj->address;
+  cmd->ptr     = mapped_ptr;
   asyncQueueRetain(cmd, memobj);
   asyncEnqueue(command_queue, CL_COMMAND_UNMAP_MEM_OBJECT, cmd,
                num_events_in_wait_list, event_wait_list, event);

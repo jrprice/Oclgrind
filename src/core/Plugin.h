@@ -50,12 +50,15 @@ namespace oclgrind
                             size_t address, size_t size){}
     virtual void memoryLoad(const Memory *memory, const WorkGroup *workGroup,
                             size_t address, size_t size){}
+    virtual void memoryMap(const Memory *memory, size_t address,
+                           size_t offset, size_t size, cl_map_flags flags){}
     virtual void memoryStore(const Memory *memory, const WorkItem *workItem,
                              size_t address, size_t size,
                              const uint8_t *storeData){}
     virtual void memoryStore(const Memory *memory, const WorkGroup *workGroup,
                              size_t address, size_t size,
                              const uint8_t *storeData){}
+    virtual void memoryUnmap(const Memory *memory, size_t address, void *ptr){}
     virtual void workGroupBarrier(const WorkGroup *workGroup, uint32_t flags){}
     virtual void workGroupBegin(const WorkGroup *workGroup){}
     virtual void workGroupComplete(const WorkGroup *workGroup){}
