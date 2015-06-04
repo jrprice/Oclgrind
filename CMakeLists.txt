@@ -293,10 +293,10 @@ if (PYTHONINTERP_FOUND)
     data-race/intragroup_hidden_race
     PROPERTIES WILL_FAIL TRUE)
 
-else()
-  message(WARNING "Kernel tests will not be run (Python required)")
-endif()
+  # Add app and runtime tests
+  add_subdirectory(tests/apps)
+  add_subdirectory(tests/runtime)
 
-# Add app and runtime tests
-add_subdirectory(tests/apps)
-add_subdirectory(tests/runtime)
+else()
+  message(WARNING "Tests will not be run (Python required)")
+endif()

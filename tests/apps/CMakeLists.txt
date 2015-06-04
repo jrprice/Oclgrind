@@ -15,14 +15,18 @@ foreach(test
 
   # Generate test binaries in same dir as Oclgrind libraries on Windows
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-    add_test(app_${test} "${CMAKE_BINARY_DIR}/${test}")
     set_target_properties(${test} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
   else()
-    add_test(app_${test} "${test}/${test}")
     set_target_properties(${test} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${test}")
     set_target_properties(${test} PROPERTIES LINKER_LANGUAGE CXX)
   endif()
+
+  add_test(
+    NAME app_${test}
+    COMMAND
+    ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/run_test.py
+    $<TARGET_FILE:${test}>)
 
   set_tests_properties(app_${test} PROPERTIES DEPENDS ${test})
 
