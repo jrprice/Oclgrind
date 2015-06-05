@@ -1105,10 +1105,14 @@ INSTRUCTION(load)
 {
   const llvm::LoadInst *loadInst = (const llvm::LoadInst*)instruction;
   unsigned addressSpace = loadInst->getPointerAddressSpace();
-  size_t address = getOperand(loadInst->getPointerOperand()).getPointer();
+  const llvm::Value *opPtr = loadInst->getPointerOperand();
+  size_t address = getOperand(opPtr).getPointer();
 
   // Check address is correctly aligned
-  if (address & (loadInst->getAlignment()-1))
+  unsigned alignment = loadInst->getAlignment();
+  if (!alignment)
+    alignment = getTypeAlignment(opPtr->getType()->getPointerElementType());
+  if (address & (alignment-1))
   {
     m_context->logError("Invalid memory load - source pointer is "
                         "not aligned to the pointed type");
@@ -1318,10 +1322,14 @@ INSTRUCTION(store)
 {
   const llvm::StoreInst *storeInst = (const llvm::StoreInst*)instruction;
   unsigned addressSpace = storeInst->getPointerAddressSpace();
-  size_t address = getOperand(storeInst->getPointerOperand()).getPointer();
+  const llvm::Value *opPtr = storeInst->getPointerOperand();
+  size_t address = getOperand(opPtr).getPointer();
 
   // Check address is correctly aligned
-  if (address & (storeInst->getAlignment()-1))
+  unsigned alignment = storeInst->getAlignment();
+  if (!alignment)
+    alignment = getTypeAlignment(opPtr->getType()->getPointerElementType());
+  if (address & (alignment-1))
   {
     m_context->logError("Invalid memory store - source pointer is "
                         "not aligned to the pointed type");
