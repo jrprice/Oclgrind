@@ -1,8 +1,7 @@
-ERROR EXPECTED
+ERROR Invalid write of size 4 at global memory
 
-Argument 'dst': 16 bytes
-  dst[0] = 0
-  dst[1] = 0
-  dst[2] = 1
-  dst[3] = 2
-
+EXACT Argument 'dst': 16 bytes
+EXACT   dst[0] = 0
+EXACT   dst[1] = 0
+EXACT   dst[2] = 1
+EXACT   dst[3] = 2

@@ -1,88 +1,75 @@
+EXACT Argument 'vA': 16 bytes
+EXACT   vA[0] = 1
+EXACT   vA[1] = 2
+EXACT   vA[2] = 42
+EXACT   vA[3] = 4
 
-Argument 'vA': 16 bytes
-  vA[0] = 1
-  vA[1] = 2
-  vA[2] = 42
-  vA[3] = 4
+EXACT Argument 'vB': 16 bytes
+EXACT   vB[0] = 1
+EXACT   vB[1] = 42
+EXACT   vB[2] = 7
+EXACT   vB[3] = 4
 
+EXACT Argument 'vC': 16 bytes
+EXACT   vC[0] = 1
+EXACT   vC[1] = 42
+EXACT   vC[2] = 7
+EXACT   vC[3] = 4
 
-Argument 'vB': 16 bytes
-  vB[0] = 1
-  vB[1] = 42
-  vB[2] = 7
-  vB[3] = 4
+EXACT Argument 'vD': 16 bytes
+EXACT   vD[0] = 1
+EXACT   vD[1] = 3
+EXACT   vD[2] = 3
+EXACT   vD[3] = 4
 
+EXACT Argument 'vE': 16 bytes
+EXACT   vE[0] = 4
+EXACT   vE[1] = 3
+EXACT   vE[2] = 2
+EXACT   vE[3] = 1
 
-Argument 'vC': 16 bytes
-  vC[0] = 1
-  vC[1] = 42
-  vC[2] = 7
-  vC[3] = 4
+EXACT Argument 'vF': 16 bytes
+EXACT   vF[0] = 1
+EXACT   vF[1] = 3
+EXACT   vF[2] = 2
+EXACT   vF[3] = 4
 
+EXACT Argument 'vG': 16 bytes
+EXACT   vG[0] = 19
+EXACT   vG[1] = 18
+EXACT   vG[2] = 17
+EXACT   vG[3] = 16
 
-Argument 'vD': 16 bytes
-  vD[0] = 1
-  vD[1] = 3
-  vD[2] = 3
-  vD[3] = 4
+EXACT Argument 'vH': 16 bytes
+EXACT   vH[0] = 1
+EXACT   vH[1] = 18
+EXACT   vH[2] = 17
+EXACT   vH[3] = 4
 
+EXACT Argument 'vI': 32 bytes
+EXACT   vI[0] = 1
+EXACT   vI[1] = 2
+EXACT   vI[2] = 42
+EXACT   vI[3] = 4
+EXACT   vI[4] = 1
+EXACT   vI[5] = 2
+EXACT   vI[6] = 42
+EXACT   vI[7] = 4
 
-Argument 'vE': 16 bytes
-  vE[0] = 4
-  vE[1] = 3
-  vE[2] = 2
-  vE[3] = 1
+EXACT Argument 'sA': 16 bytes
+EXACT   sA[0] = 1
+EXACT   sA[1] = 2
+EXACT   sA[2] = 42
+EXACT   sA[3] = 4
 
+EXACT Argument 'sB': 16 bytes
+EXACT   sB[0] = 1
+EXACT   sB[1] = 2
+EXACT   sB[2] = 2
+EXACT   sB[3] = 4
 
-Argument 'vF': 16 bytes
-  vF[0] = 1
-  vF[1] = 3
-  vF[2] = 2
-  vF[3] = 4
-
-
-Argument 'vG': 16 bytes
-  vG[0] = 19
-  vG[1] = 18
-  vG[2] = 17
-  vG[3] = 16
-
-
-Argument 'vH': 16 bytes
-  vH[0] = 1
-  vH[1] = 18
-  vH[2] = 17
-  vH[3] = 4
-
-
-Argument 'vI': 32 bytes
-  vI[0] = 1
-  vI[1] = 2
-  vI[2] = 42
-  vI[3] = 4
-  vI[4] = 1
-  vI[5] = 2
-  vI[6] = 42
-  vI[7] = 4
-
-
-Argument 'sA': 16 bytes
-  sA[0] = 1
-  sA[1] = 2
-  sA[2] = 42
-  sA[3] = 4
-
-
-Argument 'sB': 16 bytes
-  sB[0] = 1
-  sB[1] = 2
-  sB[2] = 2
-  sB[3] = 4
-
-
-Argument 'sC': 16 bytes
-  sC[0] = 1
-  sC[1] = 2
-  sC[2] = 17
-  sC[3] = 4
-
+EXACT Argument 'sC': 16 bytes
+EXACT   sC[0] = 1
+EXACT   sC[1] = 2
+EXACT   sC[2] = 17
+EXACT   sC[3] = 4

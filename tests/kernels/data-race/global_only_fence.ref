@@ -1,8 +1,9 @@
-ERROR EXPECTED
+ERROR Read-write data race at local memory
+ERROR Read-write data race at local memory
+ERROR Read-write data race at local memory
 
-Argument 'output': 16 bytes
-  output[0] = 6
-  output[1] = 0
-  output[2] = 0
-  output[3] = 0
-
+EXACT Argument 'output': 16 bytes
+EXACT   output[0] = 6
+EXACT   output[1] = 0
+EXACT   output[2] = 0
+EXACT   output[3] = 0

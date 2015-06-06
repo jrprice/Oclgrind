@@ -1,9 +1,9 @@
-ERROR EXPECTED
+ERROR Invalid read of size 4 at global memory
+ERROR Invalid read of size 4 at global memory
 
-Argument 'c': 20 bytes
-  c[0] = 0
-  c[1] = 2
-  c[2] = 4
-  c[3] = 6
-  c[4] = 0
-
+EXACT Argument 'c': 20 bytes
+EXACT   c[0] = 0
+EXACT   c[1] = 2
+EXACT   c[2] = 4
+EXACT   c[3] = 6
+EXACT   c[4] = 0

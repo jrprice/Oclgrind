@@ -1,5 +1,4 @@
-ERROR EXPECTED
+ERROR Invalid memory load - source pointer is not aligned to the pointed type
 
-Argument 'out': 4 bytes
-  out[0] = 2752512
-
+EXACT Argument 'out': 4 bytes
+EXACT   out[0] = 2752512

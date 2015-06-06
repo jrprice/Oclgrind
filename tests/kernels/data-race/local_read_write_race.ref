@@ -1,5 +1,6 @@
-ERROR EXPECETD
+ERROR Read-write data race at local memory
+ERROR Read-write data race at local memory
+ERROR Read-write data race at local memory
 
-Argument 'data': 4 bytes
-  data[0] = 0
-
+EXACT Argument 'data': 4 bytes
+EXACT   data[0] = 0

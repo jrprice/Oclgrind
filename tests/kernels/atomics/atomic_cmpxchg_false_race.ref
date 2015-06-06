@@ -1,8 +1,6 @@
-
-Argument 'data': 20 bytes
-  data[0] = 4
-  data[1] = 1
-  data[2] = 2
-  data[3] = 3
-  data[4] = 4
-
+EXACT Argument 'data': 20 bytes
+EXACT   data[0] = 4
+EXACT   data[1] = 1
+EXACT   data[2] = 2
+EXACT   data[3] = 3
+EXACT   data[4] = 4

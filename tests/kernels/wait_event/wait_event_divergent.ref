@@ -1,6 +1,6 @@
-ERROR EXPECTED
+ERROR Work-group divergence detected (barrier)
+ERROR Work-item finished without waiting for events
 
-Argument 'data': 8 bytes
-  data[0] = 0
-  data[1] = 0
-
+EXACT Argument 'data': 8 bytes
+EXACT   data[0] = 0
+EXACT   data[1] = 0

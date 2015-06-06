@@ -1,5 +1,9 @@
-ERROR EXPECTED
+ERROR Read-write data race at global memory address
+ERROR Read-write data race at global memory address
+ERROR Read-write data race at global memory address
+ERROR Read-write data race at global memory address
+ERROR Read-write data race at global memory address
+ERROR Read-write data race at global memory address
 
-Argument 'data': 4 bytes
-  data[0] = 4
-
+EXACT Argument 'data': 4 bytes
+EXACT   data[0] = 4

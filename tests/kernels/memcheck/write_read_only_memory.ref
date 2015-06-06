@@ -1,8 +1,10 @@
-ERROR EXPECTED
+ERROR Invalid write to read-only buffer
+ERROR Invalid write to read-only buffer
+ERROR Invalid write to read-only buffer
+ERROR Invalid write to read-only buffer
 
-Argument 'output': 16 bytes
-  output[0] = 0
-  output[1] = 1
-  output[2] = 2
-  output[3] = 3
-
+EXACT Argument 'output': 16 bytes
+EXACT   output[0] = 0
+EXACT   output[1] = 1
+EXACT   output[2] = 2
+EXACT   output[3] = 3

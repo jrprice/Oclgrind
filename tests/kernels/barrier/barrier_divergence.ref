@@ -1,8 +1,7 @@
-ERROR EXPECTED
+ERROR Work-group divergence detected (barrier)
 
-Argument 'data': 16 bytes
-  data[0] = 0
-  data[1] = 1
-  data[2] = 2
-  data[3] = 3
-
+EXACT Argument 'data': 16 bytes
+EXACT   data[0] = 0
+EXACT   data[1] = 1
+EXACT   data[2] = 2
+EXACT   data[3] = 3

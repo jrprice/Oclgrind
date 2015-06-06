@@ -1,4 +1,2 @@
-
-Argument 'data': 4 bytes
-  data[0] = 100000
-
+EXACT Argument 'data': 4 bytes
+EXACT   data[0] = 100000

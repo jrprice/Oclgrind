@@ -29,6 +29,10 @@ test_name   = os.path.splitext(test_file)[0]
 test_ref    = test_dir + os.path.sep + test_name + '.ref'
 current_dir = os.getcwd()
 
+def fail(ret=1):
+  print 'FAILED'
+  sys.exit(ret)
+
 def run(output_suffix):
 
   test_out = 'tests' + os.path.sep + 'kernels' + os.path.sep + \
@@ -44,7 +48,6 @@ def run(output_suffix):
     else:
       raise
 
-
   # Run oclgrind-kernel
   out = open(test_out, 'w')
   os.chdir(test_dir)
@@ -54,48 +57,52 @@ def run(output_suffix):
   out.close()
   if retval != 0:
     print 'oclgrind-kernel returned non-zero value (' + str(retval) + ')'
-    sys.exit(retval)
+    fail(retval)
 
   # Open output and reference files
   os.chdir(current_dir)
   out = open(test_out).read().splitlines()
   ref = open(test_ref).read().splitlines()
 
-  # Scan through file to reach argument data
+  # Check output matches references
   oi = 0
-  ri = 0
-  try:
-    while re.match('Argument \'.*\': [0-9]+ *bytes', out[oi]) == None:
+  for line in ref:
+    if len(line) == 0:
+      continue
+
+    type = line.split()[0]
+    str  = line[6:]
+
+    # Find next non-blank line in output file
+    while not len(out[oi]):
       oi += 1
-    while re.match('Argument \'.*\': [0-9]+ *bytes', ref[ri]) == None:
-      ri += 1
-  except:
-    print 'Error searching for argument data'
-    sys.exit(1)
 
-  # Check that an error was produced iff an error was expected
-  # An error occured if global memory dump isn't at start of file
-  # TODO: Improve this so that more details about the error are checked
-  should_error = ri > 1
-  if should_error and oi < 2:
-    print 'Error expected, but no error reported'
-    sys.exit(1)
-  if not should_error and oi > 1:
-    print 'Error reported, but no error expected'
-    sys.exit(1)
-
-  # Check that the global memory dump matches the reference
-  match = 1
-  while oi < len(out):
-    if out[oi] != ref[ri]:
-      print '[%d:%d] "%s" vs "%s"' % (oi, ri, out[oi], ref[ri])
-      match = 0
-    oi += 1
-    ri += 1
-  if not match:
-    print
-    print 'Output didn\'t match reference'
-    sys.exit(1)
+    if type == 'ERROR':
+      # Check first line of error contains reference message
+      if not str in out[oi]:
+        print 'Expected '  + line
+        print 'Found    "' + out[oi] + '"'
+        fail()
+      # Skip remaining lines of error
+      while len(out[oi]):
+        oi += 1
+    elif type == 'EXACT':
+      # Check line of output matches reference exactly
+      if not str == out[oi]:
+        print 'Expected '  + line
+        print 'Found    "' + out[oi] + '"'
+        fail()
+      oi += 1
+    elif type == 'MATCH':
+      # Check line of output contains reference text
+      if not str in out[oi]:
+        print 'Expected '  + line
+        print 'Found    "' + out[oi] + '"'
+        fail()
+      oi += 1
+    else:
+      print 'Invalid match type in reference file'
+      fail()
 
 print 'Running test with optimisations'
 run('')

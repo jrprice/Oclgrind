@@ -1,7 +1,5 @@
-
-Argument 'output': 16 bytes
-  output[0] = 42
-  output[1] = 42
-  output[2] = 42
-  output[3] = 42
-
+EXACT Argument 'output': 16 bytes
+EXACT   output[0] = 42
+EXACT   output[1] = 42
+EXACT   output[2] = 42
+EXACT   output[3] = 42

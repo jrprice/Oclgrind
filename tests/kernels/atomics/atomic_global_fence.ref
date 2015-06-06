@@ -1,5 +1,3 @@
-
-Argument 'data': 8 bytes
-  data[0] = 6
-  data[1] = 22
-
+EXACT Argument 'data': 8 bytes
+EXACT   data[0] = 6
+EXACT   data[1] = 22

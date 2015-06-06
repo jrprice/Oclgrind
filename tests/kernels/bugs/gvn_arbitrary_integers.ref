@@ -1,6 +1,4 @@
-
-Argument 'dest': 12 bytes
-  dest[0] = 0
-  dest[1] = 0
-  dest[2] = 42
-
+EXACT Argument 'dest': 12 bytes
+EXACT   dest[0] = 0
+EXACT   dest[1] = 0
+EXACT   dest[2] = 42

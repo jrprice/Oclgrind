@@ -1,5 +1,4 @@
-ERROR EXPECTED
+ERROR Uninitialized value read from local memory
 
-Argument 'output': 4 bytes
-  output[0] = 0
-
+EXACT Argument 'output': 4 bytes
+EXACT   output[0] = 0

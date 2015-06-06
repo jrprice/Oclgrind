@@ -1,4 +1,2 @@
-
-Argument 'result': 4 bytes
-  result[0] = 120
-
+EXACT Argument 'result': 4 bytes
+EXACT   result[0] = 120

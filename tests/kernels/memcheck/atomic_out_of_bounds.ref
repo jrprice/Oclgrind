@@ -1,8 +1,8 @@
-ERROR EXPECTED
+ERROR Invalid read of size 4 at global memory
+ERROR Invalid write of size 4 at global memory
 
-Argument 'counters': 16 bytes
-  counters[0] = 1
-  counters[1] = 1
-  counters[2] = 1
-  counters[3] = 1
-
+EXACT Argument 'counters': 16 bytes
+EXACT   counters[0] = 1
+EXACT   counters[1] = 1
+EXACT   counters[2] = 1
+EXACT   counters[3] = 1

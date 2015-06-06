@@ -1,8 +1,7 @@
-ERROR EXPECTED
+ERROR Uninitialized value read from private memory
 
-Argument 'output': 16 bytes
-  output[0] = 0
-  output[1] = 2
-  output[2] = 0
-  output[3] = 3
-
+EXACT Argument 'output': 16 bytes
+EXACT   output[0] = 0
+EXACT   output[1] = 2
+EXACT   output[2] = 0
+EXACT   output[3] = 3
