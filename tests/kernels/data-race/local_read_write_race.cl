@@ -1,6 +1,9 @@
 kernel void local_read_write_race(global int *data, local int *scratch)
 {
   int l = get_local_id(0);
+  scratch[l] = 0;
+  barrier(CLK_LOCAL_MEM_FENCE);
+
   scratch[l] = l;
   if (l == 0)
   {
