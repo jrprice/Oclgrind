@@ -8,6 +8,7 @@ Placeholder text for next release.
 
 - Added plugin to detect loads from uninitialized memory locations
 - Added memoryMap and memoryUnmap plugin callbacks
+- Report invalid indices when accessing statically sized arrays
 - Fixed memcheck false-positive when writing to a write-only vector array
 - Various minor bug fixes
 

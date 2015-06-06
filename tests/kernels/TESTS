@@ -47,6 +47,7 @@ memcheck/atomic_out_of_bounds
 memcheck/dereference_null
 memcheck/read_out_of_bounds
 memcheck/read_write_only_memory
+memcheck/static_array_padded_struct
 memcheck/write_out_of_bounds
 memcheck/write_read_only_memory
 misc/array

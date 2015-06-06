@@ -15,6 +15,9 @@ namespace oclgrind
   public:
     MemCheck(const Context *context);
 
+    virtual void instructionExecuted(const WorkItem *workItem,
+                                     const llvm::Instruction *instruction,
+                                     const TypedValue& result) override;
     virtual void memoryAtomicLoad(const Memory *memory,
                                   const WorkItem *workItem,
                                   AtomicOp op,
