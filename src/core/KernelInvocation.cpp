@@ -166,7 +166,7 @@ void KernelInvocation::run(const Context *context, Kernel *kernel,
   catch (FatalError& err)
   {
     ostringstream info;
-    info << endl << "OCLGRIND FATAL ERROR "
+    info << "OCLGRIND FATAL ERROR "
          << "(" << err.getFile() << ":" << err.getLine() << ")"
          << endl << err.what()
          << endl << "When allocating kernel constants for '"
@@ -272,7 +272,7 @@ void KernelInvocation::runWorker()
   catch (FatalError& err)
   {
     ostringstream info;
-    info << endl << "OCLGRIND FATAL ERROR "
+    info << "OCLGRIND FATAL ERROR "
          << "(" << err.getFile() << ":" << err.getLine() << ")"
          << endl << err.what();
     m_context->logError(info.str().c_str());
