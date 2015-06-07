@@ -9,7 +9,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-AM_CFLAGS = -std=c99 -I${srcdir}/common
+AM_CFLAGS = -std=c99 -I$(top_srcdir)/src/ -I${srcdir}/common -Wall
 LDADD     = ../liboclgrind-rt.la libcommon.la
 
 noinst_LTLIBRARIES = libcommon.la
