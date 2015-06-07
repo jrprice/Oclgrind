@@ -14,7 +14,7 @@ AC_LANG(C++)
 AC_PROG_CXX
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile tests/Makefile])
 
 LT_INIT
 
@@ -124,10 +124,10 @@ KERNEL_TESTS=""
 KERNEL_TEST_INPUTS=""
 m4_foreach([name], m4_split(m4_include(tests/kernels/TESTS), m4_newline),
 [
-    KERNEL_TESTS="$KERNEL_TESTS tests/kernels/"name".sim"
-    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name".sim"
-    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name".cl"
-    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS tests/kernels/"name".ref"
+    KERNEL_TESTS="$KERNEL_TESTS kernels/"name".sim"
+    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS kernels/"name".sim"
+    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS kernels/"name".cl"
+    KERNEL_TEST_INPUTS="$KERNEL_TEST_INPUTS kernels/"name".ref"
 ])
 AC_SUBST(KERNEL_TESTS, $KERNEL_TESTS)
 AC_SUBST(KERNEL_TEST_INPUTS, $KERNEL_TEST_INPUTS)

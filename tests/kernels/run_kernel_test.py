@@ -35,7 +35,7 @@ def fail(ret=1):
 
 def run(output_suffix):
 
-  test_out = 'tests' + os.path.sep + 'kernels' + os.path.sep + \
+  test_out = 'kernels' + os.path.sep + \
              test_dir.split(os.path.sep)[-1] + os.path.sep + \
              test_name + output_suffix + '.out'
 
