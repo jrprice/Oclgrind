@@ -89,10 +89,19 @@ namespace oclgrind
   // Enumeration for different log message types
   enum MessageType
   {
-    DEBUG,
-    INFO,
-    WARNING,
-    ERROR,
+    // Base types
+    DEBUG = 0,
+    INFO = 1,
+    WARNING = 2,
+    ERROR = 3,
+    // Special warning types
+    WARNING_UNINITIALISED = WARNING + 4,
+    // Special error types
+    ERROR_DIVERGENCE = ERROR + 4,
+    ERROR_INVALID_ACCESS = ERROR + 8,
+    ERROR_DATA_RACE = ERROR + 12,
+    ERROR_UNALIGNED = ERROR + 16,
+    ERROR_ARRAY_BOUNDS = ERROR + 20,
   };
 
   // 3-dimensional size
@@ -187,6 +196,9 @@ namespace oclgrind
 
   // Print data in a human readable format (according to its type)
   void printTypedData(const llvm::Type *type, const unsigned char *data);
+
+  // Return the base type for a message type
+  MessageType getMessageBaseType(MessageType type);
 
   // Exception class for raising fatal errors
   class FatalError : std::runtime_error

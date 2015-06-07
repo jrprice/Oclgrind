@@ -34,6 +34,10 @@ function usage
   echo          "Redirect log/error messages to a file"
   echo -n "     --max-errors     NUM      "
   echo          "Limit the number of error/warning messages"
+  echo -n "  -Wall                        "
+  echo          "Enable all error/warning messages"
+  echo -n "  -W[no-]MSG_GROUP             "
+  echo          "Enable/disable specific message group"
   echo -n "     --num-threads    NUM      "
   echo          "Set the number of worker threads to use"
   echo -n "     --pch-dir        DIR      "
@@ -54,10 +58,16 @@ function usage
   echo
 }
 
+# Collect all diagnostic options before writing them to environment
+diagnosticOptions=()
+
 # Parse arguments
 while [ $# -gt 0 -a "${1:0:1}" == "-" ]
 do
-  if [ "$1" == "--build-options" ]
+  if [ "${1:1:1}" == "W" ]
+  then
+    diagnosticOptions+=("$1")
+  elif [ "$1" == "--build-options" ]
   then
     shift
     export OCLGRIND_BUILD_OPTIONS="$1"
@@ -129,6 +139,9 @@ do
   fi
   shift
 done
+
+# Set diagnostic options
+export OCLGRIND_DIAGNOSTIC_OPTIONS="${diagnosticOptions[@]}"
 
 # Ensure target command supplied
 if [ $# -lt 1 ]

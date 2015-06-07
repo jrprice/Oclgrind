@@ -200,7 +200,7 @@ void InteractiveDebugger::kernelEnd(const KernelInvocation *kernelInvocation)
 
 void InteractiveDebugger::log(MessageType type, const char *message)
 {
-  if (type == ERROR)
+  if (getMessageBaseType(type) == ERROR)
     m_forceBreak = true;
 }
 

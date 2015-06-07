@@ -306,7 +306,7 @@ void RaceDetector::logRace(const Race& race) const
   else
     raceType = "Write-write";
 
-  Context::Message msg(ERROR, m_context);
+  Context::Message msg(ERROR_DATA_RACE, m_context);
   msg << raceType << " data race at "
       << getAddressSpaceName(race.addrspace)
       << " memory address 0x" << hex << race.address << endl
