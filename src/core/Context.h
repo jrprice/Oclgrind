@@ -51,7 +51,7 @@ namespace oclgrind
                            const uint8_t *storeData) const;
     void notifyMessage(MessageType type, const char *message) const;
     void notifyMemoryUnmap(const Memory *memory, size_t address,
-                           void *ptr) const;
+                           const void *ptr) const;
     void notifyWorkGroupBarrier(const WorkGroup *workGroup,
                                 uint32_t flags) const;
     void notifyWorkGroupBegin(const WorkGroup *workGroup) const;

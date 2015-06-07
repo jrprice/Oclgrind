@@ -170,7 +170,7 @@ namespace oclgrind
     };
     struct UnmapCommand : Command
     {
-      void *ptr;
+      const void *ptr;
       size_t address;
       UnmapCommand()
       {

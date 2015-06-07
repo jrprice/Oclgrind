@@ -314,7 +314,7 @@ void Context::notifyMessage(MessageType type, const char *message) const
 }
 
 void Context::notifyMemoryUnmap(const Memory *memory, size_t address,
-                                void *ptr) const
+                                const void *ptr) const
 {
   NOTIFY(memoryUnmap, memory, address, ptr);
 }
