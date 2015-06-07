@@ -28,7 +28,6 @@ oclgrind_extra_libs=
 AX_CHECK_COMPILE_FLAG([-std=c++11], [],
                       [AC_MSG_ERROR([C++11 support is required])])
 CXXFLAGS="$CXXFLAGS -std=c++11"
-CPPFLAGS="$CPPFLAGS -std=c++11"
 
 # --with-llvm option to specify root of LLVM/Clang installation
 AC_ARG_WITH(
@@ -61,6 +60,9 @@ AC_DEFINE_UNQUOTED([LLVM_VERSION],
 CPPFLAGS="$CPPFLAGS `$llvm_config --cppflags`"
 LDFLAGS="$LDFLAGS `$llvm_config --ldflags`"
 
+CPPFLAGS_old="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS -std=c++11"
+
 # Check for LLVM/Clang headers/libraries
 AC_CHECK_HEADERS(
         [llvm/IR/Instruction.h clang/CodeGen/CodeGenAction.h],
@@ -72,6 +74,8 @@ AC_CHECK_LIB(
         [main],
         [:],
         [AC_MSG_ERROR([Clang library not found (use --with-llvm)])])
+
+CPPFLAGS="$CPPFLAGS_old"
 
 # GNU readline library (for interactive debugger)
 AC_ARG_WITH(
