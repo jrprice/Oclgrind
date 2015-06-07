@@ -6,11 +6,14 @@
 # license terms please see the LICENSE file distributed with this
 # source code.
 
+set(COMMON_SOURCES ../common/common.c ../common/common.h)
+include_directories(../common)
+
 # Add runtime tests
 foreach(test
   map_buffer)
 
-  add_executable(${test} ${test}.c)
+  add_executable(${test} ${test}.c ${COMMON_SOURCES})
   target_link_libraries(${test} oclgrind-rt)
 
   # Generate test binaries in same dir as Oclgrind libraries on Windows
