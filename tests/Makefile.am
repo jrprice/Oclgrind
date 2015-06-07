@@ -12,7 +12,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 AM_CFLAGS = -std=c99 -I${srcdir}/common
 LDADD     = ../liboclgrind-rt.la libcommon.la
 
-lib_LTLIBRARIES = libcommon.la
+noinst_LTLIBRARIES = libcommon.la
 libcommon_la_SOURCES = common/common.c common/common.h
 
 check_PROGRAMS = \
