@@ -164,7 +164,7 @@ void KernelInvocation::run(const Context *context, Kernel *kernel,
          << endl << err.what()
          << endl << "When allocating kernel constants for '"
          << kernel->getName() << "'";
-    context->logError(info.str().c_str());
+    context->logError(info.str().c_str(), ERROR_FATAL);
     return;
   }
 
@@ -268,7 +268,7 @@ void KernelInvocation::runWorker()
     info << "OCLGRIND FATAL ERROR "
          << "(" << err.getFile() << ":" << err.getLine() << ")"
          << endl << err.what();
-    m_context->logError(info.str().c_str());
+    m_context->logError(info.str().c_str(), ERROR_FATAL);
 
     if (workerState.workGroup)
       delete workerState.workGroup;

@@ -71,7 +71,7 @@ void Logger::log(MessageType type, const char *message)
   lock_guard<mutex> lock(logMutex);
 
   // Limit number of errors/warning printed
-  if (!hasDiagnosticOption(type))
+  if (!hasDiagnosticOption(type) && type != ERROR_FATAL)
   {
     return;
   }

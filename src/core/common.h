@@ -102,6 +102,7 @@ namespace oclgrind
     ERROR_DATA_RACE = ERROR + 12,
     ERROR_UNALIGNED = ERROR + 16,
     ERROR_ARRAY_BOUNDS = ERROR + 20,
+    ERROR_FATAL = ERROR + 24,
   };
 
   // 3-dimensional size
