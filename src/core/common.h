@@ -95,7 +95,7 @@ namespace oclgrind
     WARNING = 2,
     ERROR = 3,
     // Special warning types
-    WARNING_UNINITIALISED = WARNING + 4,
+    WARNING_UNINITIALIZED = WARNING + 4,
     // Special error types
     ERROR_DIVERGENCE = ERROR + 4,
     ERROR_INVALID_ACCESS = ERROR + 8,

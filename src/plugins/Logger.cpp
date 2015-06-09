@@ -110,7 +110,7 @@ void Logger::enableAllDiagnostics()
   enableDiagnosticOption(WARNING);
   enableDiagnosticOption(ERROR);
   // Turn on specific groups
-  enableDiagnosticOption(WARNING_UNINITIALISED);
+  enableDiagnosticOption(WARNING_UNINITIALIZED);
   enableDiagnosticOption(ERROR_DIVERGENCE);
   enableDiagnosticOption(ERROR_INVALID_ACCESS);
   enableDiagnosticOption(ERROR_DATA_RACE);
@@ -185,9 +185,9 @@ bool Logger::parseDiagnosticOptions(char *options)
     {
       enableDiagnosticOption(DEBUG, isPositive);
     }
-    else if (!strcmp(opt_type, "uninitialised"))
+    else if (!strcmp(opt_type, "uninitialized"))
     {
-      enableDiagnosticOption(WARNING_UNINITIALISED, isPositive);
+      enableDiagnosticOption(WARNING_UNINITIALIZED, isPositive);
     }
     else if (!strcmp(opt_type, "divergence"))
     {
