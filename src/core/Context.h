@@ -27,7 +27,7 @@ namespace oclgrind
 
     Memory* getGlobalMemory() const;
     bool isThreadSafe() const;
-    void logError(const char* error, MessageType type = ERROR) const;
+    void logError(const char* error, MessageType type = OCLGRIND_ERROR) const;
 
     // Simulation callbacks
     void notifyInstructionExecuted(const WorkItem *workItem,

@@ -125,7 +125,7 @@ size_t WorkGroup::async_copy(
         (itr->first.srcStride != copy.srcStride) ||
         (itr->first.destStride != copy.destStride))
     {
-      Context::Message msg(ERROR_DIVERGENCE, m_context);
+      Context::Message msg(OCLGRIND_ERROR_DIVERGENCE, m_context);
       msg << "Work-group divergence detected (async copy)" << endl
           << msg.INDENT
           << "Kernel:     " << msg.CURRENT_KERNEL << endl
@@ -180,7 +180,7 @@ void WorkGroup::clearBarrier()
   // Check for divergence
   if (m_barrier->workItems.size() != m_workItems.size())
   {
-    Context::Message msg(ERROR_DIVERGENCE, m_context);
+    Context::Message msg(OCLGRIND_ERROR_DIVERGENCE, m_context);
     msg << "Work-group divergence detected (barrier)" << endl
         << msg.INDENT
         << "Kernel:     " << msg.CURRENT_KERNEL << endl
@@ -247,7 +247,7 @@ void WorkGroup::clearBarrier()
         // Check that all work-items registered the copy
         if (cItr->second.size() != m_workItems.size())
         {
-          Context::Message msg(ERROR_DIVERGENCE, m_context);
+          Context::Message msg(OCLGRIND_ERROR_DIVERGENCE, m_context);
           msg << "Work-group divergence detected (async copy)" << endl
               << msg.INDENT
               << "Kernel:     " << msg.CURRENT_KERNEL << endl
@@ -385,7 +385,7 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
 
     if (divergence)
     {
-      Context::Message msg(ERROR_DIVERGENCE, m_context);
+      Context::Message msg(OCLGRIND_ERROR_DIVERGENCE, m_context);
       msg << "Work-group divergence detected (barrier)" << endl
           << msg.INDENT
           << "Kernel:     " << msg.CURRENT_KERNEL << endl

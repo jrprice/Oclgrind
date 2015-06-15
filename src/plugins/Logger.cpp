@@ -71,15 +71,15 @@ void Logger::log(MessageType type, const char *message)
   lock_guard<mutex> lock(logMutex);
 
   // Limit number of errors/warning printed
-  if (!hasDiagnosticOption(type) && type != ERROR_FATAL)
+  if (!hasDiagnosticOption(type) && type != OCLGRIND_ERROR_FATAL)
   {
     return;
   }
 
   MessageType baseType = getMessageBaseType(type);
-  if (baseType == ERROR || baseType == WARNING)
+  if (baseType == OCLGRIND_ERROR || baseType == OCLGRIND_WARNING)
   {
-    if (m_numErrors == m_maxErrors && hasDiagnosticOption(INFO))
+    if (m_numErrors == m_maxErrors && hasDiagnosticOption(OCLGRIND_INFO))
     {
       *m_log << endl << "Oclgrind: "
              << m_numErrors << " errors generated - suppressing further errors"
@@ -105,17 +105,17 @@ void Logger::enableDiagnosticOption(MessageType optType, bool status)
 void Logger::enableAllDiagnostics()
 {
   // Turn on generic groups
-  enableDiagnosticOption(INFO);
-  enableDiagnosticOption(DEBUG);
-  enableDiagnosticOption(WARNING);
-  enableDiagnosticOption(ERROR);
+  enableDiagnosticOption(OCLGRIND_INFO);
+  enableDiagnosticOption(OCLGRIND_DEBUG);
+  enableDiagnosticOption(OCLGRIND_WARNING);
+  enableDiagnosticOption(OCLGRIND_ERROR);
   // Turn on specific groups
-  enableDiagnosticOption(WARNING_UNINITIALIZED);
-  enableDiagnosticOption(ERROR_DIVERGENCE);
-  enableDiagnosticOption(ERROR_INVALID_ACCESS);
-  enableDiagnosticOption(ERROR_DATA_RACE);
-  enableDiagnosticOption(ERROR_UNALIGNED);
-  enableDiagnosticOption(ERROR_ARRAY_BOUNDS);
+  enableDiagnosticOption(OCLGRIND_WARNING_UNINITIALIZED);
+  enableDiagnosticOption(OCLGRIND_ERROR_DIVERGENCE);
+  enableDiagnosticOption(OCLGRIND_ERROR_INVALID_ACCESS);
+  enableDiagnosticOption(OCLGRIND_ERROR_DATA_RACE);
+  enableDiagnosticOption(OCLGRIND_ERROR_UNALIGNED);
+  enableDiagnosticOption(OCLGRIND_ERROR_ARRAY_BOUNDS);
 }
 
 void Logger::logBadDiagnosticOption(const char* opt, bool isInvalid)
@@ -123,7 +123,7 @@ void Logger::logBadDiagnosticOption(const char* opt, bool isInvalid)
   std::stringstream msg;
   msg << (isInvalid ? "Invalid" : "Unknown")
       << " diagnostic option '" << opt << "'.";
-  log(WARNING, msg.str().c_str());
+  log(OCLGRIND_WARNING, msg.str().c_str());
 }
 
 bool Logger::parseDiagnosticOptions(char *options)
@@ -174,40 +174,40 @@ bool Logger::parseDiagnosticOptions(char *options)
     }
     else if (!strcmp(opt_type, "generic"))
     {
-      enableDiagnosticOption(WARNING, isPositive);
-      enableDiagnosticOption(ERROR, isPositive);
+      enableDiagnosticOption(OCLGRIND_WARNING, isPositive);
+      enableDiagnosticOption(OCLGRIND_ERROR, isPositive);
     }
     else if (!strcmp(opt_type, "info"))
     {
-      enableDiagnosticOption(INFO, isPositive);
+      enableDiagnosticOption(OCLGRIND_INFO, isPositive);
     }
     else if (!strcmp(opt_type, "debug"))
     {
-      enableDiagnosticOption(DEBUG, isPositive);
+      enableDiagnosticOption(OCLGRIND_DEBUG, isPositive);
     }
     else if (!strcmp(opt_type, "uninitialized"))
     {
-      enableDiagnosticOption(WARNING_UNINITIALIZED, isPositive);
+      enableDiagnosticOption(OCLGRIND_WARNING_UNINITIALIZED, isPositive);
     }
     else if (!strcmp(opt_type, "divergence"))
     {
-      enableDiagnosticOption(ERROR_DIVERGENCE, isPositive);
+      enableDiagnosticOption(OCLGRIND_ERROR_DIVERGENCE, isPositive);
     }
     else if (!strcmp(opt_type, "invalid-access"))
     {
-      enableDiagnosticOption(ERROR_INVALID_ACCESS, isPositive);
+      enableDiagnosticOption(OCLGRIND_ERROR_INVALID_ACCESS, isPositive);
     }
     else if (!strcmp(opt_type, "data-race"))
     {
-      enableDiagnosticOption(ERROR_DATA_RACE, isPositive);
+      enableDiagnosticOption(OCLGRIND_ERROR_DATA_RACE, isPositive);
     }
     else if (!strcmp(opt_type, "unaligned"))
     {
-      enableDiagnosticOption(ERROR_UNALIGNED, isPositive);
+      enableDiagnosticOption(OCLGRIND_ERROR_UNALIGNED, isPositive);
     }
     else if (!strcmp(opt_type, "array-bounds"))
     {
-      enableDiagnosticOption(ERROR_ARRAY_BOUNDS, isPositive);
+      enableDiagnosticOption(OCLGRIND_ERROR_ARRAY_BOUNDS, isPositive);
     }
     else
     {
