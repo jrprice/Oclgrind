@@ -71,7 +71,7 @@ def run(output_suffix):
       continue
 
     type = line.split()[0]
-    str  = line[6:]
+    text = line[6:]
 
     # Find next non-blank line in output file
     while not len(out[oi]):
@@ -79,7 +79,7 @@ def run(output_suffix):
 
     if type == 'ERROR':
       # Check first line of error contains reference message
-      if not str in out[oi]:
+      if not text in out[oi]:
         print 'Expected '  + line
         print 'Found    "' + out[oi] + '"'
         fail()
@@ -88,14 +88,14 @@ def run(output_suffix):
         oi += 1
     elif type == 'EXACT':
       # Check line of output matches reference exactly
-      if not str == out[oi]:
+      if not text == out[oi]:
         print 'Expected '  + line
         print 'Found    "' + out[oi] + '"'
         fail()
       oi += 1
     elif type == 'MATCH':
       # Check line of output contains reference text
-      if not str in out[oi]:
+      if not text in out[oi]:
         print 'Expected '  + line
         print 'Found    "' + out[oi] + '"'
         fail()
