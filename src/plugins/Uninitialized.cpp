@@ -27,6 +27,12 @@ Uninitialized::Uninitialized(const Context *context)
 {
 }
 
+bool Uninitialized::isThreadSafe() const
+{
+  // TODO: Fix state map for concurrent accesses from worker threads
+  return false;
+}
+
 void Uninitialized::hostMemoryStore(const Memory *memory,
                                     size_t address, size_t size,
                                     const uint8_t *storeData)

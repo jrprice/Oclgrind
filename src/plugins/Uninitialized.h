@@ -15,6 +15,8 @@ namespace oclgrind
   public:
     Uninitialized(const Context *context);
 
+    virtual bool isThreadSafe() const override;
+
     virtual void hostMemoryStore(const Memory *memory,
                                  size_t address, size_t size,
                                  const uint8_t *storeData) override;
