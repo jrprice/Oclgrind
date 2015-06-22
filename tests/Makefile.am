@@ -33,7 +33,8 @@ AM_TESTS_ENVIRONMENT = \
 TESTS += $(KERNEL_TESTS)
 XFAIL_TESTS =             \
   kernels/atomics/atomic_intergroup_race.sim  \
-  kernels/data-race/intragroup_hidden_race.sim
+  kernels/data-race/intragroup_hidden_race.sim \
+  kernels/uninitialized/padded_struct_memcpy_fp.sim
 
 clean-local:
 	find . -name '*.out' -exec rm -f {} \;
