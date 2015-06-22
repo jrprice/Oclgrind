@@ -78,6 +78,11 @@ namespace oclgrind
     return x == rhs.x && y == rhs.y && z == rhs.z;
   }
 
+  bool Size3::operator!=(const Size3& rhs) const
+  {
+    return x != rhs.x || y != rhs.y || z != rhs.z;
+  }
+
   ostream& operator<<(ostream& stream, const Size3& size)
   {
     stream << dec    << "("

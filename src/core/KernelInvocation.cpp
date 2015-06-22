@@ -80,7 +80,8 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
     Size3 firstGroup(0, 0, 0);
     Size3 lastGroup(m_numGroups.x-1, m_numGroups.y-1, m_numGroups.z-1);
     m_workGroups.push_back(firstGroup);
-    m_workGroups.push_back(lastGroup);
+    if (lastGroup != firstGroup)
+      m_workGroups.push_back(lastGroup);
   }
   else
   {

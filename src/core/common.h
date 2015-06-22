@@ -96,6 +96,7 @@ namespace oclgrind
     size_t& operator[](unsigned i);
     const size_t& operator[](unsigned i) const;
     bool operator==(const _Size3_& rhs) const;
+    bool operator!=(const _Size3_& rhs) const;
     friend std::ostream& operator<<(std::ostream& stream, const _Size3_& sz);
   } Size3;
 
