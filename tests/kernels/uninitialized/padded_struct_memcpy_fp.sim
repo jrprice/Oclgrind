@@ -1,0 +1,8 @@
+padded_struct_memcpy_fp.cl
+padded_struct_memcpy_fp
+2 1 1
+2 1 1
+
+<size=12 char>
+
+<size=12 int fill=0 dump>
