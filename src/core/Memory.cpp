@@ -405,7 +405,7 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
   return true;
 }
 
-unsigned char* Memory::mapBuffer(size_t address, size_t offset, size_t size)
+void* Memory::mapBuffer(size_t address, size_t offset, size_t size)
 {
   size_t buffer = EXTRACT_BUFFER(address);
 

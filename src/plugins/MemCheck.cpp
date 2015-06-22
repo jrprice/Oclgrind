@@ -94,6 +94,17 @@ void MemCheck::memoryLoad(const Memory *memory, const WorkGroup *workGroup,
   checkLoad(memory, address, size);
 }
 
+void MemCheck::memoryMap(const Memory *memory, size_t address,
+                         size_t offset, size_t size, cl_map_flags flags)
+{
+  MapRegion map =
+  {
+    address, offset, size, memory->getPointer(address + offset),
+    (flags == CL_MAP_READ ? MapRegion::READ : MapRegion::WRITE)
+  };
+  m_mapRegions.push_back(map);
+}
+
 void MemCheck::memoryStore(const Memory *memory, const WorkItem *workItem,
                            size_t address, size_t size,
                            const uint8_t *storeData)
@@ -106,6 +117,21 @@ void MemCheck::memoryStore(const Memory *memory, const WorkGroup *workGroup,
                            const uint8_t *storeData)
 {
   checkStore(memory, address, size);
+}
+
+void MemCheck::memoryUnmap(const Memory *memory, size_t address,
+                           const void *ptr)
+{
+  for (auto region = m_mapRegions.begin();
+            region != m_mapRegions.end();
+            region++)
+  {
+    if (region->ptr == ptr)
+    {
+      m_mapRegions.erase(region);
+      return;
+    }
+  }
 }
 
 void MemCheck::checkLoad(const Memory *memory,
@@ -121,6 +147,19 @@ void MemCheck::checkLoad(const Memory *memory,
   {
     m_context->logError("Invalid read from write-only buffer");
   }
+
+  // Check if memory location is currently mapped for writing
+  for (auto region = m_mapRegions.begin();
+            region != m_mapRegions.end();
+            region++)
+  {
+    if (region->type == MapRegion::WRITE &&
+        address < region->address + region->size &&
+        address + size >= region->address)
+    {
+      m_context->logError("Invalid read from buffer mapped for writing");
+    }
+  }
 }
 
 void MemCheck::checkStore(const Memory *memory,
@@ -135,6 +174,18 @@ void MemCheck::checkStore(const Memory *memory,
   if (memory->getBuffer(address)->flags & CL_MEM_READ_ONLY)
   {
     m_context->logError("Invalid write to read-only buffer");
+  }
+
+  // Check if memory location is currently mapped
+  for (auto region = m_mapRegions.begin();
+            region != m_mapRegions.end();
+            region++)
+  {
+    if (address < region->address + region->size &&
+        address + size >= region->address)
+    {
+      m_context->logError("Invalid write to mapped buffer");
+    }
   }
 }
 

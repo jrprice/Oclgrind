@@ -30,17 +30,32 @@ namespace oclgrind
                             size_t address, size_t size) override;
     virtual void memoryLoad(const Memory *memory, const WorkGroup *workGroup,
                             size_t address, size_t size) override;
+    virtual void memoryMap(const Memory *memory, size_t address,
+                           size_t offset, size_t size,
+                           cl_map_flags flags) override;
     virtual void memoryStore(const Memory *memory, const WorkItem *workItem,
                              size_t address, size_t size,
                              const uint8_t *storeData) override;
     virtual void memoryStore(const Memory *memory, const WorkGroup *workGroup,
                              size_t address, size_t size,
                              const uint8_t *storeData) override;
+    virtual void memoryUnmap(const Memory *memory, size_t address,
+                             const void *ptr) override;
 
   private:
     void checkLoad(const Memory *memory, size_t address, size_t size) const;
     void checkStore(const Memory *memory, size_t address, size_t size) const;
     void logInvalidAccess(bool read, unsigned addrSpace,
                           size_t address, size_t size) const;
+
+    typedef struct
+    {
+      size_t address;
+      size_t offset;
+      size_t size;
+      const void *ptr;
+      enum {READ, WRITE} type;
+    } MapRegion;
+    std::list<MapRegion> m_mapRegions;
   };
 }
