@@ -10,6 +10,10 @@
 
 #include "core/Context.h"
 #include "core/Memory.h"
+#include "core/WorkItem.h"
+
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Type.h"
 
 #include "Uninitialized.h"
 
@@ -28,6 +32,51 @@ void Uninitialized::hostMemoryStore(const Memory *memory,
                                     const uint8_t *storeData)
 {
   setState(memory, address, size);
+}
+
+void Uninitialized::instructionExecuted(const WorkItem *workItem,
+                                        const llvm::Instruction *instruction,
+                                        const TypedValue& result)
+{
+  if (auto alloca = llvm::dyn_cast<llvm::AllocaInst>(instruction))
+  {
+    // Set state for any padding bytes in structures
+    const llvm::Type *type = alloca->getAllocatedType();
+    if (auto structType = llvm::dyn_cast<llvm::StructType>(type))
+    {
+      if (!structType->isPacked())
+      {
+        size_t base = result.getPointer();
+
+        unsigned size = 0;
+        for (unsigned i = 0; i < structType->getStructNumElements(); i++)
+        {
+          // Get member size and alignment
+          const llvm::Type *elemType = structType->getStructElementType(i);
+          unsigned sz    = getTypeSize(elemType);
+          unsigned align = getTypeAlignment(elemType);
+
+          // Set state for padding
+          if (size % align)
+          {
+            size_t padding = (align - (size%align));
+            setState(workItem->getPrivateMemory(), base+size, padding);
+            size += padding;
+          }
+
+          size += sz;
+        }
+
+        // Set state for padding at end of structure
+        unsigned alignment = getTypeAlignment(structType);
+        if (size % alignment)
+        {
+          unsigned padding = (alignment - (size%alignment));
+          setState(workItem->getPrivateMemory(), base+size, padding);
+        }
+      }
+    }
+  }
 }
 
 void Uninitialized::memoryAllocated(const Memory *memory, size_t address,
