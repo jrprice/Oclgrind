@@ -11,7 +11,7 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
 SUBDIRS = . tests
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/ -Wall
+AM_CPPFLAGS = -I$(top_srcdir)/src/ -Wall -fno-rtti
 
 # Suppress warnings from OpenCL runtime API headers
 if USING_CLANG

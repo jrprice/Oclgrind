@@ -22,9 +22,9 @@ endif()
 # Enable rpath on OS X
 set(CMAKE_MACOSX_RPATH 1)
 
-# Enable C++11 for Clang/GCC
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif()
 
 # Disable min/max macros on Windows
