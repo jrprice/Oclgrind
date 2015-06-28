@@ -40,6 +40,12 @@ void RaceDetector::kernelBegin(const KernelInvocation *kernelInvocation)
 
 void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
 {
+  // Clear all global memory accesses
+  AccessMap& accessMap = m_globalAccesses;
+  for (auto addr = accessMap.begin(); addr != accessMap.end(); addr++)
+    for (auto al = addr->second.begin(); al != addr->second.end(); al++)
+      al->clear();
+
   m_kernelInvocation = NULL;
 }
 
