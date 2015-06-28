@@ -37,6 +37,16 @@
 #undef ERROR
 #endif
 
+#ifdef __APPLE__
+// TODO: Remove this when thread_local fixed on OS X
+#define THREAD_LOCAL __thread
+#elif defined(_WIN32) && !defined(__MINGW32__)
+// TODO: Remove this when thread_local fixed on Windows
+#define THREAD_LOCAL __declspec(thread)
+#else
+#define THREAD_LOCAL thread_local
+#endif
+
 namespace llvm
 {
   class Constant;

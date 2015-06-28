@@ -22,14 +22,6 @@
 using namespace oclgrind;
 using namespace std;
 
-// TODO: Remove this when thread_local fixed on OS X
-#ifdef __APPLE__
-#define THREAD_LOCAL __thread
-#elif defined(_WIN32) && !defined(__MINGW32__)
-#define THREAD_LOCAL __declspec(thread)
-#else
-#define THREAD_LOCAL thread_local
-#endif
 struct
 {
   WorkGroup *workGroup;
