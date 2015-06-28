@@ -85,6 +85,8 @@ namespace oclgrind
     bool m_allowUniformWrites;
     const KernelInvocation *m_kernelInvocation;
 
+    Size3 getAccessWorkGroup(const MemoryAccess& access) const;
+
     bool check(const MemoryAccess& first, const MemoryAccess& second) const;
     void logRace(const Memory *memory, size_t address,
                  const MemoryAccess& first,

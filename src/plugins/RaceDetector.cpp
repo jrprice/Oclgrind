@@ -121,6 +121,17 @@ void RaceDetector::memoryStore(const Memory *memory, const WorkGroup *workGroup,
                  address, size, false, storeData);
 }
 
+Size3 RaceDetector::getAccessWorkGroup(const MemoryAccess& access) const
+{
+  Size3 wg = access.getEntity();
+  if (access.isWorkItem())
+  {
+    Size3 wgsize = m_kernelInvocation->getLocalSize();
+    wg = Size3(wg.x/wgsize.x, wg.y/wgsize.y, wg.z/wgsize.z);
+  }
+  return wg;
+}
+
 bool RaceDetector::check(const MemoryAccess& a,
                          const MemoryAccess& b) const
 {
@@ -232,16 +243,11 @@ void RaceDetector::registerAccess(const Memory *memory,
 
     for (auto a = accessList->begin(); a != accessList->end(); a++)
     {
-      // Check if access was from same work-group and before a fence
-      if (addrSpace == AddrSpaceGlobal && a->hasWorkGroupSync())
+      if (addrSpace == AddrSpaceGlobal)
       {
-        Size3 wg = a->getEntity();
-        if (a->isWorkItem())
-        {
-          Size3 wgsize = m_kernelInvocation->getLocalSize();
-          wg = Size3(wg.x/wgsize.x, wg.y/wgsize.y, wg.z/wgsize.z);
-        }
-        if (wg == workGroup->getGroupID())
+        // Check if access was from same work-group and before a fence
+        if (a->hasWorkGroupSync() &&
+            getAccessWorkGroup(*a) == workGroup->getGroupID())
           continue;
       }
 
@@ -265,24 +271,21 @@ void RaceDetector::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
 {
   if (flags & CLK_LOCAL_MEM_FENCE)
   {
+    // Clear all local memory accesses
     AccessMap& accessMap = m_localAccesses[workGroup->getLocalMemory()];
     for (auto addr = accessMap.begin(); addr != accessMap.end(); addr++)
-    {
       for (auto al = addr->second.begin(); al != addr->second.end(); al++)
         al->clear();
-    }
   }
   if (flags & CLK_GLOBAL_MEM_FENCE)
   {
+    // Set sync bits for all accesses from this work-group
     AccessMap& accessMap = m_globalAccesses;
     for (auto addr = accessMap.begin(); addr != accessMap.end(); addr++)
-    {
       for (auto al = addr->second.begin(); al != addr->second.end(); al++)
-      {
         for (auto a = al->begin(); a != al->end(); a++)
-          a->setWorkGroupSync();
-      }
-    }
+          if (getAccessWorkGroup(*a) == workGroup->getGroupID())
+            a->setWorkGroupSync();
   }
 }
 
