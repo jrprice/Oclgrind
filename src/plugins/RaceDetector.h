@@ -45,51 +45,48 @@ namespace oclgrind
     virtual bool isThreadSafe() const override;
 
   private:
-    struct State
+    struct MemoryAccess
     {
+    private:
+      Size3 entity;
       const llvm::Instruction *instruction;
-      size_t workItem;
-      size_t workGroup;
-      bool canAtomicLoad;
-      bool canAtomicStore;
-      bool canLoad;
-      bool canStore;
-      bool wasWorkItem;
 
-      State();
+      uint8_t info;
+      static const unsigned STORE_BIT  = 0;
+      static const unsigned ATOMIC_BIT = 1;
+      static const unsigned WG_BIT     = 2;
+      uint8_t storeData;
+
+    public:
+      bool isAtomic() const;
+      bool isLoad() const;
+      bool isStore() const;
+      bool isWorkGroup() const;
+      bool isWorkItem() const;
+
+      Size3 getEntity() const;
+      const llvm::Instruction* getInstruction() const;
+
+      uint8_t getStoreData() const;
+      void    setStoreData(uint8_t);
+
+      MemoryAccess(const WorkGroup *workGroup, const WorkItem *workItem,
+                   bool store, bool atomic);
     };
-
-    // Enumeration for types of data-race
-    enum DataRaceType
-    {
-      ReadWriteRace,
-      WriteWriteRace
-    };
-
-    typedef std::map<
-                      std::pair<const Memory*, size_t>,
-                      std::vector<State>
-                    > StateMap;
-    StateMap m_state;
+    typedef std::vector<MemoryAccess> AccessList;
+    std::map< size_t, std::vector<AccessList> > m_globalAccesses;
 
     bool m_allowUniformWrites;
     const KernelInvocation *m_kernelInvocation;
 
-    void logRace(DataRaceType type,
-                 unsigned int addrSpace,
-                 size_t address,
-                 size_t lastWorkGroup,
-                 size_t lastWorkItem,
-                 const llvm::Instruction *lastInstruction) const;
-    void registerAtomic(const Memory *memory,
+    bool check(const MemoryAccess& first, const MemoryAccess& second) const;
+    void logRace(const Memory *memory, size_t address,
+                 const MemoryAccess& first,
+                 const MemoryAccess& second) const;
+    void registerAccess(const Memory *memory,
+                        const WorkGroup *workGroup,
                         const WorkItem *workItem,
-                        size_t address, size_t size,
-                        bool store);
-    void registerLoadStore(const Memory *memory,
-                           const WorkItem *workItem,
-                           const WorkGroup *workGroup,
-                           size_t address, size_t size,
-                           const uint8_t *storeData);
-    void synchronize(const Memory *memory, bool workGroup);
+                        size_t address, size_t size, bool atomic,
+                        const uint8_t *storeData = NULL);
   };
 }

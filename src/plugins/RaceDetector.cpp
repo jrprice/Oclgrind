@@ -19,8 +19,6 @@
 using namespace oclgrind;
 using namespace std;
 
-#define KEY(memory,address) make_pair(memory, EXTRACT_BUFFER(address))
-
 RaceDetector::RaceDetector(const Context *context)
  : Plugin(context)
 {
@@ -42,8 +40,6 @@ void RaceDetector::kernelBegin(const KernelInvocation *kernelInvocation)
 
 void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
 {
-  synchronize(m_context->getGlobalMemory(), false);
-
   m_kernelInvocation = NULL;
 }
 
@@ -51,266 +47,187 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
                                    size_t size, cl_mem_flags flags,
                                    const uint8_t *initData)
 {
-  if (memory->getAddressSpace() == AddrSpacePrivate ||
-      memory->getAddressSpace() == AddrSpaceConstant)
-    return;
-
-  m_state[KEY(memory,address)] = vector<State>(size);
+  if (memory->getAddressSpace() == AddrSpaceGlobal)
+  {
+    m_globalAccesses[EXTRACT_BUFFER(address)].resize(size);
+  }
 }
 
 void RaceDetector::memoryAtomicLoad(const Memory *memory,
                                     const WorkItem *workItem,
                                     AtomicOp op, size_t address, size_t size)
 {
-  registerAtomic(memory, workItem, address, size, false);
+  registerAccess(memory, workItem->getWorkGroup(), workItem,
+                 address, size, true);
 }
 
 void RaceDetector::memoryAtomicStore(const Memory *memory,
                                      const WorkItem *workItem,
                                      AtomicOp op, size_t address, size_t size)
 {
-  registerAtomic(memory, workItem, address, size, true);
+  registerAccess(memory, workItem->getWorkGroup(), workItem,
+                 address, size, true,
+                 (const uint8_t*)memory->getPointer(address));
 }
 
 void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
 {
-  if (memory->getAddressSpace() == AddrSpacePrivate ||
-      memory->getAddressSpace() == AddrSpaceConstant)
-    return;
-
-  m_state.erase(KEY(memory,address));
+  if (memory->getAddressSpace() == AddrSpaceGlobal)
+  {
+    m_globalAccesses.erase(EXTRACT_BUFFER(address));
+  }
 }
 
 void RaceDetector::memoryLoad(const Memory *memory, const WorkItem *workItem,
                               size_t address, size_t size)
 {
-  registerLoadStore(memory, workItem, workItem->getWorkGroup(),
-                    address, size, NULL);
+  registerAccess(memory, workItem->getWorkGroup(), workItem,
+                 address, size, false, NULL);
 }
 
 void RaceDetector::memoryLoad(const Memory *memory, const WorkGroup *workGroup,
                               size_t address, size_t size)
 {
-  registerLoadStore(memory, NULL, workGroup, address, size, NULL);
+  registerAccess(memory, workGroup, NULL, address, size, false);
 }
 
 void RaceDetector::memoryStore(const Memory *memory, const WorkItem *workItem,
                                size_t address, size_t size,
                                const uint8_t *storeData)
 {
-  registerLoadStore(memory, workItem, workItem->getWorkGroup(),
-                    address, size, storeData);
+  registerAccess(memory, workItem->getWorkGroup(), workItem,
+                 address, size, false, storeData);
 }
 
 void RaceDetector::memoryStore(const Memory *memory, const WorkGroup *workGroup,
                                size_t address, size_t size,
                                const uint8_t *storeData)
 {
-  registerLoadStore(memory, NULL, workGroup, address, size, storeData);
+  registerAccess(memory, workGroup, NULL,
+                 address, size, false, storeData);
 }
 
-void RaceDetector::logRace(DataRaceType type,
-                           unsigned int addrSpace,
-                           size_t address,
-                           size_t lastWorkGroup,
-                           size_t lastWorkItem,
-                           const llvm::Instruction *lastInstruction) const
+bool RaceDetector::check(const MemoryAccess& a,
+                         const MemoryAccess& b) const
 {
-  const char *raceType = NULL;
-  switch (type)
+  // No race if same work-item
+  if (a.isWorkItem() && b.isWorkItem() && (a.getEntity() == b.getEntity()))
+    return false;
+
+  // No race if both operations are atomics
+  if (a.isAtomic() && b.isAtomic())
+    return false;
+
+  // Potential race if at least one store
+  if (a.isStore() || b.isStore())
   {
-    case ReadWriteRace:
-      raceType = "Read-write";
-      break;
-    case WriteWriteRace:
-      raceType = "Write-write";
-      break;
+    // Read-write race if one is a load
+    if (a.isLoad() || b.isLoad())
+      return true;
+
+    // Write-write race if not uniform
+    if (!m_allowUniformWrites || (a.getStoreData() != b.getStoreData()))
+      return true;
   }
+
+  return false;
+}
+
+void RaceDetector::logRace(const Memory *memory, size_t address,
+                           const MemoryAccess& first,
+                           const MemoryAccess& second) const
+{
+  const char *raceType;
+  if (first.isLoad() || second.isLoad())
+    raceType = "Read-write";
+  else
+    raceType = "Write-write";
 
   Context::Message msg(ERROR, m_context);
   msg << raceType << " data race at "
-      << getAddressSpaceName(addrSpace)
+      << getAddressSpaceName(memory->getAddressSpace())
       << " memory address 0x" << hex << address << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
       << endl
-      << "First entity:  " << msg.CURRENT_ENTITY << endl
-      << msg.CURRENT_LOCATION << endl
+      << "First entity:  ";
+
+  if (first.isWorkItem())
+  {
+    Size3 wgsize = m_kernelInvocation->getLocalSize();
+    Size3 global = first.getEntity();
+    Size3 local(global.x%wgsize.x, global.y%wgsize.y, global.z%wgsize.z);
+    Size3 group(global.x/wgsize.x, global.y/wgsize.y, global.z/wgsize.z);
+    msg << "Global" << global << " Local" << local << " Group" << group;
+  }
+  else
+  {
+    msg << "Group" << first.getEntity();
+  }
+
+  msg << endl << first.getInstruction() << endl
       << endl
       << "Second entity: ";
 
   // Show details of other entity involved in race
-  if (lastWorkItem != -1)
+  if (second.isWorkItem())
   {
-    Size3 global(lastWorkItem, m_kernelInvocation->getGlobalSize());
-    Size3 local, group;
-    local.x = global.x % m_kernelInvocation->getLocalSize().x;
-    local.y = global.y % m_kernelInvocation->getLocalSize().y;
-    local.z = global.z % m_kernelInvocation->getLocalSize().z;
-    group.x = global.x / m_kernelInvocation->getLocalSize().x;
-    group.y = global.y / m_kernelInvocation->getLocalSize().y;
-    group.z = global.z / m_kernelInvocation->getLocalSize().z;
+    Size3 wgsize = m_kernelInvocation->getLocalSize();
+    Size3 global = second.getEntity();
+    Size3 local(global.x%wgsize.x, global.y%wgsize.y, global.z%wgsize.z);
+    Size3 group(global.x/wgsize.x, global.y/wgsize.y, global.z/wgsize.z);
     msg << "Global" << global << " Local" << local << " Group" << group;
-  }
-  else if (lastWorkGroup != -1)
-  {
-    msg << "Group"
-        << Size3(lastWorkGroup, m_kernelInvocation->getNumGroups());
   }
   else
   {
-    msg << "(unknown)";
+    msg << "Group" << second.getEntity();
   }
-  msg << endl
-      << lastInstruction << endl;
+  msg << endl << second.getInstruction() << endl;
   msg.send();
 }
 
-void RaceDetector::registerAtomic(const Memory *memory,
+void RaceDetector::registerAccess(const Memory *memory,
+                                  const WorkGroup *workGroup,
                                   const WorkItem *workItem,
-                                  size_t address, size_t size,
-                                  bool store)
+                                  size_t address, size_t size, bool atomic,
+                                  const uint8_t *storeData)
 {
-  if (!memory->isAddressValid(address, size))
-    return;
-
-  State *state = m_state[KEY(memory,address)].data() + EXTRACT_OFFSET(address);
-
-  // Get work-item index
-  size_t workItemIndex = workItem->getGlobalIndex();
-
-  bool race = false;
-  for (size_t offset = 0; offset < size; offset++, state++)
-  {
-    // Check for races with non-atomic operations
-    bool conflict = store ? !state->canAtomicStore : !state->canAtomicLoad;
-    if (!race && conflict && workItemIndex != state->workItem)
-    {
-      logRace(ReadWriteRace,
-              memory->getAddressSpace(),
-              address,
-              state->workItem,
-              state->workGroup,
-              state->instruction);
-      race = true;
-    }
-
-    // Update state
-    if (store)
-      state->canLoad = false;
-    state->canStore = false;
-    if (!state->wasWorkItem)
-    {
-      state->instruction = workItem->getCurrentInstruction();
-      state->workItem = workItemIndex;
-      state->wasWorkItem = true;
-    }
-  }
-}
-
-void RaceDetector::registerLoadStore(const Memory *memory,
-                                     const WorkItem *workItem,
-                                     const WorkGroup *workGroup,
-                                     size_t address, size_t size,
-                                     const uint8_t *storeData)
-{
-  if (!m_kernelInvocation)
-    return;
-  if (memory->getAddressSpace() == AddrSpacePrivate ||
-      memory->getAddressSpace() == AddrSpaceConstant)
+  unsigned addrSpace = memory->getAddressSpace();
+  if (addrSpace == AddrSpacePrivate ||
+      addrSpace == AddrSpaceConstant)
     return;
   if (!memory->isAddressValid(address, size))
     return;
 
-  bool load = !storeData;
-  bool store = storeData;
+  // Construct access
+  MemoryAccess access(workGroup, workItem, storeData != NULL, atomic);
 
-  // Get index of work-item and work-group performing access
-  size_t workItemIndex = -1, workGroupIndex = -1;
-  if (workItem)
+  if (addrSpace == AddrSpaceGlobal)
   {
-    workItemIndex = workItem->getGlobalIndex();
-  }
-  if (workGroup)
-  {
-    workGroupIndex = workGroup->getGroupIndex();
-  }
+    size_t buffer = EXTRACT_BUFFER(address);
+    size_t offset = EXTRACT_OFFSET(address);
 
-  bool race = false;
-  size_t base = EXTRACT_OFFSET(address);
-  State *state = m_state[KEY(memory, address)].data() + base;
-
-  for (size_t offset = 0; offset < size; offset++, state++)
-  {
-    bool conflict = store ? !state->canStore : !state->canLoad;
-    if (m_allowUniformWrites && storeData)
+    bool race = false;
+    for (unsigned i = 0; i < size; i++)
     {
-      uint8_t *ptr = (uint8_t*)(memory->getPointer(address));
-      conflict &= (ptr[offset] != storeData[offset]);
-    }
+      if (storeData)
+        access.setStoreData(storeData[i]);
 
-    if (!race && conflict &&
-        (state->wasWorkItem ?                // If state set by work-item,
-         state->workItem != workItemIndex :  // must be same work-item,
-         state->workGroup != workGroupIndex) // otherwise must be same group
-        )
-    {
-      // Report data-race
-      DataRaceType type = load|state->canLoad ? ReadWriteRace : WriteWriteRace;
-      logRace(type, memory->getAddressSpace(),
-              address + offset,
-              state->workItem,
-              state->workGroup,
-              state->instruction);
-      race = true;
-    }
-    else
-    {
-      // Only update WI info if this operation is stronger than previous one
-      bool updateWI = store || (load && state->canStore);
-
-      // Update state
-      if (store)
-        state->canAtomicLoad = false;
-      state->canAtomicStore = false;
-      state->canLoad &= load;
-      state->canStore = false;
-      if (updateWI)
+      AccessList& accesses = m_globalAccesses[buffer][offset+i];
+      for (auto a = accesses.begin(); a != accesses.end(); a++)
       {
-        state->workGroup = workGroupIndex;
-        if (workItem)
+        if (!race)
         {
-          state->instruction = workItem->getCurrentInstruction();
-          state->workItem = workItemIndex;
-          state->wasWorkItem = true;
+          if (check(access, *a))
+          {
+            logRace(memory, address+i, access, *a);
+            race = true;
+            break;
+          }
         }
       }
-    }
-  }
-}
 
-void RaceDetector::synchronize(const Memory *memory, bool workGroup)
-{
-  StateMap::iterator itr;
-  for (itr = m_state.begin(); itr != m_state.end(); itr++)
-  {
-    if (itr->first.first != memory)
-      continue;
-
-    vector<State>& obj = itr->second;
-    for (auto state = obj.begin(); state != obj.end(); state++)
-    {
-      // TODO: atomic_intergroup_race test failure
-      state->canAtomicLoad = true;
-      state->canAtomicStore = true;
-      state->workItem = -1;
-      state->wasWorkItem = false;
-      if (!workGroup)
-      {
-        state->workGroup = -1;
-        state->canLoad = true;
-        state->canStore = true;
-      }
+      accesses.push_back(access);
     }
   }
 }
@@ -318,19 +235,78 @@ void RaceDetector::synchronize(const Memory *memory, bool workGroup)
 void RaceDetector::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
 {
   if (flags & CLK_LOCAL_MEM_FENCE)
-    synchronize(workGroup->getLocalMemory(), false);
+  {
+    // TODO
+  }
   if (flags & CLK_GLOBAL_MEM_FENCE)
-    synchronize(m_context->getGlobalMemory(), true);
+  {
+    // TODO
+  }
 }
 
-RaceDetector::State::State()
+RaceDetector::MemoryAccess::MemoryAccess(const WorkGroup *workGroup,
+                                         const WorkItem *workItem,
+                                         bool store, bool atomic)
 {
-  instruction = NULL;
-  workItem = -1;
-  workGroup = -1;
-  canAtomicLoad = true;
-  canAtomicStore = true;
-  canLoad = true;
-  canStore = true;
-  wasWorkItem = false;
+  this->info = 0;
+
+  this->info |= store << STORE_BIT;
+  this->info |= atomic << ATOMIC_BIT;
+
+  if (workItem)
+  {
+    this->entity = workItem->getGlobalID();
+    this->instruction = workItem->getCurrentInstruction();
+  }
+  else
+  {
+    this->info |= (1<<WG_BIT);
+    this->entity = workGroup->getGroupID();
+    this->instruction = NULL; // TODO?
+  }
+}
+
+bool RaceDetector::MemoryAccess::isAtomic() const
+{
+  return this->info & (1<<ATOMIC_BIT);
+}
+
+bool RaceDetector::MemoryAccess::isLoad() const
+{
+  return !isStore();
+}
+
+bool RaceDetector::MemoryAccess::isStore() const
+{
+  return this->info & (1<<STORE_BIT);
+}
+
+bool RaceDetector::MemoryAccess::isWorkGroup() const
+{
+  return this->info & (1<<WG_BIT);
+}
+
+bool RaceDetector::MemoryAccess::isWorkItem() const
+{
+  return !isWorkGroup();
+}
+
+Size3 RaceDetector::MemoryAccess::getEntity() const
+{
+  return this->entity;
+}
+
+const llvm::Instruction* RaceDetector::MemoryAccess::getInstruction() const
+{
+  return this->instruction;
+}
+
+uint8_t RaceDetector::MemoryAccess::getStoreData() const
+{
+  return this->storeData;
+}
+
+void RaceDetector::MemoryAccess::setStoreData(uint8_t data)
+{
+  this->storeData = data;
 }
