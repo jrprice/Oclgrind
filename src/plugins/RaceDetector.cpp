@@ -226,6 +226,20 @@ void RaceDetector::registerAccess(const Memory *memory,
 
     for (auto a = accessList->begin(); a != accessList->end(); a++)
     {
+      // Check if access was from same work-group and before a fence
+      if (addrSpace == AddrSpaceGlobal && a->hasWorkGroupSync())
+      {
+        Size3 wg = a->getEntity();
+        if (a->isWorkItem())
+        {
+          Size3 wgsize = m_kernelInvocation->getLocalSize();
+          wg = Size3(wg.x/wgsize.x, wg.y/wgsize.y, wg.z/wgsize.z);
+        }
+        if (wg == workGroup->getGroupID())
+          continue;
+      }
+
+
       if (!race)
       {
         if (check(access, *a))
@@ -254,7 +268,15 @@ void RaceDetector::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
   }
   if (flags & CLK_GLOBAL_MEM_FENCE)
   {
-    // TODO
+    AccessMap& accessMap = m_globalAccesses;
+    for (auto addr = accessMap.begin(); addr != accessMap.end(); addr++)
+    {
+      for (auto al = addr->second.begin(); al != addr->second.end(); al++)
+      {
+        for (auto a = al->begin(); a != al->end(); a++)
+          a->setWorkGroupSync();
+      }
+    }
   }
 }
 
@@ -303,6 +325,16 @@ bool RaceDetector::MemoryAccess::isWorkGroup() const
 bool RaceDetector::MemoryAccess::isWorkItem() const
 {
   return !isWorkGroup();
+}
+
+bool RaceDetector::MemoryAccess::hasWorkGroupSync() const
+{
+  return this->info & (1<<WG_SYNC_BIT);
+}
+
+void RaceDetector::MemoryAccess::setWorkGroupSync()
+{
+  this->info |= (1<<WG_SYNC_BIT);
 }
 
 Size3 RaceDetector::MemoryAccess::getEntity() const
