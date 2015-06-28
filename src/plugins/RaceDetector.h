@@ -74,7 +74,9 @@ namespace oclgrind
                    bool store, bool atomic);
     };
     typedef std::vector<MemoryAccess> AccessList;
-    std::map< size_t, std::vector<AccessList> > m_globalAccesses;
+    typedef std::map< size_t, std::vector<AccessList> > AccessMap;
+    AccessMap m_globalAccesses;
+    std::map<const Memory*, AccessMap > m_localAccesses;
 
     bool m_allowUniformWrites;
     const KernelInvocation *m_kernelInvocation;

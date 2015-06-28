@@ -51,6 +51,10 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
   {
     m_globalAccesses[EXTRACT_BUFFER(address)].resize(size);
   }
+  else if (memory->getAddressSpace() == AddrSpaceLocal)
+  {
+    m_localAccesses[memory][EXTRACT_BUFFER(address)].resize(size);
+  }
 }
 
 void RaceDetector::memoryAtomicLoad(const Memory *memory,
@@ -75,6 +79,10 @@ void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
   if (memory->getAddressSpace() == AddrSpaceGlobal)
   {
     m_globalAccesses.erase(EXTRACT_BUFFER(address));
+  }
+  else if (memory->getAddressSpace() == AddrSpaceLocal)
+  {
+    m_localAccesses[memory].erase(EXTRACT_BUFFER(address));
   }
 }
 
@@ -202,33 +210,34 @@ void RaceDetector::registerAccess(const Memory *memory,
   // Construct access
   MemoryAccess access(workGroup, workItem, storeData != NULL, atomic);
 
-  if (addrSpace == AddrSpaceGlobal)
+  size_t buffer = EXTRACT_BUFFER(address);
+  size_t offset = EXTRACT_OFFSET(address);
+
+  AccessList *accessList = (addrSpace == AddrSpaceGlobal) ?
+    m_globalAccesses[buffer].data() :
+    m_localAccesses[memory][buffer].data();
+  accessList += offset;
+
+  bool race = false;
+  for (unsigned i = 0; i < size; i++, accessList++)
   {
-    size_t buffer = EXTRACT_BUFFER(address);
-    size_t offset = EXTRACT_OFFSET(address);
+    if (storeData)
+      access.setStoreData(storeData[i]);
 
-    bool race = false;
-    for (unsigned i = 0; i < size; i++)
+    for (auto a = accessList->begin(); a != accessList->end(); a++)
     {
-      if (storeData)
-        access.setStoreData(storeData[i]);
-
-      AccessList& accesses = m_globalAccesses[buffer][offset+i];
-      for (auto a = accesses.begin(); a != accesses.end(); a++)
+      if (!race)
       {
-        if (!race)
+        if (check(access, *a))
         {
-          if (check(access, *a))
-          {
-            logRace(memory, address+i, access, *a);
-            race = true;
-            break;
-          }
+          logRace(memory, address+i, access, *a);
+          race = true;
+          break;
         }
       }
-
-      accesses.push_back(access);
     }
+
+    accessList->push_back(access);
   }
 }
 
@@ -236,7 +245,12 @@ void RaceDetector::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
 {
   if (flags & CLK_LOCAL_MEM_FENCE)
   {
-    // TODO
+    AccessMap& accessMap = m_localAccesses[workGroup->getLocalMemory()];
+    for (auto addr = accessMap.begin(); addr != accessMap.end(); addr++)
+    {
+      for (auto al = addr->second.begin(); al != addr->second.end(); al++)
+        al->clear();
+    }
   }
   if (flags & CLK_GLOBAL_MEM_FENCE)
   {
