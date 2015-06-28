@@ -258,8 +258,8 @@ namespace oclgrind
         address += sizeof(size_t);
       }
       workItem->m_state = WorkItem::BARRIER;
-      workItem->m_workGroup->notifyBarrier(workItem, callInst,
-                                           CLK_LOCAL_MEM_FENCE, events);
+      workItem->m_workGroup->notifyBarrier(
+        workItem, callInst, CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE, events);
     }
 
     DEFINE_BUILTIN(prefetch)
