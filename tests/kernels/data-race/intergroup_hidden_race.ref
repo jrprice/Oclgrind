@@ -1,5 +1,5 @@
 ERROR Read-write data race at global memory
 
 EXACT Argument 'output': 8 bytes
-EXACT   output[0] = 0
-EXACT   output[1] = 0
+MATCH   output[0] =
+MATCH   output[1] =

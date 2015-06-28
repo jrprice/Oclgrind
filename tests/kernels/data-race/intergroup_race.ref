@@ -3,7 +3,7 @@ ERROR Read-write data race at global memory
 ERROR Read-write data race at global memory
 
 EXACT Argument 'data': 16 bytes
-EXACT   data[0] = 0
-EXACT   data[1] = 1
-EXACT   data[2] = 2
-EXACT   data[3] = 3
+MATCH   data[0] =
+MATCH   data[1] =
+MATCH   data[2] =
+MATCH   data[3] =
