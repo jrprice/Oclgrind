@@ -68,7 +68,7 @@ namespace oclgrind
 
     typedef std::map<
                       std::pair<const Memory*, size_t>,
-                      std::pair<State*, size_t>
+                      std::vector<State>
                     > StateMap;
     StateMap m_state;
 

@@ -55,7 +55,7 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
       memory->getAddressSpace() == AddrSpaceConstant)
     return;
 
-  m_state[KEY(memory,address)] = make_pair(new State[size], size);
+  m_state[KEY(memory,address)] = vector<State>(size);
 }
 
 void RaceDetector::memoryAtomicLoad(const Memory *memory,
@@ -78,7 +78,6 @@ void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
       memory->getAddressSpace() == AddrSpaceConstant)
     return;
 
-  delete[] m_state[KEY(memory,address)].first;
   m_state.erase(KEY(memory,address));
 }
 
@@ -175,7 +174,7 @@ void RaceDetector::registerAtomic(const Memory *memory,
   if (!memory->isAddressValid(address, size))
     return;
 
-  State *state = m_state[KEY(memory,address)].first + EXTRACT_OFFSET(address);
+  State *state = m_state[KEY(memory,address)].data() + EXTRACT_OFFSET(address);
 
   // Get work-item index
   size_t workItemIndex = workItem->getGlobalIndex();
@@ -239,7 +238,7 @@ void RaceDetector::registerLoadStore(const Memory *memory,
 
   bool race = false;
   size_t base = EXTRACT_OFFSET(address);
-  State *state = m_state[KEY(memory, address)].first + base;
+  State *state = m_state[KEY(memory, address)].data() + base;
 
   for (size_t offset = 0; offset < size; offset++, state++)
   {
@@ -298,8 +297,8 @@ void RaceDetector::synchronize(const Memory *memory, bool workGroup)
     if (itr->first.first != memory)
       continue;
 
-    pair<State*,size_t> obj = itr->second;
-    for (State *state = obj.first; state < obj.first+obj.second; state++)
+    vector<State>& obj = itr->second;
+    for (auto state = obj.begin(); state != obj.end(); state++)
     {
       // TODO: atomic_intergroup_race test failure
       state->canAtomicLoad = true;
