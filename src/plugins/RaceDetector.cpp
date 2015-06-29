@@ -19,18 +19,19 @@
 using namespace oclgrind;
 using namespace std;
 
+THREAD_LOCAL RaceDetector::LocalState RaceDetector::m_localAccesses = {NULL};
+
+// Use a bank of mutexes to reduce unnecessary synchronisation
+#define NUM_GLOBAL_MUTEXES 4096 // Must be power of two
+#define GLOBAL_MUTEX(buffer,offset) \
+  m_globalMutexes[buffer][offset & (NUM_GLOBAL_MUTEXES-1)]
+
 RaceDetector::RaceDetector(const Context *context)
  : Plugin(context)
 {
   m_kernelInvocation = NULL;
 
   m_allowUniformWrites = !checkEnv("OCLGRIND_UNIFORM_WRITES");
-}
-
-bool RaceDetector::isThreadSafe() const
-{
-  // TODO: Improve DRD efficiency for multi-threaded case instead.
-  return false;
 }
 
 void RaceDetector::kernelBegin(const KernelInvocation *kernelInvocation)
@@ -56,10 +57,13 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
   if (memory->getAddressSpace() == AddrSpaceGlobal)
   {
     m_globalAccesses[EXTRACT_BUFFER(address)].resize(size);
+    m_globalMutexes[EXTRACT_BUFFER(address)] = new mutex[NUM_GLOBAL_MUTEXES];
   }
   else if (memory->getAddressSpace() == AddrSpaceLocal)
   {
-    m_localAccesses[memory][EXTRACT_BUFFER(address)].resize(size);
+    if (!m_localAccesses.map)
+      m_localAccesses.map = new map<const Memory*,AccessMap>;
+    (*m_localAccesses.map)[memory][EXTRACT_BUFFER(address)].resize(size);
   }
 }
 
@@ -85,10 +89,15 @@ void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
   if (memory->getAddressSpace() == AddrSpaceGlobal)
   {
     m_globalAccesses.erase(EXTRACT_BUFFER(address));
+
+    delete[] m_globalMutexes[EXTRACT_BUFFER(address)];
+    m_globalMutexes.erase(EXTRACT_BUFFER(address));
   }
   else if (memory->getAddressSpace() == AddrSpaceLocal)
   {
-    m_localAccesses[memory].erase(EXTRACT_BUFFER(address));
+    m_localAccesses.map->at(memory).erase(EXTRACT_BUFFER(address));
+    if (!m_localAccesses.map->at(memory).size())
+      m_localAccesses.map->erase(memory);
   }
 }
 
@@ -232,7 +241,7 @@ void RaceDetector::registerAccess(const Memory *memory,
 
   AccessList *accessList = (addrSpace == AddrSpaceGlobal) ?
     m_globalAccesses[buffer].data() :
-    m_localAccesses[memory][buffer].data();
+    m_localAccesses.map->at(memory)[buffer].data();
   accessList += offset;
 
   bool race = false;
@@ -240,6 +249,9 @@ void RaceDetector::registerAccess(const Memory *memory,
   {
     if (storeData)
       access.setStoreData(storeData[i]);
+
+    if (addrSpace == AddrSpaceGlobal)
+      GLOBAL_MUTEX(buffer,offset+i).lock();
 
     for (auto a = accessList->begin(); a != accessList->end(); a++)
     {
@@ -264,15 +276,18 @@ void RaceDetector::registerAccess(const Memory *memory,
     }
 
     accessList->push_back(access);
+
+    if (addrSpace == AddrSpaceGlobal)
+      GLOBAL_MUTEX(buffer,offset+i).unlock();
   }
 }
 
 void RaceDetector::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
 {
-  if (flags & CLK_LOCAL_MEM_FENCE)
+  if (flags & CLK_LOCAL_MEM_FENCE && m_localAccesses.map)
   {
     // Clear all local memory accesses
-    AccessMap& accessMap = m_localAccesses[workGroup->getLocalMemory()];
+    AccessMap& accessMap = m_localAccesses.map->at(workGroup->getLocalMemory());
     for (auto addr = accessMap.begin(); addr != accessMap.end(); addr++)
       for (auto al = addr->second.begin(); al != addr->second.end(); al++)
         al->clear();
@@ -282,10 +297,17 @@ void RaceDetector::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
     // Set sync bits for all accesses from this work-group
     AccessMap& accessMap = m_globalAccesses;
     for (auto addr = accessMap.begin(); addr != accessMap.end(); addr++)
-      for (auto al = addr->second.begin(); al != addr->second.end(); al++)
-        for (auto a = al->begin(); a != al->end(); a++)
+    {
+      //for (auto al = addr->second.begin(); al != addr->second.end(); al++)
+      for (unsigned i = 0; i < addr->second.size(); i++)
+      {
+        //for (auto a = al->begin(); a != al->end(); a++)
+        lock_guard<mutex> lock(GLOBAL_MUTEX(addr->first,i));
+        for (auto a = addr->second[i].begin(); a != addr->second[i].end(); a++)
           if (getAccessWorkGroup(*a) == workGroup->getGroupID())
             a->setWorkGroupSync();
+      }
+    }
   }
 }
 

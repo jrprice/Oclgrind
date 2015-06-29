@@ -42,8 +42,6 @@ namespace oclgrind
     virtual void workGroupBarrier(const WorkGroup *workGroup,
                                   uint32_t flags) override;
 
-    virtual bool isThreadSafe() const override;
-
   private:
     struct MemoryAccess
     {
@@ -79,8 +77,15 @@ namespace oclgrind
     };
     typedef std::vector<MemoryAccess> AccessList;
     typedef std::map< size_t, std::vector<AccessList> > AccessMap;
+
     AccessMap m_globalAccesses;
-    std::map<const Memory*, AccessMap > m_localAccesses;
+    std::map< size_t,std::mutex* > m_globalMutexes;
+
+    struct LocalState
+    {
+      std::map<const Memory*, AccessMap> *map;
+    };
+    static THREAD_LOCAL LocalState m_localAccesses;
 
     bool m_allowUniformWrites;
     const KernelInvocation *m_kernelInvocation;
