@@ -177,11 +177,11 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
     AccessRecord& b = m_globalAccesses[buffer][offset];
 
     // Check for races with previous accesses
-    if (getAccessWorkGroup(b.store) != group && check(a.load,  b.store))
+    if (check(a.load,  b.store) && getAccessWorkGroup(b.store) != group)
       logRace(m_context->getGlobalMemory(), address, a.load, b.store);
-    if (getAccessWorkGroup(b.load) != group && check(a.store, b.load))
+    if (check(a.store, b.load) && getAccessWorkGroup(b.load) != group)
       logRace(m_context->getGlobalMemory(), address, a.store, b.load);
-    if (getAccessWorkGroup(b.store) != group && check(a.store, b.store))
+    if (check(a.store, b.store) && getAccessWorkGroup(b.store) != group)
       logRace(m_context->getGlobalMemory(), address, a.store, b.store);
 
     // Insert accesses
