@@ -48,7 +48,7 @@ namespace oclgrind
     struct MemoryAccess
     {
     private:
-      Size3 entity;
+      size_t entity;
       const llvm::Instruction *instruction;
 
       uint8_t info;
@@ -73,7 +73,7 @@ namespace oclgrind
       bool hasWorkGroupSync() const;
       void setWorkGroupSync();
 
-      Size3 getEntity() const;
+      size_t getEntity() const;
       const llvm::Instruction* getInstruction() const;
 
       uint8_t getStoreData() const;

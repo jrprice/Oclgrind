@@ -233,13 +233,16 @@ bool RaceDetector::check(const MemoryAccess& a,
 
 Size3 RaceDetector::getAccessWorkGroup(const MemoryAccess& access) const
 {
-  Size3 wg = access.getEntity();
   if (access.isWorkItem())
   {
+    Size3 wi(access.getEntity(), m_kernelInvocation->getGlobalSize());
     Size3 wgsize = m_kernelInvocation->getLocalSize();
-    wg = Size3(wg.x/wgsize.x, wg.y/wgsize.y, wg.z/wgsize.z);
+    return Size3(wi.x/wgsize.x, wi.y/wgsize.y, wi.z/wgsize.z);
   }
-  return wg;
+  else
+  {
+    return Size3(access.getEntity(), m_kernelInvocation->getLocalSize());
+  }
 }
 
 void RaceDetector::insert(AccessRecord& record,
@@ -279,14 +282,15 @@ void RaceDetector::logRace(const Memory *memory, size_t address,
   if (first.isWorkItem())
   {
     Size3 wgsize = m_kernelInvocation->getLocalSize();
-    Size3 global = first.getEntity();
+    Size3 global(first.getEntity(), m_kernelInvocation->getGlobalSize());
     Size3 local(global.x%wgsize.x, global.y%wgsize.y, global.z%wgsize.z);
     Size3 group(global.x/wgsize.x, global.y/wgsize.y, global.z/wgsize.z);
     msg << "Global" << global << " Local" << local << " Group" << group;
   }
   else
   {
-    msg << "Group" << first.getEntity();
+    msg << "Group"
+        << Size3(first.getEntity(), m_kernelInvocation->getLocalSize());
   }
 
   msg << endl << first.getInstruction() << endl
@@ -297,14 +301,15 @@ void RaceDetector::logRace(const Memory *memory, size_t address,
   if (second.isWorkItem())
   {
     Size3 wgsize = m_kernelInvocation->getLocalSize();
-    Size3 global = second.getEntity();
+    Size3 global(second.getEntity(), m_kernelInvocation->getGlobalSize());
     Size3 local(global.x%wgsize.x, global.y%wgsize.y, global.z%wgsize.z);
     Size3 group(global.x/wgsize.x, global.y/wgsize.y, global.z/wgsize.z);
     msg << "Global" << global << " Local" << local << " Group" << group;
   }
   else
   {
-    msg << "Group" << second.getEntity();
+    msg << "Group"
+        << Size3(second.getEntity(), m_kernelInvocation->getLocalSize());
   }
   msg << endl << second.getInstruction() << endl;
   msg.send();
@@ -411,13 +416,13 @@ RaceDetector::MemoryAccess::MemoryAccess(const WorkGroup *workGroup,
 
   if (workItem)
   {
-    this->entity = workItem->getGlobalID();
+    this->entity = workItem->getGlobalIndex();
     this->instruction = workItem->getCurrentInstruction();
   }
   else
   {
     this->info |= (1<<WG_BIT);
-    this->entity = workGroup->getGroupID();
+    this->entity = workGroup->getGroupIndex();
     this->instruction = NULL; // TODO?
   }
 }
@@ -468,7 +473,7 @@ void RaceDetector::MemoryAccess::setWorkGroupSync()
   this->info |= (1<<WG_SYNC_BIT);
 }
 
-Size3 RaceDetector::MemoryAccess::getEntity() const
+size_t RaceDetector::MemoryAccess::getEntity() const
 {
   return this->entity;
 }
