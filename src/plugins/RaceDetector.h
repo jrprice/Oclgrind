@@ -8,6 +8,8 @@
 
 #include "core/Plugin.h"
 
+#include <mutex>
+
 namespace oclgrind
 {
   class RaceDetector : public Plugin
