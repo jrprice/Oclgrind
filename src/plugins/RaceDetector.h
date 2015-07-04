@@ -110,7 +110,7 @@ namespace oclgrind
     bool m_allowUniformWrites;
     const KernelInvocation *m_kernelInvocation;
 
-    Size3 getAccessWorkGroup(const MemoryAccess& access) const;
+    size_t getAccessWorkGroup(const MemoryAccess& access) const;
 
     bool check(const MemoryAccess& a, const MemoryAccess& b) const;
     void insert(AccessRecord& record, const MemoryAccess& access) const;

@@ -162,7 +162,7 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
   syncWorkItems(m_context->getGlobalMemory(), state, state.wiGlobal);
 
   // Merge global accesses across kernel invocation
-  Size3 group = workGroup->getGroupID();
+  size_t group = workGroup->getGroupIndex();
   for (auto record  = state.wgGlobal.begin();
             record != state.wgGlobal.end();
             record++)
@@ -231,18 +231,15 @@ bool RaceDetector::check(const MemoryAccess& a,
   return false;
 }
 
-Size3 RaceDetector::getAccessWorkGroup(const MemoryAccess& access) const
+size_t RaceDetector::getAccessWorkGroup(const MemoryAccess& access) const
 {
   if (access.isWorkItem())
   {
-    Size3 wi(access.getEntity(), m_kernelInvocation->getGlobalSize());
-    Size3 wgsize = m_kernelInvocation->getLocalSize();
-    return Size3(wi.x/wgsize.x, wi.y/wgsize.y, wi.z/wgsize.z);
+    const Size3& numGroups = m_kernelInvocation->getNumGroups();
+    return access.getEntity() / (numGroups.x*numGroups.y*numGroups.z);
   }
   else
-  {
-    return Size3(access.getEntity(), m_kernelInvocation->getLocalSize());
-  }
+    return access.getEntity();
 }
 
 void RaceDetector::insert(AccessRecord& record,
