@@ -41,6 +41,8 @@ namespace oclgrind
                              const uint8_t *storeData) override;
     virtual void workGroupBarrier(const WorkGroup *workGroup,
                                   uint32_t flags) override;
+    virtual void workGroupBegin(const WorkGroup *workGroup) override;
+    virtual void workGroupComplete(const WorkGroup *workGroup) override;
 
   private:
     struct MemoryAccess
@@ -50,13 +52,18 @@ namespace oclgrind
       const llvm::Instruction *instruction;
 
       uint8_t info;
-      static const unsigned STORE_BIT   = 0;
-      static const unsigned ATOMIC_BIT  = 1;
-      static const unsigned WG_BIT      = 2;
-      static const unsigned WG_SYNC_BIT = 3;
+      static const unsigned SET_BIT     = 0;
+      static const unsigned STORE_BIT   = 1;
+      static const unsigned ATOMIC_BIT  = 2;
+      static const unsigned WG_BIT      = 3;
+      static const unsigned WG_SYNC_BIT = 4;
       uint8_t storeData;
 
     public:
+      void clear();
+
+      bool isSet() const;
+
       bool isAtomic() const;
       bool isLoad() const;
       bool isStore() const;
@@ -72,27 +79,41 @@ namespace oclgrind
       uint8_t getStoreData() const;
       void    setStoreData(uint8_t);
 
+      MemoryAccess();
       MemoryAccess(const WorkGroup *workGroup, const WorkItem *workItem,
                    bool store, bool atomic);
     };
+    struct AccessRecord
+    {
+      MemoryAccess load;
+      MemoryAccess store;
+    };
     typedef std::vector<MemoryAccess> AccessList;
-    typedef std::map< size_t, std::vector<AccessList> > AccessMap;
+    typedef std::unordered_map<size_t,AccessRecord> AccessMap;
 
-    AccessMap m_globalAccesses;
+    std::unordered_map<size_t,std::vector<AccessRecord>> m_globalAccesses;
     std::map< size_t,std::mutex* > m_globalMutexes;
 
-    struct LocalState
+    struct WorkGroupState
     {
-      std::map<const Memory*, AccessMap> *map;
+      size_t numWorkItems;
+      std::vector<AccessMap> wiLocal;
+      std::vector<AccessMap> wiGlobal;
+      AccessMap wgGlobal;
     };
-    static THREAD_LOCAL LocalState m_localAccesses;
+    struct WorkerState
+    {
+      std::unordered_map<const WorkGroup*,WorkGroupState> *groups;
+    };
+    static THREAD_LOCAL WorkerState m_state;
 
     bool m_allowUniformWrites;
     const KernelInvocation *m_kernelInvocation;
 
     Size3 getAccessWorkGroup(const MemoryAccess& access) const;
 
-    bool check(const MemoryAccess& first, const MemoryAccess& second) const;
+    bool check(const MemoryAccess& a, const MemoryAccess& b) const;
+    void insert(AccessRecord& record, const MemoryAccess& access) const;
     void logRace(const Memory *memory, size_t address,
                  const MemoryAccess& first,
                  const MemoryAccess& second) const;
@@ -101,5 +122,8 @@ namespace oclgrind
                         const WorkItem *workItem,
                         size_t address, size_t size, bool atomic,
                         const uint8_t *storeData = NULL);
+    void syncWorkItems(const Memory *memory,
+                       WorkGroupState& state,
+                       std::vector<AccessMap>& accesses);
   };
 }
