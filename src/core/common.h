@@ -227,6 +227,8 @@ namespace oclgrind
   template <class T>
   class PoolAllocator
   {
+    template <typename U> friend class PoolAllocator;
+
   public:
     typedef size_t     size_type;
     typedef T          value_type;
