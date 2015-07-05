@@ -114,6 +114,14 @@ namespace oclgrind
     };
     static THREAD_LOCAL WorkerState m_state;
 
+    struct Race
+    {
+      unsigned addrspace;
+      size_t address;
+      MemoryAccess a, b;
+    };
+    typedef std::list<Race> RaceList;
+
     bool m_allowUniformWrites;
     const KernelInvocation *m_kernelInvocation;
 
@@ -121,9 +129,8 @@ namespace oclgrind
 
     bool check(const MemoryAccess& a, const MemoryAccess& b) const;
     void insert(AccessRecord& record, const MemoryAccess& access) const;
-    void logRace(const Memory *memory, size_t address,
-                 const MemoryAccess& first,
-                 const MemoryAccess& second) const;
+    void insertRace(RaceList& races, const Race& race) const;
+    void logRace(const Race& race) const;
     void registerAccess(const Memory *memory,
                         const WorkGroup *workGroup,
                         const WorkItem *workItem,

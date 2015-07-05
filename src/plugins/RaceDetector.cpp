@@ -165,6 +165,7 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
   syncWorkItems(m_context->getGlobalMemory(), state, state.wiGlobal);
 
   // Merge global accesses across kernel invocation
+  RaceList races;
   size_t group = workGroup->getGroupIndex();
   for (auto record  = state.wgGlobal.begin();
             record != state.wgGlobal.end();
@@ -181,11 +182,11 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
 
     // Check for races with previous accesses
     if (check(a.load,  b.store) && getAccessWorkGroup(b.store) != group)
-      logRace(m_context->getGlobalMemory(), address, a.load, b.store);
+      insertRace(races, {AddrSpaceGlobal, address, a.load, b.store});
     if (check(a.store, b.load) && getAccessWorkGroup(b.load) != group)
-      logRace(m_context->getGlobalMemory(), address, a.store, b.load);
+      insertRace(races, {AddrSpaceGlobal, address, a.store, b.load});
     if (check(a.store, b.store) && getAccessWorkGroup(b.store) != group)
-      logRace(m_context->getGlobalMemory(), address, a.store, b.store);
+      insertRace(races, {AddrSpaceGlobal, address, a.store, b.store});
 
     // Insert accesses
     if (a.load.isSet())
@@ -194,6 +195,10 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
       insert(b, a.store);
   }
   state.wgGlobal.clear();
+
+  // Log races
+  for (auto race = races.begin(); race != races.end(); race++)
+    logRace(*race);
 
   // Clean-up work-group state
   m_state.groups->erase(workGroup);
@@ -260,29 +265,57 @@ void RaceDetector::insert(AccessRecord& record,
   }
 }
 
-void RaceDetector::logRace(const Memory *memory, size_t address,
-                           const MemoryAccess& first,
-                           const MemoryAccess& second) const
+void RaceDetector::insertRace(RaceList& races, const Race& race) const
+{
+  // Check list for duplicates
+  for (auto x = races.begin(); x != races.end(); x++)
+  {
+    // Check if races are equal modulo address
+    if ((race.a.getInstruction() == x->a.getInstruction()) &&
+        (race.b.getInstruction() == x->b.getInstruction()) &&
+        (race.a.isLoad() == x->a.isLoad()) &&
+        (race.b.isLoad() == x->b.isLoad()) &&
+        (race.a.isWorkItem() == x->a.isWorkItem()) &&
+        (race.b.isWorkItem() == x->b.isWorkItem()) &&
+        (race.a.getEntity() == x->a.getEntity()) &&
+        (race.b.getEntity() == x->b.getEntity()))
+    {
+      // If they match, keep the one with the lowest address
+      if (race.address < x->address)
+      {
+        races.erase(x);
+        races.push_back(race);
+        return;
+      }
+      else
+        return;
+    }
+  }
+
+  races.push_back(race);
+}
+
+void RaceDetector::logRace(const Race& race) const
 {
   const char *raceType;
-  if (first.isLoad() || second.isLoad())
+  if (race.a.isLoad() || race.b.isLoad())
     raceType = "Read-write";
   else
     raceType = "Write-write";
 
   Context::Message msg(ERROR, m_context);
   msg << raceType << " data race at "
-      << getAddressSpaceName(memory->getAddressSpace())
-      << " memory address 0x" << hex << address << endl
+      << getAddressSpaceName(race.addrspace)
+      << " memory address 0x" << hex << race.address << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
       << endl
       << "First entity:  ";
 
-  if (first.isWorkItem())
+  if (race.a.isWorkItem())
   {
     Size3 wgsize = m_kernelInvocation->getLocalSize();
-    Size3 global(first.getEntity(), m_kernelInvocation->getGlobalSize());
+    Size3 global(race.a.getEntity(), m_kernelInvocation->getGlobalSize());
     Size3 local(global.x%wgsize.x, global.y%wgsize.y, global.z%wgsize.z);
     Size3 group(global.x/wgsize.x, global.y/wgsize.y, global.z/wgsize.z);
     msg << "Global" << global << " Local" << local << " Group" << group;
@@ -290,18 +323,18 @@ void RaceDetector::logRace(const Memory *memory, size_t address,
   else
   {
     msg << "Group"
-        << Size3(first.getEntity(), m_kernelInvocation->getLocalSize());
+        << Size3(race.a.getEntity(), m_kernelInvocation->getLocalSize());
   }
 
-  msg << endl << first.getInstruction() << endl
+  msg << endl << race.a.getInstruction() << endl
       << endl
       << "Second entity: ";
 
   // Show details of other entity involved in race
-  if (second.isWorkItem())
+  if (race.b.isWorkItem())
   {
     Size3 wgsize = m_kernelInvocation->getLocalSize();
-    Size3 global(second.getEntity(), m_kernelInvocation->getGlobalSize());
+    Size3 global(race.b.getEntity(), m_kernelInvocation->getGlobalSize());
     Size3 local(global.x%wgsize.x, global.y%wgsize.y, global.z%wgsize.z);
     Size3 group(global.x/wgsize.x, global.y/wgsize.y, global.z/wgsize.z);
     msg << "Global" << global << " Local" << local << " Group" << group;
@@ -309,9 +342,9 @@ void RaceDetector::logRace(const Memory *memory, size_t address,
   else
   {
     msg << "Group"
-        << Size3(second.getEntity(), m_kernelInvocation->getLocalSize());
+        << Size3(race.b.getEntity(), m_kernelInvocation->getLocalSize());
   }
-  msg << endl << second.getInstruction() << endl;
+  msg << endl << race.b.getInstruction() << endl;
   msg.send();
 }
 
@@ -364,6 +397,7 @@ void RaceDetector::syncWorkItems(const Memory *memory,
 
   for (size_t i = 0; i < state.numWorkItems + 1; i++)
   {
+    RaceList races;
     for (auto record  = accesses[i].begin();
               record != accesses[i].end();
               record++)
@@ -374,11 +408,11 @@ void RaceDetector::syncWorkItems(const Memory *memory,
       AccessRecord& b = wgAccesses[address];
 
       if (check(a.load,  b.store))
-        logRace(memory, address, a.load, b.store);
+        insertRace(races, {memory->getAddressSpace(),address,a.load,b.store});
       if (check(a.store, b.load))
-        logRace(memory, address, a.store, b.load);
+        insertRace(races, {memory->getAddressSpace(),address,a.store,b.load});
       if (check(a.store, b.store))
-        logRace(memory, address, a.store, b.store);
+        insertRace(races, {memory->getAddressSpace(),address,a.store,b.store});
 
       if (a.load.isSet())
       {
@@ -395,6 +429,10 @@ void RaceDetector::syncWorkItems(const Memory *memory,
     }
 
     accesses[i].clear();
+
+    // Log races
+    for (auto race = races.begin(); race != races.end(); race++)
+      logRace(*race);
   }
 }
 
