@@ -150,8 +150,11 @@ void RaceDetector::workGroupBegin(const WorkGroup *workGroup)
   WorkGroupState& state = STATE(workGroup);
   Size3 wgsize = workGroup->getGroupSize();
   state.numWorkItems = wgsize.x*wgsize.y*wgsize.z;
-  state.wiGlobal.resize(state.numWorkItems+1);
-  state.wiLocal.resize(state.numWorkItems+1);
+
+  // Re-use pool allocator for all access maps
+  AccessMap tmp(state.wgGlobal.get_allocator());
+  state.wiGlobal.resize(state.numWorkItems+1, tmp);
+  state.wiLocal.resize(state.numWorkItems+1, tmp);
 }
 
 void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
@@ -357,7 +360,7 @@ void RaceDetector::syncWorkItems(const Memory *memory,
                                  WorkGroupState& state,
                                  vector<AccessMap>& accesses)
 {
-  AccessMap wgAccesses;
+  AccessMap wgAccesses(state.wgGlobal.get_allocator());
 
   for (size_t i = 0; i < state.numWorkItems + 1; i++)
   {
