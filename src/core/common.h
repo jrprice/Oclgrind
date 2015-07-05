@@ -264,6 +264,16 @@ namespace oclgrind
 
     void deallocate(pointer p, size_type n){}
 
+    bool operator==(const PoolAllocator& p) const
+    {
+      return this->pool == p.pool;
+    }
+
+    bool operator!=(const PoolAllocator& p) const
+    {
+      return this->pool != p.pool;
+    }
+
   private:
     std::shared_ptr<MemoryPool> pool;
   };
