@@ -238,8 +238,8 @@ size_t RaceDetector::getAccessWorkGroup(const MemoryAccess& access) const
 {
   if (access.isWorkItem())
   {
-    const Size3& numGroups = m_kernelInvocation->getNumGroups();
-    return access.getEntity() / (numGroups.x*numGroups.y*numGroups.z);
+    const Size3& wgsize = m_kernelInvocation->getLocalSize();
+    return access.getEntity() / (wgsize.x*wgsize.y*wgsize.z);
   }
   else
     return access.getEntity();
