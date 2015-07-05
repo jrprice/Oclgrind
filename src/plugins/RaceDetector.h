@@ -91,7 +91,12 @@ namespace oclgrind
       MemoryAccess store;
     };
     typedef std::vector<MemoryAccess> AccessList;
-    typedef std::unordered_map<size_t,AccessRecord> AccessMap;
+    typedef std::unordered_map<
+      size_t,AccessRecord,
+      std::hash<size_t>,
+      std::equal_to<size_t>,
+      PoolAllocator<std::pair<const size_t,AccessRecord>>
+      > AccessMap;
 
     std::unordered_map<size_t,std::vector<AccessRecord>> m_globalAccesses;
     std::map< size_t,std::mutex* > m_globalMutexes;
