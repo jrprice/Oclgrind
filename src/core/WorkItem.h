@@ -93,20 +93,6 @@ namespace oclgrind
   public:
     enum State {READY, BARRIER, FINISHED};
 
-  private:
-    class MemoryPool
-    {
-    public:
-      MemoryPool(size_t blockSize = 1024);
-      ~MemoryPool();
-      unsigned char* alloc(size_t size);
-      TypedValue clone(const TypedValue& source);
-    private:
-      size_t m_blockSize;
-      size_t m_offset;
-      std::list<unsigned char *> m_blocks;
-    } mutable m_pool;
-
   public:
     WorkItem(const KernelInvocation *kernelInvocation,
              WorkGroup *workGroup, Size3 lid);
@@ -195,6 +181,7 @@ namespace oclgrind
     const KernelInvocation *m_kernelInvocation;
     Memory *m_privateMemory;
     WorkGroup *m_workGroup;
+    mutable MemoryPool m_pool;
 
     State m_state;
     struct Position;

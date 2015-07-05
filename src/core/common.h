@@ -209,6 +209,19 @@ namespace oclgrind
       delete[] str;                                      \
       throw FatalError(msg, __FILE__, __LINE__);         \
     }
+
+  class MemoryPool
+  {
+  public:
+    MemoryPool(size_t blockSize = 1024);
+    ~MemoryPool();
+    uint8_t* alloc(size_t size);
+    TypedValue clone(const TypedValue& source);
+  private:
+    size_t m_blockSize;
+    size_t m_offset;
+    std::list<uint8_t*> m_blocks;
+  };
 }
 
 #endif // __common_h_
