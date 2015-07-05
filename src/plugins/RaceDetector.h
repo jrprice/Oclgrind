@@ -95,7 +95,7 @@ namespace oclgrind
       size_t,AccessRecord,
       std::hash<size_t>,
       std::equal_to<size_t>,
-      PoolAllocator<std::pair<const size_t,AccessRecord>>
+      PoolAllocator<std::pair<const size_t,AccessRecord>,8192>
       > AccessMap;
 
     std::unordered_map<size_t,std::vector<AccessRecord>> m_globalAccesses;

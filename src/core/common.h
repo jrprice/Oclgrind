@@ -224,10 +224,10 @@ namespace oclgrind
   };
 
   // Pool allocator class for STL containers
-  template <class T>
+  template <class T,size_t BLOCKSIZE>
   class PoolAllocator
   {
-    template <typename U> friend class PoolAllocator;
+    template <typename U,size_t BS> friend class PoolAllocator;
 
   public:
     typedef size_t     size_type;
@@ -235,9 +235,15 @@ namespace oclgrind
     typedef T*         pointer;
     typedef const T*   const_pointer;
 
+    template<typename U>
+    struct rebind
+    {
+      typedef PoolAllocator<U,BLOCKSIZE> other;
+    };
+
     PoolAllocator()
     {
-      pool.reset(new MemoryPool);
+      pool.reset(new MemoryPool(BLOCKSIZE));
     }
 
     PoolAllocator(const PoolAllocator& p)
@@ -246,7 +252,7 @@ namespace oclgrind
     }
 
     template<typename U>
-    PoolAllocator(const PoolAllocator<U>& p)
+    PoolAllocator(const PoolAllocator<U,BLOCKSIZE>& p)
     {
       this->pool = p.pool;
     }
