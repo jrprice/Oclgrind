@@ -222,6 +222,44 @@ namespace oclgrind
     size_t m_offset;
     std::list<uint8_t*> m_blocks;
   };
+
+  // Pool allocator class for STL containers
+  template <class T>
+  class PoolAllocator
+  {
+  public:
+    typedef size_t     size_type;
+    typedef T          value_type;
+    typedef T*         pointer;
+    typedef const T*   const_pointer;
+
+    PoolAllocator()
+    {
+      pool.reset(new MemoryPool);
+    }
+
+    PoolAllocator(const PoolAllocator& p)
+    {
+      this->pool = p.pool;
+    }
+
+    template<typename U>
+    PoolAllocator(const PoolAllocator<U>& p)
+    {
+      this->pool = p.pool;
+    }
+
+    pointer allocate(size_type n, const_pointer hint=0)
+    {
+      return (pointer)(pool->alloc(n*sizeof(value_type)));
+    }
+
+    void deallocate(pointer p, size_type n){}
+
+  private:
+    std::shared_ptr<MemoryPool> pool;
+  };
+
 }
 
 #endif // __common_h_
