@@ -608,6 +608,8 @@ void Simulation::parseArgument(size_t index)
       // Allocate buffer and store content
       Memory *globalMemory = m_context->getGlobalMemory();
       size_t address = globalMemory->allocateBuffer(size, flags);
+      if (!address)
+        throw "Failed to allocate global memory";
       if (!noinit)
         globalMemory->store((unsigned char*)&data[0], address, size);
       value.data = new unsigned char[value.size];
