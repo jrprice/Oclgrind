@@ -58,7 +58,6 @@ namespace oclgrind
       static const unsigned STORE_BIT   = 1;
       static const unsigned ATOMIC_BIT  = 2;
       static const unsigned WG_BIT      = 3;
-      static const unsigned WG_SYNC_BIT = 4;
       uint8_t storeData;
 
     public:
@@ -71,9 +70,6 @@ namespace oclgrind
       bool isStore() const;
       bool isWorkGroup() const;
       bool isWorkItem() const;
-
-      bool hasWorkGroupSync() const;
-      void setWorkGroupSync();
 
       size_t getEntity() const;
       const llvm::Instruction* getInstruction() const;

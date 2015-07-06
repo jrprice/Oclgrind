@@ -501,16 +501,6 @@ bool RaceDetector::MemoryAccess::isWorkItem() const
   return !isWorkGroup();
 }
 
-bool RaceDetector::MemoryAccess::hasWorkGroupSync() const
-{
-  return this->info & (1<<WG_SYNC_BIT);
-}
-
-void RaceDetector::MemoryAccess::setWorkGroupSync()
-{
-  this->info |= (1<<WG_SYNC_BIT);
-}
-
 size_t RaceDetector::MemoryAccess::getEntity() const
 {
   return this->entity;
