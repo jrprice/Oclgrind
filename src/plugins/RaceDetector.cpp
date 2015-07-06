@@ -21,7 +21,7 @@ using namespace std;
 
 THREAD_LOCAL RaceDetector::WorkerState RaceDetector::m_state = {NULL};
 
-#define STATE(workgroup) ((*m_state.groups)[workgroup])
+#define STATE(workgroup) (m_state.groups->at(workgroup))
 
 // Use a bank of mutexes to reduce unnecessary synchronisation
 #define NUM_GLOBAL_MUTEXES 4096 // Must be power of two
@@ -90,7 +90,7 @@ void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
   {
     m_globalAccesses.erase(EXTRACT_BUFFER(address));
 
-    delete[] m_globalMutexes[EXTRACT_BUFFER(address)];
+    delete[] m_globalMutexes.at(EXTRACT_BUFFER(address));
     m_globalMutexes.erase(EXTRACT_BUFFER(address));
   }
 }
@@ -147,7 +147,7 @@ void RaceDetector::workGroupBegin(const WorkGroup *workGroup)
   }
 
   // Initialize work-group state
-  WorkGroupState& state = STATE(workGroup);
+  WorkGroupState& state = (*m_state.groups)[workGroup];
   Size3 wgsize = workGroup->getGroupSize();
   state.numWorkItems = wgsize.x*wgsize.y*wgsize.z;
 
@@ -178,7 +178,7 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
     lock_guard<mutex> lock(GLOBAL_MUTEX(buffer, offset));
 
     AccessRecord& a = record->second;
-    AccessRecord& b = m_globalAccesses[buffer][offset];
+    AccessRecord& b = m_globalAccesses.at(buffer)[offset];
 
     // Check for races with previous accesses
     if (check(a.load,  b.store) && getAccessWorkGroup(b.store) != group)
