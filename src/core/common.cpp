@@ -24,19 +24,19 @@ using namespace std;
 
 namespace oclgrind
 {
-  _Size3_::_Size3_()
+  Size3::Size3()
   {
     x = y = z = 0;
   }
 
-  _Size3_::_Size3_(size_t _x, size_t _y, size_t _z)
+  Size3::Size3(size_t _x, size_t _y, size_t _z)
   {
     x = _x;
     y = _y;
     z = _z;
   }
 
-  _Size3_::_Size3_(size_t linear, _Size3_ dimensions)
+  Size3::Size3(size_t linear, Size3 dimensions)
   {
     x = linear % dimensions.x;
     y = (linear / dimensions.x) % dimensions.y;

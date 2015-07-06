@@ -32,7 +32,7 @@ namespace oclgrind
     };
     std::set<WorkItem*, WorkItemCmp> m_running;
 
-    typedef struct
+    struct AsyncCopy
     {
       const llvm::Instruction *instruction;
       AsyncCopyType type;
@@ -44,16 +44,16 @@ namespace oclgrind
       size_t destStride;
 
       size_t event;
-    } AsyncCopy;
+    };
 
-    typedef struct
+    struct Barrier
     {
       const llvm::Instruction *instruction;
       std::set<WorkItem*, WorkItemCmp> workItems;
 
       uint64_t fence;
       std::list<size_t> events;
-    } Barrier;
+    };
 
   public:
     WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid);

@@ -28,17 +28,17 @@ namespace oclgrind
   class WorkItemBuiltins;
 
   // Data structures for builtin functions
-  typedef struct _BuiltinFunction
+  struct BuiltinFunction
   {
     void (*func)(WorkItem*, const llvm::CallInst*,
                  const std::string&, const std::string&, TypedValue&, void*);
     void *op;
-    _BuiltinFunction(){};
-    _BuiltinFunction(void (*f)(WorkItem*, const llvm::CallInst*,
+    BuiltinFunction(){};
+    BuiltinFunction(void (*f)(WorkItem*, const llvm::CallInst*,
                      const std::string&, const std::string&, TypedValue&,
                      void*),
                      void *o) : func(f), op(o) {};
-  } BuiltinFunction;
+  };
   typedef std::unordered_map<std::string,BuiltinFunction> BuiltinFunctionMap;
   typedef std::list< std::pair<std::string, BuiltinFunction> >
     BuiltinFunctionPrefixList;
@@ -50,11 +50,11 @@ namespace oclgrind
   class InterpreterCache
   {
   public:
-    typedef struct
+    struct Builtin
     {
       BuiltinFunction function;
       std::string name, overload;
-    } Builtin;
+    };
 
     InterpreterCache(llvm::Function *kernel);
     ~InterpreterCache();

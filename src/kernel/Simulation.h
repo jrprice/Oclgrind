@@ -57,13 +57,13 @@ class Simulation
     size_t m_lineNumber;
     std::istringstream m_lineBuffer;
 
-    typedef struct
+    struct DumpArg
     {
       size_t address;
       size_t size;
       ArgDataType type;
       std::string name;
-    } DumpArg;
+    };
     std::list<DumpArg> m_dumpArguments;
 
     template<typename T>

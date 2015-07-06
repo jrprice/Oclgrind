@@ -25,12 +25,12 @@ namespace oclgrind
   class Memory
   {
   public:
-    typedef struct
+    struct Buffer
     {
       size_t size;
       cl_mem_flags flags;
       unsigned char *data;
-    } Buffer;
+    };
 
   public:
     Memory(unsigned int addrSpace, const Context *context);

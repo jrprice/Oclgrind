@@ -97,27 +97,27 @@ namespace oclgrind
   };
 
   // 3-dimensional size
-  typedef struct _Size3_
+  struct Size3
   {
     size_t x, y, z;
-    _Size3_();
-    _Size3_(size_t x, size_t y, size_t z);
-    _Size3_(size_t linear, _Size3_ dimensions);
+    Size3();
+    Size3(size_t x, size_t y, size_t z);
+    Size3(size_t linear, Size3 dimensions);
     size_t& operator[](unsigned i);
     const size_t& operator[](unsigned i) const;
-    bool operator==(const _Size3_& rhs) const;
-    bool operator!=(const _Size3_& rhs) const;
-    friend std::ostream& operator<<(std::ostream& stream, const _Size3_& sz);
-  } Size3;
+    bool operator==(const Size3& rhs) const;
+    bool operator!=(const Size3& rhs) const;
+    friend std::ostream& operator<<(std::ostream& stream, const Size3& sz);
+  };
 
   // Structure for a value with a size/type
-  struct _TypedValue_
+  struct TypedValue
   {
     unsigned size;
     unsigned num;
     unsigned char *data;
 
-    struct _TypedValue_ clone() const;
+    struct TypedValue clone() const;
 
     double   getFloat(unsigned index = 0) const;
     size_t   getPointer(unsigned index = 0) const;
@@ -129,7 +129,6 @@ namespace oclgrind
     void     setUInt(uint64_t value, unsigned index = 0);
 
   };
-  typedef _TypedValue_ TypedValue;
 
   // Private memory map type
   typedef std::map<const llvm::Value*,TypedValue> TypedValueMap;

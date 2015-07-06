@@ -48,14 +48,14 @@ namespace oclgrind
     void logInvalidAccess(bool read, unsigned addrSpace,
                           size_t address, size_t size) const;
 
-    typedef struct
+    struct MapRegion
     {
       size_t address;
       size_t offset;
       size_t size;
       const void *ptr;
       enum {READ, WRITE} type;
-    } MapRegion;
+    };
     std::list<MapRegion> m_mapRegions;
   };
 }
