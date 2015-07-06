@@ -15,8 +15,6 @@ namespace oclgrind
   public:
     Uninitialized(const Context *context);
 
-    virtual bool isThreadSafe() const override;
-
     virtual void hostMemoryStore(const Memory *memory,
                                  size_t address, size_t size,
                                  const uint8_t *storeData) override;
@@ -50,8 +48,14 @@ namespace oclgrind
                              const uint8_t *storeData) override;
 
   private:
-    typedef std::map< std::pair<const Memory*, size_t>, bool* > StateMap;
-    StateMap m_state;
+    typedef std::map<size_t, bool*> StateMap;
+    StateMap m_globalState;
+
+    struct LocalState
+    {
+      std::map<const Memory*,StateMap> *state;
+    };
+    static THREAD_LOCAL LocalState m_localState;
 
     void checkState(const Memory *memory, size_t address, size_t size) const;
     void setState(const Memory *memory, size_t address, size_t size);

@@ -22,15 +22,11 @@ using namespace std;
 
 #define KEY(memory,address) make_pair(memory, EXTRACT_BUFFER(address))
 
+THREAD_LOCAL Uninitialized::LocalState Uninitialized::m_localState = {NULL};
+
 Uninitialized::Uninitialized(const Context *context)
  : Plugin(context)
 {
-}
-
-bool Uninitialized::isThreadSafe() const
-{
-  // TODO: Fix state map for concurrent accesses from worker threads
-  return false;
 }
 
 void Uninitialized::hostMemoryStore(const Memory *memory,
@@ -89,7 +85,17 @@ void Uninitialized::memoryAllocated(const Memory *memory, size_t address,
                                     size_t size, cl_mem_flags flags,
                                     const uint8_t *initData)
 {
-  m_state[KEY(memory,address)] = new bool[size]();
+  size_t buffer = EXTRACT_BUFFER(address);
+  if (memory->getAddressSpace() == AddrSpaceGlobal)
+  {
+    m_globalState[buffer] = new bool[size]();
+  }
+  else
+  {
+    if (!m_localState.state)
+      m_localState.state = new map<const Memory*,StateMap>;
+    (*m_localState.state)[memory][buffer] = new bool[size]();
+  }
   if (initData)
     setState(memory, address, size);
 }
@@ -110,8 +116,26 @@ void Uninitialized::memoryAtomicStore(const Memory *memory,
 
 void Uninitialized::memoryDeallocated(const Memory *memory, size_t address)
 {
-  delete[] m_state[KEY(memory,address)];
-  m_state.erase(KEY(memory,address));
+  size_t buffer = EXTRACT_BUFFER(address);
+  if (memory->getAddressSpace() == AddrSpaceGlobal)
+  {
+    delete[] m_globalState[buffer];
+    m_globalState.erase(buffer);
+  }
+  else
+  {
+    delete[] m_localState.state->at(memory)[buffer];
+    m_localState.state->at(memory).erase(buffer);
+    if (!m_localState.state->at(memory).size())
+    {
+      m_localState.state->erase(memory);
+      if (!m_localState.state->size())
+      {
+        delete m_localState.state;
+        m_localState.state = NULL;
+      }
+    }
+  }
 }
 
 void Uninitialized::memoryLoad(const Memory *memory, const WorkItem *workItem,
@@ -153,7 +177,15 @@ void Uninitialized::checkState(const Memory *memory,
   if (!memory->isAddressValid(address, size))
     return;
 
-  const bool *state = m_state.at(KEY(memory,address)) + EXTRACT_OFFSET(address);
+  size_t buffer = EXTRACT_BUFFER(address);
+  size_t offset = EXTRACT_OFFSET(address);
+
+  const bool *state;
+  if (memory->getAddressSpace() == AddrSpaceGlobal)
+    state = m_globalState.at(buffer) + offset;
+  else
+    state = m_localState.state->at(memory).at(buffer) + offset;
+
   for (size_t offset = 0; offset < size; offset++)
   {
     if (!state[offset])
@@ -182,6 +214,14 @@ void Uninitialized::setState(const Memory *memory, size_t address, size_t size)
   if (!memory->isAddressValid(address, size))
     return;
 
-  bool *state = m_state[KEY(memory,address)] + EXTRACT_OFFSET(address);
+  size_t buffer = EXTRACT_BUFFER(address);
+  size_t offset = EXTRACT_OFFSET(address);
+
+  bool *state;
+  if (memory->getAddressSpace() == AddrSpaceGlobal)
+    state = m_globalState.at(buffer) + offset;
+  else
+    state = m_localState.state->at(memory).at(buffer) + offset;
+
   fill(state, state+size, true);
 }
