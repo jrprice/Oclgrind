@@ -1,9 +1,9 @@
 ERROR Read-write data race at global memory address
+ERROR Write-write data race at global memory address
 ERROR Read-write data race at global memory address
+ERROR Write-write data race at global memory address
 ERROR Read-write data race at global memory address
-ERROR Read-write data race at global memory address
-ERROR Read-write data race at global memory address
-ERROR Read-write data race at global memory address
+ERROR Write-write data race at global memory address
 
 EXACT Argument 'data': 4 bytes
 EXACT   data[0] = 4
