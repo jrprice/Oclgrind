@@ -33,7 +33,8 @@ WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid)
                   kernelInvocation->getNumGroups().x));
 
   // Allocate local memory
-  m_localMemory = new Memory(AddrSpaceLocal, m_context);
+  m_localMemory = new Memory(AddrSpaceLocal, sizeof(size_t)==8 ? 16 : 8,
+                             m_context);
   const Kernel *kernel = kernelInvocation->getKernel();
   for (auto value = kernel->values_begin();
             value != kernel->values_end();

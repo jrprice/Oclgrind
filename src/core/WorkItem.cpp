@@ -67,7 +67,8 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   // Set initial number of values to store based on cache
   m_values.resize(m_cache->getNumValues());
 
-  m_privateMemory = new Memory(AddrSpacePrivate, m_context);
+  m_privateMemory = new Memory(AddrSpacePrivate, sizeof(size_t)==8 ? 32 : 16,
+                               m_context);
 
   // Initialise kernel arguments and global variables
   for (auto value  = kernel->values_begin();

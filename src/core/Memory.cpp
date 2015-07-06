@@ -26,12 +26,12 @@ mutex atomicMutex[NUM_ATOMIC_MUTEXES];
 #define ATOMIC_MUTEX(offset) \
   atomicMutex[(((offset)>>2) & (NUM_ATOMIC_MUTEXES-1))]
 
-Memory::Memory(unsigned int addrSpace, const Context *context)
+Memory::Memory(unsigned addrSpace, unsigned bufferBits, const Context *context)
 {
   m_context = context;
   m_addressSpace = addrSpace;
 
-  m_numBitsBuffer = ((sizeof(size_t)==4) ? 8 : 16);
+  m_numBitsBuffer = bufferBits;
   m_numBitsAddress = ((sizeof(size_t)<<3) - m_numBitsBuffer);
   m_maxNumBuffers = ((size_t)1 << m_numBitsBuffer) - 1; // 0 reserved for NULL
   m_maxBufferSize = ((size_t)1 << m_numBitsAddress);

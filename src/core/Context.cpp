@@ -40,7 +40,8 @@ using namespace std;
 
 Context::Context()
 {
-  m_globalMemory = new Memory(AddrSpaceGlobal, this);
+  m_globalMemory = new Memory(AddrSpaceGlobal, sizeof(size_t)==8 ? 16 : 8,
+                              this);
   m_kernelInvocation = NULL;
 
   loadPlugins();

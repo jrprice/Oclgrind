@@ -23,7 +23,7 @@ namespace oclgrind
     };
 
   public:
-    Memory(unsigned int addrSpace, const Context *context);
+    Memory(unsigned addrSpace, unsigned bufferBits, const Context *context);
     virtual ~Memory();
 
     size_t allocateBuffer(size_t size, cl_mem_flags flags=0,
@@ -56,8 +56,8 @@ namespace oclgrind
     unsigned int m_addressSpace;
     size_t m_totalAllocated;
 
-    size_t m_numBitsBuffer;
-    size_t m_numBitsAddress;
+    unsigned m_numBitsBuffer;
+    unsigned m_numBitsAddress;
     size_t m_maxNumBuffers;
     size_t m_maxBufferSize;
 
