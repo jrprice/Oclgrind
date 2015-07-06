@@ -289,8 +289,6 @@ if (PYTHONINTERP_FOUND)
 
   # Expected failures
   set_tests_properties(
-    atomics/atomic_intergroup_race
-    data-race/intragroup_hidden_race
     uninitialized/padded_struct_memcpy_fp
     PROPERTIES WILL_FAIL TRUE)
 
