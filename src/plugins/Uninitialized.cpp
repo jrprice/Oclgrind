@@ -20,8 +20,6 @@
 using namespace oclgrind;
 using namespace std;
 
-#define KEY(memory,address) make_pair(memory, EXTRACT_BUFFER(address))
-
 THREAD_LOCAL Uninitialized::LocalState Uninitialized::m_localState = {NULL};
 
 Uninitialized::Uninitialized(const Context *context)
@@ -85,7 +83,7 @@ void Uninitialized::memoryAllocated(const Memory *memory, size_t address,
                                     size_t size, cl_mem_flags flags,
                                     const uint8_t *initData)
 {
-  size_t buffer = EXTRACT_BUFFER(address);
+  size_t buffer = memory->extractBuffer(address);
   if (memory->getAddressSpace() == AddrSpaceGlobal)
   {
     m_globalState[buffer] = new bool[size]();
@@ -116,7 +114,7 @@ void Uninitialized::memoryAtomicStore(const Memory *memory,
 
 void Uninitialized::memoryDeallocated(const Memory *memory, size_t address)
 {
-  size_t buffer = EXTRACT_BUFFER(address);
+  size_t buffer = memory->extractBuffer(address);
   if (memory->getAddressSpace() == AddrSpaceGlobal)
   {
     delete[] m_globalState[buffer];
@@ -177,8 +175,8 @@ void Uninitialized::checkState(const Memory *memory,
   if (!memory->isAddressValid(address, size))
     return;
 
-  size_t buffer = EXTRACT_BUFFER(address);
-  size_t offset = EXTRACT_OFFSET(address);
+  size_t buffer = memory->extractBuffer(address);
+  size_t offset = memory->extractOffset(address);
 
   const bool *state;
   if (memory->getAddressSpace() == AddrSpaceGlobal)
@@ -214,8 +212,8 @@ void Uninitialized::setState(const Memory *memory, size_t address, size_t size)
   if (!memory->isAddressValid(address, size))
     return;
 
-  size_t buffer = EXTRACT_BUFFER(address);
-  size_t offset = EXTRACT_OFFSET(address);
+  size_t buffer = memory->extractBuffer(address);
+  size_t offset = memory->extractOffset(address);
 
   bool *state;
   if (memory->getAddressSpace() == AddrSpaceGlobal)

@@ -60,10 +60,11 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
                                    size_t size, cl_mem_flags flags,
                                    const uint8_t *initData)
 {
+  size_t buffer = memory->extractBuffer(address);
   if (memory->getAddressSpace() == AddrSpaceGlobal)
   {
-    m_globalAccesses[EXTRACT_BUFFER(address)].resize(size);
-    m_globalMutexes[EXTRACT_BUFFER(address)] = new mutex[NUM_GLOBAL_MUTEXES];
+    m_globalAccesses[buffer].resize(size);
+    m_globalMutexes[buffer] = new mutex[NUM_GLOBAL_MUTEXES];
   }
 }
 
@@ -86,12 +87,13 @@ void RaceDetector::memoryAtomicStore(const Memory *memory,
 
 void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
 {
+  size_t buffer = memory->extractBuffer(address);
   if (memory->getAddressSpace() == AddrSpaceGlobal)
   {
-    m_globalAccesses.erase(EXTRACT_BUFFER(address));
+    m_globalAccesses.erase(buffer);
 
-    delete[] m_globalMutexes.at(EXTRACT_BUFFER(address));
-    m_globalMutexes.erase(EXTRACT_BUFFER(address));
+    delete[] m_globalMutexes.at(buffer);
+    m_globalMutexes.erase(buffer);
   }
 }
 
@@ -172,8 +174,8 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
             record++)
   {
     size_t address = record->first;
-    size_t buffer = EXTRACT_BUFFER(address);
-    size_t offset = EXTRACT_OFFSET(address);
+    size_t buffer = m_context->getGlobalMemory()->extractBuffer(address);
+    size_t offset = m_context->getGlobalMemory()->extractOffset(address);
 
     lock_guard<mutex> lock(GLOBAL_MUTEX(buffer, offset));
 

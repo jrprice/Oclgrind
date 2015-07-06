@@ -8,16 +8,6 @@
 
 #include "common.h"
 
-#define NUM_BUFFER_BITS ( (sizeof(size_t)==4) ? 8 : 16)
-#define MAX_NUM_BUFFERS ((size_t)1 << NUM_BUFFER_BITS)
-#define NUM_ADDRESS_BITS ((sizeof(size_t)<<3) - NUM_BUFFER_BITS)
-#define MAX_BUFFER_SIZE ((size_t)1 << NUM_ADDRESS_BITS)
-
-#define EXTRACT_BUFFER(address) \
-  (address >> NUM_ADDRESS_BITS)
-#define EXTRACT_OFFSET(address) \
-  (address & (((size_t)-1) >> NUM_BUFFER_BITS))
-
 namespace oclgrind
 {
   class Context;
@@ -54,7 +44,10 @@ namespace oclgrind
     void* mapBuffer(size_t address, size_t offset, size_t size);
     bool store(const unsigned char *source, size_t address, size_t size=1);
 
-    static size_t getMaxAllocSize();
+    size_t extractBuffer(size_t address) const;
+    size_t extractOffset(size_t address) const;
+
+    size_t getMaxAllocSize();
 
   private:
     const Context *m_context;
@@ -62,6 +55,11 @@ namespace oclgrind
     std::vector<Buffer*> m_memory;
     unsigned int m_addressSpace;
     size_t m_totalAllocated;
+
+    size_t m_numBitsBuffer;
+    size_t m_numBitsAddress;
+    size_t m_maxNumBuffers;
+    size_t m_maxBufferSize;
 
     unsigned getNextBuffer();
   };
