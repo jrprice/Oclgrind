@@ -317,6 +317,7 @@ bool KernelInvocation::switchWorkItem(const Size3 gid)
      if (group == *pItr)
      {
        workerState.workGroup = new WorkGroup(this, group);
+       m_context->notifyWorkGroupBegin(workerState.workGroup);
        found = true;
 
        // Re-order list of groups accordingly
