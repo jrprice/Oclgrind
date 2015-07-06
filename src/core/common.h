@@ -266,6 +266,18 @@ namespace oclgrind
 
     void deallocate(pointer p, size_type n){}
 
+    template<class U, class... Args>
+    void construct(U *p, Args&&... args)
+    {
+      new (p) U(std::forward<Args>(args)...);
+    }
+
+    template<class U>
+    void destroy(U *p)
+    {
+      p->~U();
+    }
+
     bool operator==(const PoolAllocator& p) const
     {
       return this->pool == p.pool;
