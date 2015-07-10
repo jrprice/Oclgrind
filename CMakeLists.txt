@@ -273,8 +273,8 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   file(WRITE ${CMAKE_BINARY_DIR}/oclgrind "${OCLGRIND_SCRIPT}")
 
   # Generate ICD loader
-  get_property(OCLGRIND_RT_FILENAME TARGET oclgrind-rt-icd PROPERTY LOCATION)
-  file(WRITE ${CMAKE_BINARY_DIR}/oclgrind.icd "${OCLGRIND_RT_FILENAME}\n")
+  file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/oclgrind.icd
+       CONTENT "$<TARGET_FILE:oclgrind-rt-icd>\n")
 
   install(PROGRAMS
     ${CMAKE_BINARY_DIR}/oclgrind
