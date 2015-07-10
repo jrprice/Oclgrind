@@ -39,14 +39,17 @@ required if you are using a released source package.
 
 Run ./configure to generate the Makefile, optionally using
 --prefix=PATH to specify the target installation directory. If you
-don't have the LLVM/Clang includes and libraries on your search path,
-you can specify the location of your LLVM installation using the
+don't have the LLVM includes and libraries on your search path, you
+can specify the location of your LLVM installation using the
 --with-llvm=PATH option. For example:
 
 ./configure --prefix=$PWD/build/ --with-llvm=PATH/TO/LLVM/INSTALL
 
 This path should be the directory in which LLVM is installed (e.g. the
-path specified to --prefix or CMAKE_INSTALL_PATH when LLVM was built).
+path specified to --prefix or CMAKE_INSTALL_PATH when LLVM was
+built). If the Clang includes and libraries are not on your search
+path or in the same location as LLVM, you can use the
+--with-clang=PATH option to specify its root directory.
 
 Next, build and install with make:
 
@@ -68,10 +71,14 @@ Windows 7.
 
 When configuring the CMake build, you may be prompted to supply a
 value for the LLVM_DIR parameter. This should be set to the directory
-containing your LLVM installations's LLVMConfig.cmake file, (for
-example C:\Program Files\LLVM\share\llvm\cmake\).
+containing your LLVM installation's LLVMConfig.cmake file, (for
+example C:\Program Files\LLVM\share\llvm\cmake\). If Clang is
+installed separately to LLVM, then you will also be prompted to supply
+a path in the CLANG_ROOT variable, which should be the root of your
+Clang installation (containing the bin/, lib/ and include/
+directories).
 
-If you wish to use Oclgrind via the OpenCL ICD (optional), then you
+If you wish to use Oclgrind via the OpenCL ICD (recommended), then you
 should also create an ICD loading point. To do this, you should add a
 REG_DWORD value to the Windows Registry under one or both of the
 registry keys below, with the name set to the absolute path of the
