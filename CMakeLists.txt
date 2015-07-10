@@ -12,6 +12,7 @@ set(Oclgrind_VERSION_MAJOR 15)
 set(Oclgrind_VERSION_MINOR 5)
 
 include(CheckIncludeFiles)
+include(CheckIncludeFileCXX)
 include(CheckLibraryExists)
 
 # Enable C99 for GCC (required for tests)
@@ -53,12 +54,53 @@ set(LLVM_VERSION ${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR})
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
-set(CLANG ${LLVM_TOOLS_BINARY_DIR}/clang)
 
 # Get LLVM libraries for linking
 llvm_map_components_to_libnames(LLVM_LIBS
   bitreader bitwriter core instrumentation ipo irreader
   linker mcparser objcarcopts option target)
+
+
+# Allow user to set path to Clang installation via CLANG_ROOT
+set (CLANG_ROOT " " CACHE PATH "Root of Clang installation")
+if (NOT ${CLANG_ROOT} STREQUAL " ")
+  include_directories("${CLANG_ROOT}/include")
+  link_directories("${CLANG_ROOT}/lib")
+  set(CMAKE_REQUIRED_INCLUDES
+      "${CMAKE_REQUIRED_INCLUDES};${CLANG_ROOT}/include")
+endif()
+
+set(CMAKE_REQUIRED_INCLUDES
+    "${CMAKE_REQUIRED_INCLUDES};${LLVM_INCLUDE_DIRS}")
+string(REPLACE ";" " " LLVM_DEFS "${LLVM_DEFINITIONS}")
+
+# Check for Clang headers
+unset(HAVE_CLANG_HEADERS CACHE)
+check_include_file_cxx("clang/CodeGen/CodeGenAction.h"
+                       HAVE_CLANG_HEADERS
+                       "${LLVM_DEFS}")
+if ("${HAVE_CLANG_HEADERS}" STREQUAL "")
+  message(FATAL_ERROR "Clang headers not found (set CLANG_ROOT)")
+endif()
+
+# Check for Clang libraries
+unset(CLANG_LIB CACHE)
+find_library(CLANG_LIB "clangFrontend"
+             PATHS "${CLANG_ROOT}/lib" "${LLVM_LIBRARY_DIRS}"
+             NO_DEFAULT_PATH)
+find_library(CLANG_LIB "clangFrontend")
+if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")
+  message(FATAL_ERROR "Clang libraries not found (set CLANG_ROOT)")
+endif()
+
+# Check for clang on user specified paths first, then on system paths
+find_program(CLANG clang
+             PATHS "${CLANG_ROOT}/bin" "${LLVM_TOOLS_BINARY_DIR}"
+             NO_DEFAULT_PATH)
+find_program(CLANG clang)
+if ("${CLANG}" STREQUAL "CLANG-NOTFOUND")
+  message(FATAL_ERROR "Could not find clang binary")
+endif()
 
 
 # Check for GNU readline library
