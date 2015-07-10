@@ -27,7 +27,7 @@ using namespace std;
 #define MAX_GLOBAL_MEM_SIZE      (128 * 1048576)
 #define MAX_CONSTANT_BUFFER_SIZE (1048576)
 #define MAX_LOCAL_MEM_SIZE       (32768)
-#define MAX_WI_SIZE              (65536)
+#define MAX_WI_SIZE              (1024)
 
 #define PLATFORM_NAME       "Oclgrind"
 #define PLATFORM_VENDOR     "University of Bristol"
