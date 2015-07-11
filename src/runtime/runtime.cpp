@@ -4809,6 +4809,8 @@ clEnqueueNDRangeKernel
   }
 
   // Check global and local sizes are valid
+  size_t reqdWorkGroupSize[3];
+  kernel->kernel->getRequiredWorkGroupSize(reqdWorkGroupSize);
   for (unsigned i = 0; i < work_dim; i++)
   {
     if (!global_work_size[i])
@@ -4819,10 +4821,16 @@ clEnqueueNDRangeKernel
     if (local_work_size && global_work_size[i] % local_work_size[i])
     {
       ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_GROUP_SIZE,
-                      "Dimension " << i <<
-                      ": local_work_size (" << local_work_size[i] <<
-                      ") does not divide global_work_size (" <<
-                      global_work_size[i] << ")");
+                      "local_work_size[" << i << "]=" << local_work_size[i] <<
+                      " does not divide global_work_size[" << i << "]=" <<
+                      global_work_size[i]);
+    }
+    if (local_work_size && local_work_size[i] != reqdWorkGroupSize[i])
+    {
+      ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_GROUP_SIZE,
+                      "local_work_size[" << i << "]=" << local_work_size[i] <<
+                      " does not match reqd_work_group_size[" << i << "]=" <<
+                      reqdWorkGroupSize[i])
     }
   }
 
