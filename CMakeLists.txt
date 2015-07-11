@@ -72,13 +72,12 @@ endif()
 
 set(CMAKE_REQUIRED_INCLUDES
     "${CMAKE_REQUIRED_INCLUDES};${LLVM_INCLUDE_DIRS}")
-string(REPLACE ";" " " LLVM_DEFS "${LLVM_DEFINITIONS}")
+set(CMAKE_REQUIRED_DEFINITIONS
+    "${CMAKE_REQUIRED_DEFINITIONS};${LLVM_DEFINITIONS}")
 
 # Check for Clang headers
 unset(HAVE_CLANG_HEADERS CACHE)
-check_include_file_cxx("clang/CodeGen/CodeGenAction.h"
-                       HAVE_CLANG_HEADERS
-                       "${LLVM_DEFS}")
+check_include_file_cxx("clang/CodeGen/CodeGenAction.h" HAVE_CLANG_HEADERS)
 if ("${HAVE_CLANG_HEADERS}" STREQUAL "")
   message(FATAL_ERROR "Clang headers not found (set CLANG_ROOT)")
 endif()
