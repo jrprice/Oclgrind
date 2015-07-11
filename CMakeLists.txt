@@ -76,9 +76,12 @@ set(CMAKE_REQUIRED_DEFINITIONS
     "${CMAKE_REQUIRED_DEFINITIONS};${LLVM_DEFINITIONS}")
 
 # Check for Clang headers
-unset(HAVE_CLANG_HEADERS CACHE)
-check_include_file_cxx("clang/CodeGen/CodeGenAction.h" HAVE_CLANG_HEADERS)
-if ("${HAVE_CLANG_HEADERS}" STREQUAL "")
+unset(CLANG_HEADER CACHE)
+find_path(CLANG_HEADER "clang/CodeGen/CodeGenAction.h"
+          PATHS "${CLANG_ROOT}/include" "${LLVM_INCLUDE_DIRS}"
+          NO_DEFAULT_PATH)
+find_path(CLANG_HEADER "clang/CodeGen/CodeGenAction.h")
+if ("${CLANG_HEADER}" STREQUAL "CLANG_HEADER-NOTFOUND")
   message(FATAL_ERROR "Clang headers not found (set CLANG_ROOT)")
 endif()
 
@@ -92,7 +95,7 @@ if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")
   message(FATAL_ERROR "Clang libraries not found (set CLANG_ROOT)")
 endif()
 
-# Check for clang on user specified paths first, then on system paths
+# Check for clang
 find_program(CLANG clang
              PATHS "${CLANG_ROOT}/bin" "${LLVM_TOOLS_BINARY_DIR}"
              NO_DEFAULT_PATH)
