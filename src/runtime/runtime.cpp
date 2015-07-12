@@ -4825,7 +4825,8 @@ clEnqueueNDRangeKernel
                       " does not divide global_work_size[" << i << "]=" <<
                       global_work_size[i]);
     }
-    if (local_work_size && local_work_size[i] != reqdWorkGroupSize[i])
+    if (local_work_size && reqdWorkGroupSize[i] &&
+        local_work_size[i] != reqdWorkGroupSize[i])
     {
       ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_GROUP_SIZE,
                       "local_work_size[" << i << "]=" << local_work_size[i] <<
