@@ -112,6 +112,9 @@ do
   elif [ "$1" == "--uninitialized" ]
   then
     export OCLGRIND_UNINITIALIZED=1
+  elif [ "$1" == "--memcheck-uninitialized" ]
+  then
+    export OCLGRIND_MEMCHECK_UNINITIALIZED=1
   elif [ "$1" == "-v" -o "$1" == "--version" ]
   then
     echo

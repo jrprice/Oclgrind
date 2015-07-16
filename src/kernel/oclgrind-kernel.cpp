@@ -142,6 +142,10 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_UNINITIALIZED", "1");
     }
+    else if (!strcmp(argv[i], "--memcheck-uninitialized"))
+    {
+      setEnvironment("OCLGRIND_MEMCHECK_UNINITIALIZED", "1");
+    }
     else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
     {
       cout << endl;

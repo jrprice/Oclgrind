@@ -28,6 +28,7 @@ test_name   = os.path.splitext(os.path.basename(test_exe))[0]
 os.environ["OCLGRIND_CHECK_API"] = "1"
 os.environ["OCLGRIND_DATA_RACES"] = "1"
 os.environ["OCLGRIND_UNINITIALIZED"] = "1"
+os.environ["OCLGRIND_MEMCHECK_UNINITIALIZED"] = "1"
 
 def run(output_suffix):
 
