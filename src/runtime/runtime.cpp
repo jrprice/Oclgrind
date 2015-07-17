@@ -682,8 +682,10 @@ clGetDeviceInfo
     }
     else
     {
-      const void* src = str ? (const void*)str : (const void*)&result_data;
-      memcpy(param_value, src, result_size);
+      if (str)
+        memcpy(param_value, str, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
