@@ -1636,7 +1636,7 @@ clGetSupportedImageFormats
     sizeof(ordersAll)        / sizeof(cl_channel_order),
     sizeof(ordersNormalized) / sizeof(cl_channel_order),
     sizeof(ordersByte)       / sizeof(cl_channel_order),
-    //sizeof(ordersPacked)     / sizeof(cl_channel_order),
+    sizeof(ordersPacked)     / sizeof(cl_channel_order),
   };
 
   // Channel types
@@ -1672,7 +1672,7 @@ clGetSupportedImageFormats
     sizeof(typesAll)        / sizeof(cl_channel_order),
     sizeof(typesNormalized) / sizeof(cl_channel_order),
     sizeof(typesByte)       / sizeof(cl_channel_order),
-    //sizeof(typesPacked)     / sizeof(cl_channel_order),
+    sizeof(typesPacked)     / sizeof(cl_channel_order),
   };
 
   // Calculate total number of formats
