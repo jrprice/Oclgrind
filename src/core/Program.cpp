@@ -584,20 +584,17 @@ Kernel* Program::createKernel(const string name)
   }
 }
 
-unsigned char* Program::getBinary() const
+void Program::getBinary(unsigned char *binary) const
 {
   if (!m_module)
-  {
-    return NULL;
-  }
+    return;
 
   std::string str;
   llvm::raw_string_ostream stream(str);
   llvm::WriteBitcodeToFile(m_module.get(), stream);
   stream.str();
-  unsigned char *bitcode = new unsigned char[str.length()];
-  memcpy(bitcode, str.c_str(), str.length());
-  return bitcode;
+
+  memcpy(binary, str.c_str(), str.length());
 }
 
 size_t Program::getBinarySize() const

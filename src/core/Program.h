@@ -43,7 +43,7 @@ namespace oclgrind
     Kernel* createKernel(const std::string name);
     const std::string& getBuildLog() const;
     const std::string& getBuildOptions() const;
-    unsigned char* getBinary() const;
+    void getBinary(unsigned char *binary) const;
     size_t getBinarySize() const;
     unsigned int getBuildStatus() const;
     const Context *getContext() const;
