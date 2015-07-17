@@ -164,6 +164,7 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/core/clc_h.cpp
   src/core/common.cpp
   src/core/Context.cpp
+  src/core/half.cpp
   src/core/Kernel.cpp
   src/core/KernelInvocation.cpp
   src/core/Memory.cpp

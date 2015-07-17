@@ -8,153 +8,21 @@
 
 #include "common.h"
 
-static float halfToFloat(uint16_t half)
+namespace oclgrind
 {
-  uint16_t h_sign, h_exponent, h_mantissa;
-  uint32_t f_sign, f_exponent, f_mantissa;
-
-  h_sign     = half & 0x8000; // 1000 0000 0000 0000
-  h_exponent = half & 0x7C00; // 0111 1100 0000 0000
-  h_mantissa = half & 0x03FF; // 0000 0011 1111 1111
-
-  f_sign     = ((uint32_t)h_sign) << 16;
-
-  if (h_exponent == 0)
+  enum HalfRoundMode
   {
-    if (h_mantissa == 0)
-    {
-      // Zero
-      f_exponent = 0;
-      f_mantissa = 0;
-    }
-    else
-    {
-      // Denorm - convert to normalized float
-      int e = -1;
-      do
-      {
-        e++;
-        h_mantissa <<= 1;
-      }
-      while((h_mantissa & 0x0400) == 0);
+    // Towards negative infinity
+    Half_RTN,
+    // Towards zero
+    Half_RTZ,
+    // Towards positive infinity
+    Half_RTP,
+    // Towards nearest even
+    Half_RTE
+  };
 
-      f_exponent = (-15 + 127 - e) << 23;
-      f_mantissa = ((uint32_t)(h_mantissa & 0x03FF)) << 13;
-    }
-  }
-  else if (h_exponent == 0x7C00)
-  {
-    // Inf or NaN
-    f_exponent = 0xFF << 23;
-    f_mantissa = h_mantissa;
-  }
-  else
-  {
-    // Normalized
-    f_exponent = (((int32_t)(h_exponent >> 10)) - 15 + 127) << 23;
-    f_mantissa = ((uint32_t)h_mantissa) << 13;
-  }
+  float halfToFloat(uint16_t half);
 
-  uint32_t result = f_sign | f_exponent | f_mantissa;
-  return *(float*)&result;
-}
-
-enum HalfRoundMode
-{
-  // Towards negative infinity
-  Half_RTN,
-  // Towards zero
-  Half_RTZ,
-  // Towards positive infinity
-  Half_RTP,
-  // Towards nearest even
-  Half_RTE
-};
-
-static uint16_t floatToHalf(float sp, HalfRoundMode round = Half_RTZ)
-{
-  uint16_t h_sign, h_exponent, h_mantissa;
-  uint32_t f_sign, f_exponent, f_mantissa;
-
-  union
-  {
-    float f;
-    uint32_t ui;
-  } FtoUI;
-  FtoUI.f = sp;
-  uint32_t f = FtoUI.ui;
-  f_sign     = f & 0x80000000; // 1000 0000 0000 0000 0000 0000 0000 0000
-  f_exponent = f & 0x7F800000; // 0111 1111 1000 0000 0000 0000 0000 0000
-  f_mantissa = f & 0x007FFFFF; // 0000 0000 0111 1111 1111 1111 1111 1111
-
-  h_sign     = f_sign >> 16;
-
-  if (f_exponent == 0)
-  {
-    // Zero
-    h_exponent = 0;
-    h_mantissa = 0;
-  }
-  else if (f_exponent == 0x7F800000)
-  {
-    // Inf or NaN
-    h_exponent = 0x7C00;
-    h_mantissa = f_mantissa;
-  }
-  else
-  {
-    int e = (((int32_t)(f_exponent >> 23)) - 127 + 15);
-    if (e >= 0x1F)
-    {
-      // Value will overflow
-      h_exponent = 0x7C00;
-      h_mantissa = 0;
-    }
-    else if (e <= 0)
-    {
-      // Value will underflow
-      h_exponent = 0;
-      if (14 - e > 24)
-      {
-        // Too small - flush to zero
-        h_mantissa = 0;
-      }
-      else
-      {
-        // Convert to denorm
-        f_mantissa |= 0x800000;
-        h_mantissa = (f_mantissa >> (14-e));
-        if ((f_mantissa >> (13 - e)) & 0x1)
-        {
-          h_mantissa += 0x1;
-        }
-      }
-    }
-    else
-    {
-      // Normalized
-      h_exponent = e << 10;
-      h_mantissa = f_mantissa >> 13;
-      // The current f_mantissa is done in RTZ
-      if (round == Half_RTE && (f & 0x00001000) != 0)
-      {
-        if ((f & 0x00002FFF) != 0)
-          h_mantissa += 1;
-      }
-      else if (round == Half_RTP)
-      {
-        FtoUI.ui &= 0xFFFFE000;
-        if (FtoUI.f < sp)
-          h_mantissa += 1;
-      }
-      else if (round == Half_RTN)
-      {
-        FtoUI.ui &= 0xFFFFE000;
-        if (sp < FtoUI.f)
-          h_mantissa += 1;
-      }
-    }
-  }
-
-  return h_sign + h_exponent + h_mantissa;
+  uint16_t floatToHalf(float sp, HalfRoundMode round = Half_RTZ);
 }

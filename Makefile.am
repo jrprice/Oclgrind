@@ -25,18 +25,18 @@ LLVM_LIBS = `$(llvm_config) --system-libs --libs bitreader bitwriter	\
 
 liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp		\
  src/core/Context.h src/core/Context.cpp src/core/half.h		\
- src/core/Kernel.h src/core/Kernel.cpp src/core/KernelInvocation.h	\
- src/core/KernelInvocation.cpp src/core/Memory.h src/core/Memory.cpp	\
- src/core/Plugin.h src/core/Plugin.cpp src/core/Program.h		\
- src/core/Program.cpp src/core/Queue.h src/core/Queue.cpp		\
- src/core/WorkItem.h src/core/WorkItem.cpp				\
- src/core/WorkItemBuiltins.cpp src/core/WorkGroup.h			\
- src/core/WorkGroup.cpp src/plugins/InstructionCounter.h		\
- src/plugins/InstructionCounter.cpp src/plugins/InteractiveDebugger.h	\
- src/plugins/InteractiveDebugger.cpp src/plugins/Logger.h		\
- src/plugins/Logger.cpp src/plugins/MemCheck.h				\
+ src/core/half.cpp src/core/Kernel.h src/core/Kernel.cpp		\
+ src/core/KernelInvocation.h src/core/KernelInvocation.cpp		\
+ src/core/Memory.h src/core/Memory.cpp src/core/Plugin.h		\
+ src/core/Plugin.cpp src/core/Program.h src/core/Program.cpp		\
+ src/core/Queue.h src/core/Queue.cpp src/core/WorkItem.h		\
+ src/core/WorkItem.cpp src/core/WorkItemBuiltins.cpp			\
+ src/core/WorkGroup.h src/core/WorkGroup.cpp				\
+ src/plugins/InstructionCounter.h src/plugins/InstructionCounter.cpp	\
+ src/plugins/InteractiveDebugger.h src/plugins/InteractiveDebugger.cpp	\
+ src/plugins/Logger.h src/plugins/Logger.cpp src/plugins/MemCheck.h	\
  src/plugins/MemCheck.cpp src/plugins/RaceDetector.h			\
- src/plugins/RaceDetector.cpp src/plugins/Uninitialized.h \
+ src/plugins/RaceDetector.cpp src/plugins/Uninitialized.h		\
  src/plugins/Uninitialized.cpp
 nodist_liboclgrind_la_SOURCES = src/core/clc_h.cpp config.h
 liboclgrind_la_LDFLAGS = -lclangFrontend -lclangDriver		\
