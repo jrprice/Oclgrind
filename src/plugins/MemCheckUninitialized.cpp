@@ -160,9 +160,31 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::IntToPtr:
 //          inttoptr(instruction, result);
 //          break;
-//        case llvm::Instruction::Load:
-//          load(instruction, result);
-//          break;
+        case llvm::Instruction::Load:
+        {
+            assert(instruction->getType()->isSized() && "Load type must have size");
+            const llvm::LoadInst *loadInst = ((const llvm::LoadInst*)instruction);
+            const llvm::Value *Addr = loadInst->getPointerOperand();
+
+            size_t address = workItem->getOperand(Addr).getPointer();
+
+            TypedValue v = {
+                result.size,
+                result.num,
+                m_pool.alloc(result.size*result.num)
+            };
+
+            getShadowMem(address, v);
+            setShadow(instruction, v);
+
+//            if (ClCheckAccessAddress)
+//                insertShadowCheck(I.getPointerOperand(), &I);
+//
+//            if (I.isAtomic())
+//                I.setOrdering(addAcquireOrdering(I.getOrdering()));
+
+            break;
+        }
 //        case llvm::Instruction::LShr:
 //          lshr(instruction, result);
 //          break;
@@ -442,7 +464,12 @@ void MemCheckUninitialized::setShadow(const llvm::Value *V, TypedValue SV) {
 
 void MemCheckUninitialized::setShadowMem(size_t address, TypedValue SM)
 {
-    ShadowMem->store(SM.data, address, SM.size);
+    ShadowMem->store(SM.data, address, SM.size*SM.num);
+}
+
+void MemCheckUninitialized::getShadowMem(size_t address, TypedValue &SM)
+{
+    ShadowMem->load(SM.data, address, SM.size*SM.num);
 }
 
 //bool MemCheckUninitialized::isCleanShadowMem(size_t address, unsigned size)

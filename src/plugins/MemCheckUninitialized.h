@@ -38,6 +38,7 @@ namespace oclgrind
     void setShadow(const llvm::Value *V, TypedValue SV);
 
     void setShadowMem(size_t address, TypedValue SM);
+    void getShadowMem(size_t address, TypedValue &SM);
     bool isCleanShadowMem(size_t address, unsigned size);
 
     void dumpShadowMap();
