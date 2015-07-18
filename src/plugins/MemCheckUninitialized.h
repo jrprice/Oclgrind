@@ -7,42 +7,47 @@
 // source code.
 
 #include "core/Plugin.h"
-#include "llvm/IR/ValueMap.h"
+#include "llvm/IR/Function.h"
 
 namespace oclgrind
 {
   class MemCheckUninitialized : public Plugin
   {
   public:
-      typedef std::map<const llvm::Value*, size_t> ValueAddressMap;
-
       MemCheckUninitialized(const Context *context);
 
+      virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
       virtual void instructionExecuted(const WorkItem *workItem,
                                        const llvm::Instruction *instruction,
                                        const TypedValue& result) override;
 
   private:
     llvm::LLVMContext *llvmContext;
-    ValueAddressMap AddressMap;
-    Memory *ShadowMem;
+    std::map<unsigned, Memory*> ShadowMem;
     mutable MemoryPool m_pool;
     TypedValueMap ShadowMap;
+    std::map<const llvm::Function*, std::map<const llvm::Argument*, TypedValue> > FunctionArgumentMap;
+    TypedValue FunctionReturnValue;
 
     TypedValue getCleanShadow(const llvm::Value *V);
-    llvm::Constant *getPoisonedShadow(llvm::Type *ShadowTy);
+    TypedValue getCleanShadow(llvm::Type *Ty);
     TypedValue getPoisonedShadow(const llvm::Value *V);
+    TypedValue getPoisonedShadow(llvm::Type *Ty);
     TypedValue getShadow(const llvm::Value *V);
-    llvm::Type *getShadowTy(const llvm::Value *V);
-    llvm::Type *getShadowTy(llvm::Type *OrigTy);
     void setShadow(const llvm::Value *V, TypedValue SV);
+    //llvm::Type *getShadowTy(const llvm::Value *V);
+    //llvm::Type *getShadowTy(llvm::Type *OrigTy);
 
-    void setShadowMem(size_t address, TypedValue SM);
-    void getShadowMem(size_t address, TypedValue &SM);
-    bool isCleanShadowMem(size_t address, unsigned size);
+    Memory *getMemory(unsigned addrSpace);
 
+    void setShadowMem(unsigned addrSpace, size_t address, TypedValue SM);
+    void getShadowMem(unsigned addrSpace, size_t address, TypedValue &SM);
+
+    void SimpleOr(const llvm::Instruction *I);
+
+    void dumpFunctionArgumentMap();
     void dumpShadowMap();
-    void dumpShadowMem();
+    void dumpShadowMem(unsigned addrSpace);
     void logError(unsigned int addrSpace, size_t address) const;
   };
 }

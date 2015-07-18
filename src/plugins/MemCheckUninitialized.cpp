@@ -11,6 +11,8 @@
 #include "core/Context.h"
 #include "core/Memory.h"
 #include "core/WorkItem.h"
+#include "core/Kernel.h"
+#include "core/KernelInvocation.h"
 
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Instructions.h"
@@ -23,80 +25,123 @@
 using namespace oclgrind;
 using namespace std;
 
-void MemCheckUninitialized::dumpShadowMap()
+void MemCheckUninitialized::dumpFunctionArgumentMap()
 {
-    TypedValueMap::iterator itr;
+    std::map<const llvm::Function*, std::map<const llvm::Argument*, TypedValue> >::iterator itr;
 
-    cout << "=======================" << endl;
+    cout << "==== Arguments ======" << endl;
 
-    for(itr = ShadowMap.begin(); itr != ShadowMap.end(); ++itr)
+    for(itr = FunctionArgumentMap.begin(); itr != FunctionArgumentMap.end(); ++itr)
     {
-        cout << itr->first->getName().str() << ": " << hex << itr->second.getUInt() << endl;
+        cout << "F: " << itr->first->getName().str() << endl;
+
+        std::map<const llvm::Argument*, TypedValue>::iterator itr2;
+
+        for(itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2)
+        {
+            cout << "   " << itr2->first->getName().str() << ": " << hex << itr2->second.getUInt() << endl;
+        }
     }
 
     cout << "=======================" << endl;
 }
 
-void MemCheckUninitialized::dumpShadowMem()
+void MemCheckUninitialized::dumpShadowMap()
 {
-    cout << "=======================" << endl;
+    TypedValueMap::iterator itr;
 
-    ShadowMem->dump();
+    cout << "==== ShadowMap =======" << endl;
+
+    unsigned num = 1;
+
+    for(itr = ShadowMap.begin(); itr != ShadowMap.end(); ++itr)
+    {
+        if(itr->first->hasName())
+        {
+            cout << "%" << itr->first->getName().str() << ": " << hex << itr->second.getUInt() << endl;
+        }
+        else
+        {
+            cout << "%" << num++ << ": " << hex << itr->second.getUInt() << endl;
+        }
+    }
+
+    cout << "=======================" << endl;
+}
+
+void MemCheckUninitialized::dumpShadowMem(unsigned addrSpace)
+{
+    cout << "====== ShadowMem(" << getAddressSpaceName(addrSpace) << ") ======";
+
+    getMemory(addrSpace)->dump();
 
     cout << "=======================" << endl;
 }
 
 MemCheckUninitialized::MemCheckUninitialized(const Context *context)
- : Plugin(context), AddressMap(), ShadowMap()
+ : Plugin(context), ShadowMap()
 {
-    ShadowMem = new Memory(AddrSpacePrivate, sizeof(size_t)==8 ? 32 : 16, context);
+    ShadowMem[AddrSpacePrivate] = new Memory(AddrSpacePrivate, sizeof(size_t)==8 ? 32 : 16, context);
+    ShadowMem[AddrSpaceGlobal] = new Memory(AddrSpaceGlobal, sizeof(size_t)==8 ? 16 : 8, context);
     llvmContext = new llvm::LLVMContext();
+}
+
+void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation)
+{
+    const llvm::Function *F = kernelInvocation->getKernel()->getFunction();
+
+    for (auto &FArg : F->args()) {
+        if (!FArg.getType()->isSized()) {
+            continue;
+        }
+
+        FunctionArgumentMap[F][&FArg] = getCleanShadow(&FArg);
+
+        if(FArg.getType()->isPointerTy())
+        {
+            llvm::Type *eltType = FArg.getType()->getPointerElementType();
+            unsigned Size = FArg.hasByValAttr()
+                ? getTypeSize(eltType)
+                : getTypeSize(FArg.getType());
+            size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(Size);
+            //TODO: Clean or poisoned?
+            setShadowMem(AddrSpaceGlobal, address, getCleanShadow(eltType));
+        }
+    }
 }
 
 void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                                         const llvm::Instruction *instruction,
                                         const TypedValue& result)
 {
-    cout << instruction->getOpcodeName() << endl;
+    cout << "++++++++++++++++++++++++++++++++++++++++++++" << endl;
     instruction->dump();
 
     switch(instruction->getOpcode())
     {
         case llvm::Instruction::Add:
         {
-            if(llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(instruction->getOperand(0)))
-            {
-                cout << "Instr1!" << endl;
-            }
-            if(llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(instruction->getOperand(1)))
-            {
-                cout << "Instr2!" << endl;
-            }
-            if(llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(instruction->getOperand(0)))
-            {
-                cout << "Arg1!" << endl;
-            }
-            if(llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(instruction->getOperand(1)))
-            {
-                cout << "Arg2!" << endl;
-            }
+            SimpleOr(instruction);
             break;
         }
         case llvm::Instruction::Alloca:
         {
-            const llvm::AllocaInst *allocInst = ((const llvm::AllocaInst*)instruction);
+            const llvm::AllocaInst *allocaInst = ((const llvm::AllocaInst*)instruction);
+
             size_t address = result.getPointer();
 
             setShadow(instruction, getCleanShadow(instruction));
 
-            TypedValue v = getPoisonedShadow(instruction->getOperand(0));
-            ShadowMem->allocateBuffer(v.size);
-            setShadowMem(address, v);
+            TypedValue v = getPoisonedShadow(allocaInst->getAllocatedType());
+            getMemory(AddrSpacePrivate)->allocateBuffer(v.size*v.num);
+            setShadowMem(AddrSpacePrivate, address, v);
             break;
         }
-//        case llvm::Instruction::And:
-//          bwand(instruction, result);
-//          break;
+        case llvm::Instruction::And:
+        {
+            SimpleOr(instruction);
+            break;
+        }
 //        case llvm::Instruction::AShr:
 //          ashr(instruction, result);
 //          break;
@@ -167,6 +212,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             const llvm::Value *Addr = loadInst->getPointerOperand();
 
             size_t address = workItem->getOperand(Addr).getPointer();
+            unsigned addrSpace = loadInst->getPointerAddressSpace();
 
             TypedValue v = {
                 result.size,
@@ -174,7 +220,8 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 m_pool.alloc(result.size*result.num)
             };
 
-            getShadowMem(address, v);
+            //FIXME: Does not work for function arguments
+            getShadowMem(addrSpace, address, v);
             setShadow(instruction, v);
 
 //            if (ClCheckAccessAddress)
@@ -188,24 +235,43 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::LShr:
 //          lshr(instruction, result);
 //          break;
-//        case llvm::Instruction::Mul:
-//          mul(instruction, result);
-//          break;
-//        case llvm::Instruction::Or:
-//          bwor(instruction, result);
-//          break;
+        case llvm::Instruction::Mul:
+        {
+            SimpleOr(instruction);
+            break;
+        }
+        case llvm::Instruction::Or:
+        {
+            SimpleOr(instruction);
+            break;
+        }
 //        case llvm::Instruction::PHI:
 //          phi(instruction, result);
 //          break;
 //        case llvm::Instruction::PtrToInt:
 //          ptrtoint(instruction, result);
 //          break;
-//        case llvm::Instruction::Ret:
-//          ret(instruction, result);
-//          break;
-//        case llvm::Instruction::SDiv:
-//          sdiv(instruction, result);
-//          break;
+        case llvm::Instruction::Ret:
+        {
+            const llvm::ReturnInst *retInst = ((const llvm::ReturnInst*)instruction);
+            const llvm::Value *RetVal = retInst->getReturnValue();
+
+            if (!RetVal) break;
+            //Value *ShadowPtr = getShadowPtrForRetval(RetVal, IRB);
+            //if (CheckReturnValue) {
+            //    insertShadowCheck(RetVal, &I);
+            //    Value *Shadow = getCleanShadow(RetVal);
+            //    IRB.CreateAlignedStore(Shadow, ShadowPtr, kShadowTLSAlignment);
+            //} else {
+            FunctionReturnValue = getShadow(RetVal);
+            //}
+            break;
+        }
+        case llvm::Instruction::SDiv:
+        {
+            SimpleOr(instruction);
+            break;
+        }
 //        case llvm::Instruction::Select:
 //          select(instruction, result);
 //          break;
@@ -221,9 +287,11 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::SIToFP:
 //          sitofp(instruction, result);
 //          break;
-//        case llvm::Instruction::SRem:
-//          srem(instruction, result);
-//          break;
+        case llvm::Instruction::SRem:
+        {
+            SimpleOr(instruction);
+            break;
+        }
         case llvm::Instruction::Store:
         {
             const llvm::StoreInst *storeInst = ((const llvm::StoreInst*)instruction);
@@ -231,45 +299,94 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             const llvm::Value *Addr = storeInst->getPointerOperand();
 
             size_t address = workItem->getOperand(Addr).getPointer();
-            TypedValue shadowVal = storeInst->isAtomic() ? getCleanShadow(Val) : getShadow(Val);
+            unsigned addrSpace = storeInst->getPointerAddressSpace();
 
-            setShadowMem(address, shadowVal);
+            if(addrSpace == AddrSpaceGlobal)
+            {
+                if(getShadow(Val) != getCleanShadow(Val))
+                {
+                    //TODO:Better warning
+                    logError(addrSpace, address);
+                }
+
+                //TODO: What about this?
+                //setShadowMem(address, getCleanShadow(Val));
+            }
+            else
+            {
+                TypedValue shadowVal = storeInst->isAtomic() ? getCleanShadow(Val) : getShadow(Val);
+                setShadowMem(addrSpace, address, shadowVal);
+            }
             break;
         }
-//        case llvm::Instruction::Sub:
-//          sub(instruction, result);
-//          break;
+        case llvm::Instruction::Sub:
+        {
+            SimpleOr(instruction);
+            break;
+        }
 //        case llvm::Instruction::Switch:
 //          swtch(instruction, result);
 //          break;
 //        case llvm::Instruction::Trunc:
 //          itrunc(instruction, result);
 //          break;
-//        case llvm::Instruction::UDiv:
-//          udiv(instruction, result);
-//          break;
+        case llvm::Instruction::UDiv:
+        {
+            SimpleOr(instruction);
+            break;
+        }
 //        case llvm::Instruction::UIToFP:
 //          uitofp(instruction, result);
 //          break;
-//        case llvm::Instruction::URem:
-//          urem(instruction, result);
-//          break;
-//        case llvm::Instruction::Unreachable:
-//          FATAL_ERROR("Encountered unreachable instruction");
-//        case llvm::Instruction::Xor:
-//          bwxor(instruction, result);
-//          break;
+        case llvm::Instruction::URem:
+        {
+            SimpleOr(instruction);
+            break;
+        }
+        case llvm::Instruction::Unreachable:
+            FATAL_ERROR("Encountered unreachable instruction");
+        case llvm::Instruction::Xor:
+        {
+            SimpleOr(instruction);
+            break;
+        }
 //        case llvm::Instruction::ZExt:
 //          zext(instruction, result);
 //          break;
-        case llvm::Instruction::Unreachable:
-            FATAL_ERROR("Encountered unreachable instruction");
-        //default:
-            //FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
+        default:
+            FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
     }
 
+    dumpFunctionArgumentMap();
     dumpShadowMap();
-    dumpShadowMem();
+    dumpShadowMem(AddrSpacePrivate);
+    dumpShadowMem(AddrSpaceGlobal);
+}
+
+Memory *MemCheckUninitialized::getMemory(unsigned addrSpace)
+{
+    if(!ShadowMem.count(addrSpace))
+    {
+        FATAL_ERROR("Unsupported address space: %d", addrSpace);
+    }
+    else
+    {
+        return ShadowMem[addrSpace];
+    }
+}
+
+void MemCheckUninitialized::SimpleOr(const llvm::Instruction *I)
+{
+    for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
+    {
+        if(getShadow(OI->get()) != getCleanShadow(OI->get()))
+        {
+            setShadow(I, getPoisonedShadow(I));
+            return;
+        }
+    }
+
+    setShadow(I, getCleanShadow(I));
 }
 
 TypedValue MemCheckUninitialized::getCleanShadow(const llvm::Value *V) {
@@ -278,6 +395,19 @@ TypedValue MemCheckUninitialized::getCleanShadow(const llvm::Value *V) {
         size.first,
         size.second,
         m_pool.alloc(size.first*size.second)
+    };
+
+    memset(v.data, 0, v.size);
+
+    return v;
+}
+
+TypedValue MemCheckUninitialized::getCleanShadow(llvm::Type *Ty) {
+    unsigned size = getTypeSize(Ty);
+    TypedValue v = {
+        size,
+        1,
+        m_pool.alloc(size)
     };
 
     memset(v.data, 0, v.size);
@@ -298,117 +428,69 @@ TypedValue MemCheckUninitialized::getPoisonedShadow(const llvm::Value *V) {
     return v;
 }
 
-//llvm::Constant *MemCheckUninitialized::getPoisonedShadow(llvm::Type *ShadowTy) {
-//  assert(ShadowTy);
-//  if (llvm::isa<llvm::IntegerType>(ShadowTy) || llvm::isa<llvm::VectorType>(ShadowTy))
-//    return llvm::Constant::getAllOnesValue(ShadowTy);
-//  if (llvm::ArrayType *AT = llvm::dyn_cast<llvm::ArrayType>(ShadowTy)) {
-//    llvm::SmallVector<llvm::Constant *, 4> Vals(AT->getNumElements(),
-//                                    getPoisonedShadow(AT->getElementType()));
-//    return llvm::ConstantArray::get(AT, Vals);
-//  }
-//  if (llvm::StructType *ST = llvm::dyn_cast<llvm::StructType>(ShadowTy)) {
-//    llvm::SmallVector<llvm::Constant *, 4> Vals;
-//    for (unsigned i = 0, n = ST->getNumElements(); i < n; i++)
-//      Vals.push_back(getPoisonedShadow(ST->getElementType(i)));
-//    return llvm::ConstantStruct::get(ST, Vals);
-//  }
-//  llvm_unreachable("Unexpected shadow type");
-//}
-//
-///// \brief Create a dirty shadow for a given value.
-//llvm::Constant *MemCheckUninitialized::getPoisonedShadow(const llvm::Value *V) {
-//  llvm::Type *ShadowTy = getShadowTy(V);
-//  if (!ShadowTy)
-//    return nullptr;
-//  return getPoisonedShadow(ShadowTy);
-//}
-//
+TypedValue MemCheckUninitialized::getPoisonedShadow(llvm::Type *Ty) {
+    unsigned size = getTypeSize(Ty);
+    TypedValue v = {
+        size,
+        1,
+        m_pool.alloc(size)
+    };
+
+    memset(v.data, -1, v.size);
+
+    return v;
+}
+
 TypedValue MemCheckUninitialized::getShadow(const llvm::Value *V) {
-  if (const llvm::Instruction *I = llvm::dyn_cast<const llvm::Instruction>(V)) {
-    // For instructions the shadow is already stored in the map.
-    TypedValue Shadow = ShadowMap[V];
-    //FIXME: Add assertion
-    //if (!Shadow) {
-    //  (void)I;
-    //  assert(Shadow && "No shadow for a value");
-    //}
-    return Shadow;
-  }
-  if (const llvm::UndefValue *U = llvm::dyn_cast<const llvm::UndefValue>(V)) {
-    TypedValue AllOnes = getPoisonedShadow(V);
-    (void)U;
-    return AllOnes;
-  }
-  if (const llvm::Argument *A = llvm::dyn_cast<const llvm::Argument>(V)) {
-//    // For arguments we compute the shadow on demand and store it in the map.
-//    llvm::Value **ShadowPtr = &ShadowMap[V];
-//    if (*ShadowPtr)
-//      return *ShadowPtr;
-//    Function *F = A->getParent();
-//    IRBuilder<> EntryIRB(F->getEntryBlock().getFirstNonPHI());
-//    unsigned ArgOffset = 0;
-//    for (auto &FArg : F->args()) {
-//      if (!FArg.getType()->isSized()) {
-//        DEBUG(dbgs() << "Arg is not sized\n");
-//        continue;
-//      }
-//      unsigned Size = FArg.hasByValAttr()
-//        ? MS.DL->getTypeAllocSize(FArg.getType()->getPointerElementType())
-//        : MS.DL->getTypeAllocSize(FArg.getType());
-//      if (A == &FArg) {
-//        bool Overflow = ArgOffset + Size > kParamTLSSize;
-//        Value *Base = getShadowPtrForArgument(&FArg, EntryIRB, ArgOffset);
-//        if (FArg.hasByValAttr()) {
-//          // ByVal pointer itself has clean shadow. We copy the actual
-//          // argument shadow to the underlying memory.
-//          // Figure out maximal valid memcpy alignment.
-//          unsigned ArgAlign = FArg.getParamAlignment();
-//          if (ArgAlign == 0) {
-//            Type *EltType = A->getType()->getPointerElementType();
-//            ArgAlign = MS.DL->getABITypeAlignment(EltType);
-//          }
-//          if (Overflow) {
-//            // ParamTLS overflow.
-//            EntryIRB.CreateMemSet(
-//                getShadowPtr(V, EntryIRB.getInt8Ty(), EntryIRB),
-//                Constant::getNullValue(EntryIRB.getInt8Ty()), Size, ArgAlign);
-//          } else {
-//            unsigned CopyAlign = std::min(ArgAlign, kShadowTLSAlignment);
-//            Value *Cpy = EntryIRB.CreateMemCpy(
-//                getShadowPtr(V, EntryIRB.getInt8Ty(), EntryIRB), Base, Size,
-//                CopyAlign);
-//            DEBUG(dbgs() << "  ByValCpy: " << *Cpy << "\n");
-//            (void)Cpy;
-//          }
-//          *ShadowPtr = getCleanShadow(V);
-//        } else {
-//          if (Overflow) {
-//            // ParamTLS overflow.
-//            *ShadowPtr = getCleanShadow(V);
-//          } else {
-//            *ShadowPtr =
-//                EntryIRB.CreateAlignedLoad(Base, kShadowTLSAlignment);
-//          }
-//        }
-//        DEBUG(dbgs() << "  ARG:    "  << FArg << " ==> " <<
-//              **ShadowPtr << "\n");
-//        if (MS.TrackOrigins && !Overflow) {
-//          Value *OriginPtr =
-//              getOriginPtrForArgument(&FArg, EntryIRB, ArgOffset);
-//          setOrigin(A, EntryIRB.CreateLoad(OriginPtr));
-//        } else {
-//          setOrigin(A, getCleanOrigin());
-//        }
-//      }
-//      ArgOffset += RoundUpToAlignment(Size, kShadowTLSAlignment);
-//    }
-//    assert(*ShadowPtr && "Could not find shadow for an argument");
-//    return *ShadowPtr;
-    assert(false);
-  }
-  // For everything else the shadow is zero.
-  return getCleanShadow(V);
+    if (const llvm::Instruction *I = llvm::dyn_cast<const llvm::Instruction>(V)) {
+        // For instructions the shadow is already stored in the map.
+        assert(ShadowMap.count(V) && "No shadow for a value");
+        return ShadowMap[V];
+    }
+
+    if (const llvm::UndefValue *U = llvm::dyn_cast<const llvm::UndefValue>(V)) {
+        return getPoisonedShadow(V);
+    }
+
+    if (const llvm::Argument *A = llvm::dyn_cast<const llvm::Argument>(V)) {
+        // For arguments we compute the shadow on demand and store it in the map.
+        if(ShadowMap.count(V))
+        {
+            return ShadowMap[V];
+        }
+
+        TypedValue *ShadowPtr = &ShadowMap[V];
+        const llvm::Function *F = A->getParent();
+
+        for (auto &FArg : F->args())
+        {
+            if (!FArg.getType()->isSized())
+            {
+                continue;
+            }
+
+            if (A == &FArg)
+            {
+                if (FArg.hasByValAttr())
+                {
+                    // ByVal pointer itself has clean shadow. We copy the actual
+                    // argument shadow to the underlying memory.
+                    //FIXME: How to get address?
+                    //setShadowMem(address, FunctionArgumentMap[F][A]);
+                    *ShadowPtr = getCleanShadow(V);
+                }
+                else
+                {
+                    *ShadowPtr = FunctionArgumentMap[F][A];
+                }
+            }
+        }
+
+        return *ShadowPtr;
+    }
+
+    // For everything else the shadow is zero.
+    return getCleanShadow(V);
 }
 
 //llvm::Type *MemCheckUninitialized::getShadowTy(const llvm::Value *V) {
@@ -462,64 +544,15 @@ void MemCheckUninitialized::setShadow(const llvm::Value *V, TypedValue SV) {
   ShadowMap[V] = SV;
 }
 
-void MemCheckUninitialized::setShadowMem(size_t address, TypedValue SM)
+void MemCheckUninitialized::setShadowMem(unsigned addrSpace, size_t address, TypedValue SM)
 {
-    ShadowMem->store(SM.data, address, SM.size*SM.num);
+    getMemory(addrSpace)->store(SM.data, address, SM.size*SM.num);
 }
 
-void MemCheckUninitialized::getShadowMem(size_t address, TypedValue &SM)
+void MemCheckUninitialized::getShadowMem(unsigned addrSpace, size_t address, TypedValue &SM)
 {
-    ShadowMem->load(SM.data, address, SM.size*SM.num);
+    getMemory(addrSpace)->load(SM.data, address, SM.size*SM.num);
 }
-
-//bool MemCheckUninitialized::isCleanShadowMem(size_t address, unsigned size)
-//{
-//    size_t index = address >> 6;
-//    unsigned int offset = address & 0x3f;
-//    unsigned long mask;
-//
-//    if(offset + size < 63)
-//    {
-//        mask = ((1 << size) - 1) << offset;
-//
-//        return ((ShadowMem[index] | mask) == mask);
-//    }
-//    else
-//    {
-//        mask = ((unsigned long)-1) >> offset;
-//        
-//        if((ShadowMem[index] | mask) != mask)
-//        {
-//            return false;
-//        }
-//
-//        size -= 64 - offset;
-//        ++index;
-//
-//        while(size >= 64)
-//        {
-//            if(ShadowMem[index] != 0)
-//            {
-//                return false;
-//            }
-//
-//            ++index;
-//            size -= 64;
-//        }
-//
-//        if(size > 0)
-//        {
-//            mask = (1 << size) - 1;
-//
-//            if((ShadowMem[index] | mask) != mask)
-//            {
-//                return false;
-//            }
-//        }
-//
-//        return true;
-//    }
-//}
 
 void MemCheckUninitialized::logError(unsigned int addrSpace, size_t address) const
 {
