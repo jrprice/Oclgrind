@@ -214,6 +214,16 @@ namespace oclgrind
     }
   }
 
+  bool TypedValue::operator==(const TypedValue& rhs) const
+  {
+      return (size == rhs.size) && (num == rhs.num) && (memcmp(data, rhs.data, size*num) == 0);
+  }
+
+  bool TypedValue::operator!=(const TypedValue& rhs) const
+  {
+      return (size != rhs.size) || (num != rhs.num) || (memcmp(data, rhs.data, size*num) != 0);
+  }
+
   TypedValue TypedValue::clone() const
   {
     TypedValue result;
