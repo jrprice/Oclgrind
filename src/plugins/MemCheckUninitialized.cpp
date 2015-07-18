@@ -147,9 +147,30 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             SimpleOr(instruction);
             break;
         }
-//        case llvm::Instruction::AShr:
-//          ashr(instruction, result);
-//          break;
+        case llvm::Instruction::AShr:
+        {
+            TypedValue S0 = getShadow(instruction->getOperand(0));
+            TypedValue S1 = getShadow(instruction->getOperand(1));
+
+            if(S1 != getCleanShadow(instruction->getOperand(1)))
+            {
+                setShadow(instruction, getPoisonedShadow(instruction));
+            }
+            else
+            {
+                uint64_t shiftMask =
+                    (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t)))
+                    * 8 - 1;
+                for (unsigned i = 0; i < S0.num; i++)
+                {
+                    S0.setUInt(S0.getSInt(i) >> (S1.getUInt(i) & shiftMask), i);
+                }
+
+                setShadow(instruction, S0);
+            }
+
+            break;
+        }
 //        case llvm::Instruction::BitCast:
 //          bitcast(instruction, result);
 //          break;
@@ -328,9 +349,31 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             break;
         }
-//        case llvm::Instruction::LShr:
-//          lshr(instruction, result);
-//          break;
+        case llvm::Instruction::LShr:
+        {
+            TypedValue S0 = getShadow(instruction->getOperand(0));
+            TypedValue S1 = getShadow(instruction->getOperand(1));
+
+            if(S1 != getCleanShadow(instruction->getOperand(1)))
+            {
+                setShadow(instruction, getPoisonedShadow(instruction));
+            }
+            else
+            {
+                uint64_t shiftMask =
+                    (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t)))
+                    * 8 - 1;
+
+                for (unsigned i = 0; i < S0.num; i++)
+                {
+                    S0.setUInt(S0.getUInt(i) >> (S1.getUInt(i) & shiftMask), i);
+                }
+
+                setShadow(instruction, S0);
+            }
+
+            break;
+        }
         case llvm::Instruction::Mul:
         {
             SimpleOr(instruction);
@@ -379,9 +422,30 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::SExt:
 //          sext(instruction, result);
 //          break;
-//        case llvm::Instruction::Shl:
-//          shl(instruction, result);
-//          break;
+        case llvm::Instruction::Shl:
+        {
+            TypedValue S0 = getShadow(instruction->getOperand(0));
+            TypedValue S1 = getShadow(instruction->getOperand(1));
+
+            if(S1 != getCleanShadow(instruction->getOperand(1)))
+            {
+                setShadow(instruction, getPoisonedShadow(instruction));
+            }
+            else
+            {
+                uint64_t shiftMask =
+                    (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t)))
+                    * 8 - 1;
+                for (unsigned i = 0; i < S0.num; i++)
+                {
+                    S0.setUInt(S0.getUInt(i) << (S1.getUInt(i) & shiftMask), i);
+                }
+
+                setShadow(instruction, S0);
+            }
+
+            break;
+        }
 //        case llvm::Instruction::ShuffleVector:
 //          shuffle(instruction, result);
 //          break;
