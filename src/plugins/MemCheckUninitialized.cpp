@@ -419,9 +419,26 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::Select:
 //          select(instruction, result);
 //          break;
-//        case llvm::Instruction::SExt:
-//          sext(instruction, result);
-//          break;
+        case llvm::Instruction::SExt:
+        {
+            const llvm::Value *operand = instruction->getOperand(0);
+            TypedValue shadow = getShadow(operand);
+            TypedValue newShadow = result.clone();
+
+            for (unsigned i = 0; i < newShadow.num; i++)
+            {
+                int64_t val = shadow.getSInt(i);
+                if (operand->getType()->getPrimitiveSizeInBits() == 1)
+                {
+                    val = val ? -1 : 0;
+                }
+                newShadow.setSInt(val, i);
+            }
+
+            setShadow(instruction, newShadow);
+
+            break;
+        }
         case llvm::Instruction::Shl:
         {
             TypedValue S0 = getShadow(instruction->getOperand(0));
@@ -515,9 +532,19 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             SimpleOr(instruction);
             break;
         }
-//        case llvm::Instruction::ZExt:
-//          zext(instruction, result);
-//          break;
+        case llvm::Instruction::ZExt:
+        {
+            TypedValue shadow = getShadow(instruction->getOperand(0));
+            TypedValue newShadow = result.clone();
+
+            for (unsigned i = 0; i < newShadow.num; i++)
+            {
+                newShadow.setUInt(shadow.getUInt(i), i);
+            }
+
+            setShadow(instruction, newShadow);
+            break;
+        }
         default:
             FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
     }
