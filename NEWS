@@ -8,7 +8,9 @@ Placeholder text for next release.
 
 - Added plugin to detect loads from uninitialized memory locations
 - Added memoryMap and memoryUnmap plugin callbacks
+- Report invalid uses of mapped buffers inside kernels
 - Report invalid indices when accessing statically sized arrays
+- Improved coverage of race detection plugin
 - Fixed memcheck false-positive when writing to a write-only vector array
 - Various minor bug fixes
 
