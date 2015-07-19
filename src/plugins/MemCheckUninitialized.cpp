@@ -212,6 +212,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 // Compute the Shadow for arg even if it is ByVal, because
                 // in that case getShadow() will copy the actual arg shadow to
                 // FunctionArgumentMap
+                //FIXME: Clone shadow?
                 TypedValue ArgShadow = getShadow(Val);
                 //Value *ArgShadowBase = getShadowPtrForArgument(A, IRB, ArgOffset);
                 
@@ -293,18 +294,26 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::FMul:
 //          fmul(instruction, result);
 //          break;
-//        case llvm::Instruction::FPExt:
-//          fpext(instruction, result);
-//          break;
-//        case llvm::Instruction::FPToSI:
-//          fptosi(instruction, result);
-//          break;
-//        case llvm::Instruction::FPToUI:
-//          fptoui(instruction, result);
-//          break;
-//        case llvm::Instruction::FPTrunc:
-//          fptrunc(instruction, result);
-//          break;
+        case llvm::Instruction::FPExt:
+        {
+            SimpleOr(instruction);
+            break;
+        }
+        case llvm::Instruction::FPToSI:
+        {
+            SimpleOr(instruction);
+            break;
+        }
+        case llvm::Instruction::FPToUI:
+        {
+            SimpleOr(instruction);
+            break;
+        }
+        case llvm::Instruction::FPTrunc:
+        {
+            SimpleOr(instruction);
+            break;
+        }
 //        case llvm::Instruction::FRem:
 //          frem(instruction, result);
 //          break;
@@ -431,7 +440,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             //} else {
             const llvm::CallInst *callInst = CallInstructions.back();
             CallInstructions.pop_back();
-            setShadow(callInst, getShadow(RetVal));
+            setShadow(callInst, getShadow(RetVal).clone());
             //}
             break;
         }
