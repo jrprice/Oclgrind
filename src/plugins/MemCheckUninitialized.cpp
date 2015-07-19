@@ -328,7 +328,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(indexShadow != getCleanShadow(extractInst->getIndexOperand()))
             {
-                logError(1, 0);
+                logUninitializedWrite(1, 0);
             }
 
             TypedValue vectorShadow = getShadow(extractInst->getVectorOperand());
@@ -442,7 +442,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(indexShadow != getCleanShadow(instruction->getOperand(2)))
             {
-                logError(1, 0);
+                logUninitializedWrite(1, 0);
             }
 
             TypedValue vectorShadow = getShadow(instruction->getOperand(0));
@@ -709,7 +709,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(maskShadow != getCleanShadow(shuffleInst->getMask()))
             {
-                logError(1, 0);
+                logUninitializedWrite(1, 0);
             }
 
             const llvm::Value *v1 = shuffleInst->getOperand(0);
@@ -763,8 +763,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             {
                 if(getShadow(Val) != getCleanShadow(Val))
                 {
-                    //TODO:Better warning
-                    logError(addrSpace, address);
+                    logUninitializedWrite(addrSpace, address);
                 }
 
                 //TODO: What about this?
@@ -981,52 +980,6 @@ TypedValue MemCheckUninitialized::getShadow(const llvm::Value *V) {
     return getCleanShadow(V);
 }
 
-//llvm::Type *MemCheckUninitialized::getShadowTy(const llvm::Value *V) {
-//  return getShadowTy(V->getType());
-//}
-//
-//llvm::Type *MemCheckUninitialized::getShadowTy(llvm::Type *OrigTy) {
-//  if (!OrigTy->isSized()) {
-//      cout << "NO SIZE!" << endl;
-//    return nullptr;
-//  }
-//  // For integer type, shadow is the same as the original type.
-//  // This may return weird-sized types like i1.
-//  if (llvm::IntegerType *IT = llvm::dyn_cast<llvm::IntegerType>(OrigTy))
-//  {
-//      cout << "INTEGER!" << endl;
-//    return IT;
-//  }
-//  if (llvm::VectorType *VT = llvm::dyn_cast<llvm::VectorType>(OrigTy)) {
-//      cout << "VECTOR!" << endl;
-//    uint32_t EltSize = VT->getElementType()->getScalarSizeInBits();
-//    return llvm::VectorType::get(llvm::IntegerType::get(*llvmContext, EltSize),
-//                           VT->getNumElements());
-//  }
-//  if (llvm::ArrayType *AT = llvm::dyn_cast<llvm::ArrayType>(OrigTy)) {
-//      cout << "ARRAY!" << endl;
-//    return llvm::ArrayType::get(getShadowTy(AT->getElementType()),
-//                          AT->getNumElements());
-//  }
-//  if (llvm::StructType *ST = llvm::dyn_cast<llvm::StructType>(OrigTy)) {
-//      cout << "STRUCT!" << endl;
-//      llvm::SmallVector<llvm::Type*, 4> Elements;
-//    for (unsigned i = 0, n = ST->getNumElements(); i < n; i++)
-//      Elements.push_back(getShadowTy(ST->getElementType(i)));
-//    llvm::StructType *Res = llvm::StructType::get(*llvmContext, Elements, ST->isPacked());
-//    return Res;
-//  }
-//  if(llvm::PointerType *PT = llvm::dyn_cast<llvm::PointerType>(OrigTy)) {
-//    return llvm::PointerType::get(PT->getPointerElementType(), PT->getAddressSpace());
-//  }
-//  cout << "OTHER!" << endl;
-//  uint32_t TypeSize = OrigTy->getScalarSizeInBits();
-//  OrigTy->dump();
-//  cout << "TypeSize: " << TypeSize << endl;
-//  cout << "TypeID: " << OrigTy->getTypeID() << endl;
-//  return llvm::IntegerType::get(*llvmContext, TypeSize);
-//}
-
 void MemCheckUninitialized::setShadow(const llvm::Value *V, TypedValue SV) {
   assert(!ShadowMap.count(V) && "Values may only have one shadow");
   ShadowMap[V] = SV;
@@ -1049,7 +1002,7 @@ void MemCheckUninitialized::checkAllOperandsDefined(const llvm::Instruction *I)
     {
         if(getShadow(OI->get()) != getCleanShadow(OI->get()))
         {
-            logError(1, 2);
+            logUninitializedCF();
             return;
         }
     }
@@ -1079,12 +1032,23 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
     }
 }
 
-void MemCheckUninitialized::logError(unsigned int addrSpace, size_t address) const
+void MemCheckUninitialized::logUninitializedWrite(unsigned int addrSpace, size_t address) const
 {
   Context::Message msg(WARNING, m_context);
-  msg << "Uninitialized value read from "
+  msg << "Uninitialized value written to "
       << getAddressSpaceName(addrSpace)
       << " memory address 0x" << hex << address << endl
+      << msg.INDENT
+      << "Kernel: " << msg.CURRENT_KERNEL << endl
+      << "Entity: " << msg.CURRENT_ENTITY << endl
+      << msg.CURRENT_LOCATION << endl;
+  msg.send();
+}
+
+void MemCheckUninitialized::logUninitializedCF() const
+{
+  Context::Message msg(WARNING, m_context);
+  msg << "Controlflow depends on uninitialized value" << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
       << "Entity: " << msg.CURRENT_ENTITY << endl

@@ -55,6 +55,7 @@ namespace oclgrind
     void dumpFunctionArgumentMap();
     void dumpShadowMap();
     void dumpShadowMem(unsigned addrSpace);
-    void logError(unsigned int addrSpace, size_t address) const;
+    void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
+    void logUninitializedCF() const;
   };
 }
