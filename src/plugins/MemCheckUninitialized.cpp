@@ -276,9 +276,26 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             //}
             break;
         }
-//        case llvm::Instruction::ExtractElement:
-//          extractelem(instruction, result);
-//          break;
+        case llvm::Instruction::ExtractElement:
+        {
+            const llvm::ExtractElementInst *extractInst = ((const llvm::ExtractElementInst*)instruction);
+            
+            TypedValue indexShadow = getShadow(extractInst->getIndexOperand());
+
+            if(indexShadow != getCleanShadow(extractInst->getIndexOperand()))
+            {
+                logError(1, 0);
+            }
+
+            TypedValue vectorShadow = getShadow(extractInst->getVectorOperand());
+            TypedValue newShadow = result.clone();
+
+            unsigned index = workItem->getOperand(extractInst->getIndexOperand()).getUInt();
+            memcpy(newShadow.data, vectorShadow.data + newShadow.size*index, newShadow.size);
+
+            setShadow(instruction, newShadow);
+            break;
+        }
 //        case llvm::Instruction::ExtractValue:
 //          extractval(instruction, result);
 //          break;
@@ -326,9 +343,26 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::ICmp:
 //          icmp(instruction, result);
 //          break;
-//        case llvm::Instruction::InsertElement:
-//          insertelem(instruction, result);
-//          break;
+        case llvm::Instruction::InsertElement:
+        {
+            TypedValue indexShadow = getShadow(instruction->getOperand(2));
+
+            if(indexShadow != getCleanShadow(instruction->getOperand(2)))
+            {
+                logError(1, 0);
+            }
+
+            TypedValue vectorShadow = getShadow(instruction->getOperand(0));
+            TypedValue elementShadow = getShadow(instruction->getOperand(1));
+            TypedValue newShadow = result.clone();
+
+            unsigned index = workItem->getOperand(instruction->getOperand(2)).getUInt();
+            memcpy(newShadow.data, vectorShadow.data, newShadow.size*newShadow.num);
+            memcpy(newShadow.data + index*newShadow.size, elementShadow.data, newShadow.size);
+
+            setShadow(instruction, newShadow);
+            break;
+        }
 //        case llvm::Instruction::InsertValue:
 //          insertval(instruction, result);
 //          break;
@@ -497,9 +531,45 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             break;
         }
-//        case llvm::Instruction::ShuffleVector:
-//          shuffle(instruction, result);
-//          break;
+        case llvm::Instruction::ShuffleVector:
+        {
+            const llvm::ShuffleVectorInst *shuffleInst = (const llvm::ShuffleVectorInst*)instruction;
+
+            TypedValue maskShadow = getShadow(shuffleInst->getMask());
+
+            if(maskShadow != getCleanShadow(shuffleInst->getMask()))
+            {
+                logError(1, 0);
+            }
+
+            const llvm::Value *v1 = shuffleInst->getOperand(0);
+            const llvm::Value *v2 = shuffleInst->getOperand(1);
+            TypedValue mask = workItem->getOperand(shuffleInst->getMask());
+            TypedValue newShadow = result.clone();
+
+            unsigned num = v1->getType()->getVectorNumElements();
+            for (unsigned i = 0; i < newShadow.num; i++)
+            {
+                if (shuffleInst->getMask()->getAggregateElement(i)->getValueID() == llvm::Value::UndefValueVal)
+                {
+                    // Don't care / undef
+                    continue;
+                }
+
+                const llvm::Value *src = v1;
+                unsigned int index = mask.getUInt(i);
+                if (index >= num)
+                {
+                    index -= num;
+                    src = v2;
+                }
+
+                memcpy(newShadow.data + i*newShadow.size, getShadow(src).data + index*newShadow.size, newShadow.size);
+            }
+
+            setShadow(instruction, newShadow);
+            break;
+        }
 //        case llvm::Instruction::SIToFP:
 //          sitofp(instruction, result);
 //          break;
