@@ -647,9 +647,11 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             SimpleOr(instruction);
             break;
         }
-//        case llvm::Instruction::UIToFP:
-//          uitofp(instruction, result);
-//          break;
+        case llvm::Instruction::UIToFP:
+        {
+            SimpleOr(instruction);
+            break;
+        }
         case llvm::Instruction::URem:
         {
             SimpleOr(instruction);
