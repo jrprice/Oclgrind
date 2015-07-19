@@ -456,9 +456,44 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             setShadow(instruction, newShadow);
             break;
         }
-//        case llvm::Instruction::InsertValue:
-//          insertval(instruction, result);
-//          break;
+        case llvm::Instruction::InsertValue:
+        {
+            const llvm::InsertValueInst *insertInst = (const llvm::InsertValueInst*)instruction;
+
+            TypedValue newShadow = result.clone();
+
+            // Load original aggregate data
+            const llvm::Value *agg = insertInst->getAggregateOperand();
+            memcpy(newShadow.data, getShadow(agg).data, newShadow.size*newShadow.num);
+
+            // Compute offset for inserted value
+            int offset = 0;
+            llvm::ArrayRef<unsigned int> indices = insertInst->getIndices();
+            const llvm::Type *type = agg->getType();
+            for (unsigned i = 0; i < indices.size(); i++)
+            {
+                if (type->isArrayTy())
+                {
+                    type = type->getArrayElementType();
+                    offset += getTypeSize(type) * indices[i];
+                }
+                else if (type->isStructTy())
+                {
+                    offset += getStructMemberOffset((const llvm::StructType*)type, indices[i]);
+                    type = type->getStructElementType(indices[i]);
+                }
+                else
+                {
+                    FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
+                }
+            }
+
+            // Copy inserted value into result
+            const llvm::Value *value = insertInst->getInsertedValueOperand();
+            memcpy(newShadow.data + offset, getShadow(value).data, getTypeSize(value->getType()));
+
+            setShadow(instruction, newShadow);
+        }
         case llvm::Instruction::IntToPtr:
         {
             TypedValue shadow = getShadow(instruction->getOperand(0));
