@@ -43,7 +43,7 @@ namespace oclgrind
     //llvm::Type *getShadowTy(llvm::Type *OrigTy);
 
     void checkAllOperandsDefined(const llvm::Instruction *I);
-    void handleIntrinsicInstruction(const llvm::IntrinsicInst *I);
+    void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
 
     Memory *getMemory(unsigned addrSpace);
 

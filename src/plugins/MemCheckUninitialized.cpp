@@ -234,7 +234,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(const llvm::IntrinsicInst *II = llvm::dyn_cast<const llvm::IntrinsicInst>(instruction))
             {
-                handleIntrinsicInstruction(II);
+                handleIntrinsicInstruction(workItem, II);
                 break;
             }
 
@@ -1007,9 +1007,28 @@ void MemCheckUninitialized::checkAllOperandsDefined(const llvm::Instruction *I)
     }
 }
 
-void MemCheckUninitialized::handleIntrinsicInstruction(const llvm::IntrinsicInst *I)
+void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I)
 {
-    cout << "Intrinsic" << endl;
+    switch (I->getIntrinsicID())
+    {
+        case llvm::Intrinsic::memcpy:
+        {
+            const llvm::MemCpyInst *memcpyInst = (const llvm::MemCpyInst*)I;
+            size_t dest = workItem->getOperand(memcpyInst->getDest()).getPointer();
+            size_t src = workItem->getOperand(memcpyInst->getSource()).getPointer();
+            size_t size = workItem->getOperand(memcpyInst->getLength()).getUInt();
+            unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
+            unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
+
+            unsigned char *buffer = m_pool.alloc(size);
+            getMemory(srcAddrSpace)->load(buffer, src, size);
+            getMemory(destAddrSpace)->store(buffer, dest, size);
+
+            break;
+        }
+        default:
+            FATAL_ERROR("Unsupported intrinsic %s", llvm::Intrinsic::getName(I->getIntrinsicID()).c_str());
+    }
 }
 
 void MemCheckUninitialized::logError(unsigned int addrSpace, size_t address) const
