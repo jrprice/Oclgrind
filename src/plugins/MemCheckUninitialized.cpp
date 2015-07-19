@@ -158,22 +158,26 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
             else
             {
+                TypedValue newShadow = result.clone();
                 TypedValue Shift = workItem->getOperand(instruction->getOperand(1));
                 uint64_t shiftMask = (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t))) * 8 - 1;
 
                 for (unsigned i = 0; i < S0.num; i++)
                 {
-                    S0.setUInt(S0.getSInt(i) >> (Shift.getUInt(i) & shiftMask), i);
+                    newShadow.setUInt(S0.getSInt(i) >> (Shift.getUInt(i) & shiftMask), i);
                 }
 
-                setShadow(instruction, S0);
+                setShadow(instruction, newShadow);
             }
 
             break;
         }
-//        case llvm::Instruction::BitCast:
-//          bitcast(instruction, result);
-//          break;
+        case llvm::Instruction::BitCast:
+        {
+            TypedValue shadow = getShadow(instruction->getOperand(0));
+            setShadow(instruction, shadow.clone());
+            break;
+        }
 //        case llvm::Instruction::Br:
 //          br(instruction, result);
 //          break;
@@ -319,9 +323,19 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::InsertValue:
 //          insertval(instruction, result);
 //          break;
-//        case llvm::Instruction::IntToPtr:
-//          inttoptr(instruction, result);
-//          break;
+        case llvm::Instruction::IntToPtr:
+        {
+            TypedValue shadow = getShadow(instruction->getOperand(0));
+            TypedValue newShadow = result.clone();
+
+            for (unsigned i = 0; i < newShadow.num; i++)
+            {
+                newShadow.setPointer(shadow.getUInt(i), i);
+            }
+
+            setShadow(instruction, newShadow);
+            break;
+        }
         case llvm::Instruction::Load:
         {
             assert(instruction->getType()->isSized() && "Load type must have size");
@@ -360,15 +374,16 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
             else
             {
+                TypedValue newShadow = result.clone();
                 TypedValue Shift = workItem->getOperand(instruction->getOperand(1));
                 uint64_t shiftMask = (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t))) * 8 - 1;
 
                 for (unsigned i = 0; i < S0.num; i++)
                 {
-                    S0.setUInt(S0.getUInt(i) >> (Shift.getUInt(i) & shiftMask), i);
+                    newShadow.setUInt(S0.getUInt(i) >> (Shift.getUInt(i) & shiftMask), i);
                 }
 
-                setShadow(instruction, S0);
+                setShadow(instruction, newShadow);
             }
 
             break;
@@ -386,9 +401,19 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::PHI:
 //          phi(instruction, result);
 //          break;
-//        case llvm::Instruction::PtrToInt:
-//          ptrtoint(instruction, result);
-//          break;
+        case llvm::Instruction::PtrToInt:
+        {
+            TypedValue shadow = getShadow(instruction->getOperand(0));
+            TypedValue newShadow = result.clone();
+
+            for (unsigned i = 0; i < newShadow.num; i++)
+            {
+                newShadow.setUInt(shadow.getPointer(i), i);
+            }
+
+            setShadow(instruction, newShadow);
+            break;
+        }
         case llvm::Instruction::Ret:
         {
             const llvm::ReturnInst *retInst = ((const llvm::ReturnInst*)instruction);
@@ -449,15 +474,16 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
             else
             {
+                TypedValue newShadow = result.clone();
                 TypedValue Shift = workItem->getOperand(instruction->getOperand(1));
                 uint64_t shiftMask = (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t))) * 8 - 1;
 
                 for (unsigned i = 0; i < S0.num; i++)
                 {
-                    S0.setUInt(S0.getUInt(i) << (Shift.getUInt(i) & shiftMask), i);
+                    newShadow.setUInt(S0.getUInt(i) << (Shift.getUInt(i) & shiftMask), i);
                 }
 
-                setShadow(instruction, S0);
+                setShadow(instruction, newShadow);
             }
 
             break;
@@ -643,6 +669,7 @@ TypedValue MemCheckUninitialized::getPoisonedShadow(llvm::Type *Ty) {
 }
 
 TypedValue MemCheckUninitialized::getShadow(const llvm::Value *V) {
+    //FIXME: Do I have to clone the Shadows?
     if (const llvm::Instruction *I = llvm::dyn_cast<const llvm::Instruction>(V)) {
         // For instructions the shadow is already stored in the map.
         assert(ShadowMap.count(V) && "No shadow for a value");
