@@ -493,6 +493,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             memcpy(newShadow.data + offset, getShadow(value).data, getTypeSize(value->getType()));
 
             setShadow(instruction, newShadow);
+            break;
         }
         case llvm::Instruction::IntToPtr:
         {
@@ -569,9 +570,21 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             SimpleOr(instruction);
             break;
         }
-//        case llvm::Instruction::PHI:
-//          phi(instruction, result);
-//          break;
+        case llvm::Instruction::PHI:
+        {
+            //FIXME: m_position is private
+            //const llvm::PHINode *phiNode = (const llvm::PHINode*)instruction;
+            //const llvm::Value *value = phiNode->getIncomingValueForBlock(
+            //        (const llvm::BasicBlock*)m_position->prevBlock);
+
+            //TypedValue newShadow = result.clone();
+
+            //memcpy(newShadow.data, getShadow(value).data, newShadow.size*newShadow.num);
+            //setShadow(instruction, newShadow);
+
+            setShadow(instruction, getCleanShadow(instruction));
+            break;
+        }
         case llvm::Instruction::PtrToInt:
         {
             TypedValue shadow = getShadow(instruction->getOperand(0));
