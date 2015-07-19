@@ -508,9 +508,19 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::Switch:
 //          swtch(instruction, result);
 //          break;
-//        case llvm::Instruction::Trunc:
-//          itrunc(instruction, result);
-//          break;
+        case llvm::Instruction::Trunc:
+        {
+            TypedValue shadow = getShadow(instruction->getOperand(0));
+            TypedValue newShadow = result.clone();
+
+            for (unsigned i = 0; i < newShadow.num; i++)
+            {
+                memcpy(newShadow.data+i*newShadow.size, shadow.data+i*shadow.size, newShadow.size);
+            }
+
+            setShadow(instruction, newShadow);
+            break;
+        }
         case llvm::Instruction::UDiv:
         {
             SimpleOr(instruction);
