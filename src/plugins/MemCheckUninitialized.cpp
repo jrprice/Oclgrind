@@ -299,18 +299,26 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::ExtractValue:
 //          extractval(instruction, result);
 //          break;
-//        case llvm::Instruction::FAdd:
-//          fadd(instruction, result);
-//          break;
-//        case llvm::Instruction::FCmp:
-//          fcmp(instruction, result);
-//          break;
-//        case llvm::Instruction::FDiv:
-//          fdiv(instruction, result);
-//          break;
-//        case llvm::Instruction::FMul:
-//          fmul(instruction, result);
-//          break;
+        case llvm::Instruction::FAdd:
+        {
+            SimpleOr(instruction);
+            break;
+        }
+        case llvm::Instruction::FCmp:
+        {
+            SimpleOr(instruction);
+            break;
+        }
+        case llvm::Instruction::FDiv:
+        {
+            SimpleOr(instruction);
+            break;
+        }
+        case llvm::Instruction::FMul:
+        {
+            SimpleOr(instruction);
+            break;
+        }
         case llvm::Instruction::FPExt:
         {
             SimpleOr(instruction);
@@ -331,12 +339,16 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             SimpleOr(instruction);
             break;
         }
-//        case llvm::Instruction::FRem:
-//          frem(instruction, result);
-//          break;
-//        case llvm::Instruction::FSub:
-//          fsub(instruction, result);
-//          break;
+        case llvm::Instruction::FRem:
+        {
+            SimpleOr(instruction);
+            break;
+        }
+        case llvm::Instruction::FSub:
+        {
+            SimpleOr(instruction);
+            break;
+        }
 //        case llvm::Instruction::GetElementPtr:
 //          gep(instruction, result);
 //          break;
@@ -570,9 +582,11 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             setShadow(instruction, newShadow);
             break;
         }
-//        case llvm::Instruction::SIToFP:
-//          sitofp(instruction, result);
-//          break;
+        case llvm::Instruction::SIToFP:
+        {
+            SimpleOr(instruction);
+            break;
+        }
         case llvm::Instruction::SRem:
         {
             SimpleOr(instruction);
