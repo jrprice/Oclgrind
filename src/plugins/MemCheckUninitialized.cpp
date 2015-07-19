@@ -352,9 +352,11 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 //        case llvm::Instruction::GetElementPtr:
 //          gep(instruction, result);
 //          break;
-//        case llvm::Instruction::ICmp:
-//          icmp(instruction, result);
-//          break;
+        case llvm::Instruction::ICmp:
+        {
+            SimpleOr(instruction);
+            break;
+        }
         case llvm::Instruction::InsertElement:
         {
             TypedValue indexShadow = getShadow(instruction->getOperand(2));
