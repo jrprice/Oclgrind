@@ -8,6 +8,7 @@
 
 #include "core/Plugin.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/IntrinsicInst.h"
 
 namespace oclgrind
 {
@@ -20,7 +21,9 @@ namespace oclgrind
       virtual void instructionExecuted(const WorkItem *workItem,
                                        const llvm::Instruction *instruction,
                                        const TypedValue& result) override;
-
+      //virtual void memoryAllocated(const Memory *memory, size_t address,
+      //                             size_t size, cl_mem_flags flags,
+      //                             const uint8_t *initData);
   private:
     llvm::LLVMContext *llvmContext;
     std::map<unsigned, Memory*> ShadowMem;
@@ -40,6 +43,7 @@ namespace oclgrind
     //llvm::Type *getShadowTy(llvm::Type *OrigTy);
 
     void checkAllOperandsDefined(const llvm::Instruction *I);
+    void handleIntrinsicInstruction(const llvm::IntrinsicInst *I);
 
     Memory *getMemory(unsigned addrSpace);
 

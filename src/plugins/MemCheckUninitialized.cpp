@@ -16,7 +16,6 @@
 
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/Type.h"
@@ -25,6 +24,13 @@
 
 using namespace oclgrind;
 using namespace std;
+
+//void MemCheckUninitialized::memoryAllocated(const Memory *memory, size_t address,
+//                                 size_t size, cl_mem_flags flags,
+//                                 const uint8_t *initData)
+//{
+//    cout << "Memory: " << memory << ", address: " << hex << address << dec << ", size: " << size << endl;
+//}
 
 void MemCheckUninitialized::dumpFunctionArgumentMap()
 {
@@ -89,29 +95,59 @@ MemCheckUninitialized::MemCheckUninitialized(const Context *context)
 
 void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation)
 {
-    const llvm::Function *F = kernelInvocation->getKernel()->getFunction();
-
+    const Kernel *kernel = kernelInvocation->getKernel();
     unsigned ArgNum = 0;
 
-    for (auto &FArg : F->args()) {
-        if (!FArg.getType()->isSized()) {
-            continue;
-        }
-
-        FunctionArgumentMap[F][ArgNum] = getCleanShadow(&FArg);
-
-        if(FArg.getType()->isPointerTy())
+    // Initialise kernel arguments and global variables
+    for (auto value = kernel->values_begin(); value != kernel->values_end(); value++)
+    {
+        if(const llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(value->first))
         {
-            llvm::Type *eltType = FArg.getType()->getPointerElementType();
-            unsigned Size = FArg.hasByValAttr()
-                ? getTypeSize(eltType)
-                : getTypeSize(FArg.getType());
-            size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(Size);
-            //TODO: Clean or poisoned?
-            setShadowMem(AddrSpaceGlobal, address, getCleanShadow(eltType));
-        }
+            llvm::Type *argType = A->getType();
 
-        ++ArgNum;
+            if(argType->isSized())
+            {
+                FunctionArgumentMap[A->getParent()][ArgNum] = getCleanShadow(A);
+
+                if(argType->isPointerTy())
+                {
+                    llvm::Type *eltType = argType->getPointerElementType();
+                    unsigned Size = A->hasByValAttr() ? getTypeSize(eltType) : getTypeSize(argType);
+                    size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(Size);
+                    //TODO: Clean or poisoned?
+                    setShadowMem(AddrSpaceGlobal, address, getCleanShadow(eltType));
+                }
+
+                ++ArgNum;
+            }
+        }
+        else
+        {
+            pair<unsigned,unsigned> size = getValueSize(value->first);
+            //TypedValue v = {
+            //    size.first,
+            //    size.second,
+            //    m_pool.alloc(size.first*size.second)
+            //};
+
+            const llvm::Type *type = value->first->getType();
+            if (type->isPointerTy() && type->getPointerAddressSpace() == AddrSpacePrivate)
+            {
+                size_t sz = value->second.size*value->second.num;
+                size_t address = getMemory(AddrSpacePrivate)->allocateBuffer(sz);
+                //TODO: Clean or poisoned?
+                setShadowMem(AddrSpacePrivate, address, getCleanShadow(value->first));
+            }
+            //else if (type->isPointerTy() &&
+            //        type->getPointerAddressSpace() == AddrSpaceLocal)
+            //{
+            //    v.setPointer(m_workGroup->getLocalMemoryAddress(value->first));
+            //}
+            //else
+            //{
+            //    memcpy(v.data, value->second.data, v.size*v.num);
+            //}
+        }
     }
 }
 
@@ -193,7 +229,13 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             if (callInst->isInlineAsm()) {
                 //TODO: Do something!
                 //visitInstruction(I);
-                return;
+                break;
+            }
+
+            if(const llvm::IntrinsicInst *II = llvm::dyn_cast<const llvm::IntrinsicInst>(instruction))
+            {
+                handleIntrinsicInstruction(II);
+                break;
             }
 
             assert(!llvm::isa<const llvm::IntrinsicInst>(instruction) && "intrinsics are handled elsewhere");
@@ -298,9 +340,42 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             setShadow(instruction, newShadow);
             break;
         }
-//        case llvm::Instruction::ExtractValue:
-//          extractval(instruction, result);
-//          break;
+        case llvm::Instruction::ExtractValue:
+        {
+            const llvm::ExtractValueInst *extractInst = ((const llvm::ExtractValueInst*)instruction);
+
+            const llvm::Value *Agg = extractInst->getAggregateOperand();
+            TypedValue ResShadow = result.clone();
+
+            llvm::ArrayRef<unsigned int> indices = extractInst->getIndices();
+
+            // Compute offset for target value
+            int offset = 0;
+            const llvm::Type *type = Agg->getType();
+            for (unsigned i = 0; i < indices.size(); i++)
+            {
+                if (type->isArrayTy())
+                {
+                    type = type->getArrayElementType();
+                    offset += getTypeSize(type) * indices[i];
+                }
+                else if (type->isStructTy())
+                {
+                    offset += getStructMemberOffset((const llvm::StructType*)type, indices[i]);
+                    type = type->getStructElementType(indices[i]);
+                }
+                else
+                {
+                    FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
+                }
+            }
+
+            // Copy target value to result
+            memcpy(ResShadow.data, getShadow(Agg).data + offset, getTypeSize(type));
+
+            setShadow(instruction, ResShadow);
+            break;
+        }
         case llvm::Instruction::FAdd:
         {
             SimpleOr(instruction);
@@ -912,7 +987,6 @@ void MemCheckUninitialized::setShadow(const llvm::Value *V, TypedValue SV) {
 
 void MemCheckUninitialized::setShadowMem(unsigned addrSpace, size_t address, TypedValue SM)
 {
-    cout << "Store " << SM << " at " << hex << address << dec << " with size " << SM.size << " and num " << SM.num << endl;
     getMemory(addrSpace)->store(SM.data, address, SM.size*SM.num);
 }
 
@@ -931,6 +1005,11 @@ void MemCheckUninitialized::checkAllOperandsDefined(const llvm::Instruction *I)
             return;
         }
     }
+}
+
+void MemCheckUninitialized::handleIntrinsicInstruction(const llvm::IntrinsicInst *I)
+{
+    cout << "Intrinsic" << endl;
 }
 
 void MemCheckUninitialized::logError(unsigned int addrSpace, size_t address) const
