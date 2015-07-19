@@ -40,7 +40,7 @@ void MemCheckUninitialized::dumpFunctionArgumentMap()
 
         for(itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2)
         {
-            cout << "   " << itr2->first << ": " << hex << itr2->second.getUInt() << endl;
+            cout << "   " << itr2->first << ": " << itr2->second << endl;
         }
     }
 
@@ -59,11 +59,11 @@ void MemCheckUninitialized::dumpShadowMap()
     {
         if(itr->first->hasName())
         {
-            cout << "%" << itr->first->getName().str() << ": " << hex << itr->second.getUInt() << endl;
+            cout << "%" << itr->first->getName().str() << ": " << itr->second << endl;
         }
         else
         {
-            cout << "%" << num++ << ": " << hex << itr->second.getUInt() << endl;
+            cout << "%" << num++ << ": " << itr->second << endl;
         }
     }
 
@@ -158,12 +158,12 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
             else
             {
-                uint64_t shiftMask =
-                    (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t)))
-                    * 8 - 1;
+                TypedValue Shift = workItem->getOperand(instruction->getOperand(1));
+                uint64_t shiftMask = (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t))) * 8 - 1;
+
                 for (unsigned i = 0; i < S0.num; i++)
                 {
-                    S0.setUInt(S0.getSInt(i) >> (S1.getUInt(i) & shiftMask), i);
+                    S0.setUInt(S0.getSInt(i) >> (Shift.getUInt(i) & shiftMask), i);
                 }
 
                 setShadow(instruction, S0);
@@ -360,13 +360,12 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
             else
             {
-                uint64_t shiftMask =
-                    (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t)))
-                    * 8 - 1;
+                TypedValue Shift = workItem->getOperand(instruction->getOperand(1));
+                uint64_t shiftMask = (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t))) * 8 - 1;
 
                 for (unsigned i = 0; i < S0.num; i++)
                 {
-                    S0.setUInt(S0.getUInt(i) >> (S1.getUInt(i) & shiftMask), i);
+                    S0.setUInt(S0.getUInt(i) >> (Shift.getUInt(i) & shiftMask), i);
                 }
 
                 setShadow(instruction, S0);
@@ -450,12 +449,12 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
             else
             {
-                uint64_t shiftMask =
-                    (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t)))
-                    * 8 - 1;
+                TypedValue Shift = workItem->getOperand(instruction->getOperand(1));
+                uint64_t shiftMask = (S0.num > 1 ? S0.size : max((size_t)S0.size, sizeof(uint32_t))) * 8 - 1;
+
                 for (unsigned i = 0; i < S0.num; i++)
                 {
-                    S0.setUInt(S0.getUInt(i) << (S1.getUInt(i) & shiftMask), i);
+                    S0.setUInt(S0.getUInt(i) << (Shift.getUInt(i) & shiftMask), i);
                 }
 
                 setShadow(instruction, S0);
