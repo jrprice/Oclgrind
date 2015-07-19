@@ -49,21 +49,21 @@ void MemCheckUninitialized::dumpFunctionArgumentMap()
 
 void MemCheckUninitialized::dumpShadowMap()
 {
-    TypedValueMap::iterator itr;
+    std::list<const llvm::Value*>::iterator itr;
 
     cout << "==== ShadowMap =======" << endl;
 
     unsigned num = 1;
 
-    for(itr = ShadowMap.begin(); itr != ShadowMap.end(); ++itr)
+    for(itr = ShadowList.begin(); itr != ShadowList.end(); ++itr)
     {
-        if(itr->first->hasName())
+        if((*itr)->hasName())
         {
-            cout << "%" << itr->first->getName().str() << ": " << itr->second << endl;
+            cout << "%" << (*itr)->getName().str() << ": " << ShadowMap.at(*itr) << endl;
         }
         else
         {
-            cout << "%" << num++ << ": " << itr->second << endl;
+            cout << "%" << dec << num++ << ": " << ShadowMap.at(*itr) << endl;
         }
     }
 
@@ -178,9 +178,11 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             setShadow(instruction, shadow.clone());
             break;
         }
-//        case llvm::Instruction::Br:
-//          br(instruction, result);
-//          break;
+        case llvm::Instruction::Br:
+        {
+            checkAllOperandsDefined(instruction);
+            break;
+        }
         case llvm::Instruction::Call:
         {
             const llvm::CallInst *callInst = ((const llvm::CallInst*)instruction);
@@ -349,9 +351,11 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             SimpleOr(instruction);
             break;
         }
-//        case llvm::Instruction::GetElementPtr:
-//          gep(instruction, result);
-//          break;
+        case llvm::Instruction::GetElementPtr:
+        {
+            SimpleOr(instruction);
+            break;
+        }
         case llvm::Instruction::ICmp:
         {
             SimpleOr(instruction);
@@ -497,9 +501,38 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             SimpleOr(instruction);
             break;
         }
-//        case llvm::Instruction::Select:
-//          select(instruction, result);
-//          break;
+        case llvm::Instruction::Select:
+        {
+            const llvm::SelectInst *selectInst = (const llvm::SelectInst*)instruction;
+
+            TypedValue opCondition = workItem->getOperand(selectInst->getCondition());
+            TypedValue conditionShadow = getShadow(selectInst->getCondition());
+            TypedValue newShadow = result.clone();
+
+            if(conditionShadow != getCleanShadow(selectInst->getCondition()))
+            {
+                newShadow = getPoisonedShadow(instruction);
+            }
+            else
+            {
+                for (unsigned i = 0; i < result.num; i++)
+                {
+                    const bool cond = selectInst->getCondition()->getType()->isVectorTy() ?
+                        opCondition.getUInt(i) :
+                        opCondition.getUInt();
+                    const llvm::Value *op = cond ?
+                        selectInst->getTrueValue() :
+                        selectInst->getFalseValue();
+
+                    memcpy(newShadow.data + i*newShadow.size,
+                            getShadow(op).data + i*newShadow.size,
+                            newShadow.size);
+                }
+            }
+
+            setShadow(instruction, newShadow);
+            break;
+        }
         case llvm::Instruction::SExt:
         {
             const llvm::Value *operand = instruction->getOperand(0);
@@ -626,9 +659,11 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             SimpleOr(instruction);
             break;
         }
-//        case llvm::Instruction::Switch:
-//          swtch(instruction, result);
-//          break;
+        case llvm::Instruction::Switch:
+        {
+            checkAllOperandsDefined(instruction);
+            break;
+        }
         case llvm::Instruction::Trunc:
         {
             TypedValue shadow = getShadow(instruction->getOperand(0));
@@ -721,7 +756,7 @@ TypedValue MemCheckUninitialized::getCleanShadow(const llvm::Value *V) {
         m_pool.alloc(size.first*size.second)
     };
 
-    memset(v.data, 0, v.size);
+    memset(v.data, 0, v.size*v.num);
 
     return v;
 }
@@ -747,7 +782,7 @@ TypedValue MemCheckUninitialized::getPoisonedShadow(const llvm::Value *V) {
         m_pool.alloc(size.first*size.second)
     };
 
-    memset(v.data, -1, v.size);
+    memset(v.data, -1, v.size*v.num);
 
     return v;
 }
@@ -872,16 +907,30 @@ TypedValue MemCheckUninitialized::getShadow(const llvm::Value *V) {
 void MemCheckUninitialized::setShadow(const llvm::Value *V, TypedValue SV) {
   assert(!ShadowMap.count(V) && "Values may only have one shadow");
   ShadowMap[V] = SV;
+  ShadowList.push_back(V);
 }
 
 void MemCheckUninitialized::setShadowMem(unsigned addrSpace, size_t address, TypedValue SM)
 {
+    cout << "Store " << SM << " at " << hex << address << dec << " with size " << SM.size << " and num " << SM.num << endl;
     getMemory(addrSpace)->store(SM.data, address, SM.size*SM.num);
 }
 
 void MemCheckUninitialized::getShadowMem(unsigned addrSpace, size_t address, TypedValue &SM)
 {
     getMemory(addrSpace)->load(SM.data, address, SM.size*SM.num);
+}
+
+void MemCheckUninitialized::checkAllOperandsDefined(const llvm::Instruction *I)
+{
+    for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
+    {
+        if(getShadow(OI->get()) != getCleanShadow(OI->get()))
+        {
+            logError(1, 2);
+            return;
+        }
+    }
 }
 
 void MemCheckUninitialized::logError(unsigned int addrSpace, size_t address) const

@@ -26,6 +26,7 @@ namespace oclgrind
     std::map<unsigned, Memory*> ShadowMem;
     mutable MemoryPool m_pool;
     TypedValueMap ShadowMap;
+    std::list<const llvm::Value*> ShadowList;
     std::map<const llvm::Function*, std::map<unsigned, TypedValue> > FunctionArgumentMap;
     std::vector<const llvm::CallInst*> CallInstructions;
 
@@ -37,6 +38,8 @@ namespace oclgrind
     void setShadow(const llvm::Value *V, TypedValue SV);
     //llvm::Type *getShadowTy(const llvm::Value *V);
     //llvm::Type *getShadowTy(llvm::Type *OrigTy);
+
+    void checkAllOperandsDefined(const llvm::Instruction *I);
 
     Memory *getMemory(unsigned addrSpace);
 

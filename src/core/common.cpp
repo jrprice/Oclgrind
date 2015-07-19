@@ -227,7 +227,7 @@ namespace oclgrind
           {
               for(int i = tv.size - 1; i >= 0; --i)
               {
-                  stream << hex << uppercase << setw(2) << setfill('0') << (int)tv.data[i];
+                  stream << hex << uppercase << setw(2) << setfill('0') << (int)*(tv.data + tv.size * n + i);
               }
 
               if(n != tv.num - 1)
