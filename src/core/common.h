@@ -120,6 +120,8 @@ namespace oclgrind
     bool operator==(const TypedValue& rhs) const;
     bool operator!=(const TypedValue& rhs) const;
 
+    friend std::ostream& operator<<(std::ostream& stream, const TypedValue& tv);
+
     struct TypedValue clone() const;
 
     double   getFloat(unsigned index = 0) const;
