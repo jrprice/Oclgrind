@@ -463,13 +463,27 @@ const unsigned char* WorkItem::getValueData(const llvm::Value *value) const
 
 const llvm::Value* WorkItem::getVariable(std::string name) const
 {
+  // Check private variables
   VariableMap::const_iterator itr;
   itr = m_variables.find(name);
-  if (itr == m_variables.end())
+  if (itr != m_variables.end())
+    return itr->second;
+
+  // Check global variables
+  string globalName = m_position->currBlock->getParent()->getName();
+  globalName += ".";
+  globalName += name;
+  const llvm::Module *module =
+    m_kernelInvocation->getKernel()->getFunction()->getParent();
+  for (auto global = module->global_begin();
+            global != module->global_end();
+            global++)
   {
-    return NULL;
+    if (global->getName() == globalName)
+      return global;
   }
-  return itr->second;
+
+  return NULL;
 }
 
 const WorkGroup* WorkItem::getWorkGroup() const
@@ -507,15 +521,15 @@ bool WorkItem::printVariable(string name) const
   TypedValue result = getValue(value);
   const llvm::Type *type = value->getType();
 
-  if (((const llvm::Instruction*)value)->getOpcode()
-       == llvm::Instruction::Alloca)
+  if (value->getValueID() == llvm::Value::GlobalVariableVal ||
+      ((const llvm::Instruction*)value)->getOpcode()
+         == llvm::Instruction::Alloca)
   {
-    // If value is alloca result, look-up data at address
-    const llvm::Type *elemType = value->getType()->getPointerElementType();
+    // If value is alloca or global variable, look-up data at address
     size_t address = result.getPointer();
-
-    unsigned char *data = (unsigned char*)m_privateMemory->getPointer(address);
-    printTypedData(elemType, data);
+    Memory *memory = getMemory(value->getType()->getPointerAddressSpace());
+    unsigned char *data = (unsigned char*)memory->getPointer(address);
+    printTypedData(value->getType()->getPointerElementType(), data);
   }
   else
   {
