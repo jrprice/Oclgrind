@@ -867,19 +867,27 @@ bool InteractiveDebugger::print(vector<string> args)
         cout << "not found" << endl;
         return false;
       }
+
       const llvm::Type *ptrType = ptr->getType();
+      unsigned addrSpace = ptrType->getPointerAddressSpace();
 
       // Check for alloca instruction, in which case look at allocated type
       bool alloca = false;
+      if (ptr->getValueID() == llvm::Value::GlobalVariableVal)
+      {
+        ptrType = ptrType->getPointerElementType();
+      }
       if (ptr->getValueID() >= llvm::Value::InstructionVal &&
           ((llvm::Instruction*)ptr)->getOpcode() == llvm::Instruction::Alloca)
       {
         ptrType = ((const llvm::AllocaInst*)ptr)->getAllocatedType();
+        if (ptrType->isPointerTy())
+          addrSpace = ptrType->getPointerAddressSpace();
         alloca = true;
       }
 
       // Ensure type is a pointer
-      if (!ptrType->isPointerTy())
+      if (!ptrType->isPointerTy() && !ptrType->isArrayTy())
       {
         cout << "not a pointer" << endl;
         return false;
@@ -891,12 +899,12 @@ bool InteractiveDebugger::print(vector<string> args)
       {
         // Load base address from private memory
         workItem->getPrivateMemory()->load((unsigned char*)&base,
-                                                    base, sizeof(size_t));
+                                           base, sizeof(size_t));
       }
 
       // Get target memory object
       Memory *memory = NULL;
-      switch (ptrType->getPointerAddressSpace())
+      switch (addrSpace)
       {
       case AddrSpacePrivate:
         memory = workItem->getPrivateMemory();
