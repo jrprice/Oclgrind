@@ -14,7 +14,6 @@
 #include "core/Kernel.h"
 #include "core/KernelInvocation.h"
 
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Argument.h"
@@ -69,7 +68,6 @@ MemCheckUninitialized::MemCheckUninitialized(const Context *context)
 {
     ShadowMem[AddrSpacePrivate] = new Memory(AddrSpacePrivate, sizeof(size_t)==8 ? 32 : 16, context);
     ShadowMem[AddrSpaceGlobal] = new Memory(AddrSpaceGlobal, sizeof(size_t)==8 ? 16 : 8, context);
-    llvmContext = new llvm::LLVMContext();
 }
 
 void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation)
@@ -87,11 +85,8 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
             {
                 if(argType->isPointerTy())
                 {
-                    //FIXME: Size is not known! Just make it work for the moment
-                    unsigned Size = 8;
-                    size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(Size);
-                    //TODO: Clean or poisoned?
-                    setShadowMem(AddrSpaceGlobal, address, getCleanShadow(A->getType()));
+                    //FIXME: Need to allocate something to synchronise memory
+                    getMemory(AddrSpaceGlobal)->allocateBuffer(1);
                 }
 
                 setShadow(A, getCleanShadow(A));
@@ -120,10 +115,8 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
             }
             else if(type->getPointerAddressSpace() == AddrSpaceConstant)
             {
-                size_t sz = value->second.size*value->second.num;
-                size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(sz);
-                //TODO: Clean or poisoned?
-                setShadowMem(AddrSpaceGlobal, address, getPoisonedShadow(value->first));
+                //FIXME: Need to allocate something to synchronise memory
+                size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(1);
                 //TODO: Do I have to set the shadow?
                 setShadow(value->first, getCleanShadow(value->first));
             }
@@ -715,21 +708,17 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             size_t address = workItem->getOperand(Addr).getPointer();
             unsigned addrSpace = storeInst->getPointerAddressSpace();
 
+            TypedValue shadowVal = storeInst->isAtomic() ? getCleanShadow(Val) : getShadow(Val);
+
             if(addrSpace == AddrSpaceGlobal)
             {
-                if(getShadow(Val) != getCleanShadow(Val))
+                if(shadowVal != getCleanShadow(Val))
                 {
                     logUninitializedWrite(addrSpace, address);
                 }
+            }
 
-                //TODO: What about this?
-                //setShadowMem(address, getCleanShadow(Val));
-            }
-            else
-            {
-                TypedValue shadowVal = storeInst->isAtomic() ? getCleanShadow(Val) : getShadow(Val);
-                setShadowMem(addrSpace, address, shadowVal);
-            }
+            setShadowMem(addrSpace, address, shadowVal);
             break;
         }
         case llvm::Instruction::Sub:
@@ -908,12 +897,24 @@ void MemCheckUninitialized::setShadow(const llvm::Value *V, TypedValue SV) {
 
 void MemCheckUninitialized::setShadowMem(unsigned addrSpace, size_t address, TypedValue SM)
 {
-    getMemory(addrSpace)->store(SM.data, address, SM.size*SM.num);
+    // Only write to private memory as these others are always clean
+    if(addrSpace == AddrSpacePrivate)
+    {
+        getMemory(addrSpace)->store(SM.data, address, SM.size*SM.num);
+    }
 }
 
 void MemCheckUninitialized::getShadowMem(unsigned addrSpace, size_t address, TypedValue &SM)
 {
-    getMemory(addrSpace)->load(SM.data, address, SM.size*SM.num);
+    // Assume global memory is always clean!
+    if(addrSpace != AddrSpacePrivate)
+    {
+        memset(SM.data, 0, SM.size*SM.num);
+    }
+    else
+    {
+        getMemory(addrSpace)->load(SM.data, address, SM.size*SM.num);
+    }
 }
 
 void MemCheckUninitialized::checkAllOperandsDefined(const llvm::Instruction *I)

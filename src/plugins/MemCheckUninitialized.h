@@ -25,7 +25,6 @@ namespace oclgrind
       //                             size_t size, cl_mem_flags flags,
       //                             const uint8_t *initData);
   private:
-    llvm::LLVMContext *llvmContext;
     std::map<unsigned, Memory*> ShadowMem;
     mutable MemoryPool m_pool;
     TypedValueMap ShadowMap;
