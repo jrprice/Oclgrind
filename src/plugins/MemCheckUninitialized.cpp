@@ -947,6 +947,9 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
 
             break;
         }
+        case llvm::Intrinsic::dbg_declare:
+            //Do nothing
+            break;
         default:
             FATAL_ERROR("Unsupported intrinsic %s", llvm::Intrinsic::getName(I->getIntrinsicID()).c_str());
     }
