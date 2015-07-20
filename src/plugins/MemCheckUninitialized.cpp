@@ -32,26 +32,26 @@ using namespace std;
 //    cout << "Memory: " << memory << ", address: " << hex << address << dec << ", size: " << size << endl;
 //}
 
-void MemCheckUninitialized::dumpFunctionArgumentMap()
-{
-    std::map<const llvm::Function*, std::map<unsigned, TypedValue> >::iterator itr;
-
-    cout << "==== Arguments ======" << endl;
-
-    for(itr = FunctionArgumentMap.begin(); itr != FunctionArgumentMap.end(); ++itr)
-    {
-        cout << "F: " << itr->first->getName().str() << endl;
-
-        std::map<unsigned, TypedValue>::iterator itr2;
-
-        for(itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2)
-        {
-            cout << "   " << itr2->first << ": " << itr2->second << endl;
-        }
-    }
-
-    cout << "=======================" << endl;
-}
+//void MemCheckUninitialized::dumpFunctionArgumentMap()
+//{
+//    std::map<const llvm::Function*, std::map<unsigned, TypedValue> >::iterator itr;
+//
+//    cout << "==== Arguments ======" << endl;
+//
+//    for(itr = FunctionArgumentMap.begin(); itr != FunctionArgumentMap.end(); ++itr)
+//    {
+//        cout << "F: " << itr->first->getName().str() << endl;
+//
+//        std::map<unsigned, TypedValue>::iterator itr2;
+//
+//        for(itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2)
+//        {
+//            cout << "   " << itr2->first << ": " << itr2->second << endl;
+//        }
+//    }
+//
+//    cout << "=======================" << endl;
+//}
 
 void MemCheckUninitialized::dumpShadowMap()
 {
@@ -96,7 +96,6 @@ MemCheckUninitialized::MemCheckUninitialized(const Context *context)
 void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation)
 {
     const Kernel *kernel = kernelInvocation->getKernel();
-    unsigned ArgNum = 0;
 
     // Initialise kernel arguments and global variables
     for (auto value = kernel->values_begin(); value != kernel->values_end(); value++)
@@ -107,8 +106,6 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
 
             if(argType->isSized())
             {
-                FunctionArgumentMap[A->getParent()][ArgNum] = getCleanShadow(A);
-
                 if(argType->isPointerTy())
                 {
                     llvm::Type *eltType = argType->getPointerElementType();
@@ -118,12 +115,12 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                     setShadowMem(AddrSpaceGlobal, address, getCleanShadow(eltType));
                 }
 
-                ++ArgNum;
+                setShadow(A, getCleanShadow(A));
             }
         }
         else
         {
-            pair<unsigned,unsigned> size = getValueSize(value->first);
+            //pair<unsigned,unsigned> size = getValueSize(value->first);
             //TypedValue v = {
             //    size.first,
             //    size.second,
@@ -137,6 +134,8 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                 size_t address = getMemory(AddrSpacePrivate)->allocateBuffer(sz);
                 //TODO: Clean or poisoned?
                 setShadowMem(AddrSpacePrivate, address, getCleanShadow(value->first));
+                //TODO: Do I have to set the shadow?
+                setShadow(value->first, getCleanShadow(value->first));
             }
             //else if (type->isPointerTy() &&
             //        type->getPointerAddressSpace() == AddrSpaceLocal)
@@ -149,6 +148,10 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
             //}
         }
     }
+
+    dumpShadowMap();
+    dumpShadowMem(AddrSpacePrivate);
+    dumpShadowMem(AddrSpaceGlobal);
 }
 
 void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
@@ -222,12 +225,23 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         case llvm::Instruction::Call:
         {
             const llvm::CallInst *callInst = ((const llvm::CallInst*)instruction);
+            const llvm::Function *function = callInst->getCalledFunction();
+
+            //TODO: What is this?
+            // Check for indirect function calls
+            if (!callInst->getCalledFunction())
+            {
+                // Resolve indirect function pointer
+                const llvm::Value *func = callInst->getCalledValue();
+                const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
+                function = (const llvm::Function*)funcPtr;
+            }
 
             // For inline asm, do the usual thing: check argument shadow and mark all
             // outputs as clean. Note that any side effects of the inline asm that are
             // not immediately visible in its constraints are not handled.
             if (callInst->isInlineAsm()) {
-                //TODO: Do something!
+                //FIXME: Do something!
                 //visitInstruction(I);
                 break;
             }
@@ -240,49 +254,33 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             assert(!llvm::isa<const llvm::IntrinsicInst>(instruction) && "intrinsics are handled elsewhere");
 
-            unsigned ArgNum = 0;
-
-            for (auto &U : callInst->arg_operands())
+            llvm::Function::const_arg_iterator argItr;
+            for (argItr = function->arg_begin(); argItr != function->arg_end(); argItr++)
             {
-                llvm::Value *Val = U.get();
+                const llvm::Value *Val = callInst->getArgOperand(argItr->getArgNo());
 
                 if (!Val->getType()->isSized())
                 {
-                    ++ArgNum;
                     continue;
                 }
-                unsigned Size = 0;
-                llvm::Value *Store = nullptr;
-                // Compute the Shadow for arg even if it is ByVal, because
-                // in that case getShadow() will copy the actual arg shadow to
-                // FunctionArgumentMap
-                //FIXME: Clone shadow?
-                TypedValue ArgShadow = getShadow(Val);
-                //Value *ArgShadowBase = getShadowPtrForArgument(A, IRB, ArgOffset);
-                
-                if(callInst->paramHasAttr(ArgNum, llvm::Attribute::ByVal))
+
+                if(argItr->hasByValAttr())
                 {
                     assert(Val->getType()->isPointerTy() && "ByVal argument is not a pointer!");
-                    Size = getTypeSize(Val->getType()->getPointerElementType());
-                    
-                    //size_t address = workItem->getOperand(A).getPointer();
+                    // Make new copy of shadow in private memory
+                    size_t origShadowAddress = workItem->getOperand(Val).getPointer();
+                    void *origShadowData = getMemory(AddrSpacePrivate)->getPointer(origShadowAddress);
+                    size_t size = getTypeSize(argItr->getType()->getPointerElementType());
 
-                    //TODO: Copy memory
-                    //TypedValue v;
-                    //getShadowMem(AddrSpacePrivate, address, v);
-                    //setShadowMem(AddrSpacePrivate, address, v);
+                    // Set new shadow memory
+                    getMemory(AddrSpacePrivate)->allocateBuffer(size, 0, (uint8_t*)origShadowData);
 
-                    //Store = IRB.CreateMemCpy(ArgShadowBase,
-                    //        getShadowPtr(A, Type::getInt8Ty(*MS.C), IRB),
-                    //        Size, Alignment);
+                    setShadow(argItr, getCleanShadow(argItr));
                 }
                 else
                 {
-                    //FIXME:Recursive calls break
-                    FunctionArgumentMap[callInst->getCalledFunction()][ArgNum] = ArgShadow;
+                    setShadow(argItr, getShadow(Val).clone());
                 }
-
-                ++ArgNum;
             }
 
             //FunctionType *FT =
@@ -294,7 +292,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             // Now, get the shadow for the RetVal.
             if(!callInst->getType()->isSized())
             {
-                return;
+                break;
             }
 
             // Until we have full dynamic coverage, make sure the retval shadow is 0.
@@ -517,13 +515,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             size_t address = workItem->getOperand(Addr).getPointer();
             unsigned addrSpace = loadInst->getPointerAddressSpace();
 
-            TypedValue v = {
-                result.size,
-                result.num,
-                m_pool.alloc(result.size*result.num)
-            };
-
-            //FIXME: Does not work for function arguments
+            TypedValue v = result.clone();
             getShadowMem(addrSpace, address, v);
             setShadow(instruction, v);
 
@@ -838,7 +830,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
     }
 
-    dumpFunctionArgumentMap();
+    //dumpFunctionArgumentMap();
     dumpShadowMap();
     dumpShadowMem(AddrSpacePrivate);
     dumpShadowMem(AddrSpaceGlobal);
@@ -923,57 +915,20 @@ TypedValue MemCheckUninitialized::getPoisonedShadow(llvm::Type *Ty) {
 }
 
 TypedValue MemCheckUninitialized::getShadow(const llvm::Value *V) {
-    //FIXME: Do I have to clone the Shadows?
-    if (const llvm::Instruction *I = llvm::dyn_cast<const llvm::Instruction>(V)) {
+    if (llvm::isa<llvm::Instruction>(V)) {
         // For instructions the shadow is already stored in the map.
         assert(ShadowMap.count(V) && "No shadow for a value");
         return ShadowMap[V];
     }
 
-    if (const llvm::UndefValue *U = llvm::dyn_cast<const llvm::UndefValue>(V)) {
+    if (llvm::isa<llvm::UndefValue>(V)) {
         return getPoisonedShadow(V);
     }
 
-    if (const llvm::Argument *A = llvm::dyn_cast<const llvm::Argument>(V)) {
-        // For arguments we compute the shadow on demand and store it in the map.
-        if(ShadowMap.count(V))
-        {
-            return ShadowMap[V];
-        }
-
-        TypedValue *ShadowPtr = &ShadowMap[V];
-        const llvm::Function *F = A->getParent();
-
-        unsigned ArgNum = 0;
-
-        for (auto &FArg : F->args())
-        {
-            if (!FArg.getType()->isSized())
-            {
-                ++ArgNum;
-                continue;
-            }
-
-            if (A == &FArg)
-            {
-                if (FArg.hasByValAttr())
-                {
-                    // ByVal pointer itself has clean shadow. We copy the actual
-                    // argument shadow to the underlying memory.
-                    //FIXME: How to get address?
-                    //setShadowMem(address, FunctionArgumentMap[F][A]);
-                    *ShadowPtr = getCleanShadow(V);
-                }
-                else
-                {
-                    *ShadowPtr = FunctionArgumentMap[F][ArgNum];
-                }
-            }
-
-            ++ArgNum;
-        }
-
-        return *ShadowPtr;
+    if (llvm::isa<llvm::Argument>(V)) {
+        // For instructions the shadow is already stored in the map.
+        assert(ShadowMap.count(V) && "No shadow for a value");
+        return ShadowMap[V];
     }
 
     // For everything else the shadow is zero.

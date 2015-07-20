@@ -30,7 +30,7 @@ namespace oclgrind
     mutable MemoryPool m_pool;
     TypedValueMap ShadowMap;
     std::list<const llvm::Value*> ShadowList;
-    std::map<const llvm::Function*, std::map<unsigned, TypedValue> > FunctionArgumentMap;
+    //std::map<const llvm::Function*, std::map<unsigned, TypedValue> > FunctionArgumentMap;
     std::vector<const llvm::CallInst*> CallInstructions;
 
     TypedValue getCleanShadow(const llvm::Value *V);
@@ -52,7 +52,7 @@ namespace oclgrind
 
     void SimpleOr(const llvm::Instruction *I);
 
-    void dumpFunctionArgumentMap();
+    //void dumpFunctionArgumentMap();
     void dumpShadowMap();
     void dumpShadowMem(unsigned addrSpace);
     void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
