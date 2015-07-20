@@ -680,6 +680,20 @@ namespace oclgrind
     case llvm::Type::PointerTyID:
       cout << "0x" << hex << *(size_t*)data;
       break;
+    case llvm::Type::ArrayTyID:
+    {
+      const llvm::Type *elemType = type->getArrayElementType();
+      unsigned elemSize = getTypeSize(elemType);
+      cout << "{";
+      for (unsigned i = 0; i < type->getArrayNumElements(); i++)
+      {
+        if (i > 0)
+          cout << ",";
+        printTypedData(elemType, data+i*elemSize);
+      }
+      cout << "}";
+      break;
+    }
     default:
       cout << "(raw) 0x" << hex << uppercase << setfill('0');
       for (unsigned i = 0; i < size; i++)
