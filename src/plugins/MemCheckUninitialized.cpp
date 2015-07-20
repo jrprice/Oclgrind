@@ -58,7 +58,7 @@ void MemCheckUninitialized::dumpShadowMem(unsigned addrSpace)
 {
     cout << "====== ShadowMem(" << getAddressSpaceName(addrSpace) << ") ======";
 
-    getMemory(addrSpace)->dump();
+    getShadowMemory(addrSpace)->dump();
 
     cout << "=======================" << endl;
 }
@@ -66,8 +66,7 @@ void MemCheckUninitialized::dumpShadowMem(unsigned addrSpace)
 MemCheckUninitialized::MemCheckUninitialized(const Context *context)
  : Plugin(context), ShadowMap()
 {
-    ShadowMem[AddrSpacePrivate] = new Memory(AddrSpacePrivate, sizeof(size_t)==8 ? 32 : 16, context);
-    ShadowMem[AddrSpaceGlobal] = new Memory(AddrSpaceGlobal, sizeof(size_t)==8 ? 16 : 8, context);
+    ShadowMem[AddrSpacePrivate] = new ShadowMemory(sizeof(size_t)==8 ? 32 : 16);
 }
 
 void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation)
@@ -79,23 +78,13 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
     {
         if(const llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(value->first))
         {
-            llvm::Type *argType = A->getType();
-
-            if(argType->isSized())
+            if(A->getType()->isSized())
             {
-                if(argType->isPointerTy())
-                {
-                    //FIXME: Need to allocate something to synchronise memory
-                    getMemory(AddrSpaceGlobal)->allocateBuffer(1);
-                }
-
                 setShadow(A, getCleanShadow(A));
             }
         }
         else
         {
-            value->first->dump();
-
             //pair<unsigned,unsigned> size = getValueSize(value->first);
             //TypedValue v = {
             //    size.first,
@@ -106,17 +95,16 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
             const llvm::Type *type = value->first->getType();
             if (type->isPointerTy() && type->getPointerAddressSpace() == AddrSpacePrivate)
             {
-                size_t sz = value->second.size*value->second.num;
-                size_t address = getMemory(AddrSpacePrivate)->allocateBuffer(sz);
+                size_t address = value->second.getPointer();
                 //TODO: Clean or poisoned?
-                setShadowMem(AddrSpacePrivate, address, getCleanShadow(value->first));
+                storeShadowMemory(AddrSpacePrivate, address, getCleanShadow(value->first));
                 //TODO: Do I have to set the shadow?
                 setShadow(value->first, getCleanShadow(value->first));
             }
             else if(type->getPointerAddressSpace() == AddrSpaceConstant)
             {
                 //FIXME: Need to allocate something to synchronise memory
-                size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(1);
+                //size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(1);
                 //TODO: Do I have to set the shadow?
                 setShadow(value->first, getCleanShadow(value->first));
             }
@@ -125,16 +113,17 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
             //{
             //    v.setPointer(m_workGroup->getLocalMemoryAddress(value->first));
             //}
-            //else
-            //{
+            else
+            {
+                value->first->dump();
+                FATAL_ERROR("Missing initialization");
             //    memcpy(v.data, value->second.data, v.size*v.num);
-            //}
+            }
         }
     }
 
     dumpShadowMap();
     dumpShadowMem(AddrSpacePrivate);
-    dumpShadowMem(AddrSpaceGlobal);
 }
 
 void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
@@ -160,8 +149,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             setShadow(instruction, getCleanShadow(instruction));
 
             TypedValue v = getPoisonedShadow(allocaInst->getAllocatedType());
-            getMemory(AddrSpacePrivate)->allocateBuffer(v.size*v.num);
-            setShadowMem(AddrSpacePrivate, address, v);
+            storeShadowMemory(AddrSpacePrivate, address, v);
             break;
         }
         case llvm::Instruction::And:
@@ -251,14 +239,14 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 if(argItr->hasByValAttr())
                 {
                     assert(Val->getType()->isPointerTy() && "ByVal argument is not a pointer!");
-                    // Make new copy of shadow in private memory
+                    //// Make new copy of shadow in private memory
                     size_t origShadowAddress = workItem->getOperand(Val).getPointer();
-                    void *origShadowData = getMemory(AddrSpacePrivate)->getPointer(origShadowAddress);
+                    size_t newShadowAddress = workItem->getOperand(argItr).getPointer();
+                    unsigned char *origShadowData = (unsigned char*)getShadowMemory(AddrSpacePrivate)->getPointer(origShadowAddress);
                     size_t size = getTypeSize(argItr->getType()->getPointerElementType());
 
-                    // Set new shadow memory
-                    getMemory(AddrSpacePrivate)->allocateBuffer(size, 0, (uint8_t*)origShadowData);
-
+                    //// Set new shadow memory
+                    getShadowMemory(AddrSpacePrivate)->store(origShadowData, newShadowAddress, size);
                     setShadow(argItr, getCleanShadow(argItr));
                 }
                 else
@@ -473,7 +461,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             unsigned addrSpace = loadInst->getPointerAddressSpace();
 
             TypedValue v = result.clone();
-            getShadowMem(addrSpace, address, v);
+            loadShadowMemory(addrSpace, address, v);
             setShadow(instruction, v);
 
 //            if (ClCheckAccessAddress)
@@ -587,7 +575,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
             else
             {
-                for (unsigned i = 0; i < result.num; i++)
+                for(unsigned i = 0; i < result.num; i++)
                 {
                     const bool cond = selectInst->getCondition()->getType()->isVectorTy() ?
                         opCondition.getUInt(i) :
@@ -718,7 +706,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 }
             }
 
-            setShadowMem(addrSpace, address, shadowVal);
+            storeShadowMemory(addrSpace, address, shadowVal);
             break;
         }
         case llvm::Instruction::Sub:
@@ -785,10 +773,9 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
     dumpShadowMap();
     dumpShadowMem(AddrSpacePrivate);
-    dumpShadowMem(AddrSpaceGlobal);
 }
 
-Memory *MemCheckUninitialized::getMemory(unsigned addrSpace)
+ShadowMemory *MemCheckUninitialized::getShadowMemory(unsigned addrSpace)
 {
     switch(addrSpace)
     {
@@ -796,7 +783,6 @@ Memory *MemCheckUninitialized::getMemory(unsigned addrSpace)
             return ShadowMem[AddrSpacePrivate];
         case AddrSpaceGlobal:
         case AddrSpaceConstant:
-            return ShadowMem[AddrSpaceGlobal];
         default:
             FATAL_ERROR("Unsupported address space: %d", addrSpace);
     }
@@ -874,12 +860,10 @@ TypedValue MemCheckUninitialized::getShadow(const llvm::Value *V) {
         assert(ShadowMap.count(V) && "No shadow for a value");
         return ShadowMap[V];
     }
-
-    if (llvm::isa<llvm::UndefValue>(V)) {
+    else if (llvm::isa<llvm::UndefValue>(V)) {
         return getPoisonedShadow(V);
     }
-
-    if (llvm::isa<llvm::Argument>(V)) {
+    else if (llvm::isa<llvm::Argument>(V)) {
         // For arguments the shadow is already stored in the map.
         assert(ShadowMap.count(V) && "No shadow for a value");
         return ShadowMap[V];
@@ -895,16 +879,16 @@ void MemCheckUninitialized::setShadow(const llvm::Value *V, TypedValue SV) {
   ShadowList.push_back(V);
 }
 
-void MemCheckUninitialized::setShadowMem(unsigned addrSpace, size_t address, TypedValue SM)
+void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM)
 {
     // Only write to private memory as these others are always clean
     if(addrSpace == AddrSpacePrivate)
     {
-        getMemory(addrSpace)->store(SM.data, address, SM.size*SM.num);
+        getShadowMemory(addrSpace)->store(SM.data, address, SM.size*SM.num);
     }
 }
 
-void MemCheckUninitialized::getShadowMem(unsigned addrSpace, size_t address, TypedValue &SM)
+void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM)
 {
     // Assume global memory is always clean!
     if(addrSpace != AddrSpacePrivate)
@@ -913,7 +897,7 @@ void MemCheckUninitialized::getShadowMem(unsigned addrSpace, size_t address, Typ
     }
     else
     {
-        getMemory(addrSpace)->load(SM.data, address, SM.size*SM.num);
+        getShadowMemory(addrSpace)->load(SM.data, address, SM.size*SM.num);
     }
 }
 
@@ -943,8 +927,8 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
             unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
 
             unsigned char *buffer = m_pool.alloc(size);
-            getMemory(srcAddrSpace)->load(buffer, src, size);
-            getMemory(destAddrSpace)->store(buffer, dest, size);
+            getShadowMemory(srcAddrSpace)->load(buffer, src, size);
+            getShadowMemory(destAddrSpace)->store(buffer, dest, size);
 
             break;
         }
@@ -1000,4 +984,121 @@ void MemCheckUninitialized::logUninitializedMask() const
       << "Entity: " << msg.CURRENT_ENTITY << endl
       << msg.CURRENT_LOCATION << endl;
   msg.send();
+}
+
+ShadowMemory::ShadowMemory(unsigned bufferBits) :
+    m_numBitsBuffer(bufferBits), m_numBitsAddress((sizeof(size_t)<<3) - bufferBits)
+{
+
+}
+
+ShadowMemory::~ShadowMemory()
+{
+    MemoryMap::iterator itr;
+    for(itr = m_memory.begin(); itr != m_memory.end(); itr++)
+    {
+#ifdef ALLOW_DUMP
+        delete[] itr->second.second;
+#else
+        delete[] itr->second;
+#endif
+    }
+}
+
+void ShadowMemory::load(unsigned char *dst, size_t address, size_t size) const
+{
+    size_t index = extractBuffer(address);
+    size_t offset = extractOffset(address);
+
+    assert(m_memory.count(index) && "No shadow memory found!");
+
+#ifdef ALLOW_DUMP
+    unsigned char *src = m_memory[index].second;
+#else
+    unsigned char *src = m_memory[index];
+#endif
+
+    memcpy(dst, src + offset, size);
+}
+
+void ShadowMemory::store(const unsigned char *src, size_t address, size_t size)
+{
+    size_t index = extractBuffer(address);
+    size_t offset = extractOffset(address);
+
+    if(!m_memory.count(index))
+    {
+        allocate(address, size);
+    }
+
+#ifdef ALLOW_DUMP
+    unsigned char *dst = m_memory[index].second;
+#else
+    unsigned char *dst = m_memory[index];
+#endif
+
+    memcpy(dst + offset, src, size);
+}
+
+void ShadowMemory::allocate(size_t address, size_t size)
+{
+    size_t index = extractBuffer(address);
+
+#ifdef ALLOW_DUMP
+    m_memory[index] = std::pair<size_t, unsigned char*>(size, new unsigned char[size]);
+#else
+    m_memory[index] = new unsigned char[size];
+#endif
+}
+
+size_t ShadowMemory::extractBuffer(size_t address) const
+{
+    return (address >> m_numBitsAddress);
+}
+
+size_t ShadowMemory::extractOffset(size_t address) const
+{
+    return (address & (((size_t)-1) >> m_numBitsBuffer));
+}
+
+void* ShadowMemory::getPointer(size_t address) const
+{
+    size_t index = extractBuffer(address);
+    size_t offset= extractOffset(address);
+
+    assert(m_memory.count(index) && "No shadow memory found!");
+
+#ifdef ALLOW_DUMP
+    return m_memory[index].second + offset;
+#else
+    return m_memory[index] + offset;
+#endif
+}
+
+void ShadowMemory::dump() const
+{
+#ifdef ALLOW_DUMP
+    for(unsigned b = 0; b < m_memory.size(); b++)
+    {
+        if(!m_memory[b+1].second)
+        {
+            continue;
+        }
+
+        for(unsigned i = 0; i < m_memory[b+1].first; i++)
+        {
+            if (i%4 == 0)
+            {
+                cout << endl << hex << uppercase
+                    << setw(16) << setfill(' ') << right
+                    << ((((size_t)b+1)<<m_numBitsAddress) | i) << ":";
+            }
+            cout << " " << hex << uppercase << setw(2) << setfill('0')
+                << (int)m_memory[b+1].second[i];
+        }
+    }
+    cout << endl;
+#else
+    cout << "Dump not activated!" << endl;
+#endif
 }

@@ -12,47 +12,74 @@
 
 namespace oclgrind
 {
-  class MemCheckUninitialized : public Plugin
-  {
-  public:
-      MemCheckUninitialized(const Context *context);
+    class ShadowMemory
+    {
+#define ALLOW_DUMP
+        public:
+            ShadowMemory(unsigned bufferBits);
+            virtual ~ShadowMemory();
+            void dump() const;
+            void* getPointer(size_t address) const;
+            void load(unsigned char *dst, size_t address, size_t size=1) const;
+            void store(const unsigned char *src, size_t address, size_t size=1);
 
-      virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
-      virtual void instructionExecuted(const WorkItem *workItem,
-                                       const llvm::Instruction *instruction,
-                                       const TypedValue& result) override;
-      //virtual void memoryAllocated(const Memory *memory, size_t address,
-      //                             size_t size, cl_mem_flags flags,
-      //                             const uint8_t *initData);
-  private:
-    std::map<unsigned, Memory*> ShadowMem;
-    mutable MemoryPool m_pool;
-    TypedValueMap ShadowMap;
-    std::list<const llvm::Value*> ShadowList;
-    std::vector<const llvm::CallInst*> CallInstructions;
+        private:
+#ifdef ALLOW_DUMP
+            typedef std::map<size_t, std::pair<size_t, unsigned char*> > MemoryMap;
+#else
+            typedef std::map<size_t, unsigned char*> MemoryMap;
+#endif
 
-    TypedValue getCleanShadow(const llvm::Value *V);
-    TypedValue getCleanShadow(llvm::Type *Ty);
-    TypedValue getPoisonedShadow(const llvm::Value *V);
-    TypedValue getPoisonedShadow(llvm::Type *Ty);
-    TypedValue getShadow(const llvm::Value *V);
-    void setShadow(const llvm::Value *V, TypedValue SV);
+            mutable MemoryMap m_memory;
+            unsigned m_numBitsBuffer;
+            unsigned m_numBitsAddress;
 
-    void checkAllOperandsDefined(const llvm::Instruction *I);
-    void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
+            void allocate(size_t address, size_t size);
+            size_t extractBuffer(size_t address) const;
+            size_t extractOffset(size_t address) const;
+    };
 
-    Memory *getMemory(unsigned addrSpace);
+    class MemCheckUninitialized : public Plugin
+    {
+        public:
+            MemCheckUninitialized(const Context *context);
 
-    void setShadowMem(unsigned addrSpace, size_t address, TypedValue SM);
-    void getShadowMem(unsigned addrSpace, size_t address, TypedValue &SM);
+            virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
+            virtual void instructionExecuted(const WorkItem *workItem,
+                    const llvm::Instruction *instruction,
+                    const TypedValue& result) override;
+            //virtual void memoryAllocated(const Memory *memory, size_t address,
+            //                             size_t size, cl_mem_flags flags,
+            //                             const uint8_t *initData);
+        private:
+            std::map<unsigned, ShadowMemory*> ShadowMem;
+            mutable MemoryPool m_pool;
+            TypedValueMap ShadowMap;
+            std::list<const llvm::Value*> ShadowList;
+            std::vector<const llvm::CallInst*> CallInstructions;
 
-    void SimpleOr(const llvm::Instruction *I);
+            TypedValue getCleanShadow(const llvm::Value *V);
+            TypedValue getCleanShadow(llvm::Type *Ty);
+            TypedValue getPoisonedShadow(const llvm::Value *V);
+            TypedValue getPoisonedShadow(llvm::Type *Ty);
+            TypedValue getShadow(const llvm::Value *V);
+            void setShadow(const llvm::Value *V, TypedValue SV);
 
-    void dumpShadowMap();
-    void dumpShadowMem(unsigned addrSpace);
-    void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
-    void logUninitializedCF() const;
-    void logUninitializedIndex() const;
-    void logUninitializedMask() const;
-  };
+            void checkAllOperandsDefined(const llvm::Instruction *I);
+            void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
+
+            ShadowMemory *getShadowMemory(unsigned addrSpace);
+
+            void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM);
+            void loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM);
+
+            void SimpleOr(const llvm::Instruction *I);
+
+            void dumpShadowMap();
+            void dumpShadowMem(unsigned addrSpace);
+            void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
+            void logUninitializedCF() const;
+            void logUninitializedIndex() const;
+            void logUninitializedMask() const;
+    };
 }
