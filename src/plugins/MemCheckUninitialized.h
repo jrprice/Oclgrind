@@ -30,7 +30,6 @@ namespace oclgrind
     mutable MemoryPool m_pool;
     TypedValueMap ShadowMap;
     std::list<const llvm::Value*> ShadowList;
-    //std::map<const llvm::Function*, std::map<unsigned, TypedValue> > FunctionArgumentMap;
     std::vector<const llvm::CallInst*> CallInstructions;
 
     TypedValue getCleanShadow(const llvm::Value *V);
@@ -39,8 +38,6 @@ namespace oclgrind
     TypedValue getPoisonedShadow(llvm::Type *Ty);
     TypedValue getShadow(const llvm::Value *V);
     void setShadow(const llvm::Value *V, TypedValue SV);
-    //llvm::Type *getShadowTy(const llvm::Value *V);
-    //llvm::Type *getShadowTy(llvm::Type *OrigTy);
 
     void checkAllOperandsDefined(const llvm::Instruction *I);
     void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
@@ -52,10 +49,11 @@ namespace oclgrind
 
     void SimpleOr(const llvm::Instruction *I);
 
-    //void dumpFunctionArgumentMap();
     void dumpShadowMap();
     void dumpShadowMem(unsigned addrSpace);
     void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
     void logUninitializedCF() const;
+    void logUninitializedIndex() const;
+    void logUninitializedMask() const;
   };
 }

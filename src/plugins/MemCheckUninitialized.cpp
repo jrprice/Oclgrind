@@ -32,27 +32,6 @@ using namespace std;
 //    cout << "Memory: " << memory << ", address: " << hex << address << dec << ", size: " << size << endl;
 //}
 
-//void MemCheckUninitialized::dumpFunctionArgumentMap()
-//{
-//    std::map<const llvm::Function*, std::map<unsigned, TypedValue> >::iterator itr;
-//
-//    cout << "==== Arguments ======" << endl;
-//
-//    for(itr = FunctionArgumentMap.begin(); itr != FunctionArgumentMap.end(); ++itr)
-//    {
-//        cout << "F: " << itr->first->getName().str() << endl;
-//
-//        std::map<unsigned, TypedValue>::iterator itr2;
-//
-//        for(itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2)
-//        {
-//            cout << "   " << itr2->first << ": " << itr2->second << endl;
-//        }
-//    }
-//
-//    cout << "=======================" << endl;
-//}
-
 void MemCheckUninitialized::dumpShadowMap()
 {
     std::list<const llvm::Value*>::iterator itr;
@@ -227,7 +206,6 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             const llvm::CallInst *callInst = ((const llvm::CallInst*)instruction);
             const llvm::Function *function = callInst->getCalledFunction();
 
-            //TODO: What is this?
             // Check for indirect function calls
             if (!callInst->getCalledFunction())
             {
@@ -236,6 +214,8 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
                 function = (const llvm::Function*)funcPtr;
             }
+
+            assert(!function->isVarArg() && "Variadic functions are not supported!");
 
             // For inline asm, do the usual thing: check argument shadow and mark all
             // outputs as clean. Note that any side effects of the inline asm that are
@@ -283,39 +263,12 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 }
             }
 
-            //FunctionType *FT =
-            //    cast<FunctionType>(CS.getCalledValue()->getType()->getContainedType(0));
-            //if (FT->isVarArg()) {
-            //    VAHelper->visitCallSite(CS, IRB);
-            //}
-
             // Now, get the shadow for the RetVal.
-            if(!callInst->getType()->isSized())
+            if(callInst->getType()->isSized())
             {
-                break;
+                CallInstructions.push_back(callInst);
             }
 
-            // Until we have full dynamic coverage, make sure the retval shadow is 0.
-            //Value *Base = getShadowPtrForRetval(&I, IRBBefore);
-            //IRBBefore.CreateAlignedStore(getCleanShadow(&I), Base, kShadowTLSAlignment);
-            CallInstructions.push_back(callInst);
-            //setShadow(callInst, getCleanShadow(callInst));
-
-            //if (CS.isCall()) {
-            //} else {
-            //    BasicBlock *NormalDest = cast<InvokeInst>(&I)->getNormalDest();
-            //    if (!NormalDest->getSinglePredecessor()) {
-            //        // FIXME: this case is tricky, so we are just conservative here.
-            //        // Perhaps we need to split the edge between this BB and NormalDest,
-            //        // but a naive attempt to use SplitEdge leads to a crash.
-            //        setShadow(&I, getCleanShadow(&I));
-            //        setOrigin(&I, getCleanOrigin());
-            //        return;
-            //    }
-            //    NextInsn = NormalDest->getFirstInsertionPt();
-            //    assert(NextInsn &&
-            //            "Could not find insertion point for retval shadow load");
-            //}
             break;
         }
         case llvm::Instruction::ExtractElement:
@@ -326,7 +279,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(indexShadow != getCleanShadow(extractInst->getIndexOperand()))
             {
-                logUninitializedWrite(1, 0);
+                logUninitializedIndex();
             }
 
             TypedValue vectorShadow = getShadow(extractInst->getVectorOperand());
@@ -440,7 +393,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(indexShadow != getCleanShadow(instruction->getOperand(2)))
             {
-                logUninitializedWrite(1, 0);
+                logUninitializedIndex();
             }
 
             TypedValue vectorShadow = getShadow(instruction->getOperand(0));
@@ -701,7 +654,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(maskShadow != getCleanShadow(shuffleInst->getMask()))
             {
-                logUninitializedWrite(1, 0);
+                logUninitializedMask();
             }
 
             const llvm::Value *v1 = shuffleInst->getOperand(0);
@@ -830,7 +783,6 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
     }
 
-    //dumpFunctionArgumentMap();
     dumpShadowMap();
     dumpShadowMem(AddrSpacePrivate);
     dumpShadowMem(AddrSpaceGlobal);
@@ -926,7 +878,7 @@ TypedValue MemCheckUninitialized::getShadow(const llvm::Value *V) {
     }
 
     if (llvm::isa<llvm::Argument>(V)) {
-        // For instructions the shadow is already stored in the map.
+        // For arguments the shadow is already stored in the map.
         assert(ShadowMap.count(V) && "No shadow for a value");
         return ShadowMap[V];
     }
@@ -1004,6 +956,28 @@ void MemCheckUninitialized::logUninitializedCF() const
 {
   Context::Message msg(WARNING, m_context);
   msg << "Controlflow depends on uninitialized value" << endl
+      << msg.INDENT
+      << "Kernel: " << msg.CURRENT_KERNEL << endl
+      << "Entity: " << msg.CURRENT_ENTITY << endl
+      << msg.CURRENT_LOCATION << endl;
+  msg.send();
+}
+
+void MemCheckUninitialized::logUninitializedIndex() const
+{
+  Context::Message msg(WARNING, m_context);
+  msg << "Instruction depends on an uninitialized index value" << endl
+      << msg.INDENT
+      << "Kernel: " << msg.CURRENT_KERNEL << endl
+      << "Entity: " << msg.CURRENT_ENTITY << endl
+      << msg.CURRENT_LOCATION << endl;
+  msg.send();
+}
+
+void MemCheckUninitialized::logUninitializedMask() const
+{
+  Context::Message msg(WARNING, m_context);
+  msg << "Instruction depends on an uninitialized mask" << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
       << "Entity: " << msg.CURRENT_ENTITY << endl
