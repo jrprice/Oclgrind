@@ -87,11 +87,11 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
             {
                 if(argType->isPointerTy())
                 {
-                    llvm::Type *eltType = argType->getPointerElementType();
-                    unsigned Size = A->hasByValAttr() ? getTypeSize(eltType) : getTypeSize(argType);
+                    //FIXME: Size is not known! Just make it work for the moment
+                    unsigned Size = 8;
                     size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(Size);
                     //TODO: Clean or poisoned?
-                    setShadowMem(AddrSpaceGlobal, address, getCleanShadow(eltType));
+                    setShadowMem(AddrSpaceGlobal, address, getCleanShadow(A->getType()));
                 }
 
                 setShadow(A, getCleanShadow(A));
@@ -99,6 +99,8 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
         }
         else
         {
+            value->first->dump();
+
             //pair<unsigned,unsigned> size = getValueSize(value->first);
             //TypedValue v = {
             //    size.first,
@@ -113,6 +115,15 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                 size_t address = getMemory(AddrSpacePrivate)->allocateBuffer(sz);
                 //TODO: Clean or poisoned?
                 setShadowMem(AddrSpacePrivate, address, getCleanShadow(value->first));
+                //TODO: Do I have to set the shadow?
+                setShadow(value->first, getCleanShadow(value->first));
+            }
+            else if(type->getPointerAddressSpace() == AddrSpaceConstant)
+            {
+                size_t sz = value->second.size*value->second.num;
+                size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(sz);
+                //TODO: Clean or poisoned?
+                setShadowMem(AddrSpaceGlobal, address, getPoisonedShadow(value->first));
                 //TODO: Do I have to set the shadow?
                 setShadow(value->first, getCleanShadow(value->first));
             }
@@ -790,13 +801,15 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
 Memory *MemCheckUninitialized::getMemory(unsigned addrSpace)
 {
-    if(!ShadowMem.count(addrSpace))
+    switch(addrSpace)
     {
-        FATAL_ERROR("Unsupported address space: %d", addrSpace);
-    }
-    else
-    {
-        return ShadowMem[addrSpace];
+        case AddrSpacePrivate:
+            return ShadowMem[AddrSpacePrivate];
+        case AddrSpaceGlobal:
+        case AddrSpaceConstant:
+            return ShadowMem[AddrSpaceGlobal];
+        default:
+            FATAL_ERROR("Unsupported address space: %d", addrSpace);
     }
 }
 
