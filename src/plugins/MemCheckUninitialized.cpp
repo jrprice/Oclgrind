@@ -177,8 +177,8 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             // outputs as clean. Note that any side effects of the inline asm that are
             // not immediately visible in its constraints are not handled.
             if (callInst->isInlineAsm()) {
-                //FIXME: Do something!
-                //visitInstruction(I);
+                checkAllOperandsDefined(instruction);
+                ShadowContext.setValue(instruction, ShadowContext::getCleanValue(instruction));
                 break;
             }
 
