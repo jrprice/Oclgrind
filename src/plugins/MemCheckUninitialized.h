@@ -114,7 +114,7 @@ namespace oclgrind
             //                             const uint8_t *initData);
         private:
             mutable MemoryPool m_pool;
-            ShadowContext ShadowContext;
+            ShadowContext shadowContext;
 
             void checkAllOperandsDefined(const llvm::Instruction *I);
             void copyShadowMemory(unsigned dstAddrSpace, size_t dst,
