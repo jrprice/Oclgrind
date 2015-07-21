@@ -668,7 +668,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             TypedValue shadowVal = storeInst->isAtomic() ? ShadowContext::getCleanValue(Val) : ShadowContext.getValue(Val);
 
-            if(addrSpace == AddrSpaceGlobal)
+            if(addrSpace != AddrSpacePrivate)
             {
                 if(shadowVal != ShadowContext::getCleanValue(Val))
                 {
