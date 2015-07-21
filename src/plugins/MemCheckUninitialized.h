@@ -41,6 +41,7 @@ namespace oclgrind
 
             ShadowValues* createCleanShadowValues();
             void dump() const;
+            void dumpGlobalValues() const;
             void dumpMemory() const;
             inline void dumpValues() const
             {
@@ -55,10 +56,8 @@ namespace oclgrind
             void* getMemoryPointer(size_t address) const;
             static TypedValue getPoisonedValue(const llvm::Type *Ty);
             static TypedValue getPoisonedValue(const llvm::Value *V);
-            inline TypedValue getValue(const llvm::Value *V) const
-            {
-                return m_values.top()->getValue(V);
-            }
+            TypedValue getGlobalValue(const llvm::Value *V) const;
+            TypedValue getValue(const llvm::Value *V) const;
             void loadMemory(unsigned char *dst, size_t address, size_t size=1) const;
             inline void popValues()
             {
@@ -72,9 +71,10 @@ namespace oclgrind
             {
                 m_values.top()->setCall(CI);
             }
-            inline void setValue(const llvm::Value *V, TypedValue TV)
+            void setGlobalValue(const llvm::Value *V, TypedValue SV);
+            inline void setValue(const llvm::Value *V, TypedValue SV)
             {
-                m_values.top()->setValue(V, TV);
+                m_values.top()->setValue(V, SV);
             }
             void storeMemory(const unsigned char *src, size_t address, size_t size=1);
 
@@ -87,6 +87,7 @@ namespace oclgrind
 #endif
             typedef std::stack<ShadowValues*> ValuesStack;
 
+            TypedValueMap m_globalValues;
             MemoryMap m_memory;
             unsigned m_numBitsAddress;
             unsigned m_numBitsBuffer;

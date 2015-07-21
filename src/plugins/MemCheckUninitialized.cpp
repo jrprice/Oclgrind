@@ -66,12 +66,12 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                 //TODO: Clean or poisoned?
                 storeShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(value->first));
                 //TODO: Do I have to set the shadow?
-                ShadowContext.setValue(value->first, ShadowContext::getCleanValue(value->first));
+                ShadowContext.setGlobalValue(value->first, ShadowContext::getCleanValue(value->first));
             }
             else if(type->getPointerAddressSpace() == AddrSpaceConstant)
             {
                 //TODO: Do I have to set the shadow?
-                ShadowContext.setValue(value->first, ShadowContext::getCleanValue(value->first));
+                ShadowContext.setGlobalValue(value->first, ShadowContext::getCleanValue(value->first));
             }
             //else if (type->isPointerTy() &&
             //        type->getPointerAddressSpace() == AddrSpaceLocal)
@@ -885,7 +885,7 @@ void MemCheckUninitialized::logUninitializedMask() const
 MemoryPool ShadowContext::m_pool;
 
 ShadowContext::ShadowContext(unsigned bufferBits) :
-    m_memory(), m_numBitsAddress((sizeof(size_t)<<3) - bufferBits), m_numBitsBuffer(bufferBits), m_values()
+    m_globalValues(), m_memory(), m_numBitsAddress((sizeof(size_t)<<3) - bufferBits), m_numBitsBuffer(bufferBits), m_values()
 {
     pushValues(createCleanShadowValues());
 }
@@ -933,6 +933,18 @@ TypedValue ShadowContext::getCleanValue(const llvm::Type *Ty)
     memset(v.data, 0, v.size);
 
     return v;
+}
+
+TypedValue ShadowContext::getValue(const llvm::Value *V) const
+{
+    if(m_globalValues.count(V))
+    {
+        return m_globalValues.at(V);
+    }
+    else
+    {
+        return m_values.top()->getValue(V);
+    }
 }
 
 TypedValue ShadowContext::getPoisonedValue(const llvm::Value *V)
@@ -989,8 +1001,31 @@ void ShadowContext::clearMemory()
 
 void ShadowContext::dump() const
 {
+    dumpGlobalValues();
     m_values.top()->dump();
     dumpMemory();
+}
+
+void ShadowContext::dumpGlobalValues() const
+{
+    cout << "==== ShadowMap (global) =======" << endl;
+
+    TypedValueMap::const_iterator itr;
+    unsigned num = 1;
+
+    for(itr = m_globalValues.begin(); itr != m_globalValues.end(); ++itr)
+    {
+        if(itr->first->hasName())
+        {
+            cout << "%" << itr->first->getName().str() << ": " << itr->second << endl;
+        }
+        else
+        {
+            cout << "%" << dec << num++ << ": " << itr->second << endl;
+        }
+    }
+
+    cout << "=======================" << endl;
 }
 
 void ShadowContext::dumpMemory() const
@@ -1029,7 +1064,7 @@ void ShadowValues::dump() const
 {
     std::list<const llvm::Value*>::const_iterator itr;
 
-    cout << "==== ShadowMap =======" << endl;
+    cout << "==== ShadowMap (local) =======" << endl;
 
     unsigned num = 1;
 
@@ -1108,6 +1143,12 @@ void ShadowContext::loadMemory(unsigned char *dst, size_t address, size_t size) 
 #endif
 
     memcpy(dst, src + offset, size);
+}
+
+void ShadowContext::setGlobalValue(const llvm::Value *V, TypedValue SV)
+{
+    assert(!m_globalValues.count(V) && "Values may only have one shadow");
+    m_globalValues[V] = SV;
 }
 
 void ShadowValues::setValue(const llvm::Value *V, TypedValue SV)
