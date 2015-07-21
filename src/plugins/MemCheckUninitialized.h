@@ -81,9 +81,9 @@ namespace oclgrind
         private:
 #define ALLOW_DUMP
 #ifdef ALLOW_DUMP
-            typedef std::map<size_t, std::pair<size_t, unsigned char*> > MemoryMap;
+            typedef std::unordered_map<size_t, std::pair<size_t, unsigned char*> > MemoryMap;
 #else
-            typedef std::map<size_t, unsigned char*> MemoryMap;
+            typedef std::unordered_map<size_t, unsigned char*> MemoryMap;
 #endif
             typedef std::stack<ShadowValues*> ValuesStack;
 
