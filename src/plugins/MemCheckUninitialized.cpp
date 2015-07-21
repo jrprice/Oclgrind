@@ -31,42 +31,9 @@ using namespace std;
 //    cout << "Memory: " << memory << ", address: " << hex << address << dec << ", size: " << size << endl;
 //}
 
-void MemCheckUninitialized::dumpShadowMap()
-{
-    std::list<const llvm::Value*>::iterator itr;
-
-    cout << "==== ShadowMap =======" << endl;
-
-    unsigned num = 1;
-
-    for(itr = ShadowList.begin(); itr != ShadowList.end(); ++itr)
-    {
-        if((*itr)->hasName())
-        {
-            cout << "%" << (*itr)->getName().str() << ": " << ShadowMap.at(*itr) << endl;
-        }
-        else
-        {
-            cout << "%" << dec << num++ << ": " << ShadowMap.at(*itr) << endl;
-        }
-    }
-
-    cout << "=======================" << endl;
-}
-
-void MemCheckUninitialized::dumpShadowMem(unsigned addrSpace)
-{
-    cout << "====== ShadowMem(" << getAddressSpaceName(addrSpace) << ") ======";
-
-    getShadowMemory(addrSpace)->dump();
-
-    cout << "=======================" << endl;
-}
-
 MemCheckUninitialized::MemCheckUninitialized(const Context *context)
- : Plugin(context), ShadowMap()
+ : Plugin(context), ShadowContext(sizeof(size_t)==8 ? 32 : 16)
 {
-    ShadowMem[AddrSpacePrivate] = new ShadowMemory(sizeof(size_t)==8 ? 32 : 16);
 }
 
 void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation)
@@ -80,7 +47,7 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
         {
             if(A->getType()->isSized())
             {
-                setShadow(A, getCleanShadow(A));
+                ShadowContext.setValue(A, ShadowContext::getCleanValue(A));
             }
         }
         else
@@ -97,16 +64,14 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
             {
                 size_t address = value->second.getPointer();
                 //TODO: Clean or poisoned?
-                storeShadowMemory(AddrSpacePrivate, address, getCleanShadow(value->first));
+                storeShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(value->first));
                 //TODO: Do I have to set the shadow?
-                setShadow(value->first, getCleanShadow(value->first));
+                ShadowContext.setValue(value->first, ShadowContext::getCleanValue(value->first));
             }
             else if(type->getPointerAddressSpace() == AddrSpaceConstant)
             {
-                //FIXME: Need to allocate something to synchronise memory
-                //size_t address = getMemory(AddrSpaceGlobal)->allocateBuffer(1);
                 //TODO: Do I have to set the shadow?
-                setShadow(value->first, getCleanShadow(value->first));
+                ShadowContext.setValue(value->first, ShadowContext::getCleanValue(value->first));
             }
             //else if (type->isPointerTy() &&
             //        type->getPointerAddressSpace() == AddrSpaceLocal)
@@ -122,8 +87,7 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
         }
     }
 
-    dumpShadowMap();
-    dumpShadowMem(AddrSpacePrivate);
+    ShadowContext.dump();
 }
 
 void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
@@ -146,9 +110,9 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             size_t address = result.getPointer();
 
-            setShadow(instruction, getCleanShadow(instruction));
+            ShadowContext.setValue(instruction, ShadowContext::getCleanValue(instruction));
 
-            TypedValue v = getPoisonedShadow(allocaInst->getAllocatedType());
+            TypedValue v = ShadowContext::getPoisonedValue(allocaInst->getAllocatedType());
             storeShadowMemory(AddrSpacePrivate, address, v);
             break;
         }
@@ -159,12 +123,12 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         }
         case llvm::Instruction::AShr:
         {
-            TypedValue S0 = getShadow(instruction->getOperand(0));
-            TypedValue S1 = getShadow(instruction->getOperand(1));
+            TypedValue S0 = ShadowContext.getValue(instruction->getOperand(0));
+            TypedValue S1 = ShadowContext.getValue(instruction->getOperand(1));
 
-            if(S1 != getCleanShadow(instruction->getOperand(1)))
+            if(S1 != ShadowContext::getCleanValue(instruction->getOperand(1)))
             {
-                setShadow(instruction, getPoisonedShadow(instruction));
+                ShadowContext.setValue(instruction, ShadowContext::getPoisonedValue(instruction));
             }
             else
             {
@@ -177,15 +141,15 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                     newShadow.setUInt(S0.getSInt(i) >> (Shift.getUInt(i) & shiftMask), i);
                 }
 
-                setShadow(instruction, newShadow);
+                ShadowContext.setValue(instruction, newShadow);
             }
 
             break;
         }
         case llvm::Instruction::BitCast:
         {
-            TypedValue shadow = getShadow(instruction->getOperand(0));
-            setShadow(instruction, shadow.clone());
+            TypedValue shadow = ShadowContext.getValue(instruction->getOperand(0));
+            ShadowContext.setValue(instruction, shadow.clone());
             break;
         }
         case llvm::Instruction::Br:
@@ -226,6 +190,9 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             assert(!llvm::isa<const llvm::IntrinsicInst>(instruction) && "intrinsics are handled elsewhere");
 
+            // Fresh memory for function
+            ShadowFrame *frame = ShadowContext.createShadowFrame();
+
             llvm::Function::const_arg_iterator argItr;
             for (argItr = function->arg_begin(); argItr != function->arg_end(); argItr++)
             {
@@ -242,24 +209,26 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                     //// Make new copy of shadow in private memory
                     size_t origShadowAddress = workItem->getOperand(Val).getPointer();
                     size_t newShadowAddress = workItem->getOperand(argItr).getPointer();
-                    unsigned char *origShadowData = (unsigned char*)getShadowMemory(AddrSpacePrivate)->getPointer(origShadowAddress);
+                    unsigned char *origShadowData = (unsigned char*)ShadowContext.getMemoryPointer(origShadowAddress);
                     size_t size = getTypeSize(argItr->getType()->getPointerElementType());
 
                     //// Set new shadow memory
-                    getShadowMemory(AddrSpacePrivate)->store(origShadowData, newShadowAddress, size);
-                    setShadow(argItr, getCleanShadow(argItr));
+                    frame->storeMemory(origShadowData, newShadowAddress, size);
+                    frame->setValue(argItr, ShadowContext::getCleanValue(argItr));
                 }
                 else
                 {
-                    setShadow(argItr, getShadow(Val).clone());
+                    frame->setValue(argItr, ShadowContext.getValue(Val).clone());
                 }
             }
 
             // Now, get the shadow for the RetVal.
             if(callInst->getType()->isSized())
             {
-                CallInstructions.push_back(callInst);
+                frame->pushCall(callInst);
             }
+
+            ShadowContext.push(frame);
 
             break;
         }
@@ -267,20 +236,20 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         {
             const llvm::ExtractElementInst *extractInst = ((const llvm::ExtractElementInst*)instruction);
             
-            TypedValue indexShadow = getShadow(extractInst->getIndexOperand());
+            TypedValue indexShadow = ShadowContext.getValue(extractInst->getIndexOperand());
 
-            if(indexShadow != getCleanShadow(extractInst->getIndexOperand()))
+            if(indexShadow != ShadowContext::getCleanValue(extractInst->getIndexOperand()))
             {
                 logUninitializedIndex();
             }
 
-            TypedValue vectorShadow = getShadow(extractInst->getVectorOperand());
+            TypedValue vectorShadow = ShadowContext.getValue(extractInst->getVectorOperand());
             TypedValue newShadow = result.clone();
 
             unsigned index = workItem->getOperand(extractInst->getIndexOperand()).getUInt();
             memcpy(newShadow.data, vectorShadow.data + newShadow.size*index, newShadow.size);
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
             break;
         }
         case llvm::Instruction::ExtractValue:
@@ -314,9 +283,9 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
 
             // Copy target value to result
-            memcpy(ResShadow.data, getShadow(Agg).data + offset, getTypeSize(type));
+            memcpy(ResShadow.data, ShadowContext.getValue(Agg).data + offset, getTypeSize(type));
 
-            setShadow(instruction, ResShadow);
+            ShadowContext.setValue(instruction, ResShadow);
             break;
         }
         case llvm::Instruction::FAdd:
@@ -381,22 +350,22 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         }
         case llvm::Instruction::InsertElement:
         {
-            TypedValue indexShadow = getShadow(instruction->getOperand(2));
+            TypedValue indexShadow = ShadowContext.getValue(instruction->getOperand(2));
 
-            if(indexShadow != getCleanShadow(instruction->getOperand(2)))
+            if(indexShadow != ShadowContext::getCleanValue(instruction->getOperand(2)))
             {
                 logUninitializedIndex();
             }
 
-            TypedValue vectorShadow = getShadow(instruction->getOperand(0));
-            TypedValue elementShadow = getShadow(instruction->getOperand(1));
+            TypedValue vectorShadow = ShadowContext.getValue(instruction->getOperand(0));
+            TypedValue elementShadow = ShadowContext.getValue(instruction->getOperand(1));
             TypedValue newShadow = result.clone();
 
             unsigned index = workItem->getOperand(instruction->getOperand(2)).getUInt();
             memcpy(newShadow.data, vectorShadow.data, newShadow.size*newShadow.num);
             memcpy(newShadow.data + index*newShadow.size, elementShadow.data, newShadow.size);
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
             break;
         }
         case llvm::Instruction::InsertValue:
@@ -407,7 +376,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             // Load original aggregate data
             const llvm::Value *agg = insertInst->getAggregateOperand();
-            memcpy(newShadow.data, getShadow(agg).data, newShadow.size*newShadow.num);
+            memcpy(newShadow.data, ShadowContext.getValue(agg).data, newShadow.size*newShadow.num);
 
             // Compute offset for inserted value
             int offset = 0;
@@ -433,14 +402,14 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             // Copy inserted value into result
             const llvm::Value *value = insertInst->getInsertedValueOperand();
-            memcpy(newShadow.data + offset, getShadow(value).data, getTypeSize(value->getType()));
+            memcpy(newShadow.data + offset, ShadowContext.getValue(value).data, getTypeSize(value->getType()));
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
             break;
         }
         case llvm::Instruction::IntToPtr:
         {
-            TypedValue shadow = getShadow(instruction->getOperand(0));
+            TypedValue shadow = ShadowContext.getValue(instruction->getOperand(0));
             TypedValue newShadow = result.clone();
 
             for (unsigned i = 0; i < newShadow.num; i++)
@@ -448,7 +417,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 newShadow.setPointer(shadow.getUInt(i), i);
             }
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
             break;
         }
         case llvm::Instruction::Load:
@@ -462,7 +431,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             TypedValue v = result.clone();
             loadShadowMemory(addrSpace, address, v);
-            setShadow(instruction, v);
+            ShadowContext.setValue(instruction, v);
 
 //            if (ClCheckAccessAddress)
 //                insertShadowCheck(I.getPointerOperand(), &I);
@@ -474,12 +443,12 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         }
         case llvm::Instruction::LShr:
         {
-            TypedValue S0 = getShadow(instruction->getOperand(0));
-            TypedValue S1 = getShadow(instruction->getOperand(1));
+            TypedValue S0 = ShadowContext.getValue(instruction->getOperand(0));
+            TypedValue S1 = ShadowContext.getValue(instruction->getOperand(1));
 
-            if(S1 != getCleanShadow(instruction->getOperand(1)))
+            if(S1 != ShadowContext::getCleanValue(instruction->getOperand(1)))
             {
-                setShadow(instruction, getPoisonedShadow(instruction));
+                ShadowContext.setValue(instruction, ShadowContext::getPoisonedValue(instruction));
             }
             else
             {
@@ -492,7 +461,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                     newShadow.setUInt(S0.getUInt(i) >> (Shift.getUInt(i) & shiftMask), i);
                 }
 
-                setShadow(instruction, newShadow);
+                ShadowContext.setValue(instruction, newShadow);
             }
 
             break;
@@ -516,15 +485,15 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             //TypedValue newShadow = result.clone();
 
-            //memcpy(newShadow.data, getShadow(value).data, newShadow.size*newShadow.num);
-            //setShadow(instruction, newShadow);
+            //memcpy(newShadow.data, getValue(value).data, newShadow.size*newShadow.num);
+            //setValue(instruction, newShadow);
 
-            setShadow(instruction, getCleanShadow(instruction));
+            ShadowContext.setValue(instruction, ShadowContext::getCleanValue(instruction));
             break;
         }
         case llvm::Instruction::PtrToInt:
         {
-            TypedValue shadow = getShadow(instruction->getOperand(0));
+            TypedValue shadow = ShadowContext.getValue(instruction->getOperand(0));
             TypedValue newShadow = result.clone();
 
             for (unsigned i = 0; i < newShadow.num; i++)
@@ -532,7 +501,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 newShadow.setUInt(shadow.getPointer(i), i);
             }
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
             break;
         }
         case llvm::Instruction::Ret:
@@ -544,15 +513,16 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             {
                 break;
             }
-            //Value *ShadowPtr = getShadowPtrForRetval(RetVal, IRB);
+            //Value *ShadowPtr = getValuePtrForRetval(RetVal, IRB);
             //if (CheckReturnValue) {
             //    insertShadowCheck(RetVal, &I);
-            //    Value *Shadow = getCleanShadow(RetVal);
+            //    Value *Shadow = getCleanValue(RetVal);
             //    IRB.CreateAlignedStore(Shadow, ShadowPtr, kShadowTLSAlignment);
             //} else {
-            const llvm::CallInst *callInst = CallInstructions.back();
-            CallInstructions.pop_back();
-            setShadow(callInst, getShadow(RetVal).clone());
+            TypedValue retValShadow = ShadowContext.getValue(RetVal).clone();
+            const llvm::CallInst *callInst = ShadowContext.popCall();
+            ShadowContext.pop();
+            ShadowContext.setValue(callInst, retValShadow);
             //}
             break;
         }
@@ -566,12 +536,12 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             const llvm::SelectInst *selectInst = (const llvm::SelectInst*)instruction;
 
             TypedValue opCondition = workItem->getOperand(selectInst->getCondition());
-            TypedValue conditionShadow = getShadow(selectInst->getCondition());
+            TypedValue conditionShadow = ShadowContext.getValue(selectInst->getCondition());
             TypedValue newShadow = result.clone();
 
-            if(conditionShadow != getCleanShadow(selectInst->getCondition()))
+            if(conditionShadow != ShadowContext::getCleanValue(selectInst->getCondition()))
             {
-                newShadow = getPoisonedShadow(instruction);
+                newShadow = ShadowContext::getPoisonedValue(instruction);
             }
             else
             {
@@ -585,18 +555,18 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                         selectInst->getFalseValue();
 
                     memcpy(newShadow.data + i*newShadow.size,
-                            getShadow(op).data + i*newShadow.size,
+                            ShadowContext.getValue(op).data + i*newShadow.size,
                             newShadow.size);
                 }
             }
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
             break;
         }
         case llvm::Instruction::SExt:
         {
             const llvm::Value *operand = instruction->getOperand(0);
-            TypedValue shadow = getShadow(operand);
+            TypedValue shadow = ShadowContext.getValue(operand);
             TypedValue newShadow = result.clone();
 
             for (unsigned i = 0; i < newShadow.num; i++)
@@ -609,18 +579,18 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 newShadow.setSInt(val, i);
             }
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
 
             break;
         }
         case llvm::Instruction::Shl:
         {
-            TypedValue S0 = getShadow(instruction->getOperand(0));
-            TypedValue S1 = getShadow(instruction->getOperand(1));
+            TypedValue S0 = ShadowContext.getValue(instruction->getOperand(0));
+            TypedValue S1 = ShadowContext.getValue(instruction->getOperand(1));
 
-            if(S1 != getCleanShadow(instruction->getOperand(1)))
+            if(S1 != ShadowContext::getCleanValue(instruction->getOperand(1)))
             {
-                setShadow(instruction, getPoisonedShadow(instruction));
+                ShadowContext.setValue(instruction, ShadowContext::getPoisonedValue(instruction));
             }
             else
             {
@@ -633,7 +603,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                     newShadow.setUInt(S0.getUInt(i) << (Shift.getUInt(i) & shiftMask), i);
                 }
 
-                setShadow(instruction, newShadow);
+                ShadowContext.setValue(instruction, newShadow);
             }
 
             break;
@@ -642,9 +612,9 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         {
             const llvm::ShuffleVectorInst *shuffleInst = (const llvm::ShuffleVectorInst*)instruction;
 
-            TypedValue maskShadow = getShadow(shuffleInst->getMask());
+            TypedValue maskShadow = ShadowContext.getValue(shuffleInst->getMask());
 
-            if(maskShadow != getCleanShadow(shuffleInst->getMask()))
+            if(maskShadow != ShadowContext::getCleanValue(shuffleInst->getMask()))
             {
                 logUninitializedMask();
             }
@@ -671,10 +641,10 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                     src = v2;
                 }
 
-                memcpy(newShadow.data + i*newShadow.size, getShadow(src).data + index*newShadow.size, newShadow.size);
+                memcpy(newShadow.data + i*newShadow.size, ShadowContext.getValue(src).data + index*newShadow.size, newShadow.size);
             }
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
             break;
         }
         case llvm::Instruction::SIToFP:
@@ -696,11 +666,11 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             size_t address = workItem->getOperand(Addr).getPointer();
             unsigned addrSpace = storeInst->getPointerAddressSpace();
 
-            TypedValue shadowVal = storeInst->isAtomic() ? getCleanShadow(Val) : getShadow(Val);
+            TypedValue shadowVal = storeInst->isAtomic() ? ShadowContext::getCleanValue(Val) : ShadowContext.getValue(Val);
 
             if(addrSpace == AddrSpaceGlobal)
             {
-                if(shadowVal != getCleanShadow(Val))
+                if(shadowVal != ShadowContext::getCleanValue(Val))
                 {
                     logUninitializedWrite(addrSpace, address);
                 }
@@ -721,7 +691,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         }
         case llvm::Instruction::Trunc:
         {
-            TypedValue shadow = getShadow(instruction->getOperand(0));
+            TypedValue shadow = ShadowContext.getValue(instruction->getOperand(0));
             TypedValue newShadow = result.clone();
 
             for (unsigned i = 0; i < newShadow.num; i++)
@@ -729,7 +699,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 memcpy(newShadow.data+i*newShadow.size, shadow.data+i*shadow.size, newShadow.size);
             }
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
             break;
         }
         case llvm::Instruction::UDiv:
@@ -756,7 +726,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         }
         case llvm::Instruction::ZExt:
         {
-            TypedValue shadow = getShadow(instruction->getOperand(0));
+            TypedValue shadow = ShadowContext.getValue(instruction->getOperand(0));
             TypedValue newShadow = result.clone();
 
             for (unsigned i = 0; i < newShadow.num; i++)
@@ -764,119 +734,28 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 newShadow.setUInt(shadow.getUInt(i), i);
             }
 
-            setShadow(instruction, newShadow);
+            ShadowContext.setValue(instruction, newShadow);
             break;
         }
         default:
             FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
     }
 
-    dumpShadowMap();
-    dumpShadowMem(AddrSpacePrivate);
-}
-
-ShadowMemory *MemCheckUninitialized::getShadowMemory(unsigned addrSpace)
-{
-    switch(addrSpace)
-    {
-        case AddrSpacePrivate:
-            return ShadowMem[AddrSpacePrivate];
-        case AddrSpaceGlobal:
-        case AddrSpaceConstant:
-        default:
-            FATAL_ERROR("Unsupported address space: %d", addrSpace);
-    }
+    ShadowContext.dump();
 }
 
 void MemCheckUninitialized::SimpleOr(const llvm::Instruction *I)
 {
     for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
     {
-        if(getShadow(OI->get()) != getCleanShadow(OI->get()))
+        if(ShadowContext.getValue(OI->get()) != ShadowContext::getCleanValue(OI->get()))
         {
-            setShadow(I, getPoisonedShadow(I));
+            ShadowContext.setValue(I, ShadowContext::getPoisonedValue(I));
             return;
         }
     }
 
-    setShadow(I, getCleanShadow(I));
-}
-
-TypedValue MemCheckUninitialized::getCleanShadow(const llvm::Value *V) {
-    pair<unsigned,unsigned> size = getValueSize(V);
-    TypedValue v = {
-        size.first,
-        size.second,
-        m_pool.alloc(size.first*size.second)
-    };
-
-    memset(v.data, 0, v.size*v.num);
-
-    return v;
-}
-
-TypedValue MemCheckUninitialized::getCleanShadow(llvm::Type *Ty) {
-    unsigned size = getTypeSize(Ty);
-    TypedValue v = {
-        size,
-        1,
-        m_pool.alloc(size)
-    };
-
-    memset(v.data, 0, v.size);
-
-    return v;
-}
-
-TypedValue MemCheckUninitialized::getPoisonedShadow(const llvm::Value *V) {
-    pair<unsigned,unsigned> size = getValueSize(V);
-    TypedValue v = {
-        size.first,
-        size.second,
-        m_pool.alloc(size.first*size.second)
-    };
-
-    memset(v.data, -1, v.size*v.num);
-
-    return v;
-}
-
-TypedValue MemCheckUninitialized::getPoisonedShadow(llvm::Type *Ty) {
-    unsigned size = getTypeSize(Ty);
-    TypedValue v = {
-        size,
-        1,
-        m_pool.alloc(size)
-    };
-
-    memset(v.data, -1, v.size);
-
-    return v;
-}
-
-TypedValue MemCheckUninitialized::getShadow(const llvm::Value *V) {
-    if (llvm::isa<llvm::Instruction>(V)) {
-        // For instructions the shadow is already stored in the map.
-        assert(ShadowMap.count(V) && "No shadow for a value");
-        return ShadowMap[V];
-    }
-    else if (llvm::isa<llvm::UndefValue>(V)) {
-        return getPoisonedShadow(V);
-    }
-    else if (llvm::isa<llvm::Argument>(V)) {
-        // For arguments the shadow is already stored in the map.
-        assert(ShadowMap.count(V) && "No shadow for a value");
-        return ShadowMap[V];
-    }
-
-    // For everything else the shadow is zero.
-    return getCleanShadow(V);
-}
-
-void MemCheckUninitialized::setShadow(const llvm::Value *V, TypedValue SV) {
-  assert(!ShadowMap.count(V) && "Values may only have one shadow");
-  ShadowMap[V] = SV;
-  ShadowList.push_back(V);
+    ShadowContext.setValue(I, ShadowContext::getCleanValue(I));
 }
 
 void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM)
@@ -884,7 +763,7 @@ void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address
     // Only write to private memory as these others are always clean
     if(addrSpace == AddrSpacePrivate)
     {
-        getShadowMemory(addrSpace)->store(SM.data, address, SM.size*SM.num);
+        ShadowContext.storeMemory(SM.data, address, SM.size*SM.num);
     }
 }
 
@@ -897,7 +776,7 @@ void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address,
     }
     else
     {
-        getShadowMemory(addrSpace)->load(SM.data, address, SM.size*SM.num);
+        ShadowContext.loadMemory(SM.data, address, SM.size*SM.num);
     }
 }
 
@@ -905,11 +784,31 @@ void MemCheckUninitialized::checkAllOperandsDefined(const llvm::Instruction *I)
 {
     for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
     {
-        if(getShadow(OI->get()) != getCleanShadow(OI->get()))
+        if(ShadowContext.getValue(OI->get()) != ShadowContext::getCleanValue(OI->get()))
         {
             logUninitializedCF();
             return;
         }
+    }
+}
+
+void MemCheckUninitialized::copyShadowMemory(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, size_t size)
+{
+    if(dstAddrSpace == AddrSpacePrivate)
+    {
+        unsigned char *buffer = m_pool.alloc(size);
+
+        if(srcAddrSpace != AddrSpacePrivate)
+        {
+            //Global memory is always clean
+            memset(buffer, 0, size);
+        }
+        else
+        {
+            ShadowContext.loadMemory(buffer, src, size);
+        }
+
+        ShadowContext.storeMemory(buffer, dst, size);
     }
 }
 
@@ -920,16 +819,13 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
         case llvm::Intrinsic::memcpy:
         {
             const llvm::MemCpyInst *memcpyInst = (const llvm::MemCpyInst*)I;
-            size_t dest = workItem->getOperand(memcpyInst->getDest()).getPointer();
+            size_t dst = workItem->getOperand(memcpyInst->getDest()).getPointer();
             size_t src = workItem->getOperand(memcpyInst->getSource()).getPointer();
             size_t size = workItem->getOperand(memcpyInst->getLength()).getUInt();
-            unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
+            unsigned dstAddrSpace = memcpyInst->getDestAddressSpace();
             unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
 
-            unsigned char *buffer = m_pool.alloc(size);
-            getShadowMemory(srcAddrSpace)->load(buffer, src, size);
-            getShadowMemory(destAddrSpace)->store(buffer, dest, size);
-
+            copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size);
             break;
         }
         case llvm::Intrinsic::dbg_declare:
@@ -986,61 +882,97 @@ void MemCheckUninitialized::logUninitializedMask() const
   msg.send();
 }
 
-ShadowMemory::ShadowMemory(unsigned bufferBits) :
-    m_numBitsBuffer(bufferBits), m_numBitsAddress((sizeof(size_t)<<3) - bufferBits)
-{
+MemoryPool ShadowContext::m_pool;
 
+ShadowContext::ShadowContext(unsigned bufferBits) :
+    m_numBitsBuffer(bufferBits), m_stack()
+{
+    ShadowFrame *frame = createShadowFrame();
+    push(frame);
 }
 
-ShadowMemory::~ShadowMemory()
+ShadowContext::~ShadowContext()
 {
-    MemoryMap::iterator itr;
-    for(itr = m_memory.begin(); itr != m_memory.end(); itr++)
+    while(!m_stack.empty())
     {
-#ifdef ALLOW_DUMP
-        delete[] itr->second.second;
-#else
-        delete[] itr->second;
-#endif
+        ShadowFrame *frame = m_stack.top();
+        m_stack.pop();
+        delete frame;
     }
 }
 
-void ShadowMemory::load(unsigned char *dst, size_t address, size_t size) const
+ShadowFrame* ShadowContext::createShadowFrame()
 {
-    size_t index = extractBuffer(address);
-    size_t offset = extractOffset(address);
-
-    assert(m_memory.count(index) && "No shadow memory found!");
-
-#ifdef ALLOW_DUMP
-    unsigned char *src = m_memory[index].second;
-#else
-    unsigned char *src = m_memory[index];
-#endif
-
-    memcpy(dst, src + offset, size);
+    return new ShadowFrame(m_numBitsBuffer);
 }
 
-void ShadowMemory::store(const unsigned char *src, size_t address, size_t size)
+TypedValue ShadowContext::getCleanValue(const llvm::Value *V)
 {
-    size_t index = extractBuffer(address);
-    size_t offset = extractOffset(address);
+    pair<unsigned,unsigned> size = getValueSize(V);
+    TypedValue v = {
+        size.first,
+        size.second,
+        m_pool.alloc(size.first*size.second)
+    };
 
-    if(!m_memory.count(index))
-    {
-        allocate(address, size);
-    }
+    memset(v.data, 0, v.size*v.num);
 
-#ifdef ALLOW_DUMP
-    unsigned char *dst = m_memory[index].second;
-#else
-    unsigned char *dst = m_memory[index];
-#endif
-
-    memcpy(dst + offset, src, size);
+    return v;
 }
 
-void ShadowMemory::allocate(size_t address, size_t size)
+TypedValue ShadowContext::getCleanValue(const llvm::Type *Ty)
+{
+    unsigned size = getTypeSize(Ty);
+    TypedValue v = {
+        size,
+        1,
+        m_pool.alloc(size)
+    };
+
+    memset(v.data, 0, v.size);
+
+    return v;
+}
+
+TypedValue ShadowContext::getPoisonedValue(const llvm::Value *V)
+{
+    pair<unsigned,unsigned> size = getValueSize(V);
+    TypedValue v = {
+        size.first,
+        size.second,
+        m_pool.alloc(size.first*size.second)
+    };
+
+    memset(v.data, -1, v.size*v.num);
+
+    return v;
+}
+
+TypedValue ShadowContext::getPoisonedValue(const llvm::Type *Ty)
+{
+    unsigned size = getTypeSize(Ty);
+    TypedValue v = {
+        size,
+        1,
+        m_pool.alloc(size)
+    };
+
+    memset(v.data, -1, v.size);
+
+    return v;
+}
+
+ShadowFrame::ShadowFrame(unsigned bufferBits) :
+    m_numBitsAddress((sizeof(size_t)<<3) - bufferBits), m_numBitsBuffer(bufferBits)
+{
+}
+
+ShadowFrame::~ShadowFrame()
+{
+    clearMemory();
+}
+
+void ShadowFrame::allocateMemory(size_t address, size_t size)
 {
     size_t index = extractBuffer(address);
 
@@ -1051,17 +983,92 @@ void ShadowMemory::allocate(size_t address, size_t size)
 #endif
 }
 
-size_t ShadowMemory::extractBuffer(size_t address) const
+void ShadowFrame::clearMemory()
+{
+    MemoryMap::iterator mItr;
+    for(mItr = m_memory.begin(); mItr != m_memory.end(); ++mItr)
+    {
+#ifdef ALLOW_DUMP
+        delete[] mItr->second.second;
+#else
+        delete[] mItr->second;
+#endif
+    }
+}
+
+void ShadowFrame::dump() const
+{
+    dumpValues();
+    dumpMemory();
+}
+
+void ShadowFrame::dumpMemory() const
+{
+    cout << "====== ShadowMem ======";
+
+#ifdef ALLOW_DUMP
+    MemoryMap::const_iterator itr;
+    for(itr = m_memory.begin(); itr != m_memory.end(); ++itr)
+    {
+        if(!itr->second.second)
+        {
+            continue;
+        }
+
+        for(unsigned i = 0; i < itr->second.first; i++)
+        {
+            if (i%4 == 0)
+            {
+                cout << endl << hex << uppercase
+                    << setw(16) << setfill(' ') << right
+                    << ((((size_t)itr->first)<<m_numBitsAddress) | i) << ":";
+            }
+            cout << " " << hex << uppercase << setw(2) << setfill('0')
+                << (int)itr->second.second[i];
+        }
+    }
+    cout << endl;
+#else
+    cout << endl << "Dump not activated!" << endl;
+#endif
+
+    cout << "=======================" << endl;
+}
+
+void ShadowFrame::dumpValues() const
+{
+    std::list<const llvm::Value*>::const_iterator itr;
+
+    cout << "==== ShadowMap =======" << endl;
+
+    unsigned num = 1;
+
+    for(itr = m_valuesList.begin(); itr != m_valuesList.end(); ++itr)
+    {
+        if((*itr)->hasName())
+        {
+            cout << "%" << (*itr)->getName().str() << ": " << m_values.at(*itr) << endl;
+        }
+        else
+        {
+            cout << "%" << dec << num++ << ": " << m_values.at(*itr) << endl;
+        }
+    }
+
+    cout << "=======================" << endl;
+}
+
+size_t ShadowFrame::extractBuffer(size_t address) const
 {
     return (address >> m_numBitsAddress);
 }
 
-size_t ShadowMemory::extractOffset(size_t address) const
+size_t ShadowFrame::extractOffset(size_t address) const
 {
     return (address & (((size_t)-1) >> m_numBitsBuffer));
 }
 
-void* ShadowMemory::getPointer(size_t address) const
+void* ShadowFrame::getMemoryPointer(size_t address) const
 {
     size_t index = extractBuffer(address);
     size_t offset= extractOffset(address);
@@ -1069,36 +1076,72 @@ void* ShadowMemory::getPointer(size_t address) const
     assert(m_memory.count(index) && "No shadow memory found!");
 
 #ifdef ALLOW_DUMP
-    return m_memory[index].second + offset;
+    return m_memory.at(index).second + offset;
 #else
-    return m_memory[index] + offset;
+    return m_memory.at(index) + offset;
 #endif
 }
 
-void ShadowMemory::dump() const
+TypedValue ShadowFrame::getValue(const llvm::Value *V) const
 {
-#ifdef ALLOW_DUMP
-    for(unsigned b = 0; b < m_memory.size(); b++)
-    {
-        if(!m_memory[b+1].second)
-        {
-            continue;
-        }
-
-        for(unsigned i = 0; i < m_memory[b+1].first; i++)
-        {
-            if (i%4 == 0)
-            {
-                cout << endl << hex << uppercase
-                    << setw(16) << setfill(' ') << right
-                    << ((((size_t)b+1)<<m_numBitsAddress) | i) << ":";
-            }
-            cout << " " << hex << uppercase << setw(2) << setfill('0')
-                << (int)m_memory[b+1].second[i];
-        }
+    if (llvm::isa<llvm::Instruction>(V)) {
+        // For instructions the shadow is already stored in the map.
+        assert(m_values.count(V) && "No shadow for a value");
+        return m_values.at(V);
     }
-    cout << endl;
+    else if (llvm::isa<llvm::UndefValue>(V)) {
+        return ShadowContext::getPoisonedValue(V);
+    }
+    else if (llvm::isa<llvm::Argument>(V)) {
+        // For arguments the shadow is already stored in the map.
+        assert(m_values.count(V) && "No shadow for a value");
+        return m_values.at(V);
+    }
+    else
+    {
+        // For everything else the shadow is zero.
+        return ShadowContext::getCleanValue(V);
+    }
+}
+
+void ShadowFrame::loadMemory(unsigned char *dst, size_t address, size_t size) const
+{
+    size_t index = extractBuffer(address);
+    size_t offset = extractOffset(address);
+
+    assert(m_memory.count(index) && "No shadow memory found!");
+
+#ifdef ALLOW_DUMP
+    unsigned char *src = m_memory.at(index).second;
 #else
-    cout << "Dump not activated!" << endl;
+    unsigned char *src = m_memory.at(index);
 #endif
+
+    memcpy(dst, src + offset, size);
+}
+
+void ShadowFrame::setValue(const llvm::Value *V, TypedValue SV)
+{
+  assert(!m_values.count(V) && "Values may only have one shadow");
+  m_values[V] = SV;
+  m_valuesList.push_back(V);
+}
+
+void ShadowFrame::storeMemory(const unsigned char *src, size_t address, size_t size)
+{
+    size_t index = extractBuffer(address);
+    size_t offset = extractOffset(address);
+
+    if(!m_memory.count(index))
+    {
+        allocateMemory(address, size);
+    }
+
+#ifdef ALLOW_DUMP
+    unsigned char *dst = m_memory[index].second;
+#else
+    unsigned char *dst = m_memory[index];
+#endif
+
+    memcpy(dst + offset, src, size);
 }

@@ -12,16 +12,31 @@
 
 namespace oclgrind
 {
-    class ShadowMemory
+    class ShadowFrame
     {
 #define ALLOW_DUMP
         public:
-            ShadowMemory(unsigned bufferBits);
-            virtual ~ShadowMemory();
+            ShadowFrame(unsigned bufferBits);
+            virtual ~ShadowFrame();
+
             void dump() const;
-            void* getPointer(size_t address) const;
-            void load(unsigned char *dst, size_t address, size_t size=1) const;
-            void store(const unsigned char *src, size_t address, size_t size=1);
+            void dumpMemory() const;
+            void dumpValues() const;
+            void* getMemoryPointer(size_t address) const;
+            TypedValue getValue(const llvm::Value *V) const;
+            void loadMemory(unsigned char *dst, size_t address, size_t size=1) const;
+            inline const llvm::CallInst* popCall()
+            {
+                const llvm::CallInst *call = m_callInstructions.top();
+                m_callInstructions.pop();
+                return call;
+            }
+            inline void pushCall(const llvm::CallInst *CI)
+            {
+                m_callInstructions.push(CI);
+            }
+            void setValue(const llvm::Value *V, TypedValue SV);
+            void storeMemory(const unsigned char *src, size_t address, size_t size=1);
 
         private:
 #ifdef ALLOW_DUMP
@@ -30,13 +45,89 @@ namespace oclgrind
             typedef std::map<size_t, unsigned char*> MemoryMap;
 #endif
 
-            mutable MemoryMap m_memory;
-            unsigned m_numBitsBuffer;
-            unsigned m_numBitsAddress;
-
-            void allocate(size_t address, size_t size);
+            void allocateMemory(size_t address, size_t size);
+            void clearMemory();
             size_t extractBuffer(size_t address) const;
             size_t extractOffset(size_t address) const;
+
+            std::stack<const llvm::CallInst*> m_callInstructions;
+            MemoryMap m_memory;
+            unsigned m_numBitsAddress;
+            unsigned m_numBitsBuffer;
+            TypedValueMap m_values;
+            std::list<const llvm::Value*> m_valuesList;
+    };
+
+    class ShadowContext
+    {
+        public:
+            ShadowContext(unsigned bufferBits);
+            virtual ~ShadowContext();
+
+            ShadowFrame* createShadowFrame();
+            inline void dump() const
+            {
+                m_stack.top()->dump();
+            }
+            inline void dumpMemory() const
+            {
+                m_stack.top()->dumpMemory();
+            }
+            inline void dumpValues() const
+            {
+                m_stack.top()->dumpValues();
+            }
+            static TypedValue getCleanValue(const llvm::Type *Ty);
+            static TypedValue getCleanValue(const llvm::Value *V);
+            inline void* getMemoryPointer(size_t address) const
+            {
+                return m_stack.top()->getMemoryPointer(address);
+            }
+            static TypedValue getPoisonedValue(const llvm::Type *Ty);
+            static TypedValue getPoisonedValue(const llvm::Value *V);
+            inline void* getMemoryPointer(size_t address)
+            {
+                return m_stack.top()->getMemoryPointer(address);
+            }
+            inline TypedValue getValue(const llvm::Value *V) const
+            {
+                return m_stack.top()->getValue(V);
+            }
+            inline void loadMemory(unsigned char *dst, size_t address, size_t size=1) const
+            {
+                m_stack.top()->loadMemory(dst, address, size);
+            }
+            inline void pop()
+            {
+                m_stack.pop();
+            }
+            inline const llvm::CallInst* popCall()
+            {
+                return m_stack.top()->popCall();
+            }
+            inline void push(ShadowFrame *frame)
+            {
+                m_stack.push(frame);
+            }
+            inline void pushCall(const llvm::CallInst *CI)
+            {
+                m_stack.top()->pushCall(CI);
+            }
+            inline void setValue(const llvm::Value *V, TypedValue TV)
+            {
+                m_stack.top()->setValue(V, TV);
+            }
+            inline void storeMemory(const unsigned char *src, size_t address, size_t size=1)
+            {
+                m_stack.top()->storeMemory(src, address, size);
+            }
+
+        private:
+            typedef std::stack<ShadowFrame*> ShadowStack;
+
+            unsigned m_numBitsBuffer;
+            static MemoryPool m_pool;
+            ShadowStack m_stack;
     };
 
     class MemCheckUninitialized : public Plugin
@@ -52,31 +143,19 @@ namespace oclgrind
             //                             size_t size, cl_mem_flags flags,
             //                             const uint8_t *initData);
         private:
-            std::map<unsigned, ShadowMemory*> ShadowMem;
             mutable MemoryPool m_pool;
-            TypedValueMap ShadowMap;
-            std::list<const llvm::Value*> ShadowList;
-            std::vector<const llvm::CallInst*> CallInstructions;
-
-            TypedValue getCleanShadow(const llvm::Value *V);
-            TypedValue getCleanShadow(llvm::Type *Ty);
-            TypedValue getPoisonedShadow(const llvm::Value *V);
-            TypedValue getPoisonedShadow(llvm::Type *Ty);
-            TypedValue getShadow(const llvm::Value *V);
-            void setShadow(const llvm::Value *V, TypedValue SV);
+            ShadowContext ShadowContext;
 
             void checkAllOperandsDefined(const llvm::Instruction *I);
+            void copyShadowMemory(unsigned dstAddrSpace, size_t dst,
+                                  unsigned srcAddrSpace, size_t src, size_t size);
             void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
 
-            ShadowMemory *getShadowMemory(unsigned addrSpace);
-
-            void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM);
             void loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM);
+            void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM);
 
             void SimpleOr(const llvm::Instruction *I);
 
-            void dumpShadowMap();
-            void dumpShadowMem(unsigned addrSpace);
             void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
             void logUninitializedCF() const;
             void logUninitializedIndex() const;
