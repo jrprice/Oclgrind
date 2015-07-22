@@ -233,7 +233,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             const llvm::Function *function = callInst->getCalledFunction();
 
             // Check for indirect function calls
-            if (!callInst->getCalledFunction())
+            if (!function)
             {
                 // Resolve indirect function pointer
                 const llvm::Value *func = callInst->getCalledValue();
@@ -246,7 +246,8 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             // For inline asm, do the usual thing: check argument shadow and mark all
             // outputs as clean. Note that any side effects of the inline asm that are
             // not immediately visible in its constraints are not handled.
-            if (callInst->isInlineAsm()) {
+            if (callInst->isInlineAsm())
+            {
                 checkAllOperandsDefined(instruction);
                 shadowContext.setValue(instruction, ShadowContext::getCleanValue(instruction));
                 break;
@@ -255,6 +256,19 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             if(const llvm::IntrinsicInst *II = llvm::dyn_cast<const llvm::IntrinsicInst>(instruction))
             {
                 handleIntrinsicInstruction(workItem, II);
+                break;
+            }
+
+            if(function->isDeclaration())
+            {
+                // Handle external function calls
+                checkAllOperandsDefined(instruction);
+
+                if(callInst->getType()->isSized())
+                {
+                    // Set return value only if function is non-void
+                    shadowContext.setValue(instruction, ShadowContext::getCleanValue(instruction));
+                }
                 break;
             }
 
