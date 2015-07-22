@@ -565,6 +565,9 @@ WorkItem::State WorkItem::step()
     }
   }
 
+  if (m_state == FINISHED)
+    m_context->notifyWorkItemComplete(this);
+
   return m_state;
 }
 
@@ -1208,7 +1211,6 @@ INSTRUCTION(ret)
     m_position->nextBlock = NULL;
     m_state = FINISHED;
     m_workGroup->notifyFinished(this);
-    m_context->notifyWorkItemComplete(this);
   }
 }
 
