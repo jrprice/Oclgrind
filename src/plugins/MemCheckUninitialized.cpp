@@ -43,11 +43,33 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
     // Initialise kernel arguments and global variables
     for (auto value = kernel->values_begin(); value != kernel->values_end(); value++)
     {
+#ifdef DUMP_SHADOW
+        value->first->dump();
+        cout << "Value: " << value->second << endl;
+#endif
         if(const llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(value->first))
         {
-            if(A->getType()->isSized())
+            const llvm::Type *type = A->getType();
+
+            if(!type->isSized())
+            {
+                continue;
+            }
+
+            if(!type->isPointerTy())
             {
                 shadowContext.setValue(A, ShadowContext::getCleanValue(A));
+            }
+            else
+            {
+                if(A->hasByValAttr())
+                {
+                    m_deferredInit.push_back(value->first);
+                }
+                else
+                {
+                    shadowContext.setValue(A, ShadowContext::getCleanValue(A));
+                }
             }
         }
         else
@@ -60,16 +82,16 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
             //};
 
             const llvm::Type *type = value->first->getType();
-            if (type->isPointerTy() && type->getPointerAddressSpace() == AddrSpacePrivate)
+
+            if(type->isPointerTy() && type->getPointerAddressSpace() == AddrSpacePrivate)
             {
-                size_t address = value->second.getPointer();
-                //TODO: Clean or poisoned?
-                storeShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(value->first));
-                //TODO: Do I have to set the shadow?
-                shadowContext.setGlobalValue(value->first, ShadowContext::getCleanValue(value->first));
+                // Struct/Union declarations
+                m_deferredInit.push_back(value->first);
             }
-            else if(type->getPointerAddressSpace() == AddrSpaceConstant)
+            else if(type->isPointerTy() && type->getPointerAddressSpace() == AddrSpaceConstant)
             {
+                // Constants
+                //TODO: Do not set memory as it is assumed to be clean?!
                 //TODO: Do I have to set the shadow?
                 shadowContext.setGlobalValue(value->first, ShadowContext::getCleanValue(value->first));
             }
@@ -86,16 +108,64 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
             }
         }
     }
+}
 
+//TODO: Can we avoid the workaround?
+void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
+{
+    for(auto V : m_deferredInit)
+    {
+        if(const llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(V))
+        {
+            // Kernel arguments
+            const llvm::Type *type = A->getType();
+
+            if(type->isPointerTy() && A->hasByValAttr())
+            {
+                // ByVal argument
+                // -> Set shadow memory at new address of the content
+                // -> Set clean shadow value for pointer
+                size_t address = workItem->getOperand(A).getPointer();
+                size_t size = getTypeSize(type->getPointerElementType());
+                storeShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(size));
+                shadowContext.setValue(V, ShadowContext::getCleanValue(V));
+            }
+        }
+        else
+        {
+            // 'Globals'
+            const llvm::Type *type = V->getType();
+
+            if(type->isPointerTy() && type->getPointerAddressSpace() == AddrSpacePrivate)
+            {
+                // Union/Struct declarations
+                // -> Set shadow memory at address of the content
+                // -> Set clean global shadow value for pointer
+                size_t address = workItem->getOperand(V).getPointer();
+                size_t size = getTypeSize(type->getPointerElementType());
+                //TODO: Clean or poisoned?
+                storeShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(size));
+                //TODO: Do I have to set the shadow?
+                shadowContext.setGlobalValue(V, ShadowContext::getCleanValue(V));
+            }
+        }
+    }
+
+    m_deferredInit.clear();
+
+#ifdef DUMP_SHADOW
     shadowContext.dump();
+#endif
 }
 
 void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                                         const llvm::Instruction *instruction,
                                         const TypedValue& result)
 {
+#ifdef DUMP_SHADOW
     cout << "++++++++++++++++++++++++++++++++++++++++++++" << endl;
     instruction->dump();
+#endif
 
     switch(instruction->getOpcode())
     {
@@ -235,7 +305,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         case llvm::Instruction::ExtractElement:
         {
             const llvm::ExtractElementInst *extractInst = ((const llvm::ExtractElementInst*)instruction);
-            
+
             TypedValue indexShadow = shadowContext.getValue(extractInst->getIndexOperand());
 
             if(indexShadow != ShadowContext::getCleanValue(extractInst->getIndexOperand()))
@@ -278,6 +348,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 }
                 else
                 {
+                    cout << "Unsupported aggregate" << endl;
                     FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
                 }
             }
@@ -396,6 +467,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 }
                 else
                 {
+                    cout << "Unsupported aggregate" << endl;
                     FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
                 }
             }
@@ -718,6 +790,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             break;
         }
         case llvm::Instruction::Unreachable:
+            cout << "Unreachable" << endl;
             FATAL_ERROR("Encountered unreachable instruction");
         case llvm::Instruction::Xor:
         {
@@ -738,10 +811,13 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             break;
         }
         default:
+            cout << "Unsupported instruction" << endl;
             FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
     }
 
+#ifdef DUMP_SHADOW
     shadowContext.dump();
+#endif
 }
 
 void MemCheckUninitialized::SimpleOr(const llvm::Instruction *I)
@@ -832,6 +908,7 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
             //Do nothing
             break;
         default:
+            cout << "Unsupported intrinsic" << endl;
             FATAL_ERROR("Unsupported intrinsic %s", llvm::Intrinsic::getName(I->getIntrinsicID()).c_str());
     }
 }
@@ -907,6 +984,19 @@ ShadowValues* ShadowContext::createCleanShadowValues()
     return new ShadowValues();
 }
 
+TypedValue ShadowContext::getCleanValue(unsigned size)
+{
+    TypedValue v = {
+        size,
+        1,
+        m_pool.alloc(size)
+    };
+
+    memset(v.data, 0, size);
+
+    return v;
+}
+
 TypedValue ShadowContext::getCleanValue(const llvm::Value *V)
 {
     pair<unsigned,unsigned> size = getValueSize(V);
@@ -947,6 +1037,19 @@ TypedValue ShadowContext::getValue(const llvm::Value *V) const
     }
 }
 
+TypedValue ShadowContext::getPoisonedValue(unsigned size)
+{
+    TypedValue v = {
+        size,
+        1,
+        m_pool.alloc(size)
+    };
+
+    memset(v.data, -1, size);
+
+    return v;
+}
+
 TypedValue ShadowContext::getPoisonedValue(const llvm::Value *V)
 {
     pair<unsigned,unsigned> size = getValueSize(V);
@@ -979,7 +1082,7 @@ void ShadowContext::allocateMemory(size_t address, size_t size)
 {
     size_t index = extractBuffer(address);
 
-#ifdef ALLOW_DUMP
+#ifdef DUMP_SHADOW
     m_memory[index] = std::pair<size_t, unsigned char*>(size, new unsigned char[size]);
 #else
     m_memory[index] = new unsigned char[size];
@@ -991,7 +1094,7 @@ void ShadowContext::clearMemory()
     MemoryMap::iterator mItr;
     for(mItr = m_memory.begin(); mItr != m_memory.end(); ++mItr)
     {
-#ifdef ALLOW_DUMP
+#ifdef DUMP_SHADOW
         delete[] mItr->second.second;
 #else
         delete[] mItr->second;
@@ -1032,7 +1135,7 @@ void ShadowContext::dumpMemory() const
 {
     cout << "====== ShadowMem ======";
 
-#ifdef ALLOW_DUMP
+#ifdef DUMP_SHADOW
     for(unsigned b = 0; b < m_memory.size(); b++)
     {
         if(!m_memory.at(b+1).second)
@@ -1100,7 +1203,7 @@ void* ShadowContext::getMemoryPointer(size_t address) const
 
     assert(m_memory.count(index) && "No shadow memory found!");
 
-#ifdef ALLOW_DUMP
+#ifdef DUMP_SHADOW
     return m_memory.at(index).second + offset;
 #else
     return m_memory.at(index) + offset;
@@ -1136,7 +1239,7 @@ void ShadowContext::loadMemory(unsigned char *dst, size_t address, size_t size) 
 
     assert(m_memory.count(index) && "No shadow memory found!");
 
-#ifdef ALLOW_DUMP
+#ifdef DUMP_SHADOW
     unsigned char *src = m_memory.at(index).second;
 #else
     unsigned char *src = m_memory.at(index);
@@ -1168,7 +1271,7 @@ void ShadowContext::storeMemory(const unsigned char *src, size_t address, size_t
         allocateMemory(address, size);
     }
 
-#ifdef ALLOW_DUMP
+#ifdef DUMP_SHADOW
     unsigned char *dst = m_memory[index].second;
 #else
     unsigned char *dst = m_memory[index];

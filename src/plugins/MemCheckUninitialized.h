@@ -10,6 +10,8 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IntrinsicInst.h"
 
+#define DUMP_SHADOW
+
 namespace oclgrind
 {
     class ShadowValues
@@ -51,9 +53,11 @@ namespace oclgrind
             {
                 return m_values.top()->getCall();
             }
+            static TypedValue getCleanValue(unsigned size);
             static TypedValue getCleanValue(const llvm::Type *Ty);
             static TypedValue getCleanValue(const llvm::Value *V);
             void* getMemoryPointer(size_t address) const;
+            static TypedValue getPoisonedValue(unsigned size);
             static TypedValue getPoisonedValue(const llvm::Type *Ty);
             static TypedValue getPoisonedValue(const llvm::Value *V);
             TypedValue getGlobalValue(const llvm::Value *V) const;
@@ -79,8 +83,7 @@ namespace oclgrind
             void storeMemory(const unsigned char *src, size_t address, size_t size=1);
 
         private:
-#define ALLOW_DUMP
-#ifdef ALLOW_DUMP
+#ifdef DUMP_SHADOW
             typedef std::unordered_map<size_t, std::pair<size_t, unsigned char*> > MemoryMap;
 #else
             typedef std::unordered_map<size_t, unsigned char*> MemoryMap;
@@ -106,6 +109,7 @@ namespace oclgrind
             MemCheckUninitialized(const Context *context);
 
             virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
+            virtual void workItemBegin(const WorkItem *workItem) override;
             virtual void instructionExecuted(const WorkItem *workItem,
                     const llvm::Instruction *instruction,
                     const TypedValue& result) override;
@@ -113,6 +117,7 @@ namespace oclgrind
             //                             size_t size, cl_mem_flags flags,
             //                             const uint8_t *initData);
         private:
+            std::list<const llvm::Value*> m_deferredInit;
             mutable MemoryPool m_pool;
             ShadowContext shadowContext;
 
