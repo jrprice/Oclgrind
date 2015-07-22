@@ -32,7 +32,9 @@ namespace oclgrind
         private:
             const llvm::CallInst *m_call;
             TypedValueMap m_values;
+#ifdef DUMP_SHADOW
             std::list<const llvm::Value*> m_valuesList;
+#endif
     };
 
     class ShadowContext

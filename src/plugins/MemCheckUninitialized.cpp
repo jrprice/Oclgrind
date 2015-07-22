@@ -362,7 +362,6 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 }
                 else
                 {
-                    cout << "Unsupported aggregate" << endl;
                     FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
                 }
             }
@@ -481,7 +480,6 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 }
                 else
                 {
-                    cout << "Unsupported aggregate" << endl;
                     FATAL_ERROR("Unsupported aggregate type: %d", type->getTypeID())
                 }
             }
@@ -595,21 +593,25 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             const llvm::ReturnInst *retInst = ((const llvm::ReturnInst*)instruction);
             const llvm::Value *RetVal = retInst->getReturnValue();
 
-            if (!RetVal)
+            if(RetVal)
             {
-                break;
+                //Value *ShadowPtr = getValuePtrForRetval(RetVal, IRB);
+                //if (CheckReturnValue) {
+                //    insertShadowCheck(RetVal, &I);
+                //    Value *Shadow = getCleanValue(RetVal);
+                //    IRB.CreateAlignedStore(Shadow, ShadowPtr, kShadowTLSAlignment);
+                //} else {
+                TypedValue retValShadow = shadowContext.getValue(RetVal).clone();
+                const llvm::CallInst *callInst = shadowContext.getCall();
+                shadowContext.popValues();
+                shadowContext.setValue(callInst, retValShadow);
+                //}
             }
-            //Value *ShadowPtr = getValuePtrForRetval(RetVal, IRB);
-            //if (CheckReturnValue) {
-            //    insertShadowCheck(RetVal, &I);
-            //    Value *Shadow = getCleanValue(RetVal);
-            //    IRB.CreateAlignedStore(Shadow, ShadowPtr, kShadowTLSAlignment);
-            //} else {
-            TypedValue retValShadow = shadowContext.getValue(RetVal).clone();
-            const llvm::CallInst *callInst = shadowContext.getCall();
-            shadowContext.popValues();
-            shadowContext.setValue(callInst, retValShadow);
-            //}
+            else
+            {
+                shadowContext.popValues();
+            }
+
             break;
         }
         case llvm::Instruction::SDiv:
@@ -804,7 +806,6 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             break;
         }
         case llvm::Instruction::Unreachable:
-            cout << "Unreachable" << endl;
             FATAL_ERROR("Encountered unreachable instruction");
         case llvm::Instruction::Xor:
         {
@@ -825,7 +826,6 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             break;
         }
         default:
-            cout << "Unsupported instruction" << endl;
             FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
     }
 
@@ -938,7 +938,6 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
             //Do nothing
             break;
         default:
-            cout << "Unsupported intrinsic" << endl;
             FATAL_ERROR("Unsupported intrinsic %s", llvm::Intrinsic::getName(I->getIntrinsicID()).c_str());
     }
 }
@@ -1135,7 +1134,10 @@ void ShadowContext::clearMemory()
 void ShadowContext::dump() const
 {
     dumpGlobalValues();
-    m_values.top()->dump();
+    if(!m_values.empty())
+    {
+        m_values.top()->dump();
+    }
     dumpMemory();
 }
 
@@ -1195,10 +1197,10 @@ void ShadowContext::dumpMemory() const
 
 void ShadowValues::dump() const
 {
-    std::list<const llvm::Value*>::const_iterator itr;
-
     cout << "==== ShadowMap (local) =======" << endl;
 
+#ifdef DUMP_SHADOW
+    std::list<const llvm::Value*>::const_iterator itr;
     unsigned num = 1;
 
     for(itr = m_valuesList.begin(); itr != m_valuesList.end(); ++itr)
@@ -1212,6 +1214,9 @@ void ShadowValues::dump() const
             cout << "%" << dec << num++ << ": " << m_values.at(*itr) << endl;
         }
     }
+#else
+    cout << endl << "Dump not activated!" << endl;
+#endif
 
     cout << "=======================" << endl;
 }
@@ -1286,9 +1291,17 @@ void ShadowContext::setGlobalValue(const llvm::Value *V, TypedValue SV)
 
 void ShadowValues::setValue(const llvm::Value *V, TypedValue SV)
 {
-  assert(!m_values.count(V) && "Values may only have one shadow");
-  m_values[V] = SV;
-  m_valuesList.push_back(V);
+#ifdef DUMP_SHADOW
+    if(!m_values.count(V))
+    {
+        m_valuesList.push_back(V);
+    }
+    else
+    {
+        cout << "Shadow for value " << V->getName().str() << " reset!" << endl;
+    }
+#endif
+    m_values[V] = SV;
 }
 
 void ShadowContext::storeMemory(const unsigned char *src, size_t address, size_t size)
