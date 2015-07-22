@@ -31,7 +31,7 @@ using namespace std;
 //    cout << "Memory: " << memory << ", address: " << hex << address << dec << ", size: " << size << endl;
 //}
 
-std::mutex ShadowContext::m_workItems_mutex;
+THREAD_LOCAL ShadowContext::WorkItems ShadowContext::m_workItems = {NULL};
 MemoryPool ShadowContext::m_pool;
 
 MemCheckUninitialized::MemCheckUninitialized(const Context *context)
@@ -103,6 +103,7 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
 
 void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
 {
+    shadowContext.allocateWorkItems();
     ShadowWorkItem *shadowWI = shadowContext.createShadowWorkItem(workItem);
 
     for(auto V : m_deferredInit)
@@ -159,9 +160,8 @@ void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
 
 void MemCheckUninitialized::workItemComplete(const WorkItem *workItem)
 {
-    //FIXME: workItemComplete is called *before* the last instructionExecuted
-    //Thus we cannot deallocate ressources!
-    //shadowContext.destroyShadowWorkItem(workItem);
+    shadowContext.destroyShadowWorkItem(workItem);
+    shadowContext.freeWorkItems();
 }
 
 void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
@@ -1030,7 +1030,6 @@ ShadowWorkItem::ShadowWorkItem(unsigned bufferBits) :
 
 ShadowWorkItem::~ShadowWorkItem()
 {
-    cout << "Clean" << endl;
     while(!m_values.empty())
     {
         ShadowValues *values= m_values.top();
@@ -1047,25 +1046,40 @@ ShadowValues* ShadowWorkItem::createCleanShadowValues()
 }
 
 ShadowContext::ShadowContext(unsigned bufferBits) :
-    m_globalValues(), m_numBitsBuffer(bufferBits), m_workItems()
+    m_globalValues(), m_numBitsBuffer(bufferBits)
 {
+}
+
+void ShadowContext::allocateWorkItems()
+{
+    if(!m_workItems.workItems)
+    {
+        m_workItems.workItems = new ShadowItemMap();
+    }
+}
+
+void ShadowContext::freeWorkItems()
+{
+    if(m_workItems.workItems && !m_workItems.workItems->size())
+    {
+        delete m_workItems.workItems;
+        m_workItems.workItems = NULL;
+    }
 }
 
 ShadowWorkItem* ShadowContext::createShadowWorkItem(const WorkItem *workItem)
 {
-    std::lock_guard<std::mutex> lock(m_workItems_mutex);
-    assert(!m_workItems.count(workItem) && "Workitems may only have one shadow");
+    assert(!m_workItems.workItems->count(workItem) && "Workitems may only have one shadow");
     ShadowWorkItem *sWI = new ShadowWorkItem(m_numBitsBuffer);
-    m_workItems[workItem] = sWI;
+    (*m_workItems.workItems)[workItem] = sWI;
     return sWI;
 }
 
 void ShadowContext::destroyShadowWorkItem(const WorkItem *workItem)
 {
-    std::lock_guard<std::mutex> lock(m_workItems_mutex);
-    assert(m_workItems.count(workItem) && "No shadow for workitem found!");
-    delete m_workItems[workItem];
-    m_workItems.erase(workItem);
+    assert(m_workItems.workItems->count(workItem) && "No shadow for workitem found!");
+    delete (*m_workItems.workItems)[workItem];
+    m_workItems.workItems->erase(workItem);
 }
 
 TypedValue ShadowContext::getCleanValue(unsigned size)
@@ -1117,8 +1131,7 @@ TypedValue ShadowContext::getValue(const WorkItem *workItem, const llvm::Value *
     }
     else
     {
-        std::lock_guard<std::mutex> lock(m_workItems_mutex);
-        return m_workItems.at(workItem)->getValue(V);
+        return m_workItems.workItems->at(workItem)->getValue(V);
     }
 }
 
@@ -1190,12 +1203,10 @@ void ShadowWorkItem::clearMemory()
 void ShadowContext::dump() const
 {
     dumpGlobalValues();
-    ShadowContext::m_workItems_mutex.lock();
-    if(m_workItems.size())
+    if(m_workItems.workItems->size())
     {
-        m_workItems.begin()->second->dump();
+        m_workItems.workItems->begin()->second->dump();
     }
-    ShadowContext::m_workItems_mutex.unlock();
 }
 
 void ShadowWorkItem::dump() const

@@ -111,10 +111,12 @@ namespace oclgrind
         public:
             ShadowContext(unsigned bufferBits);
 
+            void allocateWorkItems();
             ShadowWorkItem* createShadowWorkItem(const WorkItem *workItem);
             void destroyShadowWorkItem(const WorkItem *workItem);
             void dump() const;
             void dumpGlobalValues() const;
+            void freeWorkItems();
             static TypedValue getCleanValue(unsigned size);
             static TypedValue getCleanValue(const llvm::Type *Ty);
             static TypedValue getCleanValue(const llvm::Value *V);
@@ -124,14 +126,12 @@ namespace oclgrind
             static TypedValue getPoisonedValue(const llvm::Value *V);
             inline ShadowWorkItem* getShadowWorkItem(const WorkItem *workItem) const
             {
-                std::lock_guard<std::mutex> lock(m_workItems_mutex);
-                return m_workItems.at(workItem);
+                return m_workItems.workItems->at(workItem);
             }
             TypedValue getValue(const WorkItem *workItem, const llvm::Value *V) const;
             inline bool hasValue(const WorkItem *workItem, const llvm::Value* V) const
             {
-                std::lock_guard<std::mutex> lock(m_workItems_mutex);
-                return m_globalValues.count(V) || m_workItems.at(workItem)->hasValue(V);
+                return m_globalValues.count(V) || m_workItems.workItems->at(workItem)->hasValue(V);
             }
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
 
@@ -139,8 +139,12 @@ namespace oclgrind
             TypedValueMap m_globalValues;
             unsigned m_numBitsBuffer;
             static MemoryPool m_pool;
-            std::unordered_map<const WorkItem*, ShadowWorkItem*> m_workItems;
-            static std::mutex m_workItems_mutex;
+            typedef std::map<const WorkItem*, ShadowWorkItem*> ShadowItemMap;
+            struct WorkItems
+            {
+                ShadowItemMap *workItems;
+            };
+            static THREAD_LOCAL WorkItems m_workItems;
     };
 
     class MemCheckUninitialized : public Plugin
