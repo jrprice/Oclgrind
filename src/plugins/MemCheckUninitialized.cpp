@@ -904,6 +904,17 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
             copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size);
             break;
         }
+        case llvm::Intrinsic::memset:
+        {
+            const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)I;
+            size_t dst = workItem->getOperand(memsetInst->getDest()).getPointer();
+            unsigned addrSpace = memsetInst->getDestAddressSpace();
+
+            TypedValue shadowValue = shadowContext.getValue(memsetInst->getArgOperand(0));
+            storeShadowMemory(addrSpace, dst, shadowValue);
+
+            break;
+        }
         case llvm::Intrinsic::dbg_declare:
             //Do nothing
             break;
