@@ -563,7 +563,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         case llvm::Instruction::PHI:
         {
             //FIXME: m_position is private
-            //const llvm::PHINode *phiNode = (const llvm::PHINode*)instruction;
+            const llvm::PHINode *phiNode = (const llvm::PHINode*)instruction;
             //const llvm::Value *value = phiNode->getIncomingValueForBlock(
             //        (const llvm::BasicBlock*)m_position->prevBlock);
 
@@ -572,7 +572,29 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             //memcpy(newShadow.data, getValue(value).data, newShadow.size*newShadow.num);
             //setValue(instruction, newShadow);
 
-            shadowContext.setValue(instruction, ShadowContext::getCleanValue(instruction));
+            bool poisoned = false;
+
+            for(int i = 0; i < phiNode->getNumIncomingValues(); ++i)
+            {
+                const llvm::Value *V = phiNode->getIncomingValue(i);
+
+                if(!shadowContext.hasValue(V))
+                {
+                    continue;
+                }
+
+                if(shadowContext.getValue(V) != ShadowContext::getCleanValue(V))
+                {
+                    shadowContext.setValue(instruction, ShadowContext::getPoisonedValue(instruction));
+                    poisoned = true;
+                    break;
+                }
+            }
+
+            if(!poisoned)
+            {
+                shadowContext.setValue(instruction, ShadowContext::getCleanValue(instruction));
+            }
             break;
         }
         case llvm::Instruction::PtrToInt:

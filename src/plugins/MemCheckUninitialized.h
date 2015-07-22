@@ -27,6 +27,11 @@ namespace oclgrind
             {
                 m_call = CI;
             }
+            inline bool hasValue(const llvm::Value* V) const
+            {
+                return m_values.count(V);
+            }
+            void loadMemory(unsigned char *dst, size_t address, size_t size=1) const;
             void setValue(const llvm::Value *V, TypedValue SV);
 
         private:
@@ -64,6 +69,10 @@ namespace oclgrind
             static TypedValue getPoisonedValue(const llvm::Value *V);
             TypedValue getGlobalValue(const llvm::Value *V) const;
             TypedValue getValue(const llvm::Value *V) const;
+            inline bool hasValue(const llvm::Value* V) const
+            {
+                return m_values.top()->hasValue(V);
+            }
             void loadMemory(unsigned char *dst, size_t address, size_t size=1) const;
             inline void popValues()
             {
