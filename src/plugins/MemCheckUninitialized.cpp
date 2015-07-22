@@ -892,6 +892,11 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
 {
     switch (I->getIntrinsicID())
     {
+        case llvm::Intrinsic::fmuladd:
+        {
+            SimpleOr(I);
+            break;
+        }
         case llvm::Intrinsic::memcpy:
         {
             const llvm::MemCpyInst *memcpyInst = (const llvm::MemCpyInst*)I;
