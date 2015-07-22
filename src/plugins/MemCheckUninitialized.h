@@ -111,10 +111,12 @@ namespace oclgrind
         public:
             ShadowContext(unsigned bufferBits);
 
+            void allocateWorkItems();
             ShadowWorkItem* createShadowWorkItem(const WorkItem *workItem);
             void destroyShadowWorkItem(const WorkItem *workItem);
             void dump() const;
             void dumpGlobalValues() const;
+            void freeWorkItems();
             static TypedValue getCleanValue(unsigned size);
             static TypedValue getCleanValue(const llvm::Type *Ty);
             static TypedValue getCleanValue(const llvm::Value *V);
@@ -122,14 +124,14 @@ namespace oclgrind
             static TypedValue getPoisonedValue(unsigned size);
             static TypedValue getPoisonedValue(const llvm::Type *Ty);
             static TypedValue getPoisonedValue(const llvm::Value *V);
-            inline ShadowWorkItem* getShadowWorkItem() const
+            inline ShadowWorkItem* getShadowWorkItem(const WorkItem *workItem) const
             {
-                return m_workItem.workItem;
+                return m_workItems.workItems->at(workItem);
             }
-            TypedValue getValue(const llvm::Value *V) const;
-            inline bool hasValue(const llvm::Value* V) const
+            TypedValue getValue(const WorkItem *workItem, const llvm::Value *V) const;
+            inline bool hasValue(const WorkItem *workItem, const llvm::Value* V) const
             {
-                return m_globalValues.count(V) || m_workItem.workItem->hasValue(V);
+                return m_globalValues.count(V) || m_workItems.workItems->at(workItem)->hasValue(V);
             }
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
 
@@ -137,11 +139,12 @@ namespace oclgrind
             TypedValueMap m_globalValues;
             unsigned m_numBitsBuffer;
             static MemoryPool m_pool;
-            struct WorkItemContainer
+            typedef std::map<const WorkItem*, ShadowWorkItem*> ShadowItemMap;
+            struct WorkItems
             {
-                ShadowWorkItem *workItem;
+                ShadowItemMap *workItems;
             };
-            static THREAD_LOCAL WorkItemContainer m_workItem;
+            static THREAD_LOCAL WorkItems m_workItems;
     };
 
     class MemCheckUninitialized : public Plugin
@@ -162,15 +165,18 @@ namespace oclgrind
             std::list<const llvm::Value*> m_deferredInit;
             ShadowContext shadowContext;
 
-            void checkAllOperandsDefined(const llvm::Instruction *I);
-            void copyShadowMemory(unsigned dstAddrSpace, size_t dst,
+            void checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I);
+            void copyShadowMemory(const WorkItem *workItem,
+                                  unsigned dstAddrSpace, size_t dst,
                                   unsigned srcAddrSpace, size_t src, size_t size);
             void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
 
-            void loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM);
-            void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM);
+            void loadShadowMemory(const WorkItem *workItem,
+                                  unsigned addrSpace, size_t address, TypedValue &SM);
+            void storeShadowMemory(const WorkItem *workItem,
+                                   unsigned addrSpace, size_t address, TypedValue SM);
 
-            void SimpleOr(const llvm::Instruction *I);
+            void SimpleOr(const WorkItem *workItem, const llvm::Instruction *I);
 
             void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
             void logUninitializedCF() const;
