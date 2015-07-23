@@ -217,8 +217,19 @@ void MemCheckUninitialized::workGroupBegin(const WorkGroup *workGroup)
         // value->second.data == NULL
         // value->second.size == val size
         size_t address = workGroup->getLocalMemoryAddress(value.first);
-        //TODO: Local memory clean or poisoned? May need to differentiate between kernel argument (?) and variable (poisoned)
-        storeShadowMemory(AddrSpaceLocal, address, ShadowContext::getPoisonedValue(value.second.size), NULL, workGroup);
+        TypedValue v;
+
+        if(llvm::isa<llvm::Argument>(value.first))
+        {
+            //TODO: Local memory clean or poisoned? May need to differentiate between kernel argument (?) and variable (poisoned)
+            v = ShadowContext::getPoisonedValue(value.second.size);
+        }
+        else
+        {
+            v = ShadowContext::getPoisonedValue(value.second.size);
+        }
+
+        storeShadowMemory(AddrSpaceLocal, address, v, NULL, workGroup);
     }
 }
 
