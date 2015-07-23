@@ -940,7 +940,12 @@ bool InteractiveDebugger::print(vector<string> args)
     }
     else
     {
-      if (!workItem->printVariable(args[i]))
+      try
+      {
+        if (!workItem->printVariable(args[i]))
+          cout << "not found";
+      }
+      catch (FatalError err)
       {
         cout << "not found";
       }
