@@ -198,6 +198,7 @@ namespace oclgrind
             TypedValue getValue(const WorkItem *workItem, const llvm::Value *V) const;
             inline bool hasValue(const WorkItem *workItem, const llvm::Value* V) const
             {
+                std::lock_guard<std::mutex> lock(m_globalValues_mutex);
                 return m_globalValues.count(V) || m_workSpace.workItems->at(workItem)->hasValue(V);
             }
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
@@ -206,14 +207,16 @@ namespace oclgrind
             TypedValueMap m_globalValues;
             unsigned m_numBitsBuffer;
             static MemoryPool m_pool;
+            static std::mutex m_pool_mutex;
             typedef std::map<const WorkItem*, ShadowWorkItem*> ShadowItemMap;
             typedef std::map<const WorkGroup*, ShadowWorkGroup*> ShadowGroupMap;
-            struct WorkItems
+            struct WorkSpace
             {
                 ShadowItemMap *workItems;
                 ShadowGroupMap *workGroups;
             };
-            static THREAD_LOCAL WorkItems m_workSpace;
+            static THREAD_LOCAL WorkSpace m_workSpace;
+            static std::mutex m_globalValues_mutex;
     };
 
     class MemCheckUninitialized : public Plugin

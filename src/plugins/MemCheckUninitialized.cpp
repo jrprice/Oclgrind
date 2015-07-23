@@ -32,8 +32,10 @@ using namespace std;
 //    cout << "Memory: " << memory << ", address: " << hex << address << dec << ", size: " << size << endl;
 //}
 
-THREAD_LOCAL ShadowContext::WorkItems ShadowContext::m_workSpace = {NULL, NULL};
+THREAD_LOCAL ShadowContext::WorkSpace ShadowContext::m_workSpace = {NULL, NULL};
+std::mutex ShadowContext::m_globalValues_mutex;
 MemoryPool ShadowContext::m_pool;
+std::mutex ShadowContext::m_pool_mutex;
 
 MemCheckUninitialized::MemCheckUninitialized(const Context *context)
  : Plugin(context), shadowContext(sizeof(size_t)==8 ? 32 : 16)
@@ -1260,6 +1262,7 @@ void ShadowContext::destroyShadowWorkGroup(const WorkGroup *workGroup)
 
 TypedValue ShadowContext::getCleanValue(unsigned size)
 {
+    std::lock_guard<std::mutex> lock(m_pool_mutex);
     TypedValue v = {
         size,
         1,
@@ -1273,6 +1276,7 @@ TypedValue ShadowContext::getCleanValue(unsigned size)
 
 TypedValue ShadowContext::getCleanValue(const llvm::Value *V)
 {
+    std::lock_guard<std::mutex> lock(m_pool_mutex);
     pair<unsigned,unsigned> size = getValueSize(V);
     TypedValue v = {
         size.first,
@@ -1287,6 +1291,7 @@ TypedValue ShadowContext::getCleanValue(const llvm::Value *V)
 
 TypedValue ShadowContext::getCleanValue(const llvm::Type *Ty)
 {
+    std::lock_guard<std::mutex> lock(m_pool_mutex);
     unsigned size = getTypeSize(Ty);
     TypedValue v = {
         size,
@@ -1301,6 +1306,7 @@ TypedValue ShadowContext::getCleanValue(const llvm::Type *Ty)
 
 TypedValue ShadowContext::getValue(const WorkItem *workItem, const llvm::Value *V) const
 {
+    std::lock_guard<std::mutex> lock(m_globalValues_mutex);
     if(m_globalValues.count(V))
     {
         return m_globalValues.at(V);
@@ -1313,6 +1319,7 @@ TypedValue ShadowContext::getValue(const WorkItem *workItem, const llvm::Value *
 
 TypedValue ShadowContext::getPoisonedValue(unsigned size)
 {
+    std::lock_guard<std::mutex> lock(m_pool_mutex);
     TypedValue v = {
         size,
         1,
@@ -1326,6 +1333,7 @@ TypedValue ShadowContext::getPoisonedValue(unsigned size)
 
 TypedValue ShadowContext::getPoisonedValue(const llvm::Value *V)
 {
+    std::lock_guard<std::mutex> lock(m_pool_mutex);
     pair<unsigned,unsigned> size = getValueSize(V);
     TypedValue v = {
         size.first,
@@ -1340,6 +1348,7 @@ TypedValue ShadowContext::getPoisonedValue(const llvm::Value *V)
 
 TypedValue ShadowContext::getPoisonedValue(const llvm::Type *Ty)
 {
+    std::lock_guard<std::mutex> lock(m_pool_mutex);
     unsigned size = getTypeSize(Ty);
     TypedValue v = {
         size,
@@ -1558,6 +1567,7 @@ void ShadowMemory::load(unsigned char *dst, size_t address, size_t size) const
 
 void ShadowContext::setGlobalValue(const llvm::Value *V, TypedValue SV)
 {
+    std::lock_guard<std::mutex> lock(m_globalValues_mutex);
     assert(!m_globalValues.count(V) && "Values may only have one shadow");
     m_globalValues[V] = SV;
 }
