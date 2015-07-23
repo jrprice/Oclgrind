@@ -518,7 +518,7 @@ bool WorkItem::printVariable(string name) const
   }
 
   // Get variable value
-  TypedValue result = getValue(value);
+  TypedValue result = getOperand(value);
   const llvm::Type *type = value->getType();
 
   if (value->getValueID() == llvm::Value::GlobalVariableVal ||
