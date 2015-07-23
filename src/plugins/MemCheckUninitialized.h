@@ -45,7 +45,7 @@ namespace oclgrind
     class ShadowMemory
     {
         public:
-            ShadowMemory(unsigned bufferBits);
+            ShadowMemory(AddressSpace addrSpace, unsigned bufferBits);
             virtual ~ShadowMemory();
 
             void dump() const;
@@ -60,6 +60,7 @@ namespace oclgrind
             typedef std::unordered_map<size_t, unsigned char*> MemoryMap;
 #endif
 
+            AddressSpace m_addrSpace;
             MemoryMap m_map;
             unsigned m_numBitsAddress;
             unsigned m_numBitsBuffer;
@@ -175,7 +176,7 @@ namespace oclgrind
             ShadowWorkGroup* createShadowWorkGroup(const WorkGroup *workGroup);
             void destroyShadowWorkItem(const WorkItem *workItem);
             void destroyShadowWorkGroup(const WorkGroup *workGroup);
-            void dump() const;
+            void dump(const WorkItem *workItem) const;
             void dumpGlobalValues() const;
             void freeWorkItems();
             void freeWorkGroups();
@@ -232,8 +233,8 @@ namespace oclgrind
             //                             size_t size, cl_mem_flags flags,
             //                             const uint8_t *initData);
         private:
-            std::list<const llvm::Value*> m_deferredInit;
-            std::list<const llvm::Value*> m_deferredInitGroup;
+            std::list<std::pair<const llvm::Value*, TypedValue> > m_deferredInit;
+            std::list<std::pair<const llvm::Value*, TypedValue> > m_deferredInitGroup;
             ShadowContext shadowContext;
 
             void checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I);
@@ -245,14 +246,10 @@ namespace oclgrind
                                   unsigned srcAddrSpace, size_t src, size_t size);
             void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
 
-            void loadShadowMemory(const WorkItem *workItem,
-                                  unsigned addrSpace, size_t address, TypedValue &SM);
-            void loadShadowMemory(const WorkGroup *workGroup,
-                                  unsigned addrSpace, size_t address, TypedValue &SM);
-            void storeShadowMemory(const WorkItem *workItem,
-                                   unsigned addrSpace, size_t address, TypedValue SM);
-            void storeShadowMemory(const WorkGroup *workGroup,
-                                   unsigned addrSpace, size_t address, TypedValue SM);
+            void loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM,
+                                  const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
+            void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
+                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
 
             void SimpleOr(const WorkItem *workItem, const llvm::Instruction *I);
 
