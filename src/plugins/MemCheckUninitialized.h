@@ -241,12 +241,15 @@ namespace oclgrind
             ShadowContext shadowContext;
 
             void checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I);
-            void copyShadowMemory(const WorkItem *workItem,
-                                  unsigned dstAddrSpace, size_t dst,
-                                  unsigned srcAddrSpace, size_t src, size_t size);
-            void copyShadowMemory(const WorkGroup *workGroup,
-                                  unsigned dstAddrSpace, size_t dst,
-                                  unsigned srcAddrSpace, size_t src, size_t size);
+            void copyShadowMemory(unsigned dstAddrSpace, size_t dst,
+                                  unsigned srcAddrSpace, size_t src, unsigned size,
+                                  const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
+            void copyShadowMemoryStrided(unsigned dstAddrSpace, size_t dst,
+                                         unsigned srcAddrSpace, size_t src,
+                                         size_t num, size_t stride, unsigned size,
+                                         const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
+            static std::string extractUnmangledName(const std::string fullname);
+            bool handleBuiltinFunction(const WorkItem *workItem, std::string name, const llvm::CallInst *CI);
             void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
 
             void loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM,

@@ -350,13 +350,16 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(function->isDeclaration())
             {
-                // Handle external function calls
-                checkAllOperandsDefined(workItem, instruction);
-
-                if(callInst->getType()->isSized())
+                if(!handleBuiltinFunction(workItem, function->getName().str(), callInst))
                 {
-                    // Set return value only if function is non-void
-                    shadowWI->setValue(instruction, ShadowContext::getCleanValue(instruction));
+                    // Handle external function calls
+                    checkAllOperandsDefined(workItem, instruction);
+
+                    if(callInst->getType()->isSized())
+                    {
+                        // Set return value only if function is non-void
+                        shadowWI->setValue(instruction, ShadowContext::getCleanValue(instruction));
+                    }
                 }
                 break;
             }
@@ -1057,26 +1060,102 @@ void MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, co
     }
 }
 
-void MemCheckUninitialized::copyShadowMemory(const WorkItem *workItem, unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, size_t size)
+void MemCheckUninitialized::copyShadowMemoryStrided(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, size_t num, size_t stride, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup)
 {
-    if(dstAddrSpace == AddrSpacePrivate)
-    {
-        unsigned char *buffer = new unsigned char[size];
+    TypedValue v = {
+        size,
+        1,
+        new unsigned char[size]
+    };
 
-        if(srcAddrSpace != AddrSpacePrivate)
+    for (unsigned i = 0; i < num; i++)
+    {
+        loadShadowMemory(srcAddrSpace, src, v, workItem, workGroup);
+        storeShadowMemory(dstAddrSpace, dst, v, workItem, workGroup);
+        src += stride * size;
+        dst += stride * size;
+    }
+
+    delete[] v.data;
+}
+
+void MemCheckUninitialized::copyShadowMemory(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup)
+{
+    copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, 1, 1, size, workItem, workGroup);
+}
+
+std::string MemCheckUninitialized::extractUnmangledName(const std::string fullname)
+{
+    // Extract unmangled name
+    if(fullname.compare(0,2, "_Z") == 0)
+    {
+        int len = atoi(fullname.c_str() + 2);
+        int start = fullname.find_first_not_of("0123456789", 2);
+        return fullname.substr(start, len);
+    }
+    else
+    {
+        return fullname;
+    }
+}
+
+bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, string name, const llvm::CallInst *CI)
+{
+    name = extractUnmangledName(name);
+
+    if(name == "async_work_group_copy" ||
+       name == "async_work_group_strided_copy")
+    {
+        int arg = 0;
+
+        // Get src/dest addresses
+        const llvm::Value *destOp = CI->getArgOperand(arg++);
+        const llvm::Value *srcOp = CI->getArgOperand(arg++);
+        size_t dst = workItem->getOperand(destOp).getPointer();
+        size_t src = workItem->getOperand(srcOp).getPointer();
+
+        // Get size of copy
+        unsigned elemSize =
+            getTypeSize(destOp->getType()->getPointerElementType());
+        uint64_t num = workItem->getOperand(CI->getArgOperand(arg++)).getUInt();
+
+        // Get stride
+        size_t stride = 1;
+        //size_t srcStride = 1;
+        //size_t dstStride = 1;
+
+        if(name == "async_work_group_strided_copy")
         {
-            //Global memory is always clean
-            memset(buffer, 0, size);
+            stride = workItem->getOperand(CI->getArgOperand(arg++)).getUInt();
+        }
+
+        const llvm::Value *eventOp = CI->getArgOperand(arg++);
+        size_t event = workItem->getOperand(eventOp).getUInt();
+
+        // Get type of copy
+        //WorkGroup::AsyncCopyType type;
+        AddressSpace dstAddrSpace = AddrSpaceLocal;
+        AddressSpace srcAddrSpace = AddrSpaceLocal;
+
+        if(destOp->getType()->getPointerAddressSpace() == AddrSpaceLocal)
+        {
+            //type = WorkGroup::GLOBAL_TO_LOCAL;
+            //srcStride = stride;
+            srcAddrSpace = AddrSpaceGlobal;
         }
         else
         {
-            shadowContext.getShadowWorkItem(workItem)->loadMemory(buffer, src, size);
+            //type = WorkGroup::LOCAL_TO_GLOBAL;
+            //dstStride = stride;
+            dstAddrSpace = AddrSpaceGlobal;
         }
 
-        shadowContext.getShadowWorkItem(workItem)->storeMemory(buffer, dst, size);
-
-        delete buffer;
+        copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, num, stride, elemSize, workItem);
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, ShadowContext::getCleanValue(eventOp));
+        return true;
     }
+
+    return false;
 }
 
 void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I)
@@ -1097,7 +1176,7 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
             unsigned dstAddrSpace = memcpyInst->getDestAddressSpace();
             unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
 
-            copyShadowMemory(workItem, dstAddrSpace, dst, srcAddrSpace, src, size);
+            copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size, workItem);
             break;
         }
         case llvm::Intrinsic::memset:
