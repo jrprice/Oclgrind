@@ -207,8 +207,6 @@ namespace oclgrind
         private:
             UnorderedTypedValueMap m_globalValues;
             unsigned m_numBitsBuffer;
-            static MemoryPool m_pool;
-            static std::mutex m_pool_mutex;
             typedef std::map<const WorkItem*, ShadowWorkItem*> ShadowItemMap;
             typedef std::map<const WorkGroup*, ShadowWorkGroup*> ShadowGroupMap;
             struct WorkSpace

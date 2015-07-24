@@ -33,8 +33,6 @@ using namespace std;
 //}
 
 THREAD_LOCAL ShadowContext::WorkSpace ShadowContext::m_workSpace = {NULL, NULL};
-MemoryPool ShadowContext::m_pool;
-std::mutex ShadowContext::m_pool_mutex;
 
 MemCheckUninitialized::MemCheckUninitialized(const Context *context)
  : Plugin(context), shadowContext(sizeof(size_t)==8 ? 32 : 16)
@@ -1351,11 +1349,10 @@ void ShadowContext::destroyShadowWorkGroup(const WorkGroup *workGroup)
 
 TypedValue ShadowContext::getCleanValue(unsigned size)
 {
-    std::lock_guard<std::mutex> lock(m_pool_mutex);
     TypedValue v = {
         size,
         1,
-        m_pool.alloc(size)
+        new unsigned char[size]
     };
 
     memset(v.data, 0, size);
@@ -1365,12 +1362,11 @@ TypedValue ShadowContext::getCleanValue(unsigned size)
 
 TypedValue ShadowContext::getCleanValue(const llvm::Value *V)
 {
-    std::lock_guard<std::mutex> lock(m_pool_mutex);
     pair<unsigned,unsigned> size = getValueSize(V);
     TypedValue v = {
         size.first,
         size.second,
-        m_pool.alloc(size.first*size.second)
+        new unsigned char[size.first*size.second]
     };
 
     memset(v.data, 0, v.size*v.num);
@@ -1380,12 +1376,11 @@ TypedValue ShadowContext::getCleanValue(const llvm::Value *V)
 
 TypedValue ShadowContext::getCleanValue(const llvm::Type *Ty)
 {
-    std::lock_guard<std::mutex> lock(m_pool_mutex);
     unsigned size = getTypeSize(Ty);
     TypedValue v = {
         size,
         1,
-        m_pool.alloc(size)
+        new unsigned char[size]
     };
 
     memset(v.data, 0, v.size);
@@ -1407,11 +1402,10 @@ TypedValue ShadowContext::getValue(const WorkItem *workItem, const llvm::Value *
 
 TypedValue ShadowContext::getPoisonedValue(unsigned size)
 {
-    std::lock_guard<std::mutex> lock(m_pool_mutex);
     TypedValue v = {
         size,
         1,
-        m_pool.alloc(size)
+        new unsigned char[size]
     };
 
     memset(v.data, -1, size);
@@ -1421,12 +1415,11 @@ TypedValue ShadowContext::getPoisonedValue(unsigned size)
 
 TypedValue ShadowContext::getPoisonedValue(const llvm::Value *V)
 {
-    std::lock_guard<std::mutex> lock(m_pool_mutex);
     pair<unsigned,unsigned> size = getValueSize(V);
     TypedValue v = {
         size.first,
         size.second,
-        m_pool.alloc(size.first*size.second)
+        new unsigned char[size.first*size.second]
     };
 
     memset(v.data, -1, v.size*v.num);
@@ -1436,12 +1429,11 @@ TypedValue ShadowContext::getPoisonedValue(const llvm::Value *V)
 
 TypedValue ShadowContext::getPoisonedValue(const llvm::Type *Ty)
 {
-    std::lock_guard<std::mutex> lock(m_pool_mutex);
     unsigned size = getTypeSize(Ty);
     TypedValue v = {
         size,
         1,
-        m_pool.alloc(size)
+        new unsigned char[size]
     };
 
     memset(v.data, -1, v.size);
