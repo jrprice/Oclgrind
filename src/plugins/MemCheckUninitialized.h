@@ -14,6 +14,8 @@
 
 namespace oclgrind
 {
+    typedef std::unordered_map<const llvm::Value*, TypedValue> UnorderedTypedValueMap;
+
     class ShadowValues
     {
         public:
@@ -36,7 +38,7 @@ namespace oclgrind
 
         private:
             const llvm::CallInst *m_call;
-            TypedValueMap m_values;
+            UnorderedTypedValueMap m_values;
 #ifdef DUMP_SHADOW
             std::list<const llvm::Value*> m_valuesList;
 #endif
@@ -203,7 +205,7 @@ namespace oclgrind
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
 
         private:
-            TypedValueMap m_globalValues;
+            UnorderedTypedValueMap m_globalValues;
             unsigned m_numBitsBuffer;
             static MemoryPool m_pool;
             static std::mutex m_pool_mutex;

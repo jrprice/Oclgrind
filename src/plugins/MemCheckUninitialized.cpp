@@ -1512,7 +1512,7 @@ void ShadowContext::dumpGlobalValues() const
 {
     cout << "==== ShadowMap (global) =======" << endl;
 
-    TypedValueMap::const_iterator itr;
+    UnorderedTypedValueMap::const_iterator itr;
     unsigned num = 1;
 
     for(itr = m_globalValues.begin(); itr != m_globalValues.end(); ++itr)
