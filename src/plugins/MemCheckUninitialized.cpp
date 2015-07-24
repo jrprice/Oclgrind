@@ -33,7 +33,6 @@ using namespace std;
 //}
 
 THREAD_LOCAL ShadowContext::WorkSpace ShadowContext::m_workSpace = {NULL, NULL};
-std::mutex ShadowContext::m_globalValues_mutex;
 MemoryPool ShadowContext::m_pool;
 std::mutex ShadowContext::m_pool_mutex;
 
@@ -1396,7 +1395,6 @@ TypedValue ShadowContext::getCleanValue(const llvm::Type *Ty)
 
 TypedValue ShadowContext::getValue(const WorkItem *workItem, const llvm::Value *V) const
 {
-    std::lock_guard<std::mutex> lock(m_globalValues_mutex);
     if(m_globalValues.count(V))
     {
         return m_globalValues.at(V);
@@ -1657,7 +1655,6 @@ void ShadowMemory::load(unsigned char *dst, size_t address, size_t size) const
 
 void ShadowContext::setGlobalValue(const llvm::Value *V, TypedValue SV)
 {
-    std::lock_guard<std::mutex> lock(m_globalValues_mutex);
     assert(!m_globalValues.count(V) && "Values may only have one shadow");
     m_globalValues[V] = SV;
 }
