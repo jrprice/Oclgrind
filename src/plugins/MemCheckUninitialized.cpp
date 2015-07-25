@@ -1260,9 +1260,16 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
         {
             const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)I;
             size_t dst = workItem->getOperand(memsetInst->getDest()).getPointer();
+            unsigned size = workItem->getOperand(memsetInst->getLength()).getUInt();
             unsigned addrSpace = memsetInst->getDestAddressSpace();
 
-            TypedValue shadowValue = shadowContext.getValue(workItem, memsetInst->getArgOperand(0));
+            TypedValue shadowValue = {
+                size,
+                1,
+                new unsigned char[size]
+            };
+
+            memset(shadowValue.data, shadowContext.getValue(workItem, memsetInst->getArgOperand(1)).getUInt(), size);
             storeShadowMemory(addrSpace, dst, shadowValue, workItem);
 
             break;
