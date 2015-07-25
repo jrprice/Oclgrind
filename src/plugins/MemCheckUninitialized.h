@@ -10,9 +10,10 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IntrinsicInst.h"
 
-#define DUMP_SHADOW
+//#define DUMP_SHADOW
 //#define PARANOID_CHECK(W, I) assert(checkAllOperandsDefined(W, I) && "Not all operands defined")
-#define PARANOID_CHECK(W, I) checkAllOperandsDefined(W, I)
+//#define PARANOID_CHECK(W, I) checkAllOperandsDefined(W, I)
+#define PARANOID_CHECK(W, I) (void*)0
 
 namespace oclgrind
 {

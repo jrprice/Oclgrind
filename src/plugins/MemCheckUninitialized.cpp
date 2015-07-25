@@ -299,12 +299,22 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         case llvm::Instruction::BitCast:
         {
             TypedValue shadow = shadowContext.getValue(workItem, instruction->getOperand(0));
-            shadowContext.getShadowWorkItem(workItem)->setValue(instruction, shadow.clone());
+            TypedValue newShadow = result.clone();
+
+            memcpy(newShadow.data, shadow.data, newShadow.size*newShadow.num);
+            shadowContext.getShadowWorkItem(workItem)->setValue(instruction, newShadow);
+#ifdef DUMP_SHADOW
+            cout << "Value: " << newShadow << dec << endl;
+#endif
             break;
         }
         case llvm::Instruction::Br:
         {
             checkAllOperandsDefined(workItem, instruction);
+#ifdef DUMP_SHADOW
+            // Insert pseudo value to keep numbering
+            shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getCleanValue(3));
+#endif
             break;
         }
         case llvm::Instruction::Call:
@@ -718,6 +728,10 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
             else
             {
+#ifdef DUMP_SHADOW
+                // Insert pseudo value to keep numbering
+                shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getCleanValue(3));
+#endif
                 shadowWI->popValues();
             }
 
@@ -856,6 +870,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         }
         case llvm::Instruction::Store:
         {
+            PARANOID_CHECK(workItem, instruction);
             const llvm::StoreInst *storeInst = ((const llvm::StoreInst*)instruction);
             const llvm::Value *Val = storeInst->getValueOperand();
             const llvm::Value *Addr = storeInst->getPointerOperand();
@@ -874,6 +889,10 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             }
 
             storeShadowMemory(addrSpace, address, shadowVal, workItem);
+#ifdef DUMP_SHADOW
+            // Insert pseudo value to keep numbering
+            shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getCleanValue(3));
+#endif
             break;
         }
         case llvm::Instruction::Sub:
@@ -884,6 +903,10 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         case llvm::Instruction::Switch:
         {
             checkAllOperandsDefined(workItem, instruction);
+#ifdef DUMP_SHADOW
+            // Insert pseudo value to keep numbering
+            shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getCleanValue(3));
+#endif
             break;
         }
         case llvm::Instruction::Trunc:
@@ -1005,6 +1028,9 @@ void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t
 
 void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup)
 {
+#ifdef DUMP_SHADOW
+    cout << "Space: " << addrSpace << "\nAddress: " << hex << address << "\nValue: " << SM << dec << endl;
+#endif
     switch(addrSpace)
     {
         case AddrSpacePrivate:
@@ -1085,6 +1111,9 @@ void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address,
         default:
             FATAL_ERROR("Unsupported addressspace %d", addrSpace);
     }
+#ifdef DUMP_SHADOW
+    cout << "Space: " << addrSpace << "\nAddress: " << hex << address << "\nValue: " << SM << dec << endl;
+#endif
 }
 
 bool MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I)
@@ -1093,6 +1122,10 @@ bool MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, co
     {
         if(shadowContext.getValue(workItem, OI->get()) != ShadowContext::getCleanValue(OI->get()))
         {
+#ifdef DUMP_SHADOW
+            OI->get()->dump();
+            cout << "Shadow value: " << shadowContext.getValue(workItem, OI->get()) << endl;
+#endif
             logUninitializedCF();
 #ifdef DUMP_SHADOW
             shadowContext.dump(workItem);
