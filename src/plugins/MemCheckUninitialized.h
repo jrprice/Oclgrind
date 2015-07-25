@@ -10,7 +10,9 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IntrinsicInst.h"
 
-//#define DUMP_SHADOW
+#define DUMP_SHADOW
+//#define PARANOID_CHECK(W, I) assert(checkAllOperandsDefined(W, I) && "Not all operands defined")
+#define PARANOID_CHECK(W, I) checkAllOperandsDefined(W, I)
 
 namespace oclgrind
 {
@@ -31,7 +33,7 @@ namespace oclgrind
             }
             inline bool hasValue(const llvm::Value* V) const
             {
-                return m_values.count(V);
+                return llvm::isa<llvm::Constant>(V) || m_values.count(V);
             }
             void loadMemory(unsigned char *dst, size_t address, size_t size=1) const;
             void setValue(const llvm::Value *V, TypedValue SV);
@@ -50,6 +52,7 @@ namespace oclgrind
             ShadowMemory(AddressSpace addrSpace, unsigned bufferBits);
             virtual ~ShadowMemory();
 
+            void allocate(size_t address, size_t size);
             void dump() const;
             void* getPointer(size_t address) const;
             void load(unsigned char *dst, size_t address, size_t size=1) const;
@@ -67,8 +70,8 @@ namespace oclgrind
             unsigned m_numBitsAddress;
             unsigned m_numBitsBuffer;
 
-            void allocate(size_t address, size_t size);
             void clear();
+            void deallocate(size_t address);
             size_t extractBuffer(size_t address) const;
             size_t extractOffset(size_t address) const;
     };
@@ -79,6 +82,10 @@ namespace oclgrind
             ShadowWorkItem(unsigned bufferBits);
             virtual ~ShadowWorkItem();
 
+            inline void allocMemory(size_t address, size_t size)
+            {
+                m_memory.allocate(address, size);
+            }
             ShadowValues* createCleanShadowValues();
             void dump() const;
             inline void dumpMemory() const
@@ -142,6 +149,10 @@ namespace oclgrind
         public:
             ShadowWorkGroup(unsigned bufferBits);
 
+            inline void allocMemory(size_t address, size_t size)
+            {
+                m_memory.allocate(address, size);
+            }
             inline void dump() const
             {
                 m_memory.dump();
@@ -200,7 +211,7 @@ namespace oclgrind
             TypedValue getValue(const WorkItem *workItem, const llvm::Value *V) const;
             inline bool hasValue(const WorkItem *workItem, const llvm::Value* V) const
             {
-                return m_globalValues.count(V) || m_workSpace.workItems->at(workItem)->hasValue(V);
+                return llvm::isa<llvm::Constant>(V) || m_globalValues.count(V) || m_workSpace.workItems->at(workItem)->hasValue(V);
             }
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
 
@@ -238,7 +249,9 @@ namespace oclgrind
             std::list<std::pair<const llvm::Value*, TypedValue> > m_deferredInitGroup;
             ShadowContext shadowContext;
 
-            void checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I);
+            void allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
+                                           const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
+            bool checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I);
             void copyShadowMemory(unsigned dstAddrSpace, size_t dst,
                                   unsigned srcAddrSpace, size_t src, unsigned size,
                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);

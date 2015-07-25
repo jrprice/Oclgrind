@@ -46,11 +46,6 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
     // Initialise kernel arguments and global variables
     for (auto value = kernel->values_begin(); value != kernel->values_end(); value++)
     {
-#ifdef DUMP_SHADOW
-        value->first->dump();
-        cout << "Value: " << hex << value->second << endl;
-        cout << "Size: " << dec << value->second.size << endl;
-#endif
         const llvm::Type *type = value->first->getType();
 
         if(!type->isSized())
@@ -69,7 +64,7 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                     // value->second.size == ptr size
                     shadowContext.setGlobalValue(value->first, ShadowContext::getCleanValue(value->first));
                     const llvm::Type *elementTy = type->getPointerElementType();
-                    storeShadowMemory(AddrSpaceConstant, value->second.getPointer(), ShadowContext::getCleanValue(elementTy));
+                    allocAndStoreShadowMemory(AddrSpaceConstant, value->second.getPointer(), ShadowContext::getCleanValue(elementTy));
                     break;
                 }
                 case AddrSpaceGlobal:
@@ -78,6 +73,7 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                     // value->second.data == ptr
                     // value->second.size == ptr size
                     //TODO: Eventually allocate memory
+                    //m_context->getGlobalMemory()->getBuffer(value->second.data).size
                     m_deferredInit.push_back(*value);
                     break;
                 }
@@ -174,7 +170,7 @@ void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
                             // value.second.data == val
                             // value.second.size == val size
                             size_t address = workItem->getOperand(value.first).getPointer();
-                            storeShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(value.second.size), workItem);
+                            allocAndStoreShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(value.second.size), workItem);
                             shadowWI->setValue(value.first, ShadowContext::getCleanValue(value.first));
                         }
                         else
@@ -183,7 +179,7 @@ void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
                             // value.second.data == NULL
                             // value.second.size == val size
                             size_t address = workItem->getOperand(value.first).getPointer();
-                            storeShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(value.second.size), workItem);
+                            allocAndStoreShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(value.second.size), workItem);
                         }
                         break;
                     }
@@ -199,7 +195,7 @@ void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
     }
 
 #ifdef DUMP_SHADOW
-    shadowContext.dump(workItem);
+    //shadowContext.dump(workItem);
 #endif
 }
 
@@ -226,7 +222,7 @@ void MemCheckUninitialized::workGroupBegin(const WorkGroup *workGroup)
             v = ShadowContext::getPoisonedValue(value.second.size);
         }
 
-        storeShadowMemory(AddrSpaceLocal, address, v, NULL, workGroup);
+        allocAndStoreShadowMemory(AddrSpaceLocal, address, v, NULL, workGroup);
     }
 }
 
@@ -267,7 +263,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getCleanValue(instruction));
 
             TypedValue v = ShadowContext::getPoisonedValue(allocaInst->getAllocatedType());
-            storeShadowMemory(AddrSpacePrivate, address, v, workItem);
+            allocAndStoreShadowMemory(AddrSpacePrivate, address, v, workItem);
             break;
         }
         case llvm::Instruction::And:
@@ -943,12 +939,13 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
     }
 
 #ifdef DUMP_SHADOW
-    shadowContext.dump(workItem);
+    //shadowContext.dump(workItem);
 #endif
 }
 
 void MemCheckUninitialized::SimpleOr(const WorkItem *workItem, const llvm::Instruction *I)
 {
+    PARANOID_CHECK(workItem, I);
     for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
     {
         if(shadowContext.getValue(workItem, OI->get()) != ShadowContext::getCleanValue(OI->get()))
@@ -959,6 +956,51 @@ void MemCheckUninitialized::SimpleOr(const WorkItem *workItem, const llvm::Instr
     }
 
     shadowContext.getShadowWorkItem(workItem)->setValue(I, ShadowContext::getCleanValue(I));
+}
+
+void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup)
+{
+    switch(addrSpace)
+    {
+        case AddrSpacePrivate:
+        {
+            if(!workItem)
+            {
+                FATAL_ERROR("Work item needed to store private memory!");
+            }
+
+            shadowContext.getShadowWorkItem(workItem)->allocMemory(address, SM.size*SM.num);
+            break;
+        }
+        case AddrSpaceLocal:
+        {
+            if(!workGroup)
+            {
+                if(!workItem)
+                {
+                    FATAL_ERROR("Work item or work group needed to store local memory!");
+                }
+
+                workGroup = workItem->getWorkGroup();
+            }
+
+            shadowContext.getShadowWorkGroup(workGroup)->allocMemory(address, SM.size*SM.num);
+            break;
+        }
+        case AddrSpaceConstant:
+            //Do nothing
+            //TODO: Eventually store value
+            break;
+        case AddrSpaceGlobal:
+            //TODO: Assume global memory is always clean!?
+            //TODO: Eventually store value
+            // Do nothing
+            break;
+        default:
+            FATAL_ERROR("Unsupported addressspace %d", addrSpace);
+    }
+
+    storeShadowMemory(addrSpace, address, SM, workItem, workGroup);
 }
 
 void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup)
@@ -1045,16 +1087,21 @@ void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address,
     }
 }
 
-void MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I)
+bool MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I)
 {
     for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
     {
         if(shadowContext.getValue(workItem, OI->get()) != ShadowContext::getCleanValue(OI->get()))
         {
             logUninitializedCF();
-            return;
+#ifdef DUMP_SHADOW
+            shadowContext.dump(workItem);
+#endif
+            return false;
         }
     }
+
+    return true;
 }
 
 void MemCheckUninitialized::copyShadowMemoryStrided(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, size_t num, size_t stride, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup)
@@ -1445,10 +1492,30 @@ void ShadowMemory::allocate(size_t address, size_t size)
 {
     size_t index = extractBuffer(address);
 
+    if(m_map.count(index))
+    {
+        deallocate(address);
+    }
+
 #ifdef DUMP_SHADOW
     m_map[index] = std::pair<size_t, unsigned char*>(size, new unsigned char[size]);
 #else
     m_map[index] = new unsigned char[size];
+#endif
+}
+
+void ShadowMemory::deallocate(size_t address)
+{
+    size_t index = extractBuffer(address);
+
+    assert(m_map.count(index) && "Cannot deallocate non existing memory!");
+
+#ifdef DUMP_SHADOW
+    delete[] m_map.at(index).second;
+    m_map.at(index).second = NULL;
+#else
+    delete[] m_map.at(index);
+    m_map.at(index) = NULL;
 #endif
 }
 
@@ -1611,7 +1678,7 @@ TypedValue ShadowValues::getValue(const llvm::Value *V) const
 {
     if (llvm::isa<llvm::Instruction>(V)) {
         // For instructions the shadow is already stored in the map.
-        assert(m_values.count(V) && "No shadow for a value");
+        assert(m_values.count(V) && "No shadow for instruction value");
         return m_values.at(V);
     }
     else if (llvm::isa<llvm::UndefValue>(V)) {
@@ -1619,7 +1686,7 @@ TypedValue ShadowValues::getValue(const llvm::Value *V) const
     }
     else if (llvm::isa<llvm::Argument>(V)) {
         // For arguments the shadow is already stored in the map.
-        assert(m_values.count(V) && "No shadow for a value");
+        assert(m_values.count(V) && "No shadow for argument value");
         return m_values.at(V);
     }
     else
@@ -1671,10 +1738,7 @@ void ShadowMemory::store(const unsigned char *src, size_t address, size_t size)
     size_t index = extractBuffer(address);
     size_t offset = extractOffset(address);
 
-    if(!m_map.count(index))
-    {
-        allocate(address, size);
-    }
+    assert(m_map.count(index) && "Cannot store to unallocated memory!");
 
 #ifdef DUMP_SHADOW
     unsigned char *dst = m_map.at(index).second;
