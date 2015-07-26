@@ -1284,6 +1284,7 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
 
         size_t address = workItem->getOperand(CI->getArgOperand(0)).getPointer();
         uint32_t cmp = workItem->getOperand(CI->getArgOperand(1)).getUInt();
+        uint32_t old = workItem->getOperand(CI).getUInt();;
         TypedValue shadowValue = shadowContext.getValue(workItem, CI->getArgOperand(2));
         TypedValue oldShadow = {
             4,
@@ -1292,9 +1293,6 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         };
 
         // Perform cmpxchg
-        //FIXME: There is no atomicLoad. Using or with zero instead
-        uint32_t old = memory->atomic(AtomicOp::AtomicOr, address, 0);
-
         if(addrSpace == AddrSpaceGlobal)
         {
             atomicMutexShadow.lock();
