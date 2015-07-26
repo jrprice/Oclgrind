@@ -420,8 +420,10 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                     unsigned char *origShadowData = (unsigned char*)shadowWI->getMemoryPointer(origShadowAddress);
                     size_t size = getTypeSize(argItr->getType()->getPointerElementType());
 
-                    //// Set new shadow memory
-                    shadowWI->storeMemory(origShadowData, newShadowAddress, size);
+                    // Set new shadow memory
+                    TypedValue v = ShadowContext::getCleanValue(size);
+                    memcpy(v.data, origShadowData, size);
+                    allocAndStoreShadowMemory(AddrSpacePrivate, newShadowAddress, v, workItem);
                     values->setValue(argItr, ShadowContext::getCleanValue(argItr));
                 }
                 else
