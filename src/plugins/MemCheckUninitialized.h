@@ -189,8 +189,10 @@ namespace oclgrind
 
             void allocateWorkItems();
             void allocateWorkGroups();
+            void createMemoryPool();
             ShadowWorkItem* createShadowWorkItem(const WorkItem *workItem);
             ShadowWorkGroup* createShadowWorkGroup(const WorkGroup *workGroup);
+            void destroyMemoryPool();
             void destroyShadowWorkItem(const WorkItem *workItem);
             void destroyShadowWorkGroup(const WorkGroup *workGroup);
             void dump(const WorkItem *workItem) const;
@@ -206,6 +208,10 @@ namespace oclgrind
                 return &m_globalMemory;
             }
             TypedValue getGlobalValue(const llvm::Value *V) const;
+            MemoryPool* getMemoryPool() const
+            {
+                return m_workSpace.memoryPool;
+            }
             static TypedValue getPoisonedValue(unsigned size);
             static TypedValue getPoisonedValue(TypedValue v);
             static TypedValue getPoisonedValue(const llvm::Type *Ty);
@@ -236,6 +242,8 @@ namespace oclgrind
             {
                 ShadowItemMap *workItems;
                 ShadowGroupMap *workGroups;
+                MemoryPool *memoryPool;
+                unsigned poolUsers;
             };
             static THREAD_LOCAL WorkSpace m_workSpace;
     };
@@ -260,6 +268,7 @@ namespace oclgrind
             std::list<std::pair<const llvm::Value*, TypedValue> > m_deferredInit;
             std::list<std::pair<const llvm::Value*, TypedValue> > m_deferredInitGroup;
             ShadowContext shadowContext;
+            MemoryPool m_pool;
 
             void allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
                                            const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
