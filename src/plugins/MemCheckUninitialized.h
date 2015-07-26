@@ -53,21 +53,25 @@ namespace oclgrind
     class ShadowMemory
     {
         public:
+            struct Buffer
+            {
+                size_t size;
+                cl_mem_flags flags;
+                unsigned char *data;
+            };
+
             ShadowMemory(AddressSpace addrSpace, unsigned bufferBits);
             virtual ~ShadowMemory();
 
             void allocate(size_t address, size_t size);
             void dump() const;
             void* getPointer(size_t address) const;
+            bool isAddressValid(size_t address, size_t size=1) const;
             void load(unsigned char *dst, size_t address, size_t size=1) const;
             void store(const unsigned char *src, size_t address, size_t size=1);
 
         private:
-#ifdef DUMP_SHADOW
-            typedef std::unordered_map<size_t, std::pair<size_t, unsigned char*> > MemoryMap;
-#else
-            typedef std::unordered_map<size_t, unsigned char*> MemoryMap;
-#endif
+            typedef std::unordered_map<size_t, Buffer*> MemoryMap;
 
             AddressSpace m_addrSpace;
             MemoryMap m_map;
@@ -252,12 +256,16 @@ namespace oclgrind
     {
         public:
             MemCheckUninitialized(const Context *context);
+            virtual ~MemCheckUninitialized();
 
             virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
             virtual void workItemBegin(const WorkItem *workItem) override;
             virtual void workItemComplete(const WorkItem *workItem);
             virtual void workGroupBegin(const WorkGroup *workGroup);
             virtual void workGroupComplete(const WorkGroup *workGroup);
+            virtual void hostMemoryStore(const Memory *memory,
+                    size_t address, size_t size,
+                    const uint8_t *storeData);
             virtual void instructionExecuted(const WorkItem *workItem,
                     const llvm::Instruction *instruction,
                     const TypedValue& result) override;
