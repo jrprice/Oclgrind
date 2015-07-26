@@ -72,8 +72,9 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                     // Global pointer kernel arguments
                     // value->second.data == ptr
                     // value->second.size == ptr size
-                    //TODO: Eventually allocate memory
-                    //m_context->getGlobalMemory()->getBuffer(value->second.data).size
+                    size_t size = m_context->getGlobalMemory()->getBuffer(value->second.getPointer())->size;
+                    //TODO: Global memory clean or poisoned?
+                    allocAndStoreShadowMemory(AddrSpaceGlobal, value->second.getPointer(), ShadowContext::getPoisonedValue(size));
                     m_deferredInit.push_back(*value);
                     break;
                 }
@@ -1015,9 +1016,7 @@ void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t
             //TODO: Eventually store value
             break;
         case AddrSpaceGlobal:
-            //TODO: Assume global memory is always clean!?
-            //TODO: Eventually store value
-            // Do nothing
+            shadowContext.getGlobalMemory()->allocate(address, SM.size*SM.num);
             break;
         default:
             FATAL_ERROR("Unsupported addressspace %d", addrSpace);
@@ -1063,9 +1062,7 @@ void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address
             //TODO: Eventually store value
             break;
         case AddrSpaceGlobal:
-            //TODO: Assume global memory is always clean!?
-            //TODO: Eventually store value
-            // Do nothing
+            shadowContext.getGlobalMemory()->store(SM.data, address, SM.size*SM.num);
             break;
         default:
             FATAL_ERROR("Unsupported addressspace %d", addrSpace);
@@ -1105,8 +1102,7 @@ void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address,
             memset(SM.data, 0, SM.size*SM.num);
             break;
         case AddrSpaceGlobal:
-            //TODO: Assume global memory is always clean!?
-            memset(SM.data, 0, SM.size*SM.num);
+            shadowContext.getGlobalMemory()->load(SM.data, address, SM.size*SM.num);
             break;
         default:
             FATAL_ERROR("Unsupported addressspace %d", addrSpace);
@@ -1366,7 +1362,7 @@ ShadowValues* ShadowWorkItem::createCleanShadowValues()
 }
 
 ShadowContext::ShadowContext(unsigned bufferBits) :
-    m_globalValues(), m_numBitsBuffer(bufferBits)
+    m_globalMemory(AddrSpaceGlobal, bufferBits), m_globalValues(), m_numBitsBuffer(bufferBits)
 {
 }
 

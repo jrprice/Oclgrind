@@ -197,6 +197,10 @@ namespace oclgrind
             static TypedValue getCleanValue(unsigned size);
             static TypedValue getCleanValue(const llvm::Type *Ty);
             static TypedValue getCleanValue(const llvm::Value *V);
+            inline ShadowMemory* getGlobalMemory()
+            {
+                return &m_globalMemory;
+            }
             TypedValue getGlobalValue(const llvm::Value *V) const;
             static TypedValue getPoisonedValue(unsigned size);
             static TypedValue getPoisonedValue(const llvm::Type *Ty);
@@ -217,6 +221,7 @@ namespace oclgrind
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
 
         private:
+            ShadowMemory m_globalMemory;
             UnorderedTypedValueMap m_globalValues;
             unsigned m_numBitsBuffer;
             typedef std::map<const WorkItem*, ShadowWorkItem*> ShadowItemMap;
