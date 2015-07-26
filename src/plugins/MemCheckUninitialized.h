@@ -269,6 +269,8 @@ namespace oclgrind
             virtual void instructionExecuted(const WorkItem *workItem,
                     const llvm::Instruction *instruction,
                     const TypedValue& result) override;
+            virtual void memoryMap(const Memory *memory, size_t address,
+                    size_t offset, size_t size, cl_map_flags flags);
             //virtual void memoryAllocated(const Memory *memory, size_t address,
             //                             size_t size, cl_mem_flags flags,
             //                             const uint8_t *initData);

@@ -264,7 +264,7 @@ void MemCheckUninitialized::hostMemoryStore(const Memory *memory,
                              size_t address, size_t size,
                              const uint8_t *storeData)
 {
-    if(memory == m_context->getGlobalMemory())
+    if(memory->getAddressSpace() == AddrSpaceGlobal)
     {
         TypedValue v = ShadowContext::getCleanValue(size);
         allocAndStoreShadowMemory(AddrSpaceGlobal, address, v);
@@ -1000,6 +1000,14 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 #ifdef DUMP_SHADOW
     //shadowContext.dump(workItem);
 #endif
+}
+
+void MemCheckUninitialized::memoryMap(const Memory *memory, size_t address, size_t offset, size_t size, cl_map_flags flags)
+{
+    if(!(flags & CL_MAP_READ))
+    {
+        allocAndStoreShadowMemory(memory->getAddressSpace(), address + offset, ShadowContext::getCleanValue(size));
+    }
 }
 
 void MemCheckUninitialized::SimpleOr(const WorkItem *workItem, const llvm::Instruction *I)
