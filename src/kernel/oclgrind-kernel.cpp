@@ -213,6 +213,8 @@ static void printUsage()
              "Redirect log/error messages to a file" << endl
     << "     --max-errors     NUM      "
              "Limit the number of error/warning messages" << endl
+    << "     --memcheck-uninitialized  "
+             "Report usage of uninitialized values" << endl
     << "     --num-threads    NUM      "
              "Set the number of worker threads to use" << endl
     << "     --pch-dir        DIR      "
