@@ -21,7 +21,7 @@
 #include "llvm/IR/Type.h"
 
 #include "MemCheckUninitialized.h"
-#include <thread>
+#include <mutex>
 
 using namespace oclgrind;
 using namespace std;
@@ -33,6 +33,7 @@ using namespace std;
 //    cout << "Memory: " << memory << ", address: " << hex << address << dec << ", size: " << size << endl;
 //}
 
+static std::mutex atomicMutexShadow;
 THREAD_LOCAL ShadowContext::WorkSpace ShadowContext::m_workSpace = {NULL, NULL, NULL, 0};
 
 MemCheckUninitialized::MemCheckUninitialized(const Context *context)
@@ -1061,6 +1062,9 @@ void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t
 
 void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup)
 {
+#ifdef DUMP_SHADOW
+    cout << "Store " << hex << SM << " to space " << dec << addrSpace << " at address " << hex << address << endl;
+#endif
     switch(addrSpace)
     {
         case AddrSpacePrivate:
@@ -1138,6 +1142,9 @@ void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address,
         default:
             FATAL_ERROR("Unsupported addressspace %d", addrSpace);
     }
+#ifdef DUMP_SHADOW
+    cout << "Loaded " << hex << SM << " from space " << dec << addrSpace << " at address " << hex << address << endl;
+#endif
 }
 
 bool MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I)
@@ -1253,6 +1260,60 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
 
         copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, num, stride, elemSize, workItem);
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, ShadowContext::getCleanValue(eventOp));
+        return true;
+    }
+    else if(name == "atomic_cmpxchg")
+    {
+        unsigned addrSpace = CI->getArgOperand(0)->getType()->getPointerAddressSpace();
+        Memory *memory;
+
+        switch(addrSpace)
+        {
+            case AddrSpaceGlobal:
+                memory = m_context->getGlobalMemory();
+                break;
+            case AddrSpaceLocal:
+                memory = workItem->getWorkGroup()->getLocalMemory();
+                break;
+            case AddrSpacePrivate:
+                memory = workItem->getPrivateMemory();
+                break;
+            default:
+                FATAL_ERROR("Unsupported addressspace %d", addrSpace);
+        }
+
+        size_t address = workItem->getOperand(CI->getArgOperand(0)).getPointer();
+        uint32_t cmp = workItem->getOperand(CI->getArgOperand(1)).getUInt();
+        TypedValue shadowValue = shadowContext.getValue(workItem, CI->getArgOperand(2));
+        TypedValue oldShadow = {
+            4,
+            1,
+            new unsigned char[4]
+        };
+
+        // Perform cmpxchg
+        //FIXME: There is no atomicLoad. Using or with zero instead
+        uint32_t old = memory->atomic(AtomicOp::AtomicOr, address, 0);
+
+        if(addrSpace == AddrSpaceGlobal)
+        {
+            atomicMutexShadow.lock();
+        }
+
+        loadShadowMemory(addrSpace, address, oldShadow, workItem);
+
+        if(old == cmp)
+        {
+            storeShadowMemory(addrSpace, address, shadowValue, workItem);
+        }
+
+        if(addrSpace == AddrSpaceGlobal)
+        {
+            atomicMutexShadow.unlock();
+        }
+
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
+        delete[] oldShadow.data;
         return true;
     }
 
