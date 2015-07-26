@@ -74,7 +74,9 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                     // value->second.size == ptr size
                     size_t size = m_context->getGlobalMemory()->getBuffer(value->second.getPointer())->size;
                     //TODO: Global memory clean or poisoned?
-                    allocAndStoreShadowMemory(AddrSpaceGlobal, value->second.getPointer(), ShadowContext::getPoisonedValue(size));
+                    TypedValue v = ShadowContext::getPoisonedValue(size);
+                    allocAndStoreShadowMemory(AddrSpaceGlobal, value->second.getPointer(), v);
+                    delete[] v.data;
                     m_deferredInit.push_back(*value);
                     break;
                 }
@@ -171,7 +173,9 @@ void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
                             // value.second.data == val
                             // value.second.size == val size
                             size_t address = workItem->getOperand(value.first).getPointer();
-                            allocAndStoreShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(value.second.size), workItem);
+                            TypedValue cleanValue = ShadowContext::getCleanValue(value.second.size);
+                            allocAndStoreShadowMemory(AddrSpacePrivate, address, cleanValue, workItem);
+                            delete[] cleanValue.data;
                             shadowWI->setValue(value.first, ShadowContext::getCleanValue(value.first));
                         }
                         else
@@ -180,7 +184,9 @@ void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
                             // value.second.data == NULL
                             // value.second.size == val size
                             size_t address = workItem->getOperand(value.first).getPointer();
-                            allocAndStoreShadowMemory(AddrSpacePrivate, address, ShadowContext::getCleanValue(value.second.size), workItem);
+                            TypedValue cleanValue = ShadowContext::getCleanValue(value.second.size);
+                            allocAndStoreShadowMemory(AddrSpacePrivate, address, cleanValue, workItem);
+                            delete[] cleanValue.data;
                         }
                         break;
                     }
@@ -224,6 +230,7 @@ void MemCheckUninitialized::workGroupBegin(const WorkGroup *workGroup)
         }
 
         allocAndStoreShadowMemory(AddrSpaceLocal, address, v, NULL, workGroup);
+        delete[] v.data;
     }
 }
 
@@ -265,6 +272,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             TypedValue v = ShadowContext::getPoisonedValue(allocaInst->getAllocatedType());
             allocAndStoreShadowMemory(AddrSpacePrivate, address, v, workItem);
+            delete[] v.data;
             break;
         }
         case llvm::Instruction::And:
@@ -277,7 +285,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             TypedValue S0 = shadowContext.getValue(workItem, instruction->getOperand(0));
             TypedValue S1 = shadowContext.getValue(workItem, instruction->getOperand(1));
 
-            if(S1 != ShadowContext::getCleanValue(instruction->getOperand(1)))
+            if(!ShadowContext::isCleanValue(S1))
             {
                 shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getPoisonedValue(instruction));
             }
@@ -418,7 +426,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             TypedValue indexShadow = shadowContext.getValue(workItem, extractInst->getIndexOperand());
 
-            if(indexShadow != ShadowContext::getCleanValue(extractInst->getIndexOperand()))
+            if(!ShadowContext::isCleanValue(indexShadow))
             {
                 logUninitializedIndex();
             }
@@ -532,7 +540,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         {
             TypedValue indexShadow = shadowContext.getValue(workItem, instruction->getOperand(2));
 
-            if(indexShadow != ShadowContext::getCleanValue(instruction->getOperand(2)))
+            if(!ShadowContext::isCleanValue(indexShadow))
             {
                 logUninitializedIndex();
             }
@@ -626,7 +634,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             TypedValue S0 = shadowContext.getValue(workItem, instruction->getOperand(0));
             TypedValue S1 = shadowContext.getValue(workItem, instruction->getOperand(1));
 
-            if(S1 != ShadowContext::getCleanValue(instruction->getOperand(1)))
+            if(!ShadowContext::isCleanValue(S1))
             {
                 shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getPoisonedValue(instruction));
             }
@@ -679,7 +687,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                     continue;
                 }
 
-                if(shadowContext.getValue(workItem, V) != ShadowContext::getCleanValue(V))
+                if(!ShadowContext::isCleanValue(shadowContext.getValue(workItem, V)))
                 {
                     shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getPoisonedValue(instruction));
                     poisoned = true;
@@ -749,14 +757,16 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             TypedValue opCondition = workItem->getOperand(selectInst->getCondition());
             TypedValue conditionShadow = shadowContext.getValue(workItem, selectInst->getCondition());
-            TypedValue newShadow = result.clone();
+            TypedValue newShadow;
 
-            if(conditionShadow != ShadowContext::getCleanValue(selectInst->getCondition()))
+            if(!ShadowContext::isCleanValue(conditionShadow))
             {
                 newShadow = ShadowContext::getPoisonedValue(instruction);
             }
             else
             {
+                newShadow = result.clone();
+
                 for(unsigned i = 0; i < result.num; i++)
                 {
                     const bool cond = selectInst->getCondition()->getType()->isVectorTy() ?
@@ -800,7 +810,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             TypedValue S0 = shadowContext.getValue(workItem, instruction->getOperand(0));
             TypedValue S1 = shadowContext.getValue(workItem, instruction->getOperand(1));
 
-            if(S1 != ShadowContext::getCleanValue(instruction->getOperand(1)))
+            if(!ShadowContext::isCleanValue(S1))
             {
                 shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getPoisonedValue(instruction));
             }
@@ -826,7 +836,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             TypedValue maskShadow = shadowContext.getValue(workItem, shuffleInst->getMask());
 
-            if(maskShadow != ShadowContext::getCleanValue(shuffleInst->getMask()))
+            if(!ShadowContext::isCleanValue(maskShadow))
             {
                 logUninitializedMask();
             }
@@ -883,13 +893,19 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(addrSpace != AddrSpacePrivate)
             {
-                if(shadowVal != ShadowContext::getCleanValue(Val))
+                if(!ShadowContext::isCleanValue(shadowVal))
                 {
                     logUninitializedWrite(addrSpace, address);
                 }
             }
 
             storeShadowMemory(addrSpace, address, shadowVal, workItem);
+
+            if(storeInst->isAtomic())
+            {
+                delete[] shadowVal.data;
+            }
+
 #ifdef DUMP_SHADOW
             // Insert pseudo value to keep numbering
             shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getCleanValue(3));
@@ -972,7 +988,7 @@ void MemCheckUninitialized::SimpleOr(const WorkItem *workItem, const llvm::Instr
     PARANOID_CHECK(workItem, I);
     for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
     {
-        if(shadowContext.getValue(workItem, OI->get()) != ShadowContext::getCleanValue(OI->get()))
+        if(!ShadowContext::isCleanValue(shadowContext.getValue(workItem, OI->get())))
         {
             shadowContext.getShadowWorkItem(workItem)->setValue(I, ShadowContext::getPoisonedValue(I));
             return;
@@ -1116,7 +1132,7 @@ bool MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, co
 {
     for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
     {
-        if(shadowContext.getValue(workItem, OI->get()) != ShadowContext::getCleanValue(OI->get()))
+        if(!ShadowContext::isCleanValue(shadowContext.getValue(workItem, OI->get())))
         {
 #ifdef DUMP_SHADOW
             OI->get()->dump();
@@ -1267,6 +1283,8 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
 
             memset(shadowValue.data, shadowContext.getValue(workItem, memsetInst->getArgOperand(1)).getUInt(), size);
             storeShadowMemory(addrSpace, dst, shadowValue, workItem);
+
+            delete[] shadowValue.data;
 
             break;
         }
@@ -1443,6 +1461,19 @@ TypedValue ShadowContext::getCleanValue(unsigned size)
     return v;
 }
 
+TypedValue ShadowContext::getCleanValue(TypedValue v)
+{
+    TypedValue c = {
+        v.size,
+        v.num,
+        new unsigned char[v.size*v.num]
+    };
+
+    memset(c.data, 0, v.size*v.num);
+
+    return c;
+}
+
 TypedValue ShadowContext::getCleanValue(const llvm::Value *V)
 {
     pair<unsigned,unsigned> size = getValueSize(V);
@@ -1494,6 +1525,19 @@ TypedValue ShadowContext::getPoisonedValue(unsigned size)
     memset(v.data, -1, size);
 
     return v;
+}
+
+TypedValue ShadowContext::getPoisonedValue(TypedValue v)
+{
+    TypedValue p = {
+        v.size,
+        v.num,
+        new unsigned char[v.size*v.num]
+    };
+
+    memset(p.data, -1, v.size*v.num);
+
+    return p;
 }
 
 TypedValue ShadowContext::getPoisonedValue(const llvm::Value *V)
@@ -1660,6 +1704,23 @@ void ShadowMemory::dump() const
     cout << "=======================" << endl;
 }
 
+ShadowValues::ShadowValues()
+{
+
+}
+
+ShadowValues::~ShadowValues()
+{
+    UnorderedTypedValueMap::iterator itr;
+    for(itr = m_values.begin(); itr != m_values.end(); ++itr)
+    {
+        if(itr->second.data != NULL)
+        {
+            delete[] itr->second.data;
+        }
+    }
+}
+
 void ShadowValues::dump() const
 {
     cout << "==== ShadowMap (private) =======" << endl;
@@ -1718,6 +1779,7 @@ TypedValue ShadowValues::getValue(const llvm::Value *V) const
         return m_values.at(V);
     }
     else if (llvm::isa<llvm::UndefValue>(V)) {
+        //FIXME: This memory might leak
         return ShadowContext::getPoisonedValue(V);
     }
     else if (llvm::isa<llvm::Argument>(V)) {
@@ -1728,6 +1790,7 @@ TypedValue ShadowValues::getValue(const llvm::Value *V) const
     else
     {
         // For everything else the shadow is zero.
+        //FIXME: This memory might leak
         return ShadowContext::getCleanValue(V);
     }
 }
@@ -1746,6 +1809,14 @@ void ShadowMemory::load(unsigned char *dst, size_t address, size_t size) const
 #endif
 
     memcpy(dst, src + offset, size);
+}
+
+bool ShadowContext::isCleanValue(TypedValue v)
+{
+    TypedValue clean = ShadowContext::getCleanValue(v);
+    bool isClean = (clean == v);
+    delete[] clean.data;
+    return isClean;
 }
 
 void ShadowContext::setGlobalValue(const llvm::Value *V, TypedValue SV)

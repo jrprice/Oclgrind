@@ -22,6 +22,9 @@ namespace oclgrind
     class ShadowValues
     {
         public:
+            ShadowValues();
+            virtual ~ShadowValues();
+
             void dump() const;
             inline const llvm::CallInst* getCall() const
             {
@@ -195,6 +198,7 @@ namespace oclgrind
             void freeWorkItems();
             void freeWorkGroups();
             static TypedValue getCleanValue(unsigned size);
+            static TypedValue getCleanValue(TypedValue v);
             static TypedValue getCleanValue(const llvm::Type *Ty);
             static TypedValue getCleanValue(const llvm::Value *V);
             inline ShadowMemory* getGlobalMemory()
@@ -203,6 +207,7 @@ namespace oclgrind
             }
             TypedValue getGlobalValue(const llvm::Value *V) const;
             static TypedValue getPoisonedValue(unsigned size);
+            static TypedValue getPoisonedValue(TypedValue v);
             static TypedValue getPoisonedValue(const llvm::Type *Ty);
             static TypedValue getPoisonedValue(const llvm::Value *V);
             inline ShadowWorkItem* getShadowWorkItem(const WorkItem *workItem) const
@@ -218,6 +223,7 @@ namespace oclgrind
             {
                 return llvm::isa<llvm::Constant>(V) || m_globalValues.count(V) || m_workSpace.workItems->at(workItem)->hasValue(V);
             }
+            static bool isCleanValue(TypedValue v);
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
 
         private:
