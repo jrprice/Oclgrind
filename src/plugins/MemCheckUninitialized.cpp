@@ -1605,6 +1605,36 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, ShadowContext::getPoisonedValue(result.size));
         return true;
     }
+    else if(name == "select")
+    {
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+        TypedValue arg0Shadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue arg1Shadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
+        TypedValue selectShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
+        TypedValue elemShadow;
+
+        for(unsigned i = 0; i < newShadow.num; ++i)
+        {
+            int64_t c = workItem->getOperand(CI->getArgOperand(2)).getSInt(i);
+            bool _c = (newShadow.num > 1) ? c & INT64_MIN : c;
+
+            if(!ShadowContext::isCleanValue(selectShadow, i) ||
+               (!_c && !ShadowContext::isCleanValue(arg0Shadow, i)) ||
+               (_c && !ShadowContext::isCleanValue(arg1Shadow, i)))
+            {
+                elemShadow = ShadowContext::getPoisonedValue(newShadow.size);
+            }
+            else
+            {
+                elemShadow = ShadowContext::getCleanValue(newShadow.size);
+            }
+
+            memcpy(newShadow.data + i*newShadow.size, elemShadow.data, newShadow.size);
+        }
+
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
+        return true;
+    }
 
     return false;
 }
