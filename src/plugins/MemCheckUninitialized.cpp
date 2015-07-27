@@ -918,15 +918,6 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             unsigned addrSpace = storeInst->getPointerAddressSpace();
 
             TypedValue shadowVal = storeInst->isAtomic() ? ShadowContext::getCleanValue(Val) : shadowContext.getValue(workItem, Val);
-
-            if(addrSpace != AddrSpacePrivate)
-            {
-                if(!ShadowContext::isCleanValue(shadowVal))
-                {
-                    logUninitializedWrite(addrSpace, address);
-                }
-            }
-
             storeShadowMemory(addrSpace, address, shadowVal, workItem);
 
 #ifdef DUMP_SHADOW
@@ -1189,6 +1180,12 @@ void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address
 #ifdef DUMP_SHADOW
     cout << "Store " << hex << SM << " to space " << dec << addrSpace << " at address " << hex << address << endl;
 #endif
+
+    if(addrSpace != AddrSpacePrivate && !ShadowContext::isCleanValue(SM))
+    {
+        logUninitializedWrite(addrSpace, address);
+    }
+
     switch(addrSpace)
     {
         case AddrSpacePrivate:
@@ -1634,6 +1631,49 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
 
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
         return true;
+    }
+    else if(name.compare(0, 5, "vload") == 0)
+    {
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+        unsigned int addressSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
+        size_t base = workItem->getOperand(CI->getArgOperand(1)).getPointer();
+        uint64_t offset = workItem->getOperand(CI->getArgOperand(0)).getUInt();
+
+        size_t size = newShadow.size*newShadow.num;
+        size_t address = base + offset*size;
+        loadShadowMemory(addressSpace, address, newShadow, workItem);
+
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name.compare(0, 6, "vstore") == 0)
+    {
+        const llvm::Value *value = CI->getArgOperand(0);
+        unsigned size = getTypeSize(value->getType());
+
+        if(isVector3(value))
+        {
+            // 3-element vectors are same size as 4-element vectors,
+            // but vstore address offset shouldn't use this.
+            size = (size/4) * 3;
+        }
+
+        unsigned int addressSpace = CI->getArgOperand(2)->getType()->getPointerAddressSpace();
+        size_t base = workItem->getOperand(CI->getArgOperand(2)).getPointer();
+        uint64_t offset = workItem->getOperand(CI->getArgOperand(1)).getUInt();
+
+        size_t address = base + offset*size;
+        TypedValue shadow = shadowContext.getValue(workItem, value);
+        storeShadowMemory(addressSpace, address, shadow, workItem);
+        return true;
+    }
+    else if(name.compare(0, 10, "vload_half") == 0)
+    {
+        assert(false && "vload_half not implemented yet!");
+    }
+    else if(name.compare(0, 11, "vstore_half") == 0)
+    {
+        assert(false && "vstore_half not implemented yet!");
     }
 
     return false;
