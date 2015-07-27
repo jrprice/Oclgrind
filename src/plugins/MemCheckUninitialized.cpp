@@ -875,8 +875,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             TypedValue mask = workItem->getOperand(shuffleInst->getMask());
             TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
 
-            unsigned num = v1->getType()->getVectorNumElements();
-            for (unsigned i = 0; i < newShadow.num; i++)
+            for(unsigned i = 0; i < newShadow.num; i++)
             {
                 if (shuffleInst->getMask()->getAggregateElement(i)->getValueID() == llvm::Value::UndefValueVal)
                 {
@@ -886,9 +885,9 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
                 const llvm::Value *src = v1;
                 unsigned int index = mask.getUInt(i);
-                if (index >= num)
+                if(index >= newShadow.num)
                 {
-                    index -= num;
+                    index -= newShadow.num;
                     src = v2;
                 }
 
@@ -2036,6 +2035,20 @@ TypedValue ShadowValues::getValue(const llvm::Value *V) const
         // For arguments the shadow is already stored in the map.
         assert(m_values.count(V) && "No shadow for argument value");
         return m_values.at(V);
+    }
+    else if(const llvm::ConstantVector *VC = llvm::dyn_cast<llvm::ConstantVector>(V))
+    {
+        TypedValue vecShadow = ShadowContext::getCleanValue(V);
+        TypedValue elemShadow;
+
+        for(unsigned i = 0; i < vecShadow.num; ++i)
+        {
+            elemShadow = getValue(VC->getAggregateElement(i));
+            size_t offset = i*vecShadow.size;
+            memcpy(vecShadow.data + offset, elemShadow.data, vecShadow.size);
+        }
+
+        return vecShadow;
     }
     else
     {
