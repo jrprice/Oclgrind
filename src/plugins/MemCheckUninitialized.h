@@ -68,7 +68,9 @@ namespace oclgrind
             void* getPointer(size_t address) const;
             bool isAddressValid(size_t address, size_t size=1) const;
             void load(unsigned char *dst, size_t address, size_t size=1) const;
+            void lock(size_t address) const;
             void store(const unsigned char *src, size_t address, size_t size=1);
+            void unlock(size_t address) const;
 
         private:
             typedef std::unordered_map<size_t, Buffer*> MemoryMap;

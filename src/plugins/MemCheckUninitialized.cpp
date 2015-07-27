@@ -33,7 +33,12 @@ using namespace std;
 //    cout << "Memory: " << memory << ", address: " << hex << address << dec << ", size: " << size << endl;
 //}
 
-static std::mutex atomicMutexShadow;
+// Multiple mutexes to mitigate risk of unnecessary synchronisation in atomics
+#define NUM_ATOMIC_MUTEXES 64 // Must be power of two
+static std::mutex atomicShadowMutex[NUM_ATOMIC_MUTEXES];
+#define ATOMIC_MUTEX(offset) \
+  atomicShadowMutex[(((offset)>>2) & (NUM_ATOMIC_MUTEXES-1))]
+
 THREAD_LOCAL ShadowContext::WorkSpace ShadowContext::m_workSpace = {NULL, NULL, NULL, 0};
 
 MemCheckUninitialized::MemCheckUninitialized(const Context *context)
@@ -1040,7 +1045,7 @@ void MemCheckUninitialized::SimpleOrAtomic(const WorkItem *workItem, const llvm:
 
     if(addrSpace == AddrSpaceGlobal)
     {
-        atomicMutexShadow.lock();
+        getShadowMemory(AddrSpaceGlobal)->lock(address);
     }
 
     loadShadowMemory(addrSpace, address, oldShadow, workItem);
@@ -1058,7 +1063,7 @@ void MemCheckUninitialized::SimpleOrAtomic(const WorkItem *workItem, const llvm:
 
     if(addrSpace == AddrSpaceGlobal)
     {
-        atomicMutexShadow.unlock();
+        getShadowMemory(AddrSpaceGlobal)->unlock(address);
     }
 
     shadowContext.getShadowWorkItem(workItem)->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
@@ -1400,7 +1405,7 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
             // Perform cmpxchg
             if(addrSpace == AddrSpaceGlobal)
             {
-                atomicMutexShadow.lock();
+                getShadowMemory(AddrSpaceGlobal)->lock(address);
             }
 
             loadShadowMemory(addrSpace, address, oldShadow, workItem);
@@ -1412,7 +1417,7 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
 
             if(addrSpace == AddrSpaceGlobal)
             {
-                atomicMutexShadow.unlock();
+                getShadowMemory(AddrSpaceGlobal)->unlock(address);
             }
 
             shadowContext.getShadowWorkItem(workItem)->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
@@ -1997,9 +2002,9 @@ void ShadowMemory::load(unsigned char *dst, size_t address, size_t size) const
     size_t index = extractBuffer(address);
     size_t offset = extractOffset(address);
 
-    //assert(m_map.count(index) && "No shadow memory found!");
     if(isAddressValid(address, size))
     {
+        assert(m_map.count(index) && "No shadow memory found!");
         memcpy(dst, m_map.at(index)->data + offset, size);
     }
     else
@@ -2007,6 +2012,12 @@ void ShadowMemory::load(unsigned char *dst, size_t address, size_t size) const
         TypedValue v = ShadowContext::getPoisonedValue(size);
         memcpy(dst, v.data, size);
     }
+}
+
+void ShadowMemory::lock(size_t address) const
+{
+    size_t offset = extractOffset(address);
+    ATOMIC_MUTEX(offset).lock();
 }
 
 bool ShadowContext::isCleanValue(TypedValue v)
@@ -2040,9 +2051,15 @@ void ShadowMemory::store(const unsigned char *src, size_t address, size_t size)
     size_t index = extractBuffer(address);
     size_t offset = extractOffset(address);
 
-    //assert(m_map.count(index) && "Cannot store to unallocated memory!");
     if(isAddressValid(address, size))
     {
+        assert(m_map.count(index) && "Cannot store to unallocated memory!");
         memcpy(m_map.at(index)->data + offset, src, size);
     }
+}
+
+void ShadowMemory::unlock(size_t address) const
+{
+    size_t offset = extractOffset(address);
+    ATOMIC_MUTEX(offset).unlock();
 }
