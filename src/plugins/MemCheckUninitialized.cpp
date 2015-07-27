@@ -1348,14 +1348,11 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         size_t src = workItem->getOperand(srcOp).getPointer();
 
         // Get size of copy
-        unsigned elemSize =
-            getTypeSize(destOp->getType()->getPointerElementType());
+        unsigned elemSize = getTypeSize(destOp->getType()->getPointerElementType());
         uint64_t num = workItem->getOperand(CI->getArgOperand(arg++)).getUInt();
 
         // Get stride
         size_t stride = 1;
-        //size_t srcStride = 1;
-        //size_t dstStride = 1;
 
         if(name == "async_work_group_strided_copy")
         {
@@ -1363,28 +1360,51 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         }
 
         const llvm::Value *eventOp = CI->getArgOperand(arg++);
-        size_t event = workItem->getOperand(eventOp).getUInt();
+        TypedValue eventShadow = shadowContext.getValue(workItem, eventOp);
 
         // Get type of copy
-        //WorkGroup::AsyncCopyType type;
         AddressSpace dstAddrSpace = AddrSpaceLocal;
         AddressSpace srcAddrSpace = AddrSpaceLocal;
 
         if(destOp->getType()->getPointerAddressSpace() == AddrSpaceLocal)
         {
-            //type = WorkGroup::GLOBAL_TO_LOCAL;
-            //srcStride = stride;
             srcAddrSpace = AddrSpaceGlobal;
         }
         else
         {
-            //type = WorkGroup::LOCAL_TO_GLOBAL;
-            //dstStride = stride;
             dstAddrSpace = AddrSpaceGlobal;
         }
 
         copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, num, stride, elemSize, workItem);
-        shadowContext.getShadowWorkItem(workItem)->setValue(CI, ShadowContext::getCleanValue(eventOp));
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, eventShadow);
+        return true;
+    }
+    else if(name == "wait_group_events")
+    {
+        uint64_t num = workItem->getOperand(CI->getOperand(0)).getUInt();
+        size_t address = workItem->getOperand(CI->getOperand(1)).getPointer();
+
+        TypedValue eventShadow = {
+            sizeof(size_t),
+            1,
+            new unsigned char[sizeof(size_t)]
+        };
+
+        for(unsigned i = 0; i < num; ++i)
+        {
+            loadShadowMemory(AddrSpacePrivate, address, eventShadow, workItem);
+
+            if(!ShadowContext::isCleanValue(eventShadow))
+            {
+                logUninitializedCF();
+                delete[] eventShadow.data;
+                return true;
+            }
+
+            address += sizeof(size_t);
+        }
+
+        delete[] eventShadow.data;
         return true;
     }
     else if(name.compare(0, 6, "atomic") == 0)
