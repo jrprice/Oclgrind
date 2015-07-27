@@ -1535,6 +1535,53 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
         return true;
     }
+    else if(name == "shuffle")
+    {
+        TypedValue shadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+        TypedValue mask = workItem->getOperand(CI->getArgOperand(1));
+
+        for(unsigned i = 0; i < newShadow.num; ++i)
+        {
+            size_t srcOffset = mask.getUInt(i) * shadow.size;
+            memcpy(newShadow.data + i*newShadow.size, shadow.data + srcOffset, newShadow.size);
+        }
+
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name == "shuffle2")
+    {
+        TypedValue shadow[] = {shadowContext.getValue(workItem, CI->getArgOperand(0)),
+                               shadowContext.getValue(workItem, CI->getArgOperand(1))};
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+        TypedValue mask = workItem->getOperand(CI->getArgOperand(2));
+
+        for (unsigned i = 0; i < newShadow.num; ++i)
+        {
+            uint64_t m = 1;
+
+            if(CI->getArgOperand(0)->getType()->isVectorTy())
+            {
+                m = CI->getArgOperand(0)->getType()->getVectorNumElements();
+            }
+
+            uint64_t src = 0;
+            uint64_t index = mask.getUInt(i);
+
+            if(index >= m)
+            {
+                index -= m;
+                src = 1;
+            }
+
+            size_t srcOffset = index * shadow[src].size;
+            memcpy(newShadow.data + i*newShadow.size, shadow[src].data + srcOffset, newShadow.size);
+        }
+
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
+        return true;
+    }
 
     return false;
 }
