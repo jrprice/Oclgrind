@@ -294,15 +294,15 @@ namespace oclgrind
             MemoryPool m_pool;
 
             void allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
-                                           const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
+                                           const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
             bool checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I);
             void copyShadowMemory(unsigned dstAddrSpace, size_t dst,
                                   unsigned srcAddrSpace, size_t src, unsigned size,
-                                  const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
+                                  const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
             void copyShadowMemoryStrided(unsigned dstAddrSpace, size_t dst,
                                          unsigned srcAddrSpace, size_t src,
                                          size_t num, size_t stride, unsigned size,
-                                         const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
+                                         const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
             static std::string extractUnmangledName(const std::string fullname);
             Memory* getMemory(unsigned addrSpace, const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL) const;
             ShadowMemory* getShadowMemory(unsigned addrSpace, const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL) const;
@@ -312,7 +312,7 @@ namespace oclgrind
             void loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM,
                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
             void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
-                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
+                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
 
             void SimpleOr(const WorkItem *workItem, const llvm::Instruction *I);
             void SimpleOrAtomic(const WorkItem *workItem, const llvm::CallInst *CI);

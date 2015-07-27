@@ -92,7 +92,7 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                     {
                         // Allocate poisoned global memory if there was no host store
                         size_t size = m_context->getGlobalMemory()->getBuffer(address)->size;
-                        allocAndStoreShadowMemory(AddrSpaceGlobal, address, ShadowContext::getPoisonedValue(size));
+                        allocAndStoreShadowMemory(AddrSpaceGlobal, address, ShadowContext::getPoisonedValue(size), NULL, NULL, true);
                     }
 
                     m_deferredInit.push_back(*value);
@@ -248,7 +248,7 @@ void MemCheckUninitialized::workGroupBegin(const WorkGroup *workGroup)
             v = ShadowContext::getPoisonedValue(value.second.size);
         }
 
-        allocAndStoreShadowMemory(AddrSpaceLocal, address, v, NULL, workGroup);
+        allocAndStoreShadowMemory(AddrSpaceLocal, address, v, NULL, workGroup, true);
     }
 }
 
@@ -862,22 +862,15 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         case llvm::Instruction::ShuffleVector:
         {
             const llvm::ShuffleVectorInst *shuffleInst = (const llvm::ShuffleVectorInst*)instruction;
-
-            TypedValue maskShadow = shadowContext.getValue(workItem, shuffleInst->getMask());
-
-            if(!ShadowContext::isCleanValue(maskShadow))
-            {
-                logUninitializedMask();
-            }
-
             const llvm::Value *v1 = shuffleInst->getOperand(0);
             const llvm::Value *v2 = shuffleInst->getOperand(1);
             TypedValue mask = workItem->getOperand(shuffleInst->getMask());
+            TypedValue maskShadow = shadowContext.getValue(workItem, shuffleInst->getMask());
             TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
 
             for(unsigned i = 0; i < newShadow.num; i++)
             {
-                if (shuffleInst->getMask()->getAggregateElement(i)->getValueID() == llvm::Value::UndefValueVal)
+                if(shuffleInst->getMask()->getAggregateElement(i)->getValueID() == llvm::Value::UndefValueVal)
                 {
                     // Don't care / undef
                     continue;
@@ -891,7 +884,17 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                     src = v2;
                 }
 
-                memcpy(newShadow.data + i*newShadow.size, shadowContext.getValue(workItem, src).data + index*newShadow.size, newShadow.size);
+                if(!ShadowContext::isCleanValue(maskShadow, i))
+                {
+                    TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
+                    memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
+                }
+                else
+                {
+                    TypedValue v = shadowContext.getValue(workItem, src);
+                    size_t srcOffset = index*newShadow.size;
+                    memcpy(newShadow.data + i*newShadow.size, v.data + srcOffset, newShadow.size);
+                }
             }
 
             shadowContext.getShadowWorkItem(workItem)->setValue(instruction, newShadow);
@@ -919,11 +922,6 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             TypedValue shadowVal = storeInst->isAtomic() ? ShadowContext::getCleanValue(Val) : shadowContext.getValue(workItem, Val);
             storeShadowMemory(addrSpace, address, shadowVal, workItem);
-
-#ifdef DUMP_SHADOW
-            // Insert pseudo value to keep numbering
-            shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getCleanValue(3));
-#endif
             break;
         }
         case llvm::Instruction::Sub:
@@ -1060,7 +1058,7 @@ void MemCheckUninitialized::SimpleOrAtomic(const WorkItem *workItem, const llvm:
     delete[] oldShadow.data;
 }
 
-void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup)
+void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
 {
     switch(addrSpace)
     {
@@ -1100,7 +1098,7 @@ void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t
             FATAL_ERROR("Unsupported addressspace %d", addrSpace);
     }
 
-    storeShadowMemory(addrSpace, address, SM, workItem, workGroup);
+    storeShadowMemory(addrSpace, address, SM, workItem, workGroup, unchecked);
 }
 
 Memory* MemCheckUninitialized::getMemory(unsigned addrSpace, const WorkItem *workItem, const WorkGroup *workGroup) const
@@ -1175,14 +1173,17 @@ ShadowMemory* MemCheckUninitialized::getShadowMemory(unsigned addrSpace, const W
     }
 }
 
-void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup)
+void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
 {
 #ifdef DUMP_SHADOW
     cout << "Store " << hex << SM << " to space " << dec << addrSpace << " at address " << hex << address << endl;
 #endif
 
-    if(addrSpace != AddrSpacePrivate && !ShadowContext::isCleanValue(SM))
+    if(!unchecked && addrSpace != AddrSpacePrivate && !ShadowContext::isCleanValue(SM))
     {
+#ifdef DUMP_SHADOW
+        shadowContext.dump(workItem);
+#endif
         logUninitializedWrite(addrSpace, address);
     }
 
@@ -1289,7 +1290,7 @@ bool MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, co
     return true;
 }
 
-void MemCheckUninitialized::copyShadowMemoryStrided(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, size_t num, size_t stride, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup)
+void MemCheckUninitialized::copyShadowMemoryStrided(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, size_t num, size_t stride, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
 {
     TypedValue v = {
         size,
@@ -1300,7 +1301,7 @@ void MemCheckUninitialized::copyShadowMemoryStrided(unsigned dstAddrSpace, size_
     for (unsigned i = 0; i < num; i++)
     {
         loadShadowMemory(srcAddrSpace, src, v, workItem, workGroup);
-        storeShadowMemory(dstAddrSpace, dst, v, workItem, workGroup);
+        storeShadowMemory(dstAddrSpace, dst, v, workItem, workGroup, unchecked);
         src += stride * size;
         dst += stride * size;
     }
@@ -1308,9 +1309,9 @@ void MemCheckUninitialized::copyShadowMemoryStrided(unsigned dstAddrSpace, size_
     delete[] v.data;
 }
 
-void MemCheckUninitialized::copyShadowMemory(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup)
+void MemCheckUninitialized::copyShadowMemory(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
 {
-    copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, 1, 1, size, workItem, workGroup);
+    copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, 1, 1, size, workItem, workGroup, unchecked);
 }
 
 std::string MemCheckUninitialized::extractUnmangledName(const std::string fullname)
@@ -1467,11 +1468,10 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
                 newElemShadow = ShadowContext::getCleanValue(result.size);
             }
 
-            size_t offset = i*result.size;
-            storeShadowMemory(addrSpace, iptr + offset, newElemShadow);
             memcpy(newShadow.data, newElemShadow.data, result.size);
         }
 
+        storeShadowMemory(addrSpace, iptr, newShadow);
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
         return true;
     }
@@ -1484,6 +1484,11 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         TypedValue newElemShadow;
         TypedValue newElemIntShadow;
         TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+        TypedValue newIntShadow = {
+            newShadow.size,
+            newShadow.num,
+            shadowContext.getMemoryPool()->alloc(4)
+        };
 
         for(unsigned i = 0; i < result.num; ++i)
         {
@@ -1498,10 +1503,11 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
                 newElemIntShadow = ShadowContext::getCleanValue(4);
             }
 
-            storeShadowMemory(addrSpace, iptr + i*4, newElemIntShadow);
+            memcpy(newIntShadow.data, newElemIntShadow.data, 4);
             memcpy(newShadow.data, newElemShadow.data, result.size);
         }
 
+        storeShadowMemory(addrSpace, iptr, newIntShadow);
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
         return true;
     }
@@ -1534,14 +1540,23 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
     }
     else if(name == "shuffle")
     {
+        TypedValue mask = workItem->getOperand(CI->getArgOperand(1));
+        TypedValue maskShadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
         TypedValue shadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
         TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-        TypedValue mask = workItem->getOperand(CI->getArgOperand(1));
 
         for(unsigned i = 0; i < newShadow.num; ++i)
         {
-            size_t srcOffset = mask.getUInt(i) * shadow.size;
-            memcpy(newShadow.data + i*newShadow.size, shadow.data + srcOffset, newShadow.size);
+            if(!ShadowContext::isCleanValue(maskShadow, i))
+            {
+                TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
+                memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
+            }
+            else
+            {
+                size_t srcOffset = mask.getUInt(i) * shadow.size;
+                memcpy(newShadow.data + i*newShadow.size, shadow.data + srcOffset, newShadow.size);
+            }
         }
 
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
@@ -1549,10 +1564,11 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
     }
     else if(name == "shuffle2")
     {
+        TypedValue mask = workItem->getOperand(CI->getArgOperand(2));
+        TypedValue maskShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
         TypedValue shadow[] = {shadowContext.getValue(workItem, CI->getArgOperand(0)),
                                shadowContext.getValue(workItem, CI->getArgOperand(1))};
         TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-        TypedValue mask = workItem->getOperand(CI->getArgOperand(2));
 
         for (unsigned i = 0; i < newShadow.num; ++i)
         {
@@ -1572,8 +1588,16 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
                 src = 1;
             }
 
-            size_t srcOffset = index * shadow[src].size;
-            memcpy(newShadow.data + i*newShadow.size, shadow[src].data + srcOffset, newShadow.size);
+            if(!ShadowContext::isCleanValue(maskShadow, i))
+            {
+                TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
+                memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
+            }
+            else
+            {
+                size_t srcOffset = index * shadow[src].size;
+                memcpy(newShadow.data + i*newShadow.size, shadow[src].data + srcOffset, newShadow.size);
+            }
         }
 
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
@@ -1605,28 +1629,25 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
     else if(name == "select")
     {
         TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-        TypedValue arg0Shadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
-        TypedValue arg1Shadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
+        TypedValue shadow[] = {shadowContext.getValue(workItem, CI->getArgOperand(0)),
+                               shadowContext.getValue(workItem, CI->getArgOperand(1))};
         TypedValue selectShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
-        TypedValue elemShadow;
 
         for(unsigned i = 0; i < newShadow.num; ++i)
         {
             int64_t c = workItem->getOperand(CI->getArgOperand(2)).getSInt(i);
-            bool _c = (newShadow.num > 1) ? c & INT64_MIN : c;
+            uint64_t src = ((newShadow.num > 1) ? c & INT64_MIN : c) ? 1 : 0;
 
-            if(!ShadowContext::isCleanValue(selectShadow, i) ||
-               (!_c && !ShadowContext::isCleanValue(arg0Shadow, i)) ||
-               (_c && !ShadowContext::isCleanValue(arg1Shadow, i)))
+            if(!ShadowContext::isCleanValue(selectShadow, i))
             {
-                elemShadow = ShadowContext::getPoisonedValue(newShadow.size);
+                TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
+                memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
             }
             else
             {
-                elemShadow = ShadowContext::getCleanValue(newShadow.size);
+                size_t srcOffset = i * shadow[src].size;
+                memcpy(newShadow.data + i*newShadow.size, shadow[src].data + srcOffset, newShadow.size);
             }
-
-            memcpy(newShadow.data + i*newShadow.size, elemShadow.data, newShadow.size);
         }
 
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
@@ -1697,7 +1718,7 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
             unsigned dstAddrSpace = memcpyInst->getDestAddressSpace();
             unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
 
-            copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size, workItem);
+            copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size, workItem, NULL, true);
             break;
         }
         case llvm::Intrinsic::memset:
@@ -1714,7 +1735,7 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
             };
 
             memset(shadowValue.data, shadowContext.getValue(workItem, memsetInst->getArgOperand(1)).getUInt(), size);
-            storeShadowMemory(addrSpace, dst, shadowValue, workItem);
+            storeShadowMemory(addrSpace, dst, shadowValue, workItem, NULL, true);
 
             delete[] shadowValue.data;
 
@@ -1756,17 +1777,6 @@ void MemCheckUninitialized::logUninitializedIndex() const
 {
   Context::Message msg(WARNING, m_context);
   msg << "Instruction depends on an uninitialized index value" << endl
-      << msg.INDENT
-      << "Kernel: " << msg.CURRENT_KERNEL << endl
-      << "Entity: " << msg.CURRENT_ENTITY << endl
-      << msg.CURRENT_LOCATION << endl;
-  msg.send();
-}
-
-void MemCheckUninitialized::logUninitializedMask() const
-{
-  Context::Message msg(WARNING, m_context);
-  msg << "Instruction depends on an uninitialized mask" << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
       << "Entity: " << msg.CURRENT_ENTITY << endl
@@ -2287,7 +2297,7 @@ bool ShadowContext::isCleanValue(TypedValue v)
 bool ShadowContext::isCleanValue(TypedValue v, unsigned offset)
 {
     TypedValue c = ShadowContext::getCleanValue(v.size);
-    return !memcmp(c.data + offset*v.size, v.data + offset*v.size, v.size);
+    return !memcmp(v.data + offset*v.size, c.data, v.size);
 }
 
 void ShadowContext::setGlobalValue(const llvm::Value *V, TypedValue SV)
