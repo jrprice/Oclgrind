@@ -1449,13 +1449,15 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
             return true;
         }
     }
-    else if(name == "fract")
+    else if(name == "fract" ||
+            name == "modf" ||
+            name == "sincos")
     {
         unsigned addrSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
         size_t iptr = workItem->getOperand(CI->getArgOperand(1)).getPointer();
         TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
         TypedValue newElemShadow;
-        TypedValue newShadow = shadowContext.getMemoryPool()->clone(argShadow);
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
 
         for(unsigned i = 0; i < result.num; ++i)
         {
@@ -1470,6 +1472,63 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
 
             size_t offset = i*result.size;
             storeShadowMemory(addrSpace, iptr + offset, newElemShadow);
+            memcpy(newShadow.data, newElemShadow.data, result.size);
+        }
+
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name == "frexp" ||
+            name == "lgamma_r")
+    {
+        unsigned addrSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
+        size_t iptr = workItem->getOperand(CI->getArgOperand(1)).getPointer();
+        TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue newElemShadow;
+        TypedValue newElemIntShadow;
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+
+        for(unsigned i = 0; i < result.num; ++i)
+        {
+            if(!ShadowContext::isCleanValue(argShadow, i))
+            {
+                newElemShadow = ShadowContext::getPoisonedValue(result.size);
+                newElemIntShadow = ShadowContext::getPoisonedValue(4);
+            }
+            else
+            {
+                newElemShadow = ShadowContext::getCleanValue(result.size);
+                newElemIntShadow = ShadowContext::getCleanValue(4);
+            }
+
+            storeShadowMemory(addrSpace, iptr + i*4, newElemIntShadow);
+            memcpy(newShadow.data, newElemShadow.data, result.size);
+        }
+
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name == "remquo")
+    {
+        unsigned addrSpace = CI->getArgOperand(2)->getType()->getPointerAddressSpace();
+        size_t iptr = workItem->getOperand(CI->getArgOperand(2)).getPointer();
+        TypedValue arg0Shadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue arg1Shadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
+        TypedValue newElemShadow;
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+
+        for(unsigned i = 0; i < result.num; ++i)
+        {
+            if(!ShadowContext::isCleanValue(arg0Shadow, i) || !ShadowContext::isCleanValue(arg1Shadow, i))
+            {
+                newElemShadow = ShadowContext::getPoisonedValue(result.size);
+            }
+            else
+            {
+                newElemShadow = ShadowContext::getCleanValue(result.size);
+            }
+
+            storeShadowMemory(addrSpace, iptr + i*4, newElemShadow);
             memcpy(newShadow.data, newElemShadow.data, result.size);
         }
 
