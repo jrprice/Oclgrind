@@ -31,7 +31,8 @@ AM_TESTS_ENVIRONMENT = \
   export OCLGRIND_PCH_DIR=$(abs_top_builddir)/src/include/oclgrind;
 
 TESTS += $(KERNEL_TESTS)
-#XFAIL_TESTS =
+XFAIL_TESTS = \
+  kernels/uninitialized/uninitialized_padded_struct_memcpy.sim
 
 clean-local:
 	find . -name '*.out' -exec rm -f {} \;

@@ -1,4 +1,5 @@
 ERROR Uninitialized value
+ERROR Uninitialized value
 
 EXACT Argument 'output': 32 bytes
 EXACT   output[0] = 4
