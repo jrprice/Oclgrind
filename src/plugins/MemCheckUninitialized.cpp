@@ -1582,6 +1582,29 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
         return true;
     }
+    else if(name == "any")
+    {
+        const llvm::Value *argOp = CI->getArgOperand(0);
+        TypedValue shadow = shadowContext.getValue(workItem, argOp);
+
+        unsigned num = 1;
+        if(argOp->getType()->isVectorTy())
+        {
+            num = argOp->getType()->getVectorNumElements();
+        }
+
+        for(unsigned i = 0; i < num; ++i)
+        {
+            if(ShadowContext::isCleanValue(shadow, i))
+            {
+                shadowContext.getShadowWorkItem(workItem)->setValue(CI, ShadowContext::getCleanValue(result.size));
+                return true;
+            }
+        }
+
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, ShadowContext::getPoisonedValue(result.size));
+        return true;
+    }
 
     return false;
 }
