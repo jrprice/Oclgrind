@@ -246,6 +246,7 @@ namespace oclgrind
                 return llvm::isa<llvm::Constant>(V) || m_globalValues.count(V) || m_workSpace.workItems->at(workItem)->hasValue(V);
             }
             static bool isCleanValue(TypedValue v);
+            static bool isCleanValue(TypedValue v, unsigned offset);
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
 
         private:
@@ -305,7 +306,7 @@ namespace oclgrind
             static std::string extractUnmangledName(const std::string fullname);
             Memory* getMemory(unsigned addrSpace, const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL) const;
             ShadowMemory* getShadowMemory(unsigned addrSpace, const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL) const;
-            bool handleBuiltinFunction(const WorkItem *workItem, std::string name, const llvm::CallInst *CI);
+            bool handleBuiltinFunction(const WorkItem *workItem, std::string name, const llvm::CallInst *CI, const TypedValue result);
             void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
 
             void loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM,

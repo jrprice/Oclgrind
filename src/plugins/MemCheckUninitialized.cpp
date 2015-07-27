@@ -388,7 +388,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
             if(function->isDeclaration())
             {
-                if(!handleBuiltinFunction(workItem, function->getName().str(), callInst))
+                if(!handleBuiltinFunction(workItem, function->getName().str(), callInst, result))
                 {
                     // Handle external function calls
                     checkAllOperandsDefined(workItem, instruction);
@@ -1332,7 +1332,7 @@ std::string MemCheckUninitialized::extractUnmangledName(const std::string fullna
     }
 }
 
-bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, string name, const llvm::CallInst *CI)
+bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, string name, const llvm::CallInst *CI, const TypedValue result)
 {
     name = extractUnmangledName(name);
 
@@ -1381,8 +1381,8 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
     }
     else if(name == "wait_group_events")
     {
-        uint64_t num = workItem->getOperand(CI->getOperand(0)).getUInt();
-        size_t address = workItem->getOperand(CI->getOperand(1)).getPointer();
+        uint64_t num = workItem->getOperand(CI->getArgOperand(0)).getUInt();
+        size_t address = workItem->getOperand(CI->getArgOperand(1)).getPointer();
 
         TypedValue eventShadow = {
             sizeof(size_t),
@@ -1449,6 +1449,33 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
             SimpleOrAtomic(workItem, CI);
             return true;
         }
+    }
+    else if(name == "fract")
+    {
+        unsigned addrSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
+        size_t iptr = workItem->getOperand(CI->getArgOperand(1)).getPointer();
+        TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue newElemShadow;
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(argShadow);
+
+        for(unsigned i = 0; i < result.num; ++i)
+        {
+            if(!ShadowContext::isCleanValue(argShadow, i))
+            {
+                newElemShadow = ShadowContext::getPoisonedValue(result.size);
+            }
+            else
+            {
+                newElemShadow = ShadowContext::getCleanValue(result.size);
+            }
+
+            size_t offset = i*result.size;
+            storeShadowMemory(addrSpace, iptr + offset, newElemShadow);
+            memcpy(newShadow.data, newElemShadow.data, result.size);
+        }
+
+        shadowContext.getShadowWorkItem(workItem)->setValue(CI, newShadow);
+        return true;
     }
 
     return false;
@@ -2043,6 +2070,12 @@ void ShadowMemory::lock(size_t address) const
 bool ShadowContext::isCleanValue(TypedValue v)
 {
     return (ShadowContext::getCleanValue(v) == v);
+}
+
+bool ShadowContext::isCleanValue(TypedValue v, unsigned offset)
+{
+    TypedValue c = ShadowContext::getCleanValue(v.size);
+    return !memcmp(c.data + offset*v.size, v.data + offset*v.size, v.size);
 }
 
 void ShadowContext::setGlobalValue(const llvm::Value *V, TypedValue SV)
