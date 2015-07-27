@@ -1025,6 +1025,46 @@ void MemCheckUninitialized::SimpleOr(const WorkItem *workItem, const llvm::Instr
     shadowContext.getShadowWorkItem(workItem)->setValue(I, ShadowContext::getCleanValue(I));
 }
 
+void MemCheckUninitialized::SimpleOrAtomic(const WorkItem *workItem, const llvm::CallInst *CI)
+{
+    unsigned addrSpace = CI->getArgOperand(0)->getType()->getPointerAddressSpace();
+    size_t address = workItem->getOperand(CI->getArgOperand(0)).getPointer();
+    TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
+    TypedValue oldShadow = {
+        4,
+        1,
+        new unsigned char[4]
+    };
+
+    TypedValue newShadow;
+
+    if(addrSpace == AddrSpaceGlobal)
+    {
+        atomicMutexShadow.lock();
+    }
+
+    loadShadowMemory(addrSpace, address, oldShadow, workItem);
+
+    if(!ShadowContext::isCleanValue(argShadow) || !ShadowContext::isCleanValue(oldShadow))
+    {
+        newShadow = ShadowContext::getPoisonedValue(4);
+    }
+    else
+    {
+        newShadow = ShadowContext::getCleanValue(4);
+    }
+
+    storeShadowMemory(addrSpace, address, newShadow, workItem);
+
+    if(addrSpace == AddrSpaceGlobal)
+    {
+        atomicMutexShadow.unlock();
+    }
+
+    shadowContext.getShadowWorkItem(workItem)->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
+    delete[] oldShadow.data;
+}
+
 void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup)
 {
     switch(addrSpace)
@@ -1066,6 +1106,78 @@ void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t
     }
 
     storeShadowMemory(addrSpace, address, SM, workItem, workGroup);
+}
+
+Memory* MemCheckUninitialized::getMemory(unsigned addrSpace, const WorkItem *workItem, const WorkGroup *workGroup) const
+{
+    switch(addrSpace)
+    {
+        case AddrSpacePrivate:
+        {
+            if(!workItem)
+            {
+                FATAL_ERROR("Work item needed to access private memory!");
+            }
+
+            return workItem->getPrivateMemory();
+        }
+        case AddrSpaceLocal:
+        {
+            if(!workGroup)
+            {
+                if(!workItem)
+                {
+                    FATAL_ERROR("Work item or work group needed to access local memory!");
+                }
+
+                workGroup = workItem->getWorkGroup();
+            }
+
+            return workGroup->getLocalMemory();
+        }
+        //case AddrSpaceConstant:
+        //    break;
+        case AddrSpaceGlobal:
+            return m_context->getGlobalMemory();
+        default:
+            FATAL_ERROR("Unsupported addressspace %d", addrSpace);
+    }
+}
+
+ShadowMemory* MemCheckUninitialized::getShadowMemory(unsigned addrSpace, const WorkItem *workItem, const WorkGroup *workGroup) const
+{
+    switch(addrSpace)
+    {
+        case AddrSpacePrivate:
+        {
+            if(!workItem)
+            {
+                FATAL_ERROR("Work item needed to access private memory!");
+            }
+
+            return shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
+        }
+        case AddrSpaceLocal:
+        {
+            if(!workGroup)
+            {
+                if(!workItem)
+                {
+                    FATAL_ERROR("Work item or work group needed to access local memory!");
+                }
+
+                workGroup = workItem->getWorkGroup();
+            }
+
+            return shadowContext.getShadowWorkGroup(workGroup)->getLocalMemory();
+        }
+        //case AddrSpaceConstant:
+        //    break;
+        case AddrSpaceGlobal:
+            return shadowContext.getGlobalMemory();
+        default:
+            FATAL_ERROR("Unsupported addressspace %d", addrSpace);
+    }
 }
 
 void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup)
@@ -1270,57 +1382,48 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         shadowContext.getShadowWorkItem(workItem)->setValue(CI, ShadowContext::getCleanValue(eventOp));
         return true;
     }
-    else if(name == "atomic_cmpxchg")
+    else if(name.compare(0, 6, "atomic") == 0)
     {
-        unsigned addrSpace = CI->getArgOperand(0)->getType()->getPointerAddressSpace();
-        Memory *memory;
-
-        switch(addrSpace)
+        if(name.compare(6, string::npos, "cmpxchg") == 0)
         {
-            case AddrSpaceGlobal:
-                memory = m_context->getGlobalMemory();
-                break;
-            case AddrSpaceLocal:
-                memory = workItem->getWorkGroup()->getLocalMemory();
-                break;
-            case AddrSpacePrivate:
-                memory = workItem->getPrivateMemory();
-                break;
-            default:
-                FATAL_ERROR("Unsupported addressspace %d", addrSpace);
+            unsigned addrSpace = CI->getArgOperand(0)->getType()->getPointerAddressSpace();
+            size_t address = workItem->getOperand(CI->getArgOperand(0)).getPointer();
+            uint32_t cmp = workItem->getOperand(CI->getArgOperand(1)).getUInt();
+            uint32_t old = workItem->getOperand(CI).getUInt();
+            TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
+            TypedValue oldShadow = {
+                4,
+                1,
+                new unsigned char[4]
+            };
+
+            // Perform cmpxchg
+            if(addrSpace == AddrSpaceGlobal)
+            {
+                atomicMutexShadow.lock();
+            }
+
+            loadShadowMemory(addrSpace, address, oldShadow, workItem);
+
+            if(old == cmp)
+            {
+                storeShadowMemory(addrSpace, address, argShadow, workItem);
+            }
+
+            if(addrSpace == AddrSpaceGlobal)
+            {
+                atomicMutexShadow.unlock();
+            }
+
+            shadowContext.getShadowWorkItem(workItem)->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
+            delete[] oldShadow.data;
+            return true;
         }
-
-        size_t address = workItem->getOperand(CI->getArgOperand(0)).getPointer();
-        uint32_t cmp = workItem->getOperand(CI->getArgOperand(1)).getUInt();
-        uint32_t old = workItem->getOperand(CI).getUInt();;
-        TypedValue shadowValue = shadowContext.getValue(workItem, CI->getArgOperand(2));
-        TypedValue oldShadow = {
-            4,
-            1,
-            new unsigned char[4]
-        };
-
-        // Perform cmpxchg
-        if(addrSpace == AddrSpaceGlobal)
+        else
         {
-            atomicMutexShadow.lock();
+            SimpleOrAtomic(workItem, CI);
+            return true;
         }
-
-        loadShadowMemory(addrSpace, address, oldShadow, workItem);
-
-        if(old == cmp)
-        {
-            storeShadowMemory(addrSpace, address, shadowValue, workItem);
-        }
-
-        if(addrSpace == AddrSpaceGlobal)
-        {
-            atomicMutexShadow.unlock();
-        }
-
-        shadowContext.getShadowWorkItem(workItem)->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
-        delete[] oldShadow.data;
-        return true;
     }
 
     return false;
@@ -1422,15 +1525,20 @@ void MemCheckUninitialized::logUninitializedMask() const
 }
 
 ShadowWorkItem::ShadowWorkItem(unsigned bufferBits) :
-    m_memory(AddrSpacePrivate, bufferBits), m_values()
+    m_memory(new ShadowMemory(AddrSpacePrivate, bufferBits)), m_values()
 {
     pushValues(createCleanShadowValues());
 }
 
 ShadowWorkGroup::ShadowWorkGroup(unsigned bufferBits) :
     //FIXME: Hard coded values
-    m_memory(AddrSpaceLocal, sizeof(size_t) == 8 ? 16 : 8)
+    m_memory(new ShadowMemory(AddrSpaceLocal, sizeof(size_t) == 8 ? 16 : 8))
 {
+}
+
+ShadowWorkGroup::~ShadowWorkGroup()
+{
+    delete m_memory;
 }
 
 ShadowMemory::ShadowMemory(AddressSpace addrSpace, unsigned bufferBits) :
@@ -1440,6 +1548,8 @@ ShadowMemory::ShadowMemory(AddressSpace addrSpace, unsigned bufferBits) :
 
 ShadowWorkItem::~ShadowWorkItem()
 {
+    delete m_memory;
+
     while(!m_values.empty())
     {
         ShadowValues *values= m_values.top();
@@ -1459,8 +1569,13 @@ ShadowValues* ShadowWorkItem::createCleanShadowValues()
 }
 
 ShadowContext::ShadowContext(unsigned bufferBits) :
-    m_globalMemory(AddrSpaceGlobal, bufferBits), m_globalValues(), m_numBitsBuffer(bufferBits)
+    m_globalMemory(new ShadowMemory(AddrSpaceGlobal, bufferBits)), m_globalValues(), m_numBitsBuffer(bufferBits)
 {
+}
+
+ShadowContext::~ShadowContext()
+{
+    delete m_globalMemory;
 }
 
 void ShadowContext::createMemoryPool()
@@ -1708,7 +1823,7 @@ void ShadowMemory::clear()
 void ShadowContext::dump(const WorkItem *workItem) const
 {
     dumpGlobalValues();
-    m_globalMemory.dump();
+    m_globalMemory->dump();
     if(m_workSpace.workGroups && m_workSpace.workGroups->size())
     {
         m_workSpace.workGroups->begin()->second->dump();
