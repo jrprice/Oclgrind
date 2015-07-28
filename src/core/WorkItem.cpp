@@ -30,6 +30,7 @@ using namespace std;
 
 struct WorkItem::Position
 {
+  bool hasBegun;
   llvm::Function::const_iterator       prevBlock;
   llvm::Function::const_iterator       currBlock;
   llvm::Function::const_iterator       nextBlock;
@@ -105,6 +106,7 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   // Initialize interpreter state
   m_state    = READY;
   m_position = new Position;
+  m_position->hasBegun = false;
   m_position->prevBlock = NULL;
   m_position->nextBlock = NULL;
   m_position->currBlock = kernel->getFunction()->begin();
@@ -557,6 +559,12 @@ void WorkItem::setValue(const llvm::Value *key, TypedValue value)
 WorkItem::State WorkItem::step()
 {
   assert(m_state == READY);
+
+  if (!m_position->hasBegun)
+  {
+    m_position->hasBegun = true;
+    m_context->notifyWorkItemBegin(this);
+  }
 
   // Execute the next instruction
   execute(m_position->currInst);
