@@ -324,11 +324,6 @@ void WorkItem::execute(const llvm::Instruction *instruction)
   m_context->notifyInstructionExecuted(this, instruction, result);
 }
 
-TypedValue WorkItem::getValue(const llvm::Value *key) const
-{
-  return m_values[m_cache->getValueID(key)];
-}
-
 const stack<const llvm::Instruction*>& WorkItem::getCallStack() const
 {
   return m_position->callStack;
@@ -460,6 +455,11 @@ Memory* WorkItem::getPrivateMemory() const
 WorkItem::State WorkItem::getState() const
 {
   return m_state;
+}
+
+TypedValue WorkItem::getValue(const llvm::Value *key) const
+{
+  return m_values[m_cache->getValueID(key)];
 }
 
 const unsigned char* WorkItem::getValueData(const llvm::Value *value) const
