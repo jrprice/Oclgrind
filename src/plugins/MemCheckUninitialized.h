@@ -245,6 +245,7 @@ namespace oclgrind
             {
                 return llvm::isa<llvm::Constant>(V) || m_globalValues.count(V) || m_workSpace.workItems->at(workItem)->hasValue(V);
             }
+            static bool isCleanStruct(ShadowMemory *shadowMemory, size_t address, const llvm::StructType *structTy);
             static bool isCleanValue(TypedValue v);
             static bool isCleanValue(TypedValue v, unsigned offset);
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
@@ -296,6 +297,7 @@ namespace oclgrind
             void allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
                                            const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
             bool checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I);
+            void checkStructMemcpy(const WorkItem *workItem, const llvm::Value *src);
             void copyShadowMemory(unsigned dstAddrSpace, size_t dst,
                                   unsigned srcAddrSpace, size_t src, unsigned size,
                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
@@ -320,6 +322,5 @@ namespace oclgrind
             void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
             void logUninitializedCF() const;
             void logUninitializedIndex() const;
-            void logUninitializedMask() const;
     };
 }

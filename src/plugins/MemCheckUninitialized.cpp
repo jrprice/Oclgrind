@@ -136,6 +136,7 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
                         // value->second.size == val size
                         m_deferredInit.push_back(*value);
                         TypedValue cleanValue = m_pool.clone(ShadowContext::getCleanValue(value->first));
+                        //TODO: Structs can have posioned padding bytes. Is this important?
                         shadowContext.setGlobalValue(value->first, cleanValue);
                     }
                     break;
@@ -1717,6 +1718,12 @@ void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem,
             size_t size = workItem->getOperand(memcpyInst->getLength()).getUInt();
             unsigned dstAddrSpace = memcpyInst->getDestAddressSpace();
             unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
+            const llvm::PointerType *srcPtrTy = llvm::dyn_cast<llvm::PointerType>(memcpyInst->getSource()->getType());
+
+            if(dstAddrSpace != AddrSpacePrivate && srcPtrTy->getElementType()->isStructTy())
+            {
+                checkStructMemcpy(workItem, memcpyInst->getSource());
+            }
 
             copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size, workItem, NULL, true);
             break;
@@ -2346,4 +2353,91 @@ void ShadowMemory::unlock(size_t address) const
 {
     size_t offset = extractOffset(address);
     ATOMIC_MUTEX(offset).unlock();
+}
+
+void MemCheckUninitialized::checkStructMemcpy(const WorkItem *workItem, const llvm::Value *src)
+{
+    const llvm::PointerType *srcPtrTy = llvm::dyn_cast<llvm::PointerType>(src->getType());
+    const llvm::StructType *structTy = llvm::dyn_cast<llvm::StructType>(srcPtrTy->getElementType());
+    size_t srcAddr = workItem->getOperand(src).getPointer();
+    unsigned srcAddrSpace = srcPtrTy->getPointerAddressSpace();
+
+    ShadowMemory *shadowMemory;
+
+    switch(srcAddrSpace)
+    {
+        case AddrSpacePrivate:
+        {
+            shadowMemory = shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
+            break;
+        }
+        case AddrSpaceLocal:
+        {
+            shadowMemory = shadowContext.getShadowWorkGroup(workItem->getWorkGroup())->getLocalMemory();
+            break;
+        }
+        case AddrSpaceConstant:
+            //TODO: Constants should always be clean?!
+            return;
+        case AddrSpaceGlobal:
+            shadowMemory = shadowContext.getGlobalMemory();
+            break;
+        default:
+            FATAL_ERROR("Unsupported addressspace %d", srcAddrSpace);
+    }
+
+    if(!ShadowContext::isCleanStruct(shadowMemory, srcAddr, structTy))
+    {
+        logUninitializedWrite(srcAddrSpace, srcAddr);
+    }
+}
+
+bool ShadowContext::isCleanStruct(ShadowMemory *shadowMemory, size_t address, const llvm::StructType *structTy)
+{
+    if(structTy->isPacked())
+    {
+        unsigned size = getTypeSize(structTy);
+        TypedValue v = {
+            size,
+            1,
+            m_workSpace.memoryPool->alloc(size)
+        };
+
+        shadowMemory->load(v.data, address, size);
+
+        return isCleanValue(v);
+    }
+    else
+    {
+        for(unsigned i = 0; i < structTy->getStructNumElements(); ++i)
+        {
+            size_t offset = getStructMemberOffset(structTy, i);
+            unsigned size = getTypeSize(structTy->getElementType(i));
+
+            if(const llvm::StructType *elemTy = llvm::dyn_cast<llvm::StructType>(structTy->getElementType(i)))
+            {
+                if(!isCleanStruct(shadowMemory, address + offset, elemTy))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                TypedValue v = {
+                    size,
+                    1,
+                    m_workSpace.memoryPool->alloc(size)
+                };
+
+                shadowMemory->load(v.data, address + offset, size);
+
+                if(!isCleanValue(v))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
 }

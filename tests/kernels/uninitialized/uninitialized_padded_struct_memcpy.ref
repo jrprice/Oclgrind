@@ -1,6 +1,6 @@
 ERROR Uninitialized value
 
 EXACT Argument 'output': 12 bytes
-MATCH   output[0] = 
+EXACT   output[0] = 1
 MATCH   output[1] = 
-MATCH   output[2] = 
+EXACT   output[2] = 2
