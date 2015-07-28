@@ -17,6 +17,7 @@ using namespace oclgrind;
 using namespace std;
 
 #define DEFAULT_MAX_ERRORS 1000
+#define DEFAULT_STOP_ERRORS -1
 
 unsigned Logger::m_numErrors = 0;
 
@@ -37,6 +38,18 @@ Logger::Logger(const Context *context)
       m_log = &cerr;
     }
   }
+  m_stopErrors = DEFAULT_STOP_ERRORS;
+  const char *stopErrors = getenv("OCLGRIND_STOP_ERRORS");
+  if (stopErrors)
+  {
+    char *next;
+    m_stopErrors = strtoul(stopErrors, &next, 10);
+    if (strlen(next))
+    {
+      cerr << "Oclgrind: Invalid value for OCLGRIND_STOP_ERRORS" << endl;
+    }
+  }
+
   m_maxErrors = DEFAULT_MAX_ERRORS;
   const char *maxErrors = getenv("OCLGRIND_MAX_ERRORS");
   if (maxErrors)
@@ -84,6 +97,13 @@ void Logger::log(MessageType type, const char *message)
       *m_log << endl << "Oclgrind: "
              << m_numErrors << " errors generated - suppressing further errors"
              << endl << endl;
+    }
+    if (m_numErrors == m_stopErrors)
+    {
+      *m_log << endl << "Oclgrind: "
+             << "Error limit reached - aborting execution"
+             << endl << endl;
+      exit(1);
     }
     if (m_numErrors++ >= m_maxErrors)
       return;

@@ -46,6 +46,8 @@ function usage
   echo          "Load colon separated list of plugin libraries"
   echo -n "  -q --quick                   "
   echo          "Only run first and last work-group"
+  echo -n "     --stop-errors    NUM      "
+  echo          "Abort the execution after NUM error/warning messages"
   echo -n "     --uniform-writes          "
   echo          "Don't suppress uniform write-write data-races"
   echo -n "     --uninitialized           "
@@ -116,6 +118,10 @@ do
   elif [ "$1" == "-q" -o "$1" == "--quick" ]
   then
     export OCLGRIND_QUICK=1
+  elif [ "$1" == "--stop-errors" ]
+  then
+    shift
+    export OCLGRIND_STOP_ERRORS="$1"
   elif [ "$1" == "--uniform-writes" ]
   then
     export OCLGRIND_UNIFORM_WRITES=1

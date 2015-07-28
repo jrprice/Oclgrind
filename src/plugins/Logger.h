@@ -22,6 +22,7 @@ namespace oclgrind
     std::ostream *m_log;
 
     unsigned m_maxErrors;
+    int m_stopErrors;
     std::map<MessageType, bool> m_diagnosticOptions;
     static unsigned m_numErrors;
 
