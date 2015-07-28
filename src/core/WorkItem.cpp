@@ -334,6 +334,11 @@ const stack<const llvm::Instruction*>& WorkItem::getCallStack() const
   return m_position->callStack;
 }
 
+const llvm::BasicBlock* WorkItem::getCurrentBlock() const
+{
+  return m_position->currBlock;
+}
+
 const llvm::Instruction* WorkItem::getCurrentInstruction() const
 {
   return m_position->currInst;
@@ -440,6 +445,11 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand) const
 
   // Unreachable
   assert(false);
+}
+
+const llvm::BasicBlock* WorkItem::getPreviousBlock() const
+{
+  return m_position->prevBlock;
 }
 
 Memory* WorkItem::getPrivateMemory() const

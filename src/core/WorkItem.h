@@ -10,6 +10,7 @@
 
 namespace llvm
 {
+  class BasicBlock;
   class CallInst;
   class ConstExpr;
   class DbgValueInst;
@@ -102,11 +103,13 @@ namespace oclgrind
     void dispatch(const llvm::Instruction *instruction, TypedValue& result);
     void execute(const llvm::Instruction *instruction);
     const std::stack<const llvm::Instruction*>& getCallStack() const;
+    const llvm::BasicBlock* getCurrentBlock() const;
     const llvm::Instruction* getCurrentInstruction() const;
     Size3 getGlobalID() const;
     size_t getGlobalIndex() const;
     Size3 getLocalID() const;
     TypedValue getOperand(const llvm::Value *operand) const;
+    const llvm::BasicBlock* getPreviousBlock() const;
     Memory* getPrivateMemory() const;
     State getState() const;
     const unsigned char* getValueData(const llvm::Value *value) const;
