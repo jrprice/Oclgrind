@@ -59,7 +59,6 @@ WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid)
                                           Size3(i, j, k));
         m_workItems.push_back(workItem);
         m_running.insert(workItem);
-        m_context->notifyWorkItemBegin(workItem);
       }
     }
   }
