@@ -228,8 +228,9 @@ void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
 
 void MemCheckUninitialized::workGroupBegin(const WorkGroup *workGroup)
 {
+    shadowContext.createMemoryPool();
     shadowContext.allocateWorkGroups();
-    ShadowWorkGroup *shadowWG = shadowContext.createShadowWorkGroup(workGroup);
+    shadowContext.createShadowWorkGroup(workGroup);
 
     for(auto value : m_deferredInitGroup)
     {
@@ -696,39 +697,11 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         }
         case llvm::Instruction::PHI:
         {
-            //FIXME: m_position is private
             const llvm::PHINode *phiNode = (const llvm::PHINode*)instruction;
-            //const llvm::Value *value = phiNode->getIncomingValueForBlock(
-            //        (const llvm::BasicBlock*)m_position->prevBlock);
+            const llvm::Value *value = phiNode->getIncomingValueForBlock(workItem->getPreviousBlock());
+            TypedValue shadowValue = shadowContext.getValue(workItem, value);
 
-            //TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-
-            //memcpy(newShadow.data, getValue(value).data, newShadow.size*newShadow.num);
-            //setValue(instruction, newShadow);
-
-            bool poisoned = false;
-
-            for(int i = 0; i < phiNode->getNumIncomingValues(); ++i)
-            {
-                const llvm::Value *V = phiNode->getIncomingValue(i);
-
-                if(!shadowContext.hasValue(workItem, V))
-                {
-                    continue;
-                }
-
-                if(!ShadowContext::isCleanValue(shadowContext.getValue(workItem, V)))
-                {
-                    shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getPoisonedValue(instruction));
-                    poisoned = true;
-                    break;
-                }
-            }
-
-            if(!poisoned)
-            {
-                shadowContext.getShadowWorkItem(workItem)->setValue(instruction, ShadowContext::getCleanValue(instruction));
-            }
+            shadowContext.getShadowWorkItem(workItem)->setValue(instruction, shadowValue);
             break;
         }
         case llvm::Instruction::PtrToInt:
