@@ -98,18 +98,19 @@ void Logger::log(MessageType type, const char *message)
              << m_numErrors << " errors generated - suppressing further errors"
              << endl << endl;
     }
-    if (m_numErrors == m_stopErrors)
-    {
-      *m_log << endl << "Oclgrind: "
-             << "Error limit reached - aborting execution"
-             << endl << endl;
-      exit(1);
-    }
     if (m_numErrors++ >= m_maxErrors)
       return;
   }
 
   *m_log << endl << message << endl;
+
+  if (m_numErrors == m_stopErrors)
+  {
+    *m_log << endl << "Oclgrind: "
+           << "Error limit reached - aborting execution"
+           << endl << endl;
+    exit(1);
+  }
 }
 
 bool Logger::hasDiagnosticOption(MessageType optType)
