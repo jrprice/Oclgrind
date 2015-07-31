@@ -52,220 +52,589 @@ MemCheckUninitialized::~MemCheckUninitialized()
     shadowContext.destroyMemoryPool();
 }
 
-void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation)
+void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
+        const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
 {
-    const Kernel *kernel = kernelInvocation->getKernel();
-
-    // Initialise kernel arguments and global variables
-    for (auto value = kernel->values_begin(); value != kernel->values_end(); value++)
+    if(addrSpace == AddrSpaceConstant)
     {
-        const llvm::Type *type = value->first->getType();
-
-        if(!type->isSized())
-        {
-            continue;
-        }
-
-        if(type->isPointerTy())
-        {
-            switch(type->getPointerAddressSpace())
-            {
-                case AddrSpaceConstant:
-                {
-                    // Constants
-                    // value->second.data == ptr
-                    // value->second.size == ptr size
-                    TypedValue cleanValue = m_pool.clone(ShadowContext::getCleanValue(value->first));
-                    shadowContext.setGlobalValue(value->first, cleanValue);
-                    const llvm::Type *elementTy = type->getPointerElementType();
-                    allocAndStoreShadowMemory(AddrSpaceConstant, value->second.getPointer(), ShadowContext::getCleanValue(elementTy));
-                    break;
-                }
-                case AddrSpaceGlobal:
-                {
-                    // Global pointer kernel arguments
-                    // value->second.data == ptr
-                    // value->second.size == ptr size
-                    size_t address = value->second.getPointer();
-
-                    if(m_context->getGlobalMemory()->isAddressValid(address) && !shadowContext.getGlobalMemory()->isAddressValid(address))
-                    {
-                        // Allocate poisoned global memory if there was no host store
-                        size_t size = m_context->getGlobalMemory()->getBuffer(address)->size;
-                        allocAndStoreShadowMemory(AddrSpaceGlobal, address, ShadowContext::getPoisonedValue(size), NULL, NULL, true);
-                    }
-
-                    m_deferredInit.push_back(*value);
-                    break;
-                }
-                case AddrSpaceLocal:
-                {
-                    // Local pointer kernel arguments and local data variables
-                    // value->second.data == NULL
-                    // value->second.size == val size
-                    if(llvm::isa<llvm::Argument>(value->first))
-                    {
-                        // Arguments have a private pointer
-                        m_deferredInit.push_back(*value);
-                    }
-                    else
-                    {
-                        // Variables have a global pointer
-                        TypedValue cleanValue = m_pool.clone(ShadowContext::getCleanValue(value->first));
-                        shadowContext.setGlobalValue(value->first, cleanValue);
-                    }
-
-                    m_deferredInitGroup.push_back(*value);
-                    break;
-                }
-                case AddrSpacePrivate:
-                {
-                    const llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(value->first);
-
-                    if(A && A->hasByValAttr())
-                    {
-                        // ByVal kernel argument
-                        // value->second.data == val
-                        // value->second.size == val size
-                        m_deferredInit.push_back(*value);
-                    }
-                    else
-                    {
-                        // Private struct/Union definitions with global type
-                        // value->second.data == val
-                        // value->second.size == val size
-                        m_deferredInit.push_back(*value);
-                        TypedValue cleanValue = m_pool.clone(ShadowContext::getCleanValue(value->first));
-                        //TODO: Structs can have posioned padding bytes. Is this important?
-                        shadowContext.setGlobalValue(value->first, cleanValue);
-                    }
-                    break;
-                }
-                default:
-                    FATAL_ERROR("Unsupported addressspace %d", type->getPointerAddressSpace());
-            }
-        }
-        else
-        {
-            // Non pointer type kernel arguments
-            // value->second.data == val
-            // value->second.size == val size
-            m_deferredInit.push_back(*value);
-        }
+        //TODO: Eventually store value
+        return;
     }
+
+    ShadowMemory *memory = getShadowMemory(addrSpace, workItem, workGroup);
+    memory->allocate(address, SM.size*SM.num);
+    storeShadowMemory(addrSpace, address, SM, workItem, workGroup, unchecked);
 }
 
-void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
+bool MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I)
 {
-    shadowContext.createMemoryPool();
-    shadowContext.allocateWorkItems();
-    ShadowWorkItem *shadowWI = shadowContext.createShadowWorkItem(workItem);
-    ShadowValues *shadowValues = shadowWI->getValues();
-
-    for(auto value : m_deferredInit)
+    for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
     {
-        const llvm::Type *type = value.first->getType();
-
-        if(type->isPointerTy())
+        if(!ShadowContext::isCleanValue(shadowContext.getValue(workItem, OI->get())))
         {
-            switch(type->getPointerAddressSpace())
-            {
-                case AddrSpaceGlobal:
-                {
-                    // Global pointer kernel arguments
-                    // value.second.data == ptr
-                    // value.second.size == ptr size
-                    shadowValues->setValue(value.first, ShadowContext::getCleanValue(type));
-                    break;
-                }
-                case AddrSpaceLocal:
-                {
-                    // Local pointer kernel arguments
-                    // value.second.data == NULL
-                    // value.second.size == val size
-                    shadowValues->setValue(value.first, ShadowContext::getCleanValue(value.first));
-                    break;
-                }
-                case AddrSpacePrivate:
-                {
-                    const llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(value.first);
-
-                    if(A && A->hasByValAttr())
-                    {
-                        // ByVal kernel argument
-                        // value.second.data == val
-                        // value.second.size == val size
-                        size_t address = workItem->getOperand(value.first).getPointer();
-                        TypedValue cleanValue = ShadowContext::getCleanValue(value.second.size);
-                        allocAndStoreShadowMemory(AddrSpacePrivate, address, cleanValue, workItem);
-                        shadowValues->setValue(value.first, ShadowContext::getCleanValue(value.first));
-                    }
-                    else
-                    {
-                        // Private struct/Union definitions with global type
-                        // value.second.data == NULL
-                        // value.second.size == val size
-                        size_t address = workItem->getOperand(value.first).getPointer();
-                        TypedValue cleanValue = ShadowContext::getCleanValue(value.second.size);
-                        allocAndStoreShadowMemory(AddrSpacePrivate, address, cleanValue, workItem);
-                    }
-                    break;
-                }
-            }
-        }
-        else
-        {
-            // Non pointer type kernel arguments
-            // value->second.data == val
-            // value->second.size == val size
-            shadowValues->setValue(value.first, ShadowContext::getCleanValue(value.first));
-        }
-    }
-
 #ifdef DUMP_SHADOW
-    //shadowContext.dump(workItem);
+            OI->get()->dump();
+            cout << "Shadow value: " << shadowContext.getValue(workItem, OI->get()) << endl;
 #endif
+            logUninitializedCF();
+#ifdef DUMP_SHADOW
+            shadowContext.dump(workItem);
+#endif
+            return false;
+        }
+    }
+
+    return true;
 }
 
-void MemCheckUninitialized::workGroupBegin(const WorkGroup *workGroup)
+void MemCheckUninitialized::checkStructMemcpy(const WorkItem *workItem, const llvm::Value *src)
 {
-    shadowContext.createMemoryPool();
-    shadowContext.allocateWorkGroups();
-    shadowContext.createShadowWorkGroup(workGroup);
+    const llvm::PointerType *srcPtrTy = llvm::dyn_cast<llvm::PointerType>(src->getType());
+    const llvm::StructType *structTy = llvm::dyn_cast<llvm::StructType>(srcPtrTy->getElementType());
+    size_t srcAddr = workItem->getOperand(src).getPointer();
+    unsigned srcAddrSpace = srcPtrTy->getPointerAddressSpace();
 
-    for(auto value : m_deferredInitGroup)
+    ShadowMemory *shadowMemory;
+
+    switch(srcAddrSpace)
     {
-        // Local data variables
-        // value->second.data == NULL
-        // value->second.size == val size
-        size_t address = workGroup->getLocalMemoryAddress(value.first);
-        TypedValue v;
-
-        if(llvm::isa<llvm::Argument>(value.first))
+        case AddrSpacePrivate:
         {
-            //TODO: Local memory clean or poisoned? May need to differentiate between kernel argument (?) and variable (poisoned)
-            v = ShadowContext::getPoisonedValue(value.second.size);
+            shadowMemory = shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
+            break;
         }
-        else
+        case AddrSpaceLocal:
         {
-            v = ShadowContext::getPoisonedValue(value.second.size);
+            shadowMemory = shadowContext.getShadowWorkGroup(workItem->getWorkGroup())->getLocalMemory();
+            break;
         }
+        case AddrSpaceConstant:
+            //TODO: Constants should always be clean?!
+            return;
+        case AddrSpaceGlobal:
+            shadowMemory = shadowContext.getGlobalMemory();
+            break;
+        default:
+            FATAL_ERROR("Unsupported addressspace %d", srcAddrSpace);
+    }
 
-        allocAndStoreShadowMemory(AddrSpaceLocal, address, v, NULL, workGroup, true);
+    if(!ShadowContext::isCleanStruct(shadowMemory, srcAddr, structTy))
+    {
+        logUninitializedWrite(srcAddrSpace, srcAddr);
     }
 }
 
-void MemCheckUninitialized::workItemComplete(const WorkItem *workItem)
+void MemCheckUninitialized::copyShadowMemory(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
 {
-    shadowContext.destroyShadowWorkItem(workItem);
-    shadowContext.freeWorkItems();
-    shadowContext.destroyMemoryPool();
+    copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, 1, 1, size, workItem, workGroup, unchecked);
 }
 
-void MemCheckUninitialized::workGroupComplete(const WorkGroup *workGroup)
+void MemCheckUninitialized::copyShadowMemoryStrided(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, size_t num, size_t stride, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
 {
-    shadowContext.destroyShadowWorkGroup(workGroup);
-    shadowContext.freeWorkGroups();
+    TypedValue v = {
+        size,
+        1,
+        new unsigned char[size]
+    };
+
+    for (unsigned i = 0; i < num; i++)
+    {
+        loadShadowMemory(srcAddrSpace, src, v, workItem, workGroup);
+        storeShadowMemory(dstAddrSpace, dst, v, workItem, workGroup, unchecked);
+        src += stride * size;
+        dst += stride * size;
+    }
+
+    delete[] v.data;
+}
+
+std::string MemCheckUninitialized::extractUnmangledName(const std::string fullname)
+{
+    // Extract unmangled name
+    if(fullname.compare(0,2, "_Z") == 0)
+    {
+        int len = atoi(fullname.c_str() + 2);
+        int start = fullname.find_first_not_of("0123456789", 2);
+        return fullname.substr(start, len);
+    }
+    else
+    {
+        return fullname;
+    }
+}
+
+ShadowMemory* MemCheckUninitialized::getShadowMemory(unsigned addrSpace,
+        const WorkItem *workItem, const WorkGroup *workGroup) const
+{
+    switch(addrSpace)
+    {
+        case AddrSpacePrivate:
+        {
+            if(!workItem)
+            {
+                FATAL_ERROR("Work item needed to access private memory!");
+            }
+
+            return shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
+        }
+        case AddrSpaceLocal:
+        {
+            if(!workGroup)
+            {
+                if(!workItem)
+                {
+                    FATAL_ERROR("Work item or work group needed to access local memory!");
+                }
+
+                workGroup = workItem->getWorkGroup();
+            }
+
+            return shadowContext.getShadowWorkGroup(workGroup)->getLocalMemory();
+        }
+        //case AddrSpaceConstant:
+        //    break;
+        case AddrSpaceGlobal:
+            return shadowContext.getGlobalMemory();
+        default:
+            FATAL_ERROR("Unsupported addressspace %d", addrSpace);
+    }
+}
+
+bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, string name,
+                                                  const llvm::CallInst *CI, const TypedValue result)
+{
+    name = extractUnmangledName(name);
+    ShadowValues *shadowValues = shadowContext.getShadowWorkItem(workItem)->getValues();
+
+    if(name == "async_work_group_copy" ||
+       name == "async_work_group_strided_copy")
+    {
+        int arg = 0;
+
+        // Get src/dest addresses
+        const llvm::Value *destOp = CI->getArgOperand(arg++);
+        const llvm::Value *srcOp = CI->getArgOperand(arg++);
+        size_t dst = workItem->getOperand(destOp).getPointer();
+        size_t src = workItem->getOperand(srcOp).getPointer();
+
+        // Get size of copy
+        unsigned elemSize = getTypeSize(destOp->getType()->getPointerElementType());
+        uint64_t num = workItem->getOperand(CI->getArgOperand(arg++)).getUInt();
+
+        // Get stride
+        size_t stride = 1;
+
+        if(name == "async_work_group_strided_copy")
+        {
+            stride = workItem->getOperand(CI->getArgOperand(arg++)).getUInt();
+        }
+
+        const llvm::Value *eventOp = CI->getArgOperand(arg++);
+        TypedValue eventShadow = shadowContext.getValue(workItem, eventOp);
+
+        // Get type of copy
+        AddressSpace dstAddrSpace = AddrSpaceLocal;
+        AddressSpace srcAddrSpace = AddrSpaceLocal;
+
+        if(destOp->getType()->getPointerAddressSpace() == AddrSpaceLocal)
+        {
+            srcAddrSpace = AddrSpaceGlobal;
+        }
+        else
+        {
+            dstAddrSpace = AddrSpaceGlobal;
+        }
+
+        copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, num, stride, elemSize, workItem);
+        shadowValues->setValue(CI, eventShadow);
+        return true;
+    }
+    else if(name == "wait_group_events")
+    {
+        uint64_t num = workItem->getOperand(CI->getArgOperand(0)).getUInt();
+        size_t address = workItem->getOperand(CI->getArgOperand(1)).getPointer();
+
+        TypedValue eventShadow = {
+            sizeof(size_t),
+            1,
+            new unsigned char[sizeof(size_t)]
+        };
+
+        for(unsigned i = 0; i < num; ++i)
+        {
+            loadShadowMemory(AddrSpacePrivate, address, eventShadow, workItem);
+
+            if(!ShadowContext::isCleanValue(eventShadow))
+            {
+                logUninitializedCF();
+                delete[] eventShadow.data;
+                return true;
+            }
+
+            address += sizeof(size_t);
+        }
+
+        delete[] eventShadow.data;
+        return true;
+    }
+    else if(name.compare(0, 6, "atomic") == 0)
+    {
+        if(name.compare(6, string::npos, "cmpxchg") == 0)
+        {
+            unsigned addrSpace = CI->getArgOperand(0)->getType()->getPointerAddressSpace();
+            size_t address = workItem->getOperand(CI->getArgOperand(0)).getPointer();
+            uint32_t cmp = workItem->getOperand(CI->getArgOperand(1)).getUInt();
+            uint32_t old = workItem->getOperand(CI).getUInt();
+            TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
+            TypedValue oldShadow = {
+                4,
+                1,
+                new unsigned char[4]
+            };
+
+            // Perform cmpxchg
+            if(addrSpace == AddrSpaceGlobal)
+            {
+                shadowContext.getGlobalMemory()->lock(address);
+            }
+
+            loadShadowMemory(addrSpace, address, oldShadow, workItem);
+
+            if(old == cmp)
+            {
+                storeShadowMemory(addrSpace, address, argShadow, workItem);
+            }
+
+            if(addrSpace == AddrSpaceGlobal)
+            {
+                shadowContext.getGlobalMemory()->unlock(address);
+            }
+
+            shadowValues->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
+            delete[] oldShadow.data;
+            return true;
+        }
+        else
+        {
+            SimpleOrAtomic(workItem, CI);
+            return true;
+        }
+    }
+    else if(name == "fract" ||
+            name == "modf" ||
+            name == "sincos")
+    {
+        unsigned addrSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
+        size_t iptr = workItem->getOperand(CI->getArgOperand(1)).getPointer();
+        TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue newElemShadow;
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+
+        for(unsigned i = 0; i < result.num; ++i)
+        {
+            if(!ShadowContext::isCleanValue(argShadow, i))
+            {
+                newElemShadow = ShadowContext::getPoisonedValue(result.size);
+            }
+            else
+            {
+                newElemShadow = ShadowContext::getCleanValue(result.size);
+            }
+
+            memcpy(newShadow.data, newElemShadow.data, result.size);
+        }
+
+        storeShadowMemory(addrSpace, iptr, newShadow);
+        shadowValues->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name == "frexp" ||
+            name == "lgamma_r")
+    {
+        unsigned addrSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
+        size_t iptr = workItem->getOperand(CI->getArgOperand(1)).getPointer();
+        TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue newElemShadow;
+        TypedValue newElemIntShadow;
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+        TypedValue newIntShadow = {
+            newShadow.size,
+            newShadow.num,
+            shadowContext.getMemoryPool()->alloc(4)
+        };
+
+        for(unsigned i = 0; i < result.num; ++i)
+        {
+            if(!ShadowContext::isCleanValue(argShadow, i))
+            {
+                newElemShadow = ShadowContext::getPoisonedValue(result.size);
+                newElemIntShadow = ShadowContext::getPoisonedValue(4);
+            }
+            else
+            {
+                newElemShadow = ShadowContext::getCleanValue(result.size);
+                newElemIntShadow = ShadowContext::getCleanValue(4);
+            }
+
+            memcpy(newIntShadow.data, newElemIntShadow.data, 4);
+            memcpy(newShadow.data, newElemShadow.data, result.size);
+        }
+
+        storeShadowMemory(addrSpace, iptr, newIntShadow);
+        shadowValues->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name == "remquo")
+    {
+        unsigned addrSpace = CI->getArgOperand(2)->getType()->getPointerAddressSpace();
+        size_t iptr = workItem->getOperand(CI->getArgOperand(2)).getPointer();
+        TypedValue arg0Shadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue arg1Shadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
+        TypedValue newElemShadow;
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+
+        for(unsigned i = 0; i < result.num; ++i)
+        {
+            if(!ShadowContext::isCleanValue(arg0Shadow, i) || !ShadowContext::isCleanValue(arg1Shadow, i))
+            {
+                newElemShadow = ShadowContext::getPoisonedValue(result.size);
+            }
+            else
+            {
+                newElemShadow = ShadowContext::getCleanValue(result.size);
+            }
+
+            storeShadowMemory(addrSpace, iptr + i*4, newElemShadow);
+            memcpy(newShadow.data, newElemShadow.data, result.size);
+        }
+
+        shadowValues->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name == "shuffle")
+    {
+        TypedValue mask = workItem->getOperand(CI->getArgOperand(1));
+        TypedValue maskShadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
+        TypedValue shadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+
+        for(unsigned i = 0; i < newShadow.num; ++i)
+        {
+            if(!ShadowContext::isCleanValue(maskShadow, i))
+            {
+                TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
+                memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
+            }
+            else
+            {
+                size_t srcOffset = mask.getUInt(i) * shadow.size;
+                memcpy(newShadow.data + i*newShadow.size, shadow.data + srcOffset, newShadow.size);
+            }
+        }
+
+        shadowValues->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name == "shuffle2")
+    {
+        TypedValue mask = workItem->getOperand(CI->getArgOperand(2));
+        TypedValue maskShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
+        TypedValue shadow[] = {shadowContext.getValue(workItem, CI->getArgOperand(0)),
+                               shadowContext.getValue(workItem, CI->getArgOperand(1))};
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+
+        for (unsigned i = 0; i < newShadow.num; ++i)
+        {
+            uint64_t m = 1;
+
+            if(CI->getArgOperand(0)->getType()->isVectorTy())
+            {
+                m = CI->getArgOperand(0)->getType()->getVectorNumElements();
+            }
+
+            uint64_t src = 0;
+            uint64_t index = mask.getUInt(i);
+
+            if(index >= m)
+            {
+                index -= m;
+                src = 1;
+            }
+
+            if(!ShadowContext::isCleanValue(maskShadow, i))
+            {
+                TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
+                memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
+            }
+            else
+            {
+                size_t srcOffset = index * shadow[src].size;
+                memcpy(newShadow.data + i*newShadow.size, shadow[src].data + srcOffset, newShadow.size);
+            }
+        }
+
+        shadowValues->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name == "any")
+    {
+        const llvm::Value *argOp = CI->getArgOperand(0);
+        TypedValue shadow = shadowContext.getValue(workItem, argOp);
+
+        unsigned num = 1;
+        if(argOp->getType()->isVectorTy())
+        {
+            num = argOp->getType()->getVectorNumElements();
+        }
+
+        for(unsigned i = 0; i < num; ++i)
+        {
+            if(ShadowContext::isCleanValue(shadow, i))
+            {
+                shadowValues->setValue(CI, ShadowContext::getCleanValue(result.size));
+                return true;
+            }
+        }
+
+        shadowValues->setValue(CI, ShadowContext::getPoisonedValue(result.size));
+        return true;
+    }
+    else if(name == "select")
+    {
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+        TypedValue shadow[] = {shadowContext.getValue(workItem, CI->getArgOperand(0)),
+                               shadowContext.getValue(workItem, CI->getArgOperand(1))};
+        TypedValue selectShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
+
+        for(unsigned i = 0; i < newShadow.num; ++i)
+        {
+            int64_t c = workItem->getOperand(CI->getArgOperand(2)).getSInt(i);
+            uint64_t src = ((newShadow.num > 1) ? c & INT64_MIN : c) ? 1 : 0;
+
+            if(!ShadowContext::isCleanValue(selectShadow, i))
+            {
+                TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
+                memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
+            }
+            else
+            {
+                size_t srcOffset = i * shadow[src].size;
+                memcpy(newShadow.data + i*newShadow.size, shadow[src].data + srcOffset, newShadow.size);
+            }
+        }
+
+        shadowValues->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name.compare(0, 5, "vload") == 0)
+    {
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+        unsigned int addressSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
+        size_t base = workItem->getOperand(CI->getArgOperand(1)).getPointer();
+        uint64_t offset = workItem->getOperand(CI->getArgOperand(0)).getUInt();
+
+        size_t size = newShadow.size*newShadow.num;
+        size_t address = base + offset*size;
+        loadShadowMemory(addressSpace, address, newShadow, workItem);
+
+        shadowValues->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name.compare(0, 6, "vstore") == 0)
+    {
+        const llvm::Value *value = CI->getArgOperand(0);
+        unsigned size = getTypeSize(value->getType());
+
+        if(isVector3(value))
+        {
+            // 3-element vectors are same size as 4-element vectors,
+            // but vstore address offset shouldn't use this.
+            size = (size/4) * 3;
+        }
+
+        unsigned int addressSpace = CI->getArgOperand(2)->getType()->getPointerAddressSpace();
+        size_t base = workItem->getOperand(CI->getArgOperand(2)).getPointer();
+        uint64_t offset = workItem->getOperand(CI->getArgOperand(1)).getUInt();
+
+        size_t address = base + offset*size;
+        TypedValue shadow = shadowContext.getValue(workItem, value);
+        storeShadowMemory(addressSpace, address, shadow, workItem);
+        return true;
+    }
+    else if(name.compare(0, 10, "vload_half") == 0)
+    {
+        assert(false && "vload_half not implemented yet!");
+    }
+    else if(name.compare(0, 11, "vstore_half") == 0)
+    {
+        assert(false && "vstore_half not implemented yet!");
+    }
+
+    return false;
+}
+
+void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I)
+{
+    switch (I->getIntrinsicID())
+    {
+        case llvm::Intrinsic::fmuladd:
+        {
+            SimpleOr(workItem, I);
+            break;
+        }
+        case llvm::Intrinsic::memcpy:
+        {
+            const llvm::MemCpyInst *memcpyInst = (const llvm::MemCpyInst*)I;
+            size_t dst = workItem->getOperand(memcpyInst->getDest()).getPointer();
+            size_t src = workItem->getOperand(memcpyInst->getSource()).getPointer();
+            size_t size = workItem->getOperand(memcpyInst->getLength()).getUInt();
+            unsigned dstAddrSpace = memcpyInst->getDestAddressSpace();
+            unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
+            const llvm::PointerType *srcPtrTy = llvm::dyn_cast<llvm::PointerType>(memcpyInst->getSource()->getType());
+
+            if(dstAddrSpace != AddrSpacePrivate && srcPtrTy->getElementType()->isStructTy())
+            {
+                checkStructMemcpy(workItem, memcpyInst->getSource());
+            }
+
+            copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size, workItem, NULL, true);
+            break;
+        }
+        case llvm::Intrinsic::memset:
+        {
+            const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)I;
+            size_t dst = workItem->getOperand(memsetInst->getDest()).getPointer();
+            unsigned size = workItem->getOperand(memsetInst->getLength()).getUInt();
+            unsigned addrSpace = memsetInst->getDestAddressSpace();
+
+            TypedValue shadowValue = {
+                size,
+                1,
+                new unsigned char[size]
+            };
+
+            memset(shadowValue.data, shadowContext.getValue(workItem, memsetInst->getArgOperand(1)).getUInt(), size);
+            storeShadowMemory(addrSpace, dst, shadowValue, workItem, NULL, true);
+
+            delete[] shadowValue.data;
+
+            break;
+        }
+        case llvm::Intrinsic::dbg_declare:
+            //Do nothing
+            break;
+        case llvm::Intrinsic::dbg_value:
+            //Do nothing
+            break;
+        case llvm::Intrinsic::lifetime_end:
+            //Do nothing
+            break;
+        case llvm::Intrinsic::lifetime_start:
+            //Do nothing
+            break;
+        default:
+            FATAL_ERROR("Unsupported intrinsic %s", llvm::Intrinsic::getName(I->getIntrinsicID()).c_str());
+    }
 }
 
 void MemCheckUninitialized::hostMemoryStore(const Memory *memory,
@@ -965,791 +1334,129 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
         default:
             FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
     }
-
-#ifdef DUMP_SHADOW
-    //shadowContext.dump(workItem);
-#endif
 }
 
-void MemCheckUninitialized::memoryMap(const Memory *memory, size_t address, size_t offset, size_t size, cl_map_flags flags)
+void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation)
 {
-    if(!(flags & CL_MAP_READ))
-    {
-        allocAndStoreShadowMemory(memory->getAddressSpace(), address + offset, ShadowContext::getCleanValue(size));
-    }
-}
+    const Kernel *kernel = kernelInvocation->getKernel();
 
-void MemCheckUninitialized::SimpleOr(const WorkItem *workItem, const llvm::Instruction *I)
-{
-    PARANOID_CHECK(workItem, I);
-    ShadowValues *shadowValues = shadowContext.getShadowWorkItem(workItem)->getValues();
-
-    for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
+    // Initialise kernel arguments and global variables
+    for (auto value = kernel->values_begin(); value != kernel->values_end(); value++)
     {
-        if(!ShadowContext::isCleanValue(shadowContext.getValue(workItem, OI->get())))
+        const llvm::Type *type = value->first->getType();
+
+        if(!type->isSized())
         {
-            shadowValues->setValue(I, ShadowContext::getPoisonedValue(I));
-            return;
+            continue;
         }
-    }
 
-    shadowValues->setValue(I, ShadowContext::getCleanValue(I));
-}
-
-void MemCheckUninitialized::SimpleOrAtomic(const WorkItem *workItem, const llvm::CallInst *CI)
-{
-    unsigned addrSpace = CI->getArgOperand(0)->getType()->getPointerAddressSpace();
-    size_t address = workItem->getOperand(CI->getArgOperand(0)).getPointer();
-    TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
-    TypedValue oldShadow = {
-        4,
-        1,
-        new unsigned char[4]
-    };
-
-    TypedValue newShadow;
-
-    if(addrSpace == AddrSpaceGlobal)
-    {
-        getShadowMemory(AddrSpaceGlobal)->lock(address);
-    }
-
-    loadShadowMemory(addrSpace, address, oldShadow, workItem);
-
-    if(!ShadowContext::isCleanValue(argShadow) || !ShadowContext::isCleanValue(oldShadow))
-    {
-        newShadow = ShadowContext::getPoisonedValue(4);
-    }
-    else
-    {
-        newShadow = ShadowContext::getCleanValue(4);
-    }
-
-    storeShadowMemory(addrSpace, address, newShadow, workItem);
-
-    if(addrSpace == AddrSpaceGlobal)
-    {
-        getShadowMemory(AddrSpaceGlobal)->unlock(address);
-    }
-
-    ShadowValues *shadowValues = shadowContext.getShadowWorkItem(workItem)->getValues();
-    shadowValues->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
-    delete[] oldShadow.data;
-}
-
-void MemCheckUninitialized::allocAndStoreShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
-{
-    switch(addrSpace)
-    {
-        case AddrSpacePrivate:
+        if(type->isPointerTy())
         {
-            if(!workItem)
+            switch(type->getPointerAddressSpace())
             {
-                FATAL_ERROR("Work item needed to store private memory!");
-            }
-
-            shadowContext.getShadowWorkItem(workItem)->allocMemory(address, SM.size*SM.num);
-            break;
-        }
-        case AddrSpaceLocal:
-        {
-            if(!workGroup)
-            {
-                if(!workItem)
+                case AddrSpaceConstant:
                 {
-                    FATAL_ERROR("Work item or work group needed to store local memory!");
+                    // Constants
+                    // value->second.data == ptr
+                    // value->second.size == ptr size
+                    TypedValue cleanValue = m_pool.clone(ShadowContext::getCleanValue(value->first));
+                    shadowContext.setGlobalValue(value->first, cleanValue);
+                    const llvm::Type *elementTy = type->getPointerElementType();
+                    allocAndStoreShadowMemory(AddrSpaceConstant, value->second.getPointer(),
+                                              ShadowContext::getCleanValue(elementTy));
+                    break;
                 }
-
-                workGroup = workItem->getWorkGroup();
-            }
-
-            shadowContext.getShadowWorkGroup(workGroup)->allocMemory(address, SM.size*SM.num);
-            break;
-        }
-        case AddrSpaceConstant:
-            //Do nothing
-            //TODO: Eventually store value
-            break;
-        case AddrSpaceGlobal:
-            shadowContext.getGlobalMemory()->allocate(address, SM.size*SM.num);
-            break;
-        default:
-            FATAL_ERROR("Unsupported addressspace %d", addrSpace);
-    }
-
-    storeShadowMemory(addrSpace, address, SM, workItem, workGroup, unchecked);
-}
-
-Memory* MemCheckUninitialized::getMemory(unsigned addrSpace, const WorkItem *workItem, const WorkGroup *workGroup) const
-{
-    switch(addrSpace)
-    {
-        case AddrSpacePrivate:
-        {
-            if(!workItem)
-            {
-                FATAL_ERROR("Work item needed to access private memory!");
-            }
-
-            return workItem->getPrivateMemory();
-        }
-        case AddrSpaceLocal:
-        {
-            if(!workGroup)
-            {
-                if(!workItem)
+                case AddrSpaceGlobal:
                 {
-                    FATAL_ERROR("Work item or work group needed to access local memory!");
+                    // Global pointer kernel arguments
+                    // value->second.data == ptr
+                    // value->second.size == ptr size
+                    size_t address = value->second.getPointer();
+
+                    if(m_context->getGlobalMemory()->isAddressValid(address) &&
+                       !shadowContext.getGlobalMemory()->isAddressValid(address))
+                    {
+                        // Allocate poisoned global memory if there was no host store
+                        size_t size = m_context->getGlobalMemory()->getBuffer(address)->size;
+                        allocAndStoreShadowMemory(AddrSpaceGlobal, address,
+                                                  ShadowContext::getPoisonedValue(size), NULL, NULL, true);
+                    }
+
+                    m_deferredInit.push_back(*value);
+                    break;
                 }
-
-                workGroup = workItem->getWorkGroup();
-            }
-
-            return workGroup->getLocalMemory();
-        }
-        //case AddrSpaceConstant:
-        //    break;
-        case AddrSpaceGlobal:
-            return m_context->getGlobalMemory();
-        default:
-            FATAL_ERROR("Unsupported addressspace %d", addrSpace);
-    }
-}
-
-ShadowMemory* MemCheckUninitialized::getShadowMemory(unsigned addrSpace, const WorkItem *workItem, const WorkGroup *workGroup) const
-{
-    switch(addrSpace)
-    {
-        case AddrSpacePrivate:
-        {
-            if(!workItem)
-            {
-                FATAL_ERROR("Work item needed to access private memory!");
-            }
-
-            return shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
-        }
-        case AddrSpaceLocal:
-        {
-            if(!workGroup)
-            {
-                if(!workItem)
+                case AddrSpaceLocal:
                 {
-                    FATAL_ERROR("Work item or work group needed to access local memory!");
+                    // Local pointer kernel arguments and local data variables
+                    // value->second.data == NULL
+                    // value->second.size == val size
+                    if(llvm::isa<llvm::Argument>(value->first))
+                    {
+                        // Arguments have a private pointer
+                        m_deferredInit.push_back(*value);
+                    }
+                    else
+                    {
+                        // Variables have a global pointer
+                        TypedValue cleanValue = m_pool.clone(ShadowContext::getCleanValue(value->first));
+                        shadowContext.setGlobalValue(value->first, cleanValue);
+                    }
+
+                    m_deferredInitGroup.push_back(*value);
+                    break;
                 }
-
-                workGroup = workItem->getWorkGroup();
-            }
-
-            return shadowContext.getShadowWorkGroup(workGroup)->getLocalMemory();
-        }
-        //case AddrSpaceConstant:
-        //    break;
-        case AddrSpaceGlobal:
-            return shadowContext.getGlobalMemory();
-        default:
-            FATAL_ERROR("Unsupported addressspace %d", addrSpace);
-    }
-}
-
-void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
-{
-#ifdef DUMP_SHADOW
-    cout << "Store " << hex << SM << " to space " << dec << addrSpace << " at address " << hex << address << endl;
-#endif
-
-    if(!unchecked && addrSpace != AddrSpacePrivate && !ShadowContext::isCleanValue(SM))
-    {
-#ifdef DUMP_SHADOW
-        shadowContext.dump(workItem);
-#endif
-        logUninitializedWrite(addrSpace, address);
-    }
-
-    ShadowMemory *memory;
-
-    switch(addrSpace)
-    {
-        case AddrSpacePrivate:
-        {
-            if(!workItem)
-            {
-                FATAL_ERROR("Work item needed to store private memory!");
-            }
-
-            memory = shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
-            break;
-        }
-        case AddrSpaceLocal:
-        {
-            if(!workGroup)
-            {
-                if(!workItem)
+                case AddrSpacePrivate:
                 {
-                    FATAL_ERROR("Work item or work group needed to store local memory!");
+                    const llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(value->first);
+
+                    if(A && A->hasByValAttr())
+                    {
+                        // ByVal kernel argument
+                        // value->second.data == val
+                        // value->second.size == val size
+                        m_deferredInit.push_back(*value);
+                    }
+                    else
+                    {
+                        // Private struct/Union definitions with global type
+                        // value->second.data == val
+                        // value->second.size == val size
+                        m_deferredInit.push_back(*value);
+                        TypedValue cleanValue = m_pool.clone(ShadowContext::getCleanValue(value->first));
+                        //TODO: Structs can have posioned padding bytes. Is this important?
+                        shadowContext.setGlobalValue(value->first, cleanValue);
+                    }
+                    break;
                 }
-
-                workGroup = workItem->getWorkGroup();
+                default:
+                    FATAL_ERROR("Unsupported addressspace %d", type->getPointerAddressSpace());
             }
-
-            memory = shadowContext.getShadowWorkGroup(workGroup)->getLocalMemory();
-            break;
         }
-        case AddrSpaceConstant:
-            //TODO: Eventually store value
-            return;
-        case AddrSpaceGlobal:
-            memory = shadowContext.getGlobalMemory();
-            break;
-        default:
-            FATAL_ERROR("Unsupported addressspace %d", addrSpace);
+        else
+        {
+            // Non pointer type kernel arguments
+            // value->second.data == val
+            // value->second.size == val size
+            m_deferredInit.push_back(*value);
+        }
     }
-
-    memory->store(SM.data, address, SM.size*SM.num);
 }
 
 void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM, const WorkItem *workItem, const WorkGroup *workGroup)
 {
-    ShadowMemory *memory;
-
-    switch(addrSpace)
+    if(addrSpace == AddrSpaceConstant)
     {
-        case AddrSpacePrivate:
-        {
-            if(!workItem)
-            {
-                FATAL_ERROR("Work item needed to load private memory!");
-            }
-
-            memory = shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
-            break;
-        }
-        case AddrSpaceLocal:
-        {
-            if(!workGroup)
-            {
-                if(!workItem)
-                {
-                    FATAL_ERROR("Work item or work group needed to load local memory!");
-                }
-
-                workGroup = workItem->getWorkGroup();
-            }
-
-            memory = shadowContext.getShadowWorkGroup(workGroup)->getLocalMemory();
-            break;
-        }
-        case AddrSpaceConstant:
-            memset(SM.data, 0, SM.size*SM.num);
-            return;
-        case AddrSpaceGlobal:
-            memory = shadowContext.getGlobalMemory();
-            break;
-        default:
-            FATAL_ERROR("Unsupported addressspace %d", addrSpace);
+        //TODO: Eventually load value
+        memset(SM.data, 0, SM.size*SM.num);
+        return;
     }
 
+    ShadowMemory *memory = getShadowMemory(addrSpace, workItem, workGroup);
     memory->load(SM.data, address, SM.size*SM.num);
+
 #ifdef DUMP_SHADOW
     cout << "Loaded " << hex << SM << " from space " << dec << addrSpace << " at address " << hex << address << endl;
 #endif
-}
-
-bool MemCheckUninitialized::checkAllOperandsDefined(const WorkItem *workItem, const llvm::Instruction *I)
-{
-    for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
-    {
-        if(!ShadowContext::isCleanValue(shadowContext.getValue(workItem, OI->get())))
-        {
-#ifdef DUMP_SHADOW
-            OI->get()->dump();
-            cout << "Shadow value: " << shadowContext.getValue(workItem, OI->get()) << endl;
-#endif
-            logUninitializedCF();
-#ifdef DUMP_SHADOW
-            shadowContext.dump(workItem);
-#endif
-            return false;
-        }
-    }
-
-    return true;
-}
-
-void MemCheckUninitialized::copyShadowMemoryStrided(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, size_t num, size_t stride, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
-{
-    TypedValue v = {
-        size,
-        1,
-        new unsigned char[size]
-    };
-
-    for (unsigned i = 0; i < num; i++)
-    {
-        loadShadowMemory(srcAddrSpace, src, v, workItem, workGroup);
-        storeShadowMemory(dstAddrSpace, dst, v, workItem, workGroup, unchecked);
-        src += stride * size;
-        dst += stride * size;
-    }
-
-    delete[] v.data;
-}
-
-void MemCheckUninitialized::copyShadowMemory(unsigned dstAddrSpace, size_t dst, unsigned srcAddrSpace, size_t src, unsigned size, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
-{
-    copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, 1, 1, size, workItem, workGroup, unchecked);
-}
-
-std::string MemCheckUninitialized::extractUnmangledName(const std::string fullname)
-{
-    // Extract unmangled name
-    if(fullname.compare(0,2, "_Z") == 0)
-    {
-        int len = atoi(fullname.c_str() + 2);
-        int start = fullname.find_first_not_of("0123456789", 2);
-        return fullname.substr(start, len);
-    }
-    else
-    {
-        return fullname;
-    }
-}
-
-bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, string name,
-                                                  const llvm::CallInst *CI, const TypedValue result)
-{
-    name = extractUnmangledName(name);
-    ShadowValues *shadowValues = shadowContext.getShadowWorkItem(workItem)->getValues();
-
-    if(name == "async_work_group_copy" ||
-       name == "async_work_group_strided_copy")
-    {
-        int arg = 0;
-
-        // Get src/dest addresses
-        const llvm::Value *destOp = CI->getArgOperand(arg++);
-        const llvm::Value *srcOp = CI->getArgOperand(arg++);
-        size_t dst = workItem->getOperand(destOp).getPointer();
-        size_t src = workItem->getOperand(srcOp).getPointer();
-
-        // Get size of copy
-        unsigned elemSize = getTypeSize(destOp->getType()->getPointerElementType());
-        uint64_t num = workItem->getOperand(CI->getArgOperand(arg++)).getUInt();
-
-        // Get stride
-        size_t stride = 1;
-
-        if(name == "async_work_group_strided_copy")
-        {
-            stride = workItem->getOperand(CI->getArgOperand(arg++)).getUInt();
-        }
-
-        const llvm::Value *eventOp = CI->getArgOperand(arg++);
-        TypedValue eventShadow = shadowContext.getValue(workItem, eventOp);
-
-        // Get type of copy
-        AddressSpace dstAddrSpace = AddrSpaceLocal;
-        AddressSpace srcAddrSpace = AddrSpaceLocal;
-
-        if(destOp->getType()->getPointerAddressSpace() == AddrSpaceLocal)
-        {
-            srcAddrSpace = AddrSpaceGlobal;
-        }
-        else
-        {
-            dstAddrSpace = AddrSpaceGlobal;
-        }
-
-        copyShadowMemoryStrided(dstAddrSpace, dst, srcAddrSpace, src, num, stride, elemSize, workItem);
-        shadowValues->setValue(CI, eventShadow);
-        return true;
-    }
-    else if(name == "wait_group_events")
-    {
-        uint64_t num = workItem->getOperand(CI->getArgOperand(0)).getUInt();
-        size_t address = workItem->getOperand(CI->getArgOperand(1)).getPointer();
-
-        TypedValue eventShadow = {
-            sizeof(size_t),
-            1,
-            new unsigned char[sizeof(size_t)]
-        };
-
-        for(unsigned i = 0; i < num; ++i)
-        {
-            loadShadowMemory(AddrSpacePrivate, address, eventShadow, workItem);
-
-            if(!ShadowContext::isCleanValue(eventShadow))
-            {
-                logUninitializedCF();
-                delete[] eventShadow.data;
-                return true;
-            }
-
-            address += sizeof(size_t);
-        }
-
-        delete[] eventShadow.data;
-        return true;
-    }
-    else if(name.compare(0, 6, "atomic") == 0)
-    {
-        if(name.compare(6, string::npos, "cmpxchg") == 0)
-        {
-            unsigned addrSpace = CI->getArgOperand(0)->getType()->getPointerAddressSpace();
-            size_t address = workItem->getOperand(CI->getArgOperand(0)).getPointer();
-            uint32_t cmp = workItem->getOperand(CI->getArgOperand(1)).getUInt();
-            uint32_t old = workItem->getOperand(CI).getUInt();
-            TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
-            TypedValue oldShadow = {
-                4,
-                1,
-                new unsigned char[4]
-            };
-
-            // Perform cmpxchg
-            if(addrSpace == AddrSpaceGlobal)
-            {
-                getShadowMemory(AddrSpaceGlobal)->lock(address);
-            }
-
-            loadShadowMemory(addrSpace, address, oldShadow, workItem);
-
-            if(old == cmp)
-            {
-                storeShadowMemory(addrSpace, address, argShadow, workItem);
-            }
-
-            if(addrSpace == AddrSpaceGlobal)
-            {
-                getShadowMemory(AddrSpaceGlobal)->unlock(address);
-            }
-
-            shadowValues->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
-            delete[] oldShadow.data;
-            return true;
-        }
-        else
-        {
-            SimpleOrAtomic(workItem, CI);
-            return true;
-        }
-    }
-    else if(name == "fract" ||
-            name == "modf" ||
-            name == "sincos")
-    {
-        unsigned addrSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
-        size_t iptr = workItem->getOperand(CI->getArgOperand(1)).getPointer();
-        TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
-        TypedValue newElemShadow;
-        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-
-        for(unsigned i = 0; i < result.num; ++i)
-        {
-            if(!ShadowContext::isCleanValue(argShadow, i))
-            {
-                newElemShadow = ShadowContext::getPoisonedValue(result.size);
-            }
-            else
-            {
-                newElemShadow = ShadowContext::getCleanValue(result.size);
-            }
-
-            memcpy(newShadow.data, newElemShadow.data, result.size);
-        }
-
-        storeShadowMemory(addrSpace, iptr, newShadow);
-        shadowValues->setValue(CI, newShadow);
-        return true;
-    }
-    else if(name == "frexp" ||
-            name == "lgamma_r")
-    {
-        unsigned addrSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
-        size_t iptr = workItem->getOperand(CI->getArgOperand(1)).getPointer();
-        TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
-        TypedValue newElemShadow;
-        TypedValue newElemIntShadow;
-        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-        TypedValue newIntShadow = {
-            newShadow.size,
-            newShadow.num,
-            shadowContext.getMemoryPool()->alloc(4)
-        };
-
-        for(unsigned i = 0; i < result.num; ++i)
-        {
-            if(!ShadowContext::isCleanValue(argShadow, i))
-            {
-                newElemShadow = ShadowContext::getPoisonedValue(result.size);
-                newElemIntShadow = ShadowContext::getPoisonedValue(4);
-            }
-            else
-            {
-                newElemShadow = ShadowContext::getCleanValue(result.size);
-                newElemIntShadow = ShadowContext::getCleanValue(4);
-            }
-
-            memcpy(newIntShadow.data, newElemIntShadow.data, 4);
-            memcpy(newShadow.data, newElemShadow.data, result.size);
-        }
-
-        storeShadowMemory(addrSpace, iptr, newIntShadow);
-        shadowValues->setValue(CI, newShadow);
-        return true;
-    }
-    else if(name == "remquo")
-    {
-        unsigned addrSpace = CI->getArgOperand(2)->getType()->getPointerAddressSpace();
-        size_t iptr = workItem->getOperand(CI->getArgOperand(2)).getPointer();
-        TypedValue arg0Shadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
-        TypedValue arg1Shadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
-        TypedValue newElemShadow;
-        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-
-        for(unsigned i = 0; i < result.num; ++i)
-        {
-            if(!ShadowContext::isCleanValue(arg0Shadow, i) || !ShadowContext::isCleanValue(arg1Shadow, i))
-            {
-                newElemShadow = ShadowContext::getPoisonedValue(result.size);
-            }
-            else
-            {
-                newElemShadow = ShadowContext::getCleanValue(result.size);
-            }
-
-            storeShadowMemory(addrSpace, iptr + i*4, newElemShadow);
-            memcpy(newShadow.data, newElemShadow.data, result.size);
-        }
-
-        shadowValues->setValue(CI, newShadow);
-        return true;
-    }
-    else if(name == "shuffle")
-    {
-        TypedValue mask = workItem->getOperand(CI->getArgOperand(1));
-        TypedValue maskShadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
-        TypedValue shadow = shadowContext.getValue(workItem, CI->getArgOperand(0));
-        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-
-        for(unsigned i = 0; i < newShadow.num; ++i)
-        {
-            if(!ShadowContext::isCleanValue(maskShadow, i))
-            {
-                TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
-                memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
-            }
-            else
-            {
-                size_t srcOffset = mask.getUInt(i) * shadow.size;
-                memcpy(newShadow.data + i*newShadow.size, shadow.data + srcOffset, newShadow.size);
-            }
-        }
-
-        shadowValues->setValue(CI, newShadow);
-        return true;
-    }
-    else if(name == "shuffle2")
-    {
-        TypedValue mask = workItem->getOperand(CI->getArgOperand(2));
-        TypedValue maskShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
-        TypedValue shadow[] = {shadowContext.getValue(workItem, CI->getArgOperand(0)),
-                               shadowContext.getValue(workItem, CI->getArgOperand(1))};
-        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-
-        for (unsigned i = 0; i < newShadow.num; ++i)
-        {
-            uint64_t m = 1;
-
-            if(CI->getArgOperand(0)->getType()->isVectorTy())
-            {
-                m = CI->getArgOperand(0)->getType()->getVectorNumElements();
-            }
-
-            uint64_t src = 0;
-            uint64_t index = mask.getUInt(i);
-
-            if(index >= m)
-            {
-                index -= m;
-                src = 1;
-            }
-
-            if(!ShadowContext::isCleanValue(maskShadow, i))
-            {
-                TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
-                memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
-            }
-            else
-            {
-                size_t srcOffset = index * shadow[src].size;
-                memcpy(newShadow.data + i*newShadow.size, shadow[src].data + srcOffset, newShadow.size);
-            }
-        }
-
-        shadowValues->setValue(CI, newShadow);
-        return true;
-    }
-    else if(name == "any")
-    {
-        const llvm::Value *argOp = CI->getArgOperand(0);
-        TypedValue shadow = shadowContext.getValue(workItem, argOp);
-
-        unsigned num = 1;
-        if(argOp->getType()->isVectorTy())
-        {
-            num = argOp->getType()->getVectorNumElements();
-        }
-
-        for(unsigned i = 0; i < num; ++i)
-        {
-            if(ShadowContext::isCleanValue(shadow, i))
-            {
-                shadowValues->setValue(CI, ShadowContext::getCleanValue(result.size));
-                return true;
-            }
-        }
-
-        shadowValues->setValue(CI, ShadowContext::getPoisonedValue(result.size));
-        return true;
-    }
-    else if(name == "select")
-    {
-        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-        TypedValue shadow[] = {shadowContext.getValue(workItem, CI->getArgOperand(0)),
-                               shadowContext.getValue(workItem, CI->getArgOperand(1))};
-        TypedValue selectShadow = shadowContext.getValue(workItem, CI->getArgOperand(2));
-
-        for(unsigned i = 0; i < newShadow.num; ++i)
-        {
-            int64_t c = workItem->getOperand(CI->getArgOperand(2)).getSInt(i);
-            uint64_t src = ((newShadow.num > 1) ? c & INT64_MIN : c) ? 1 : 0;
-
-            if(!ShadowContext::isCleanValue(selectShadow, i))
-            {
-                TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
-                memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
-            }
-            else
-            {
-                size_t srcOffset = i * shadow[src].size;
-                memcpy(newShadow.data + i*newShadow.size, shadow[src].data + srcOffset, newShadow.size);
-            }
-        }
-
-        shadowValues->setValue(CI, newShadow);
-        return true;
-    }
-    else if(name.compare(0, 5, "vload") == 0)
-    {
-        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
-        unsigned int addressSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
-        size_t base = workItem->getOperand(CI->getArgOperand(1)).getPointer();
-        uint64_t offset = workItem->getOperand(CI->getArgOperand(0)).getUInt();
-
-        size_t size = newShadow.size*newShadow.num;
-        size_t address = base + offset*size;
-        loadShadowMemory(addressSpace, address, newShadow, workItem);
-
-        shadowValues->setValue(CI, newShadow);
-        return true;
-    }
-    else if(name.compare(0, 6, "vstore") == 0)
-    {
-        const llvm::Value *value = CI->getArgOperand(0);
-        unsigned size = getTypeSize(value->getType());
-
-        if(isVector3(value))
-        {
-            // 3-element vectors are same size as 4-element vectors,
-            // but vstore address offset shouldn't use this.
-            size = (size/4) * 3;
-        }
-
-        unsigned int addressSpace = CI->getArgOperand(2)->getType()->getPointerAddressSpace();
-        size_t base = workItem->getOperand(CI->getArgOperand(2)).getPointer();
-        uint64_t offset = workItem->getOperand(CI->getArgOperand(1)).getUInt();
-
-        size_t address = base + offset*size;
-        TypedValue shadow = shadowContext.getValue(workItem, value);
-        storeShadowMemory(addressSpace, address, shadow, workItem);
-        return true;
-    }
-    else if(name.compare(0, 10, "vload_half") == 0)
-    {
-        assert(false && "vload_half not implemented yet!");
-    }
-    else if(name.compare(0, 11, "vstore_half") == 0)
-    {
-        assert(false && "vstore_half not implemented yet!");
-    }
-
-    return false;
-}
-
-void MemCheckUninitialized::handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I)
-{
-    switch (I->getIntrinsicID())
-    {
-        case llvm::Intrinsic::fmuladd:
-        {
-            SimpleOr(workItem, I);
-            break;
-        }
-        case llvm::Intrinsic::memcpy:
-        {
-            const llvm::MemCpyInst *memcpyInst = (const llvm::MemCpyInst*)I;
-            size_t dst = workItem->getOperand(memcpyInst->getDest()).getPointer();
-            size_t src = workItem->getOperand(memcpyInst->getSource()).getPointer();
-            size_t size = workItem->getOperand(memcpyInst->getLength()).getUInt();
-            unsigned dstAddrSpace = memcpyInst->getDestAddressSpace();
-            unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
-            const llvm::PointerType *srcPtrTy = llvm::dyn_cast<llvm::PointerType>(memcpyInst->getSource()->getType());
-
-            if(dstAddrSpace != AddrSpacePrivate && srcPtrTy->getElementType()->isStructTy())
-            {
-                checkStructMemcpy(workItem, memcpyInst->getSource());
-            }
-
-            copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size, workItem, NULL, true);
-            break;
-        }
-        case llvm::Intrinsic::memset:
-        {
-            const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)I;
-            size_t dst = workItem->getOperand(memsetInst->getDest()).getPointer();
-            unsigned size = workItem->getOperand(memsetInst->getLength()).getUInt();
-            unsigned addrSpace = memsetInst->getDestAddressSpace();
-
-            TypedValue shadowValue = {
-                size,
-                1,
-                new unsigned char[size]
-            };
-
-            memset(shadowValue.data, shadowContext.getValue(workItem, memsetInst->getArgOperand(1)).getUInt(), size);
-            storeShadowMemory(addrSpace, dst, shadowValue, workItem, NULL, true);
-
-            delete[] shadowValue.data;
-
-            break;
-        }
-        case llvm::Intrinsic::dbg_declare:
-            //Do nothing
-            break;
-        case llvm::Intrinsic::dbg_value:
-            //Do nothing
-            break;
-        case llvm::Intrinsic::lifetime_end:
-            //Do nothing
-            break;
-        case llvm::Intrinsic::lifetime_start:
-            //Do nothing
-            break;
-        default:
-            FATAL_ERROR("Unsupported intrinsic %s", llvm::Intrinsic::getName(I->getIntrinsicID()).c_str());
-    }
 }
 
 void MemCheckUninitialized::logUninitializedWrite(unsigned int addrSpace, size_t address) const
@@ -1787,41 +1494,206 @@ void MemCheckUninitialized::logUninitializedIndex() const
   msg.send();
 }
 
-void MemCheckUninitialized::checkStructMemcpy(const WorkItem *workItem, const llvm::Value *src)
+void MemCheckUninitialized::memoryMap(const Memory *memory, size_t address,
+                                      size_t offset, size_t size, cl_map_flags flags)
 {
-    const llvm::PointerType *srcPtrTy = llvm::dyn_cast<llvm::PointerType>(src->getType());
-    const llvm::StructType *structTy = llvm::dyn_cast<llvm::StructType>(srcPtrTy->getElementType());
-    size_t srcAddr = workItem->getOperand(src).getPointer();
-    unsigned srcAddrSpace = srcPtrTy->getPointerAddressSpace();
-
-    ShadowMemory *shadowMemory;
-
-    switch(srcAddrSpace)
+    if(!(flags & CL_MAP_READ))
     {
-        case AddrSpacePrivate:
+        allocAndStoreShadowMemory(memory->getAddressSpace(), address + offset,
+                ShadowContext::getCleanValue(size));
+    }
+}
+
+void MemCheckUninitialized::SimpleOr(const WorkItem *workItem, const llvm::Instruction *I)
+{
+    PARANOID_CHECK(workItem, I);
+    ShadowValues *shadowValues = shadowContext.getShadowWorkItem(workItem)->getValues();
+
+    for(llvm::Instruction::const_op_iterator OI = I->op_begin(); OI != I->op_end(); ++OI)
+    {
+        if(!ShadowContext::isCleanValue(shadowContext.getValue(workItem, OI->get())))
         {
-            shadowMemory = shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
-            break;
-        }
-        case AddrSpaceLocal:
-        {
-            shadowMemory = shadowContext.getShadowWorkGroup(workItem->getWorkGroup())->getLocalMemory();
-            break;
-        }
-        case AddrSpaceConstant:
-            //TODO: Constants should always be clean?!
+            shadowValues->setValue(I, ShadowContext::getPoisonedValue(I));
             return;
-        case AddrSpaceGlobal:
-            shadowMemory = shadowContext.getGlobalMemory();
-            break;
-        default:
-            FATAL_ERROR("Unsupported addressspace %d", srcAddrSpace);
+        }
     }
 
-    if(!ShadowContext::isCleanStruct(shadowMemory, srcAddr, structTy))
+    shadowValues->setValue(I, ShadowContext::getCleanValue(I));
+}
+
+void MemCheckUninitialized::SimpleOrAtomic(const WorkItem *workItem, const llvm::CallInst *CI)
+{
+    unsigned addrSpace = CI->getArgOperand(0)->getType()->getPointerAddressSpace();
+    size_t address = workItem->getOperand(CI->getArgOperand(0)).getPointer();
+    TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
+    TypedValue oldShadow = {
+        4,
+        1,
+        new unsigned char[4]
+    };
+
+    TypedValue newShadow;
+
+    if(addrSpace == AddrSpaceGlobal)
     {
-        logUninitializedWrite(srcAddrSpace, srcAddr);
+        shadowContext.getGlobalMemory()->lock(address);
     }
+
+    loadShadowMemory(addrSpace, address, oldShadow, workItem);
+
+    if(!ShadowContext::isCleanValue(argShadow) || !ShadowContext::isCleanValue(oldShadow))
+    {
+        newShadow = ShadowContext::getPoisonedValue(4);
+    }
+    else
+    {
+        newShadow = ShadowContext::getCleanValue(4);
+    }
+
+    storeShadowMemory(addrSpace, address, newShadow, workItem);
+
+    if(addrSpace == AddrSpaceGlobal)
+    {
+        shadowContext.getGlobalMemory()->unlock(address);
+    }
+
+    ShadowValues *shadowValues = shadowContext.getShadowWorkItem(workItem)->getValues();
+    shadowValues->setValue(CI, shadowContext.getMemoryPool()->clone(oldShadow));
+    delete[] oldShadow.data;
+}
+
+void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM, const WorkItem *workItem, const WorkGroup *workGroup, bool unchecked)
+{
+#ifdef DUMP_SHADOW
+    cout << "Store " << hex << SM << " to space " << dec << addrSpace << " at address " << hex << address << endl;
+#endif
+
+    if(!unchecked && addrSpace != AddrSpacePrivate && !ShadowContext::isCleanValue(SM))
+    {
+#ifdef DUMP_SHADOW
+        shadowContext.dump(workItem);
+#endif
+        logUninitializedWrite(addrSpace, address);
+    }
+
+    if(addrSpace == AddrSpaceConstant)
+    {
+        //TODO: Eventually store value
+        return;
+    }
+
+    ShadowMemory *memory = getShadowMemory(addrSpace, workItem, workGroup);
+    memory->store(SM.data, address, SM.size*SM.num);
+}
+
+void MemCheckUninitialized::workItemBegin(const WorkItem *workItem)
+{
+    shadowContext.createMemoryPool();
+    shadowContext.allocateWorkItems();
+    ShadowWorkItem *shadowWI = shadowContext.createShadowWorkItem(workItem);
+    ShadowValues *shadowValues = shadowWI->getValues();
+
+    for(auto value : m_deferredInit)
+    {
+        const llvm::Type *type = value.first->getType();
+
+        if(type->isPointerTy())
+        {
+            switch(type->getPointerAddressSpace())
+            {
+                case AddrSpaceGlobal:
+                {
+                    // Global pointer kernel arguments
+                    // value.second.data == ptr
+                    // value.second.size == ptr size
+                    shadowValues->setValue(value.first, ShadowContext::getCleanValue(type));
+                    break;
+                }
+                case AddrSpaceLocal:
+                {
+                    // Local pointer kernel arguments
+                    // value.second.data == NULL
+                    // value.second.size == val size
+                    shadowValues->setValue(value.first, ShadowContext::getCleanValue(value.first));
+                    break;
+                }
+                case AddrSpacePrivate:
+                {
+                    const llvm::Argument *A = llvm::dyn_cast<llvm::Argument>(value.first);
+
+                    if(A && A->hasByValAttr())
+                    {
+                        // ByVal kernel argument
+                        // value.second.data == val
+                        // value.second.size == val size
+                        size_t address = workItem->getOperand(value.first).getPointer();
+                        TypedValue cleanValue = ShadowContext::getCleanValue(value.second.size);
+                        allocAndStoreShadowMemory(AddrSpacePrivate, address, cleanValue, workItem);
+                        shadowValues->setValue(value.first, ShadowContext::getCleanValue(value.first));
+                    }
+                    else
+                    {
+                        // Private struct/Union definitions with global type
+                        // value.second.data == NULL
+                        // value.second.size == val size
+                        size_t address = workItem->getOperand(value.first).getPointer();
+                        TypedValue cleanValue = ShadowContext::getCleanValue(value.second.size);
+                        allocAndStoreShadowMemory(AddrSpacePrivate, address, cleanValue, workItem);
+                    }
+                    break;
+                }
+            }
+        }
+        else
+        {
+            // Non pointer type kernel arguments
+            // value->second.data == val
+            // value->second.size == val size
+            shadowValues->setValue(value.first, ShadowContext::getCleanValue(value.first));
+        }
+    }
+}
+
+void MemCheckUninitialized::workItemComplete(const WorkItem *workItem)
+{
+    shadowContext.destroyShadowWorkItem(workItem);
+    shadowContext.freeWorkItems();
+    shadowContext.destroyMemoryPool();
+}
+
+void MemCheckUninitialized::workGroupBegin(const WorkGroup *workGroup)
+{
+    shadowContext.createMemoryPool();
+    shadowContext.allocateWorkGroups();
+    shadowContext.createShadowWorkGroup(workGroup);
+
+    for(auto value : m_deferredInitGroup)
+    {
+        // Local data variables
+        // value->second.data == NULL
+        // value->second.size == val size
+        size_t address = workGroup->getLocalMemoryAddress(value.first);
+        TypedValue v;
+
+        if(llvm::isa<llvm::Argument>(value.first))
+        {
+            //TODO: Local memory clean or poisoned? May need to differentiate
+            //      between kernel argument (?) and variable (poisoned)
+            v = ShadowContext::getPoisonedValue(value.second.size);
+        }
+        else
+        {
+            v = ShadowContext::getPoisonedValue(value.second.size);
+        }
+
+        allocAndStoreShadowMemory(AddrSpaceLocal, address, v, NULL, workGroup, true);
+    }
+}
+
+void MemCheckUninitialized::workGroupComplete(const WorkGroup *workGroup)
+{
+    shadowContext.destroyShadowWorkGroup(workGroup);
+    shadowContext.freeWorkGroups();
 }
 
 ShadowFrame::ShadowFrame() :
@@ -1989,6 +1861,16 @@ void ShadowMemory::allocate(size_t address, size_t size)
     m_map[index] = buffer;
 }
 
+void ShadowMemory::clear()
+{
+    MemoryMap::iterator mItr;
+    for(mItr = m_map.begin(); mItr != m_map.end(); ++mItr)
+    {
+        delete[] mItr->second->data;
+        delete mItr->second;
+    }
+}
+
 void ShadowMemory::deallocate(size_t address)
 {
     size_t index = extractBuffer(address);
@@ -1998,16 +1880,6 @@ void ShadowMemory::deallocate(size_t address)
     delete[] m_map.at(index)->data;
     delete m_map.at(index);
     m_map.at(index) = NULL;
-}
-
-void ShadowMemory::clear()
-{
-    MemoryMap::iterator mItr;
-    for(mItr = m_map.begin(); mItr != m_map.end(); ++mItr)
-    {
-        delete[] mItr->second->data;
-        delete mItr->second;
-    }
 }
 
 void ShadowMemory::dump() const
@@ -2119,16 +1991,6 @@ ShadowContext::~ShadowContext()
     delete m_globalMemory;
 }
 
-void ShadowContext::createMemoryPool()
-{
-    if(m_workSpace.poolUsers == 0)
-    {
-        m_workSpace.memoryPool = new MemoryPool();
-    }
-
-    ++m_workSpace.poolUsers;
-}
-
 void ShadowContext::allocateWorkItems()
 {
     if(!m_workSpace.workItems)
@@ -2145,22 +2007,14 @@ void ShadowContext::allocateWorkGroups()
     }
 }
 
-void ShadowContext::freeWorkItems()
+void ShadowContext::createMemoryPool()
 {
-    if(m_workSpace.workItems && !m_workSpace.workItems->size())
+    if(m_workSpace.poolUsers == 0)
     {
-        delete m_workSpace.workItems;
-        m_workSpace.workItems = NULL;
+        m_workSpace.memoryPool = new MemoryPool();
     }
-}
 
-void ShadowContext::freeWorkGroups()
-{
-    if(m_workSpace.workGroups && !m_workSpace.workGroups->size())
-    {
-        delete m_workSpace.workGroups;
-        m_workSpace.workGroups = NULL;
-    }
+    ++m_workSpace.poolUsers;
 }
 
 ShadowWorkItem* ShadowContext::createShadowWorkItem(const WorkItem *workItem)
@@ -2201,6 +2055,73 @@ void ShadowContext::destroyShadowWorkGroup(const WorkGroup *workGroup)
     assert(m_workSpace.workGroups->count(workGroup) && "No shadow for workgroup found!");
     delete (*m_workSpace.workGroups)[workGroup];
     m_workSpace.workGroups->erase(workGroup);
+}
+
+void ShadowContext::dump(const WorkItem *workItem) const
+{
+    dumpGlobalValues();
+    m_globalMemory->dump();
+    if(m_workSpace.workGroups && m_workSpace.workGroups->size())
+    {
+        m_workSpace.workGroups->begin()->second->dump();
+    }
+    if(m_workSpace.workItems && m_workSpace.workItems->size())
+    {
+        if(workItem)
+        {
+            cout << "Item " << workItem->getGlobalID() << endl;
+            getShadowWorkItem(workItem)->dump();
+        }
+        else
+        {
+            ShadowItemMap::const_iterator itr;
+            for(itr = m_workSpace.workItems->begin(); itr != m_workSpace.workItems->end(); ++itr)
+            {
+                cout << "Item " << itr->first->getGlobalID() << endl;
+                itr->second->dump();
+            }
+        }
+    }
+}
+
+void ShadowContext::dumpGlobalValues() const
+{
+    cout << "==== ShadowMap (global) =======" << endl;
+
+    UnorderedTypedValueMap::const_iterator itr;
+    unsigned num = 1;
+
+    for(itr = m_globalValues.begin(); itr != m_globalValues.end(); ++itr)
+    {
+        if(itr->first->hasName())
+        {
+            cout << "%" << itr->first->getName().str() << ": " << itr->second << endl;
+        }
+        else
+        {
+            cout << "%" << dec << num++ << ": " << itr->second << endl;
+        }
+    }
+
+    cout << "=======================" << endl;
+}
+
+void ShadowContext::freeWorkItems()
+{
+    if(m_workSpace.workItems && !m_workSpace.workItems->size())
+    {
+        delete m_workSpace.workItems;
+        m_workSpace.workItems = NULL;
+    }
+}
+
+void ShadowContext::freeWorkGroups()
+{
+    if(m_workSpace.workGroups && !m_workSpace.workGroups->size())
+    {
+        delete m_workSpace.workGroups;
+        m_workSpace.workGroups = NULL;
+    }
 }
 
 TypedValue ShadowContext::getCleanValue(unsigned size)
@@ -2257,19 +2178,6 @@ TypedValue ShadowContext::getCleanValue(const llvm::Type *Ty)
     return v;
 }
 
-TypedValue ShadowContext::getValue(const WorkItem *workItem, const llvm::Value *V) const
-{
-    if(m_globalValues.count(V))
-    {
-        return m_globalValues.at(V);
-    }
-    else
-    {
-        ShadowValues *shadowValues = getShadowWorkItem(workItem)->getValues();
-        return shadowValues->getValue(V);
-    }
-}
-
 TypedValue ShadowContext::getPoisonedValue(unsigned size)
 {
     TypedValue v = {
@@ -2324,70 +2232,17 @@ TypedValue ShadowContext::getPoisonedValue(const llvm::Type *Ty)
     return v;
 }
 
-void ShadowContext::dump(const WorkItem *workItem) const
+TypedValue ShadowContext::getValue(const WorkItem *workItem, const llvm::Value *V) const
 {
-    dumpGlobalValues();
-    m_globalMemory->dump();
-    if(m_workSpace.workGroups && m_workSpace.workGroups->size())
+    if(m_globalValues.count(V))
     {
-        m_workSpace.workGroups->begin()->second->dump();
+        return m_globalValues.at(V);
     }
-    if(m_workSpace.workItems && m_workSpace.workItems->size())
+    else
     {
-        if(workItem)
-        {
-            cout << "Item " << workItem->getGlobalID() << endl;
-            getShadowWorkItem(workItem)->dump();
-        }
-        else
-        {
-            ShadowItemMap::const_iterator itr;
-            for(itr = m_workSpace.workItems->begin(); itr != m_workSpace.workItems->end(); ++itr)
-            {
-                cout << "Item " << itr->first->getGlobalID() << endl;
-                itr->second->dump();
-            }
-        }
+        ShadowValues *shadowValues = getShadowWorkItem(workItem)->getValues();
+        return shadowValues->getValue(V);
     }
-}
-
-void ShadowContext::dumpGlobalValues() const
-{
-    cout << "==== ShadowMap (global) =======" << endl;
-
-    UnorderedTypedValueMap::const_iterator itr;
-    unsigned num = 1;
-
-    for(itr = m_globalValues.begin(); itr != m_globalValues.end(); ++itr)
-    {
-        if(itr->first->hasName())
-        {
-            cout << "%" << itr->first->getName().str() << ": " << itr->second << endl;
-        }
-        else
-        {
-            cout << "%" << dec << num++ << ": " << itr->second << endl;
-        }
-    }
-
-    cout << "=======================" << endl;
-}
-
-bool ShadowContext::isCleanValue(TypedValue v)
-{
-    return (ShadowContext::getCleanValue(v) == v);
-}
-
-bool ShadowContext::isCleanValue(TypedValue v, unsigned offset)
-{
-    TypedValue c = ShadowContext::getCleanValue(v.size);
-    return !memcmp(v.data + offset*v.size, c.data, v.size);
-}
-
-void ShadowContext::setGlobalValue(const llvm::Value *V, TypedValue SV)
-{
-    assert(!m_globalValues.count(V) && "Values may only have one shadow");
-    m_globalValues[V] = SV;
 }
 
 bool ShadowContext::isCleanStruct(ShadowMemory *shadowMemory, size_t address, const llvm::StructType *structTy)
@@ -2438,4 +2293,21 @@ bool ShadowContext::isCleanStruct(ShadowMemory *shadowMemory, size_t address, co
 
         return true;
     }
+}
+
+bool ShadowContext::isCleanValue(TypedValue v)
+{
+    return (ShadowContext::getCleanValue(v) == v);
+}
+
+bool ShadowContext::isCleanValue(TypedValue v, unsigned offset)
+{
+    TypedValue c = ShadowContext::getCleanValue(v.size);
+    return !memcmp(v.data + offset*v.size, c.data, v.size);
+}
+
+void ShadowContext::setGlobalValue(const llvm::Value *V, TypedValue SV)
+{
+    assert(!m_globalValues.count(V) && "Values may only have one shadow");
+    m_globalValues[V] = SV;
 }

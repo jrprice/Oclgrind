@@ -252,19 +252,19 @@ namespace oclgrind
             MemCheckUninitialized(const Context *context);
             virtual ~MemCheckUninitialized();
 
-            virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
-            virtual void workItemBegin(const WorkItem *workItem) override;
-            virtual void workItemComplete(const WorkItem *workItem);
-            virtual void workGroupBegin(const WorkGroup *workGroup);
-            virtual void workGroupComplete(const WorkGroup *workGroup);
             virtual void hostMemoryStore(const Memory *memory,
                     size_t address, size_t size,
-                    const uint8_t *storeData);
+                    const uint8_t *storeData) override;
             virtual void instructionExecuted(const WorkItem *workItem,
                     const llvm::Instruction *instruction,
                     const TypedValue& result) override;
+            virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
             virtual void memoryMap(const Memory *memory, size_t address,
-                    size_t offset, size_t size, cl_map_flags flags);
+                    size_t offset, size_t size, cl_map_flags flags) override;
+            virtual void workItemBegin(const WorkItem *workItem) override;
+            virtual void workItemComplete(const WorkItem *workItem) override;
+            virtual void workGroupBegin(const WorkGroup *workGroup) override;
+            virtual void workGroupComplete(const WorkGroup *workGroup) override;
             //virtual void memoryAllocated(const Memory *memory, size_t address,
             //                             size_t size, cl_mem_flags flags,
             //                             const uint8_t *initData);
@@ -286,21 +286,17 @@ namespace oclgrind
                                          size_t num, size_t stride, unsigned size,
                                          const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
             static std::string extractUnmangledName(const std::string fullname);
-            Memory* getMemory(unsigned addrSpace, const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL) const;
             ShadowMemory* getShadowMemory(unsigned addrSpace, const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL) const;
             bool handleBuiltinFunction(const WorkItem *workItem, std::string name, const llvm::CallInst *CI, const TypedValue result);
             void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
-
             void loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM,
                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
-            void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
-                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
-
-            void SimpleOr(const WorkItem *workItem, const llvm::Instruction *I);
-            void SimpleOrAtomic(const WorkItem *workItem, const llvm::CallInst *CI);
-
             void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
             void logUninitializedCF() const;
             void logUninitializedIndex() const;
+            void SimpleOr(const WorkItem *workItem, const llvm::Instruction *I);
+            void SimpleOrAtomic(const WorkItem *workItem, const llvm::CallInst *CI);
+            void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
+                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
     };
 }
