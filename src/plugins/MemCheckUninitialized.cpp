@@ -425,7 +425,8 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                     //// Make new copy of shadow in private memory
                     size_t origShadowAddress = workItem->getOperand(Val).getPointer();
                     size_t newShadowAddress = workItem->getOperand(argItr).getPointer();
-                    unsigned char *origShadowData = (unsigned char*)shadowWI->getMemoryPointer(origShadowAddress);
+                    ShadowMemory *mem = shadowWI->getPrivateMemory();
+                    unsigned char *origShadowData = (unsigned char*)mem->getPointer(origShadowAddress);
                     size_t size = getTypeSize(argItr->getType()->getPointerElementType());
 
                     // Set new shadow memory

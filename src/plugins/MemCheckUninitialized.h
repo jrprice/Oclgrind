@@ -110,10 +110,6 @@ namespace oclgrind
             {
                 return m_values.top()->getCall();
             }
-            inline void* getMemoryPointer(size_t address) const
-            {
-                return m_memory->getPointer(address);
-            }
             inline ShadowMemory* getPrivateMemory()
             {
                 return m_memory;
