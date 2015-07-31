@@ -572,9 +572,60 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         shadowValues->setValue(CI, newShadow);
         return true;
     }
-    else if(name.compare(0, 11, "vstore_half") == 0)
+    else if(name.compare(0, 11, "vstore_half") == 0 ||
+            name.compare(0, 12, "vstorea_half") == 0)
     {
-        assert(false && "vstore_half not implemented yet!");
+        const llvm::Value *value = CI->getArgOperand(0);
+        unsigned size = getTypeSize(value->getType());
+
+        if(isVector3(value))
+        {
+            // 3-element vectors are same size as 4-element vectors,
+            // but vstore address offset shouldn't use this.
+            size = (size / 4) * 3;
+        }
+
+        size_t base = workItem->getOperand(CI->getArgOperand(2)).getPointer();
+        unsigned int addressSpace = CI->getArgOperand(2)->getType()->getPointerAddressSpace();
+        uint64_t offset = workItem->getOperand(CI->getArgOperand(1)).getUInt();
+
+        // Convert to halfs
+        TypedValue shadow = shadowContext.getValue(workItem, value);
+        unsigned num = size / sizeof(float);
+        size = num * sizeof(cl_half);
+        TypedValue halfShadow = {
+            sizeof(cl_half),
+            num,
+            shadowContext.getMemoryPool()->alloc(2 * num)
+        };
+
+        TypedValue pv = ShadowContext::getPoisonedValue(halfShadow.size);
+        TypedValue cv = ShadowContext::getCleanValue(halfShadow.size);
+
+        for(unsigned i = 0; i < num; i++)
+        {
+            if(!ShadowContext::isCleanValue(shadow, i))
+            {
+                memcpy(halfShadow.data + i*halfShadow.size, pv.data, halfShadow.size);
+            }
+            else
+            {
+                memcpy(halfShadow.data + i*halfShadow.size, cv.data, halfShadow.size);
+            }
+        }
+
+        size_t address;
+        if(name.compare(0, 7, "vstorea") == 0 && num == 3)
+        {
+            address = base + offset * sizeof(cl_half) * 4;
+        }
+        else
+        {
+            address = base + offset * sizeof(cl_half) * num;
+        }
+
+        storeShadowMemory(addressSpace, address, halfShadow, workItem);
+        return true;
     }
     else if(name.compare(0, 5, "vload") == 0)
     {
