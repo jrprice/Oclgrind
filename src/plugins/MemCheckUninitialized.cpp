@@ -1253,6 +1253,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             TypedValue mask = workItem->getOperand(shuffleInst->getMask());
             TypedValue maskShadow = shadowContext.getValue(workItem, shuffleInst->getMask());
             TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+            TypedValue pv = ShadowContext::getPoisonedValue(newShadow.size);
 
             for(unsigned i = 0; i < newShadow.num; i++)
             {
@@ -1272,8 +1273,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
 
                 if(!ShadowContext::isCleanValue(maskShadow, i))
                 {
-                    TypedValue v = ShadowContext::getPoisonedValue(newShadow.size);
-                    memcpy(newShadow.data + i*newShadow.size, v.data, newShadow.size);
+                    memcpy(newShadow.data + i*newShadow.size, pv.data, newShadow.size);
                 }
                 else
                 {
