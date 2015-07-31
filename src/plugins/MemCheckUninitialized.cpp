@@ -1203,6 +1203,8 @@ void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address
 
 void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM, const WorkItem *workItem, const WorkGroup *workGroup)
 {
+    ShadowMemory *memory;
+
     switch(addrSpace)
     {
         case AddrSpacePrivate:
@@ -1212,7 +1214,7 @@ void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address,
                 FATAL_ERROR("Work item needed to load private memory!");
             }
 
-            shadowContext.getShadowWorkItem(workItem)->loadMemory(SM.data, address, SM.size*SM.num);
+            memory = shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
             break;
         }
         case AddrSpaceLocal:
@@ -1227,18 +1229,20 @@ void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address,
                 workGroup = workItem->getWorkGroup();
             }
 
-            shadowContext.getShadowWorkGroup(workGroup)->loadMemory(SM.data, address, SM.size*SM.num);
+            memory = shadowContext.getShadowWorkGroup(workGroup)->getLocalMemory();
             break;
         }
         case AddrSpaceConstant:
             memset(SM.data, 0, SM.size*SM.num);
-            break;
+            return;
         case AddrSpaceGlobal:
-            shadowContext.getGlobalMemory()->load(SM.data, address, SM.size*SM.num);
+            memory = shadowContext.getGlobalMemory();
             break;
         default:
             FATAL_ERROR("Unsupported addressspace %d", addrSpace);
     }
+
+    memory->load(SM.data, address, SM.size*SM.num);
 #ifdef DUMP_SHADOW
     cout << "Loaded " << hex << SM << " from space " << dec << addrSpace << " at address " << hex << address << endl;
 #endif

@@ -122,10 +122,6 @@ namespace oclgrind
             {
                 return m_values.top()->hasValue(V);
             }
-            inline void loadMemory(unsigned char *dst, size_t address, size_t size=1) const
-            {
-                m_memory->load(dst, address, size);
-            }
             inline void popValues()
             {
                 m_values.pop();
