@@ -98,14 +98,6 @@ namespace oclgrind
             }
             ShadowValues* createCleanShadowValues();
             void dump() const;
-            inline void dumpMemory() const
-            {
-                m_memory->dump();
-            }
-            inline void dumpValues() const
-            {
-                m_values.top()->dump();
-            }
             inline const llvm::CallInst* getCall() const
             {
                 return m_values.top()->getCall();

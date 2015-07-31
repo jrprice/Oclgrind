@@ -2110,7 +2110,7 @@ void ShadowWorkItem::dump() const
     {
         m_values.top()->dump();
     }
-    dumpMemory();
+    m_memory->dump();
 }
 
 void ShadowContext::dumpGlobalValues() const
