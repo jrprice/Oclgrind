@@ -526,6 +526,56 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         shadowValues->setValue(CI, newShadow);
         return true;
     }
+    else if(name.compare(0, 10, "vload_half") == 0 ||
+            name.compare(0, 11, "vloada_half") == 0)
+    {
+        size_t base = workItem->getOperand(CI->getArgOperand(1)).getPointer();
+        unsigned int addressSpace = CI->getArgOperand(1)->getType()->getPointerAddressSpace();
+        uint64_t offset = workItem->getOperand(CI->getArgOperand(0)).getUInt();
+
+        size_t address;
+
+        if(name.compare(0, 6, "vloada") == 0 && result.num == 3)
+        {
+            address = base + offset * sizeof(cl_half) * 4;
+        }
+        else
+        {
+            address = base + offset * sizeof(cl_half) * result.num;
+        }
+
+        TypedValue halfShadow = {
+            sizeof(cl_half),
+            result.num,
+            shadowContext.getMemoryPool()->alloc(2 * result.num)
+        };
+        TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+
+        loadShadowMemory(addressSpace, address, halfShadow, workItem);
+
+        TypedValue pv = ShadowContext::getPoisonedValue(newShadow.size);
+        TypedValue cv = ShadowContext::getCleanValue(newShadow.size);
+
+        // Convert to float shadows
+        for(unsigned i = 0; i < newShadow.num; ++i)
+        {
+            if(!ShadowContext::isCleanValue(halfShadow, i))
+            {
+                memcpy(newShadow.data + i*newShadow.size, pv.data, newShadow.size);
+            }
+            else
+            {
+                memcpy(newShadow.data + i*newShadow.size, cv.data, newShadow.size);
+            }
+        }
+
+        shadowValues->setValue(CI, newShadow);
+        return true;
+    }
+    else if(name.compare(0, 11, "vstore_half") == 0)
+    {
+        assert(false && "vstore_half not implemented yet!");
+    }
     else if(name.compare(0, 5, "vload") == 0)
     {
         TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
@@ -560,14 +610,6 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
         TypedValue shadow = shadowContext.getValue(workItem, value);
         storeShadowMemory(addressSpace, address, shadow, workItem);
         return true;
-    }
-    else if(name.compare(0, 10, "vload_half") == 0)
-    {
-        assert(false && "vload_half not implemented yet!");
-    }
-    else if(name.compare(0, 11, "vstore_half") == 0)
-    {
-        assert(false && "vstore_half not implemented yet!");
     }
 
     return false;
