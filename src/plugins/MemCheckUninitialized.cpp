@@ -1162,6 +1162,8 @@ void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address
         logUninitializedWrite(addrSpace, address);
     }
 
+    ShadowMemory *memory;
+
     switch(addrSpace)
     {
         case AddrSpacePrivate:
@@ -1171,7 +1173,7 @@ void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address
                 FATAL_ERROR("Work item needed to store private memory!");
             }
 
-            shadowContext.getShadowWorkItem(workItem)->storeMemory(SM.data, address, SM.size*SM.num);
+            memory = shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
             break;
         }
         case AddrSpaceLocal:
@@ -1186,19 +1188,20 @@ void MemCheckUninitialized::storeShadowMemory(unsigned addrSpace, size_t address
                 workGroup = workItem->getWorkGroup();
             }
 
-            shadowContext.getShadowWorkGroup(workGroup)->storeMemory(SM.data, address, SM.size*SM.num);
+            memory = shadowContext.getShadowWorkGroup(workGroup)->getLocalMemory();
             break;
         }
         case AddrSpaceConstant:
-            //Do nothing
             //TODO: Eventually store value
-            break;
+            return;
         case AddrSpaceGlobal:
-            shadowContext.getGlobalMemory()->store(SM.data, address, SM.size*SM.num);
+            memory = shadowContext.getGlobalMemory();
             break;
         default:
             FATAL_ERROR("Unsupported addressspace %d", addrSpace);
     }
+
+    memory->store(SM.data, address, SM.size*SM.num);
 }
 
 void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM, const WorkItem *workItem, const WorkGroup *workGroup)

@@ -138,10 +138,6 @@ namespace oclgrind
             {
                 m_values.top()->setValue(V, SV);
             }
-            inline void storeMemory(const unsigned char *src, size_t address, size_t size=1)
-            {
-                m_memory->store(src, address, size);
-            }
 
         private:
             typedef std::stack<ShadowValues*> ValuesStack;
