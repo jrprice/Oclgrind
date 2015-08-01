@@ -16,6 +16,7 @@ noinst_LTLIBRARIES = libcommon.la
 libcommon_la_SOURCES = common/common.c common/common.h
 
 check_PROGRAMS = \
+  apps/image/image \
   apps/vecadd/vecadd \
   runtime/map_buffer
 TESTS = $(check_PROGRAMS)
