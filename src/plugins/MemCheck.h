@@ -48,7 +48,8 @@ namespace oclgrind
                              const void *ptr) override;
 
   private:
-    void checkArrayAccess(const WorkItem *workItem, const llvm::GetElementPtrInst *GEPI) const;
+    void checkArrayAccess(const WorkItem *workItem,
+                          const llvm::GetElementPtrInst *GEPI) const;
     void checkLoad(const Memory *memory, size_t address, size_t size) const;
     void checkStore(const Memory *memory, size_t address, size_t size) const;
     void logInvalidAccess(bool read, unsigned addrSpace,

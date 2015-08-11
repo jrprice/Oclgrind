@@ -29,26 +29,26 @@ void MemCheck::instructionExecuted(const WorkItem *workItem,
                                    const llvm::Instruction *instruction,
                                    const TypedValue& result)
 {
-    // Check static array bounds if load or store is executed
-    const llvm::Value *PtrOp = nullptr;
+  // Check static array bounds if load or store is executed
+  const llvm::Value *PtrOp = nullptr;
 
-    if(const llvm::LoadInst *LI = llvm::dyn_cast<llvm::LoadInst>(instruction))
-    {
-        PtrOp = LI->getPointerOperand();
-    }
-    else if(const llvm::StoreInst *SI = llvm::dyn_cast<llvm::StoreInst>(instruction))
-    {
-        PtrOp = SI->getPointerOperand();
-    }
-    else
-    {
-        return;
-    }
+  if (auto LI = llvm::dyn_cast<llvm::LoadInst>(instruction))
+  {
+    PtrOp = LI->getPointerOperand();
+  }
+  else if (auto SI = llvm::dyn_cast<llvm::StoreInst>(instruction))
+  {
+    PtrOp = SI->getPointerOperand();
+  }
+  else
+  {
+    return;
+  }
 
-    if(auto GEPI = llvm::dyn_cast<llvm::GetElementPtrInst>(PtrOp))
-    {
-        checkArrayAccess(workItem, GEPI);
-    }
+  if (auto GEPI = llvm::dyn_cast<llvm::GetElementPtrInst>(PtrOp))
+  {
+    checkArrayAccess(workItem, GEPI);
+  }
 }
 
 void MemCheck::memoryAtomicLoad(const Memory *memory,
@@ -117,44 +117,45 @@ void MemCheck::memoryUnmap(const Memory *memory, size_t address,
   }
 }
 
-void MemCheck::checkArrayAccess(const WorkItem *workItem, const llvm::GetElementPtrInst *GEPI) const
+void MemCheck::checkArrayAccess(const WorkItem *workItem,
+                                const llvm::GetElementPtrInst *GEPI) const
 {
-    // Iterate through GEPI indices
-    const llvm::Type *ptrType = GEPI->getPointerOperandType();
+  // Iterate through GEPI indices
+  const llvm::Type *ptrType = GEPI->getPointerOperandType();
 
-    for(auto opIndex = GEPI->idx_begin(); opIndex != GEPI->idx_end(); opIndex++)
+  for (auto opIndex = GEPI->idx_begin(); opIndex != GEPI->idx_end(); opIndex++)
+  {
+    int64_t index = workItem->getOperand(opIndex->get()).getSInt();
+
+    if (ptrType->isArrayTy())
     {
-        int64_t index = workItem->getOperand(opIndex->get()).getSInt();
+      // Check index doesn't exceed size of array
+      uint64_t size = ptrType->getArrayNumElements();
 
-        if(ptrType->isArrayTy())
-        {
-            // Check index doesn't exceed size of array
-            uint64_t size = ptrType->getArrayNumElements();
+      if ((uint64_t)index >= size)
+      {
+        ostringstream info;
+        info << "Index ("
+             << index << ") exceeds static array size ("
+             << size << ")";
+        m_context->logError(info.str().c_str());
+      }
 
-            if((uint64_t)index >= size)
-            {
-                ostringstream info;
-                info << "Index ("
-                    << index << ") exceeds static array size ("
-                    << size << ")";
-                m_context->logError(info.str().c_str());
-            }
-
-            ptrType = ptrType->getArrayElementType();
-        }
-        else if(ptrType->isPointerTy())
-        {
-            ptrType = ptrType->getPointerElementType();
-        }
-        else if(ptrType->isVectorTy())
-        {
-            ptrType = ptrType->getVectorElementType();
-        }
-        else if(ptrType->isStructTy())
-        {
-            ptrType = ptrType->getStructElementType(index);
-        }
+      ptrType = ptrType->getArrayElementType();
     }
+    else if (ptrType->isPointerTy())
+    {
+      ptrType = ptrType->getPointerElementType();
+    }
+    else if (ptrType->isVectorTy())
+    {
+      ptrType = ptrType->getVectorElementType();
+    }
+    else if (ptrType->isStructTy())
+    {
+      ptrType = ptrType->getStructElementType(index);
+    }
+  }
 }
 
 void MemCheck::checkLoad(const Memory *memory,
