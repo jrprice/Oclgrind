@@ -39,7 +39,7 @@ function usage
   echo -n "     --pch-dir        DIR      "
   echo          "Override directory containing precompiled headers"
   echo -n "     --plugins        PLUGINS  "
-  echo          "Load colon seperated list of plugin libraries"
+  echo          "Load colon separated list of plugin libraries"
   echo -n "  -q --quick                   "
   echo          "Only run first and last work-group"
   echo -n "     --uniform-writes          "

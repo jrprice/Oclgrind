@@ -214,7 +214,7 @@ static void printUsage()
     << "     --pch-dir        DIR      "
              "Override directory containing precompiled headers" << endl
     << "     --plugins        PLUGINS  "
-             "Load colon seperated list of plugin libraries" << endl
+             "Load colon separated list of plugin libraries" << endl
     << "  -q --quick                   "
              "Only run first and last work-group" << endl
     << "     --uniform-writes          "
