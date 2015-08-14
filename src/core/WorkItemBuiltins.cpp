@@ -8,6 +8,7 @@
 
 #include "common.h"
 #include <algorithm>
+#include <float.h>
 #include <fenv.h>
 #include <mutex>
 
@@ -676,7 +677,30 @@ namespace oclgrind
       {
         lengthSq += FARGV(0, i) * FARGV(0, i);
       }
-      result.setFloat(sqrt(lengthSq));
+
+      // Check for overflow/underflow
+      double coeff = 1.0;
+      if (lengthSq == INFINITY)
+      {
+        coeff = ldexp(1.0, -512);
+      }
+      else if (lengthSq < 4*DBL_MIN/DBL_EPSILON)
+      {
+        coeff = ldexp(1.0, 640);
+      }
+
+      if (coeff != 0.0)
+      {
+        // Re-do calculations with a range multiplier
+        lengthSq = 0.0;
+        for (unsigned i = 0; i < num; i++)
+        {
+          double f = FARGV(0, i) * coeff;
+          lengthSq += f*f;
+        }
+      }
+
+      result.setFloat(sqrt(lengthSq) * (1.0/coeff));
     }
 
     DEFINE_BUILTIN(normalize)
