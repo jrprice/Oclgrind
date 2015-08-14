@@ -656,28 +656,28 @@ namespace oclgrind
       }
 
       // Check for overflow/underflow
-      double coeff = 1.0;
+      double rescale = 1.0;
       if (lengthSq == INFINITY)
       {
-        coeff = ldexp(1.0, -512);
+        rescale = ldexp(1.0, -512);
       }
-      else if (lengthSq < 4*DBL_MIN/DBL_EPSILON)
+      else if (lengthSq < num*DBL_MIN/DBL_EPSILON)
       {
-        coeff = ldexp(1.0, 640);
+        rescale = ldexp(1.0, 640);
       }
 
-      if (coeff != 1.0)
+      if (rescale != 1.0)
       {
-        // Re-do calculations with a range multiplier
+        // Re-do calculations with a rescaling multiplier
         lengthSq = 0.0;
         for (unsigned i = 0; i < num; i++)
         {
-          double f = values[i] * coeff;
+          double f = values[i] * rescale;
           lengthSq += f*f;
         }
       }
 
-      return sqrt(lengthSq) * (1.0/coeff);
+      return sqrt(lengthSq) * (1.0/rescale);
     }
 
     DEFINE_BUILTIN(distance)
@@ -714,16 +714,69 @@ namespace oclgrind
 
     DEFINE_BUILTIN(normalize)
     {
+      double values[result.num];
       double lengthSq = 0.0;
       for (unsigned i = 0; i < result.num; i++)
       {
-        lengthSq += FARGV(0, i) * FARGV(0, i);
+        values[i] = FARGV(0, i);
+        lengthSq += values[i] * values[i];
       }
-      double length = sqrt(lengthSq);
 
+      if (lengthSq == INFINITY)
+      {
+        // Re-do calculations with a rescaling multiplier
+        lengthSq = 0.0;
+        double rescale = ldexp(1.0, -512);
+        for (unsigned i = 0; i < result.num; i++)
+        {
+          values[i] = values[i] * rescale;
+          lengthSq += values[i] * values[i];
+        }
+
+        if (lengthSq == INFINITY)
+        {
+          // Infinities in input, set all other values to 0
+          lengthSq = 0.0;
+          for (unsigned i = 0; i < result.num; i++)
+          {
+            if (isinf(values[i]))
+            {
+              values[i] = copysign(1.0, FARGV(0, i));
+              lengthSq += 1.0;
+            }
+            else
+            {
+              values[i] = copysign(0.0, FARGV(0, i));
+            }
+          }
+        }
+      }
+      else if (lengthSq < result.num*DBL_MIN/DBL_EPSILON)
+      {
+        // Re-do calculations with a rescaling multiplier
+        lengthSq = 0.0;
+        double rescale = ldexp(1.0, 640);
+        for (unsigned i = 0; i < result.num; i++)
+        {
+          values[i] = values[i] * rescale;
+          lengthSq += values[i] * values[i];
+        }
+
+        if (lengthSq == 0.0)
+        {
+          // Zeros in input, copy vector unchanged
+          for (unsigned i = 0; i < result.num; i++)
+          {
+            result.setFloat(FARGV(0, i), i);
+          }
+          return;
+        }
+      }
+
+      double length = sqrt(lengthSq);
       for (unsigned i = 0; i < result.num; i++)
       {
-        result.setFloat(FARGV(0, i)/length, i);
+        result.setFloat(values[i]/length, i);
       }
     }
 
