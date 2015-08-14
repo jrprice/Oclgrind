@@ -647,35 +647,12 @@ namespace oclgrind
       result.setFloat(r);
     }
 
-    DEFINE_BUILTIN(distance)
+    static double geometric_length(double *values, unsigned num)
     {
-      unsigned num = 1;
-      if (ARG(0)->getType()->isVectorTy())
-      {
-        num = ARG(0)->getType()->getVectorNumElements();
-      }
-
-      double distSq = 0.0;
-      for (unsigned i = 0; i < num; i++)
-      {
-        double diff = FARGV(0,i) - FARGV(1,i);
-        distSq += diff*diff;
-      }
-      result.setFloat(sqrt(distSq));
-    }
-
-    DEFINE_BUILTIN(length)
-    {
-      unsigned num = 1;
-      if (ARG(0)->getType()->isVectorTy())
-      {
-        num = ARG(0)->getType()->getVectorNumElements();
-      }
-
       double lengthSq = 0.0;
       for (unsigned i = 0; i < num; i++)
       {
-        lengthSq += FARGV(0, i) * FARGV(0, i);
+        lengthSq += values[i] * values[i];
       }
 
       // Check for overflow/underflow
@@ -689,18 +666,50 @@ namespace oclgrind
         coeff = ldexp(1.0, 640);
       }
 
-      if (coeff != 0.0)
+      if (coeff != 1.0)
       {
         // Re-do calculations with a range multiplier
         lengthSq = 0.0;
         for (unsigned i = 0; i < num; i++)
         {
-          double f = FARGV(0, i) * coeff;
+          double f = values[i] * coeff;
           lengthSq += f*f;
         }
       }
 
-      result.setFloat(sqrt(lengthSq) * (1.0/coeff));
+      return sqrt(lengthSq) * (1.0/coeff);
+    }
+
+    DEFINE_BUILTIN(distance)
+    {
+      unsigned num = 1;
+      if (ARG(0)->getType()->isVectorTy())
+      {
+        num = ARG(0)->getType()->getVectorNumElements();
+      }
+
+      double values[num];
+      for (unsigned i = 0; i < num; i++)
+      {
+        values[i] = FARGV(0, i) - FARGV(1, i);
+      }
+      result.setFloat(geometric_length(values, num));
+    }
+
+    DEFINE_BUILTIN(length)
+    {
+      unsigned num = 1;
+      if (ARG(0)->getType()->isVectorTy())
+      {
+        num = ARG(0)->getType()->getVectorNumElements();
+      }
+
+      double values[num];
+      for (unsigned i = 0; i < num; i++)
+      {
+        values[i] = FARGV(0, i);
+      }
+      result.setFloat(geometric_length(values, num));
     }
 
     DEFINE_BUILTIN(normalize)
