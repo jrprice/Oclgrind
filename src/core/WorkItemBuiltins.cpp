@@ -2505,9 +2505,43 @@ namespace oclgrind
     {
       for (unsigned i = 0; i < result.num; i++)
       {
-        double x = FARGV(0, i);
-        int y = SARGV(1, i);
-        result.setFloat(pow(x, (double)(1.0/y)), i);
+        long double x = FARGV(0, i);
+        int n = SARGV(1, i);
+
+        long double r;
+        if (n == 0)
+        {
+          r = nan("");
+        }
+        else if (x == 0)
+        {
+          if (n < 0)
+          {
+            if (n&1)
+              r = copysign(INFINITY, x);
+            else
+              r = INFINITY;
+          }
+          else
+          {
+            if (n&1)
+              r = x;
+            else
+              r = 0.0;
+          }
+        }
+        else if (x < 0 && !(n&1))
+        {
+          r = nan("");
+        }
+        else
+        {
+          r = pow(fabs(x), 1.0L/n);
+          if (x < 0 && n&1)
+            r = -r;
+        }
+
+        result.setFloat(r, i);
       }
     }
 
