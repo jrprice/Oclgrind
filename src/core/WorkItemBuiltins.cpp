@@ -739,7 +739,7 @@ namespace oclgrind
           lengthSq = 0.0;
           for (unsigned i = 0; i < result.num; i++)
           {
-            if (isinf(values[i]))
+            if (::isinf(values[i]))
             {
               values[i] = copysign(1.0, FARGV(0, i));
               lengthSq += 1.0;
@@ -2520,7 +2520,7 @@ namespace oclgrind
         }
         else if (x == 1.0)
         {
-          if (isinf(y))
+          if (::isinf(y))
             r = nan("");
           else
             r = 1.0;
