@@ -184,7 +184,7 @@ namespace oclgrind
     {
       // Inf or NaN
       h_exponent = 0x7C00;
-      h_mantissa = d_mantissa & 0x1FF;
+      h_mantissa = d_mantissa >> 42;
     }
     else
     {
