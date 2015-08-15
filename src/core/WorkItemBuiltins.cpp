@@ -2889,10 +2889,10 @@ namespace oclgrind
       uint64_t offset = UARG(1);
 
       // Convert to halfs
-      unsigned char *data = workItem->getOperand(value).data;
-      size_t num = size / sizeof(float);
-      size = num*sizeof(cl_half);
-      uint16_t *halfData = (uint16_t*)workItem->m_pool.alloc(2*num);
+      TypedValue op = workItem->getOperand(value);
+      unsigned char *data = op.data;
+      size = op.num*sizeof(cl_half);
+      uint16_t *halfData = (uint16_t*)workItem->m_pool.alloc(2*op.num);
       HalfRoundMode rmode = Half_RTE; //  The Oclgrind device's round mode
       if (fnName.find("_rtz") != std::string::npos)
         rmode = Half_RTZ;
@@ -2901,19 +2901,22 @@ namespace oclgrind
       else if (fnName.find("_rtp") != std::string::npos)
         rmode = Half_RTP;
 
-      for (unsigned i = 0; i < num; i++)
+      for (unsigned i = 0; i < op.num; i++)
       {
-        halfData[i] = floatToHalf(((float*)data)[i], rmode);
+        if (op.size == 4)
+          halfData[i] = floatToHalf(((float*)data)[i], rmode);
+        else
+          halfData[i] = floatToHalf(((double*)data)[i], rmode);
       }
 
       size_t address;
-      if (fnName.compare(0, 7, "vstorea") == 0 && num == 3)
+      if (fnName.compare(0, 7, "vstorea") == 0 && op.num == 3)
       {
         address = base + offset*sizeof(cl_half)*4;
       }
       else
       {
-        address = base + offset*sizeof(cl_half)*num;
+        address = base + offset*sizeof(cl_half)*op.num;
       }
 
       workItem->getMemory(addressSpace)->store((unsigned char*)halfData,
