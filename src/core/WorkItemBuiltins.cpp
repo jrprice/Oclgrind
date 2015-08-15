@@ -2382,7 +2382,7 @@ namespace oclgrind
       {
         double x = FARGV(0, i);
         double fl, r;
-        if (isnan(x))
+        if (::isnan(x))
         {
           r = nan("");
           fl = nan("");
@@ -2514,7 +2514,7 @@ namespace oclgrind
         {
           r = nan("");
         }
-        else if (isnan(x) || isnan(y))
+        else if (::isnan(x) || ::isnan(y))
         {
           r = nan("");
         }
