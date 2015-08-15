@@ -2995,8 +2995,41 @@ namespace oclgrind
     // Other Functions //
     /////////////////////
 
+    static void setConvertRoundingMode(const string& name, int def)
+    {
+      size_t rpos = name.find("_rt");
+      if (rpos != string::npos)
+      {
+        switch (name[rpos+3])
+        {
+        case 'e':
+          fesetround(FE_TONEAREST);
+          break;
+        case 'z':
+          fesetround(FE_TOWARDZERO);
+          break;
+        case 'p':
+          fesetround(FE_UPWARD);
+          break;
+        case 'n':
+          fesetround(FE_DOWNWARD);
+          break;
+        default:
+          FATAL_ERROR("Unsupported rounding mode: %c", name[rpos+3]);
+        }
+      }
+      else
+      {
+        fesetround(def);
+      }
+    }
+
     DEFINE_BUILTIN(convert_float)
     {
+      // Use rounding mode
+      const int origRnd = fegetround();
+      setConvertRoundingMode(fnName, FE_TONEAREST);
+
       for (unsigned i = 0; i < result.num; i++)
       {
         switch (getOverloadArgType(overload))
@@ -3022,6 +3055,7 @@ namespace oclgrind
                         getOverloadArgType(overload));
         }
       }
+      fesetround(origRnd);
     }
 
     DEFINE_BUILTIN(convert_half)
@@ -3062,35 +3096,6 @@ namespace oclgrind
       }
     }
 
-    static void setConvertRoundingMode(const string& name)
-    {
-      size_t rpos = name.find("_rt");
-      if (rpos != string::npos)
-      {
-        switch (name[rpos+3])
-        {
-        case 'e':
-          fesetround(FE_TONEAREST);
-          break;
-        case 'z':
-          fesetround(FE_TOWARDZERO);
-          break;
-        case 'p':
-          fesetround(FE_UPWARD);
-          break;
-        case 'n':
-          fesetround(FE_DOWNWARD);
-          break;
-        default:
-          FATAL_ERROR("Unsupported rounding mode: %c", name[rpos=3]);
-        }
-      }
-      else
-      {
-        fesetround(FE_TOWARDZERO);
-      }
-    }
-
     DEFINE_BUILTIN(convert_uint)
     {
       // Check for saturation modifier
@@ -3099,7 +3104,7 @@ namespace oclgrind
 
       // Use rounding mode
       const int origRnd = fegetround();
-      setConvertRoundingMode(fnName);
+      setConvertRoundingMode(fnName, FE_TOWARDZERO);
 
       for (unsigned i = 0; i < result.num; i++)
       {
@@ -3184,7 +3189,7 @@ namespace oclgrind
 
       // Use rounding mode
       const int origRnd = fegetround();
-      setConvertRoundingMode(fnName);
+      setConvertRoundingMode(fnName, FE_TOWARDZERO);
 
       for (unsigned i = 0; i < result.num; i++)
       {
