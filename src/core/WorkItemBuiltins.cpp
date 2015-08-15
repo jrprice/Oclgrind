@@ -688,7 +688,7 @@ namespace oclgrind
         num = ARG(0)->getType()->getVectorNumElements();
       }
 
-      double values[num];
+      double values[4];
       for (unsigned i = 0; i < num; i++)
       {
         values[i] = FARGV(0, i) - FARGV(1, i);
@@ -704,7 +704,7 @@ namespace oclgrind
         num = ARG(0)->getType()->getVectorNumElements();
       }
 
-      double values[num];
+      double values[4];
       for (unsigned i = 0; i < num; i++)
       {
         values[i] = FARGV(0, i);
@@ -714,7 +714,7 @@ namespace oclgrind
 
     DEFINE_BUILTIN(normalize)
     {
-      double values[result.num];
+      double values[4];
       double lengthSq = 0.0;
       for (unsigned i = 0; i < result.num; i++)
       {
