@@ -2483,6 +2483,59 @@ namespace oclgrind
       }
     }
 
+    DEFINE_BUILTIN(powr)
+    {
+      for (unsigned i = 0; i < result.num; i++)
+      {
+        double x = FARGV(0, i);
+        double y = FARGV(1, i);
+
+        double r;
+        if (x < 0.0)
+        {
+          r = nan("");
+        }
+        else if (isnan(x) || isnan(y))
+        {
+          r = nan("");
+        }
+        else if (x == 1.0)
+        {
+          if (isinf(y))
+            r = nan("");
+          else
+            r = 1.0;
+        }
+        else if (y == 0.0)
+        {
+          if (x == 0.0 || x == INFINITY)
+            r = nan("");
+          else
+            r = 1.0;
+        }
+        else if (x == 0.0)
+        {
+          if (y < 0.0)
+            r = INFINITY;
+          else
+            r = 0.0;
+        }
+        else if (x == INFINITY)
+        {
+          if (y < 0.0)
+            r = 0.0;
+          else
+            r = INFINITY;
+        }
+        else
+        {
+          r = pow(x, y);
+        }
+
+        result.setFloat(r, i);
+      }
+    }
+
     DEFINE_BUILTIN(remquo_builtin)
     {
       Memory *memory =
@@ -3561,7 +3614,7 @@ namespace oclgrind
     ADD_BUILTIN("nextafter", nextafter_builtin, NULL);
     ADD_BUILTIN("pow", f2arg, F2ARG(pow));
     ADD_BUILTIN("pown", pown, NULL);
-    ADD_BUILTIN("powr", f2arg, F2ARG(pow));
+    ADD_BUILTIN("powr", powr, NULL);
     ADD_BUILTIN("remainder", f2arg, F2ARG(remainder));
     ADD_BUILTIN("remquo", remquo_builtin, NULL);
     ADD_BUILTIN("rint", f1arg, F1ARG(rint));
@@ -3596,8 +3649,8 @@ namespace oclgrind
     ADD_BUILTIN("native_log2", f1arg, F1ARG(log2));
     ADD_BUILTIN("half_log10", f1arg, F1ARG(log10));
     ADD_BUILTIN("native_log10", f1arg, F1ARG(log10));
-    ADD_BUILTIN("half_powr", f2arg, F2ARG(pow));
-    ADD_BUILTIN("native_powr", f2arg, F2ARG(pow));
+    ADD_BUILTIN("half_powr", powr, NULL);
+    ADD_BUILTIN("native_powr", powr, NULL);
     ADD_BUILTIN("half_recip", f1arg, _frecip_);
     ADD_BUILTIN("native_recip", f1arg, _frecip_);
     ADD_BUILTIN("half_rsqrt", f1arg, _rsqrt_);
