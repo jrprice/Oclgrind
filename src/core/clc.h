@@ -890,7 +890,9 @@ VLOADSTORE(double);
   VSTORE_HALF_ADDRSPACE(func##_rtn, type);
 #define VSTORE_HALF_WIDTH(n)                    \
   VSTORE_HALF_ROUND(vstore_half##n, float##n);  \
-  VSTORE_HALF_ROUND(vstorea_half##n, float##n);
+  VSTORE_HALF_ROUND(vstorea_half##n, float##n); \
+  VSTORE_HALF_ROUND(vstore_half##n, double##n); \
+  VSTORE_HALF_ROUND(vstorea_half##n, double##n);
 #define VLOADSTORE_HALF_WIDTH(n) \
   VLOAD_HALF_WIDTH(n);           \
   VSTORE_HALF_WIDTH(n);
