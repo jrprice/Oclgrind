@@ -99,6 +99,13 @@ namespace oclgrind
         // Value will overflow
         h_exponent = 0x7C00;
         h_mantissa = 0;
+
+        if (round == Half_RTZ)
+          h_mantissa = -1;
+        if (round == Half_RTP && h_sign)
+          h_mantissa = -1;
+        if (round == Half_RTN && !h_sign)
+          h_mantissa = -1;
       }
       else if (e <= 0)
       {
