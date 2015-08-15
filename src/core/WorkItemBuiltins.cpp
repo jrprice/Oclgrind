@@ -3038,13 +3038,13 @@ namespace oclgrind
           case 't':
           case 'j':
           case 'm':
-            result.setFloat((float)UARGV(0, i), i);
+            result.setFloat(UARGV(0, i), i);
             break;
           case 'c':
           case 's':
           case 'i':
           case 'l':
-            result.setFloat((float)SARGV(0, i), i);
+            result.setFloat(SARGV(0, i), i);
             break;
           case 'f':
           case 'd':
