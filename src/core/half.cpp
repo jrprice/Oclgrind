@@ -155,4 +155,99 @@ namespace oclgrind
 
     return h_sign + h_exponent + h_mantissa;
   }
+
+  uint16_t doubleToHalf(double dp, HalfRoundMode round)
+  {
+    uint16_t h_sign, h_exponent, h_mantissa;
+    uint64_t d_sign, d_exponent, d_mantissa;
+
+    union
+    {
+      double d;
+      uint64_t ui;
+    } DtoUI;
+    DtoUI.d = dp;
+    uint64_t d = DtoUI.ui;
+    d_sign     = d & 0x8000000000000000;
+    d_exponent = d & 0x7FF0000000000000;
+    d_mantissa = d & 0x000FFFFFFFFFFFFF;
+
+    h_sign     = d_sign >> 48;
+
+    if (d_exponent == 0)
+    {
+      // Zero
+      h_exponent = 0;
+      h_mantissa = 0;
+    }
+    else if (d_exponent == 0x7FF0000000000000)
+    {
+      // Inf or NaN
+      h_exponent = 0x7C00;
+      h_mantissa = d_mantissa & 0x1FF;
+    }
+    else
+    {
+      int e = (((int64_t)(d_exponent >> 52)) - 1023 + 15);
+      if (e >= 0x1F)
+      {
+        // Value will overflow
+        h_exponent = 0x7C00;
+        h_mantissa = 0;
+
+        if (round == Half_RTZ)
+          h_mantissa = -1;
+        if (round == Half_RTP && h_sign)
+          h_mantissa = -1;
+        if (round == Half_RTN && !h_sign)
+          h_mantissa = -1;
+      }
+      else if (e <= 0)
+      {
+        // Value will underflow
+        h_exponent = 0;
+        if (14 - e > 24)
+        {
+          // Too small - flush to zero
+          h_mantissa = 0;
+        }
+        else
+        {
+          // Convert to denorm
+          d_mantissa |= 0x0010000000000000;
+          h_mantissa = (d_mantissa >> (14-e));
+          if ((d_mantissa >> (13 - e)) & 0x1)
+          {
+            h_mantissa += 0x1;
+          }
+        }
+      }
+      else
+      {
+        // Normalized
+        h_exponent = e << 10;
+        h_mantissa = d_mantissa >> 42;
+        // The current f_mantissa is done in RTZ
+        if (round == Half_RTE && (d & 0x20000000000) != 0)
+        {
+          if ((d & 0x5FFFFFFFFFF) != 0)
+            h_mantissa += 1;
+        }
+        else if (round == Half_RTP)
+        {
+          DtoUI.ui &= 0xFFFFFC0000000000;
+          if (DtoUI.d < dp)
+            h_mantissa += 1;
+        }
+        else if (round == Half_RTN)
+        {
+          DtoUI.ui &= 0xFFFFFC0000000000;
+          if (dp < DtoUI.d)
+            h_mantissa += 1;
+        }
+      }
+    }
+
+    return h_sign + h_exponent + h_mantissa;
+  }
 }

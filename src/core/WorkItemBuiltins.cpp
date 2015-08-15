@@ -2893,7 +2893,9 @@ namespace oclgrind
       unsigned char *data = op.data;
       size = op.num*sizeof(cl_half);
       uint16_t *halfData = (uint16_t*)workItem->m_pool.alloc(2*op.num);
-      HalfRoundMode rmode = Half_RTE; //  The Oclgrind device's round mode
+
+      // Parse rounding mode (RTE is the default)
+      HalfRoundMode rmode = Half_RTE;
       if (fnName.find("_rtz") != std::string::npos)
         rmode = Half_RTZ;
       else if (fnName.find("_rtn") != std::string::npos)
@@ -2906,7 +2908,7 @@ namespace oclgrind
         if (op.size == 4)
           halfData[i] = floatToHalf(((float*)data)[i], rmode);
         else
-          halfData[i] = floatToHalf(((double*)data)[i], rmode);
+          halfData[i] = doubleToHalf(((double*)data)[i], rmode);
       }
 
       size_t address;
