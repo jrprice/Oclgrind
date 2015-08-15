@@ -3100,7 +3100,22 @@ namespace oclgrind
     {
       // Check for saturation modifier
       bool sat = fnName.find("_sat") != string::npos;
-      uint64_t max = (1UL<<(result.size*8)) - 1;
+      uint64_t max;
+      switch (result.size)
+      {
+        case 1:
+          max = UINT8_MAX;
+          break;
+        case 2:
+          max = UINT16_MAX;
+          break;
+        case 4:
+          max = UINT32_MAX;
+          break;
+        case 8:
+          max = UINT64_MAX;
+          break;
+      }
 
       // Use rounding mode
       const int origRnd = fegetround();
