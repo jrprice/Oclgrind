@@ -3160,8 +3160,8 @@ namespace oclgrind
           case 'd':
             if (sat)
             {
-              r = rint((long double)_clamp_(FARGV(0, i),
-                                            0.0L, (long double)max));
+              r = rint(_clamp_((long double)FARGV(0, i),
+                                0.0L, (long double)max));
             }
             else
             {
