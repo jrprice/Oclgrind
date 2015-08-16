@@ -3038,8 +3038,14 @@ namespace oclgrind
           case 't':
           case 'j':
           case 'm':
-            result.setFloat(UARGV(0, i), i);
+          {
+            uint64_t in = UARGV(0, i);
+            if (result.size == 4)
+              result.setFloat(in ? (float)in : 0.f, i);
+            else
+              result.setFloat(in ? (double)in : 0.0, i);
             break;
+          }
           case 'c':
           case 's':
           case 'i':
