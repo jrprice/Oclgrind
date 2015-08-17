@@ -1413,7 +1413,11 @@ INSTRUCTION(uitofp)
   TypedValue op = getOperand(instruction->getOperand(0));
   for (unsigned i = 0; i < result.num; i++)
   {
-    result.setFloat(op.getUInt(i), i);
+    uint64_t in = op.getUInt(i);
+    if (result.size == 4)
+      result.setFloat(in ? (float)in : 0.f, i);
+    else
+      result.setFloat(in ? (double)in : 0.0, i);
   }
 }
 
