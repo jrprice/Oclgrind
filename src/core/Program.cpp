@@ -464,7 +464,7 @@ Program* Program::createFromBitcode(const Context *context,
 #if LLVM_VERSION < 37
   return new Program(context, module.get());
 #else
-  return new Program(context, module.get().get());
+  return new Program(context, module.get().release());
 #endif
 }
 
@@ -495,7 +495,7 @@ Program* Program::createFromBitcodeFile(const Context *context,
 #if LLVM_VERSION < 37
   return new Program(context, module.get());
 #else
-  return new Program(context, module.get().get());
+  return new Program(context, module.get().release());
 #endif
 }
 
