@@ -178,6 +178,12 @@ bool Program::build(const char *options, list<Header> headers)
         continue;
       }
 
+#if LLVM_VERSION >= 37
+      // Clang no longer supports -cl-no-signed-zeros
+      if (strcmp(opt, "-cl-no-signed-zeros") == 0)
+        continue;
+#endif
+
       // Check for -cl-std flag
       if (strncmp(opt, "-cl-std=", 8) == 0)
       {
