@@ -226,7 +226,7 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
 
         if(!ShadowContext::isCleanValue(numShadow))
         {
-            logUninitializedCF();
+            logUninitializedIndex();
         }
 
         // Get stride
