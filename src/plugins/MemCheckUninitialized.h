@@ -47,7 +47,7 @@ namespace oclgrind
             const llvm::CallInst *m_call;
             UnorderedTypedValueMap *m_values;
 #ifdef DUMP_SHADOW
-            ValuesList *valuesList;
+            ValuesList *m_valuesList;
 #endif
     };
 
@@ -291,9 +291,10 @@ namespace oclgrind
             void handleIntrinsicInstruction(const WorkItem *workItem, const llvm::IntrinsicInst *I);
             void loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM,
                                   const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL);
-            void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
+            void logUninitializedAddress(unsigned int addrSpace, size_t address, bool write = true) const;
             void logUninitializedCF() const;
             void logUninitializedIndex() const;
+            void logUninitializedWrite(unsigned int addrSpace, size_t address) const;
             void SimpleOr(const WorkItem *workItem, const llvm::Instruction *I);
             void SimpleOrAtomic(const WorkItem *workItem, const llvm::CallInst *CI);
             void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
