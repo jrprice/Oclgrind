@@ -226,7 +226,7 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
 
         if(!ShadowContext::isCleanValue(numShadow))
         {
-            logUninitializedCF();
+            logUninitializedIndex();
         }
 
         // Get stride
@@ -807,6 +807,23 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
             logUninitializedAddress(addressSpace, address);
         }
 
+        return true;
+    }
+    else if(name == "get_image_array_size")
+    {
+        Image *image = *(Image**)(workItem->getOperand(CI->getArgOperand(0)).data);
+        TypedValue newShadow;
+
+        if(!ShadowContext::isCleanImage(image))
+        {
+            newShadow = ShadowContext::getPoisonedValue(result.size);
+        }
+        else
+        {
+            newShadow = ShadowContext::getCleanValue(result.size);
+        }
+
+        shadowValues->setValue(CI, newShadow);
         return true;
     }
 
@@ -2543,6 +2560,18 @@ TypedValue ShadowContext::getValue(const WorkItem *workItem, const llvm::Value *
         ShadowValues *shadowValues = getShadowWorkItem(workItem)->getValues();
         return shadowValues->getValue(V);
     }
+}
+
+bool ShadowContext::isCleanImage(const Image *image)
+{
+    //TODO: Might not work due to padding in the Image struct
+    TypedValue cleanImage = {
+        sizeof(Image),
+        1,
+        m_workSpace.memoryPool->alloc(sizeof(Image))
+    };
+
+    return (memcmp(cleanImage.data, image, cleanImage.size) == 0);
 }
 
 bool ShadowContext::isCleanStruct(ShadowMemory *shadowMemory, size_t address, const llvm::StructType *structTy)
