@@ -1481,35 +1481,29 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
             const llvm::Value *v2 = shuffleInst->getOperand(1);
             TypedValue mask = workItem->getOperand(shuffleInst->getMask());
             TypedValue maskShadow = shadowContext.getValue(workItem, shuffleInst->getMask());
-            TypedValue newShadow = shadowContext.getMemoryPool()->clone(result);
+            TypedValue newShadow = ShadowContext::getCleanValue(result);
             TypedValue pv = ShadowContext::getPoisonedValue(newShadow.size);
 
+            unsigned num = v1->getType()->getVectorNumElements();
             for(unsigned i = 0; i < newShadow.num; i++)
             {
-                if(shuffleInst->getMask()->getAggregateElement(i)->getValueID() == llvm::Value::UndefValueVal)
+                if(shuffleInst->getMask()->getAggregateElement(i)->getValueID() == llvm::Value::UndefValueVal || !ShadowContext::isCleanValue(maskShadow, i))
                 {
-                    // Don't care / undef
-                    continue;
+                    // Undef value are poisoned
+                    memcpy(newShadow.data + i*newShadow.size, pv.data, newShadow.size);
                 }
 
                 const llvm::Value *src = v1;
                 unsigned int index = mask.getUInt(i);
-                if(index >= newShadow.num)
+                if(index >= num)
                 {
-                    index -= newShadow.num;
+                    index -= num;
                     src = v2;
                 }
 
-                if(!ShadowContext::isCleanValue(maskShadow, i))
-                {
-                    memcpy(newShadow.data + i*newShadow.size, pv.data, newShadow.size);
-                }
-                else
-                {
-                    TypedValue v = shadowContext.getValue(workItem, src);
-                    size_t srcOffset = index*newShadow.size;
-                    memcpy(newShadow.data + i*newShadow.size, v.data + srcOffset, newShadow.size);
-                }
+                TypedValue v = shadowContext.getValue(workItem, src);
+                size_t srcOffset = index*newShadow.size;
+                memcpy(newShadow.data + i*newShadow.size, v.data + srcOffset, newShadow.size);
             }
 
             shadowValues->setValue(instruction, newShadow);
