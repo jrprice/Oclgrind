@@ -1491,6 +1491,7 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 {
                     // Undef value are poisoned
                     memcpy(newShadow.data + i*newShadow.size, pv.data, newShadow.size);
+                    continue;
                 }
 
                 const llvm::Value *src = v1;
