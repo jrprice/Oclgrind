@@ -225,7 +225,12 @@ namespace oclgrind
             {
                 return llvm::isa<llvm::Constant>(V) || m_globalValues.count(V) || m_workSpace.workItems->at(workItem)->getValues()->hasValue(V);
             }
+            static bool isCleanImage(const TypedValue shadowImage);
+            static bool isCleanImageAddress(const TypedValue shadowImage);
+            static bool isCleanImageDescription(const TypedValue shadowImage);
+            static bool isCleanImageFormat(const TypedValue shadowImage);
             static bool isCleanStruct(ShadowMemory *shadowMemory, size_t address, const llvm::StructType *structTy);
+            static bool isCleanValue(unsigned long v);
             static bool isCleanValue(TypedValue v);
             static bool isCleanValue(TypedValue v, unsigned offset);
             void setGlobalValue(const llvm::Value *V, TypedValue SV);

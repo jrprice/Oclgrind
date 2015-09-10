@@ -10,16 +10,17 @@
 #define MAX_ERRORS 8
 
 const char *KERNEL_SOURCE =
-"__kernel void image_copy(__read_only image2d_t src,        \n"
-"                         __write_only image2d_t dst)       \n"
+"__kernel void image_copy(__read_only image2d_array_t src,  \n"
+"                         __write_only image2d_array_t dst) \n"
 "{                                                          \n"
+"   size_t size = get_image_array_size(src);                \n"
 "   const int x = get_global_id(0);                         \n"
 "   const int y = get_global_id(1);                         \n"
 "   const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | \n"
 "                             CLK_ADDRESS_CLAMP |           \n"
 "                             CLK_FILTER_NEAREST;           \n"
-"   float4 pixel = read_imagef(src, sampler, (int2)(x, y)); \n"
-"   write_imagef(dst, (int2)(x, y), pixel);                 \n"
+"   float4 pixel = read_imagef(src, sampler, (int4)(x, y, 0, 0)); \n"
+"   write_imagef(dst, (int4)(x, y, 0, 0), pixel);                 \n"
 "}                                                          \n"
 ;
 

@@ -809,6 +809,110 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
 
         return true;
     }
+    else if(name == "read_imagef" ||
+            name == "read_imagei" ||
+            name == "read_imageui")
+    {
+        Image *image = *(Image**)(workItem->getOperand(CI->getArgOperand(0)).data);
+        TypedValue shadowImage = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue newShadow;
+
+        //FIXME: The new shadow should be loaded from memory
+        //and not generated based on the image description
+        //However, this currently requires to duplicate all functionality
+        //in WorkItemBuiltins.cpp for the image function
+        //Has to be changed in combination with the write functions
+        size_t address = image->address;
+
+        if(!ShadowContext::isCleanImage(shadowImage))
+        {
+            newShadow = ShadowContext::getPoisonedValue(result);
+        }
+        else
+        {
+            newShadow = ShadowContext::getCleanValue(result);
+        }
+
+        shadowValues->setValue(CI, newShadow);
+
+        // Check image
+        if(!ShadowContext::isCleanImageAddress(shadowImage))
+        {
+            logUninitializedAddress(AddrSpaceGlobal, address, false);
+        }
+
+        return true;
+    }
+    else if(name == "write_imagef" ||
+            name == "write_imagei" ||
+            name == "write_imageui")
+    {
+        Image *image = *(Image**)(workItem->getOperand(CI->getArgOperand(0)).data);
+        TypedValue shadowImage = shadowContext.getValue(workItem, CI->getArgOperand(0));
+
+        //FIXME: The actual shadow of the image should be stored to memory
+        //However, this currently requires to duplicate all functionality
+        //in WorkItemBuiltins.cpp for the image function
+        //Has to be changed in combination with the read functions
+        size_t address = image->address;
+
+        // Check image
+        if(!ShadowContext::isCleanImageAddress(shadowImage))
+        {
+            logUninitializedAddress(AddrSpaceGlobal, address);
+        }
+
+        return true;
+    }
+    else if(name.compare(0, 10, "get_image_") == 0)
+    {
+        Image *image = *(Image**)(workItem->getOperand(CI->getArgOperand(0)).data);
+        TypedValue shadowImage = shadowContext.getValue(workItem, CI->getArgOperand(0));
+        TypedValue newShadow = {
+            result.size,
+            result.num,
+            shadowContext.getMemoryPool()->alloc(result.size * result.num)
+        };
+
+        if(name == "get_image_array_size")
+        {
+            newShadow.setUInt(((Image*)shadowImage.data)->desc.image_array_size);
+        }
+        else if(name == "get_image_dim")
+        {
+            newShadow.setUInt(((Image*)shadowImage.data)->desc.image_width, 0);
+            newShadow.setUInt(((Image*)shadowImage.data)->desc.image_height, 1);
+
+            if(newShadow.num > 2)
+            {
+                newShadow.setUInt(((Image*)shadowImage.data)->desc.image_depth, 2);
+                newShadow.setUInt(0, 3);
+            }
+        }
+        else if(name == "get_image_depth")
+        {
+            newShadow.setUInt(((Image*)shadowImage.data)->desc.image_depth);
+        }
+        else if(name == "get_image_height")
+        {
+            newShadow.setUInt(((Image*)shadowImage.data)->desc.image_height);
+        }
+        else if(name == "get_image_width")
+        {
+            newShadow.setUInt(((Image*)shadowImage.data)->desc.image_width);
+        }
+        else if(name == "get_image_channel_order")
+        {
+            newShadow.setUInt(((Image*)shadowImage.data)->format.image_channel_order);
+        }
+        else if(name == "get_image_channel_data_type")
+        {
+            newShadow.setUInt(((Image*)shadowImage.data)->format.image_channel_data_type);
+        }
+
+        shadowValues->setValue(CI, newShadow);
+        return true;
+    }
 
     return false;
 }
@@ -2540,6 +2644,44 @@ TypedValue ShadowContext::getValue(const WorkItem *workItem, const llvm::Value *
     }
 }
 
+bool ShadowContext::isCleanImage(const TypedValue shadowImage)
+{
+    return (isCleanImageAddress(shadowImage) &&
+            isCleanImageDescription(shadowImage) &&
+            isCleanImageFormat(shadowImage));
+}
+
+bool ShadowContext::isCleanImageAddress(const TypedValue shadowImage)
+{
+    Image *image = (Image*)shadowImage.data;
+
+    return ShadowContext::isCleanValue(image->address);
+}
+
+bool ShadowContext::isCleanImageDescription(const TypedValue shadowImage)
+{
+    Image *image = (Image*)shadowImage.data;
+
+    //TODO: image->desc.buffer is currently not checked
+    return (ShadowContext::isCleanValue(image->desc.image_type) &&
+            ShadowContext::isCleanValue(image->desc.image_width) &&
+            ShadowContext::isCleanValue(image->desc.image_height) &&
+            ShadowContext::isCleanValue(image->desc.image_depth) &&
+            ShadowContext::isCleanValue(image->desc.image_array_size) &&
+            ShadowContext::isCleanValue(image->desc.image_row_pitch) &&
+            ShadowContext::isCleanValue(image->desc.image_slice_pitch) &&
+            ShadowContext::isCleanValue(image->desc.num_mip_levels) &&
+            ShadowContext::isCleanValue(image->desc.num_samples));
+}
+
+bool ShadowContext::isCleanImageFormat(const TypedValue shadowImage)
+{
+    Image *image = (Image*)shadowImage.data;
+
+    return (ShadowContext::isCleanValue(image->format.image_channel_order) &&
+            ShadowContext::isCleanValue(image->format.image_channel_data_type));
+}
+
 bool ShadowContext::isCleanStruct(ShadowMemory *shadowMemory, size_t address, const llvm::StructType *structTy)
 {
     if(structTy->isPacked())
@@ -2588,6 +2730,11 @@ bool ShadowContext::isCleanStruct(ShadowMemory *shadowMemory, size_t address, co
 
         return true;
     }
+}
+
+bool ShadowContext::isCleanValue(unsigned long v)
+{
+    return v == 0UL;
 }
 
 bool ShadowContext::isCleanValue(TypedValue v)
