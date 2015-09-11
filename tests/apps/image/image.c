@@ -54,7 +54,7 @@ int main()
     kernel = clCreateKernel(cl.program, "image_copy", &err);
     checkError(err, "creating kernel");
 
-    img_fmt.image_channel_order = CL_RGBA;
+    img_fmt.image_channel_order = CL_RGB;
     img_fmt.image_channel_data_type = CL_FLOAT;
 
     img_desc.image_type = CL_MEM_OBJECT_IMAGE2D;
