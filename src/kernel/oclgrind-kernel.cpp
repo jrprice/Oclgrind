@@ -48,7 +48,11 @@ static bool parseArguments(int argc, char *argv[])
 {
   for (int i = 1; i < argc; i++)
   {
-    if (!strcmp(argv[i], "--build-options"))
+    if (!strcmp(argv[i], "--arithmetic-exceptions"))
+    {
+      setEnvironment("OCLGRIND_ARITHMETIC_EXCEPTIONS", "1");
+    }
+    else if (!strcmp(argv[i], "--build-options"))
     {
       if (++i >= argc)
       {
@@ -190,6 +194,8 @@ static void printUsage()
     << "       oclgrind-kernel [--help | --version]" << endl
     << endl
     << "Options:" << endl
+    << "     --arithmetic-exceptions   "
+             "Enable detection of arithmetic exceptions" << endl
     << "     --build-options  OPTIONS  "
              "Additional options to pass to the OpenCL compiler" << endl
     << "     --data-races              "

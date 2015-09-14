@@ -24,4 +24,8 @@ set_tests_properties(${KERNEL_TESTS} PROPERTIES
 
 # Expected failures
 set_tests_properties(
+    arithmetic/add
+    arithmetic/mul
+    arithmetic/ptr
+    arithmetic/sub
   PROPERTIES WILL_FAIL TRUE)
