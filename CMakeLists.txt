@@ -186,9 +186,9 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/RaceDetector.cpp
   src/plugins/Uninitialized.h
   src/plugins/Uninitialized.cpp)
-target_link_libraries(oclgrind ${CORE_EXTRA_LIBS}
-  clangAnalysis clangAST clangBasic clangCodeGen clangDriver clangEdit
-  clangFrontend clangLex clangParse clangSema clangSerialization
+target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
+  clangFrontend clangSerialization clangDriver clangCodeGen clangSema
+  clangAnalysis clangEdit clangAST clangParse clangSema clangLex clangBasic
   ${LLVM_LIBS})
 
 # Sources for OpenCL runtime API frontend
