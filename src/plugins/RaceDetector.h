@@ -30,7 +30,8 @@ namespace oclgrind
                                    const WorkItem *workItem,
                                    AtomicOp op,
                                    size_t address, size_t size) override;
-    virtual void memoryDeallocated(const Memory *memory, size_t address);
+    virtual void memoryDeallocated(const Memory *memory,
+                                   size_t address) override;
     virtual void memoryLoad(const Memory *memory, const WorkItem *workItem,
                             size_t address, size_t size) override;
     virtual void memoryLoad(const Memory *memory, const WorkGroup *workGroup,
