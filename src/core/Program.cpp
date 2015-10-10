@@ -129,7 +129,11 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-cl-std=CL1.2");
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-fno-builtin");
+#if LLVM_VERSION >= 38
+  args.push_back("-debug-info-kind=standalone");
+#else
   args.push_back("-g");
+#endif
   args.push_back("-triple");
   if (sizeof(size_t) == 4)
     args.push_back("spir-unknown-unknown");

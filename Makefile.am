@@ -97,14 +97,14 @@ src/include/oclgrind/clc.h: $(top_srcdir)/src/core/clc.h
 
 src/include/oclgrind/clc32.pch: src/include/oclgrind/clc.h
 	$(clang) \
-		-cc1 -x cl -cl-std=CL1.2 -O0 -g -fno-builtin \
+		-cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin \
 		-emit-pch -triple spir-unknown-unknown \
 		-relocatable-pch \
 		-isysroot $(abs_builddir)/src/include/oclgrind \
 		$< -o $@
 src/include/oclgrind/clc64.pch: src/include/oclgrind/clc.h
 	$(clang) \
-		-cc1 -x cl -cl-std=CL1.2 -O0 -g -fno-builtin \
+		-cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin \
 		-emit-pch -triple spir64-unknown-unknown \
 		-relocatable-pch \
 		-isysroot $(abs_builddir)/src/include/oclgrind \
