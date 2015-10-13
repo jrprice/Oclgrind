@@ -1,0 +1,9 @@
+ERROR Uninitialized value
+
+EXACT Argument 'output': 6 bytes
+EXACT   output[0] = 1
+MATCH   output[1] = 
+MATCH   output[2] = 
+MATCH   output[3] = 
+MATCH   output[4] = 
+EXACT   output[5] = 2

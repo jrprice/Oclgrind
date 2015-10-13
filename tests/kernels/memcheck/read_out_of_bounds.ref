@@ -1,5 +1,6 @@
 ERROR Invalid read of size 4 at global memory
 ERROR Invalid read of size 4 at global memory
+ERROR Uninitialized value
 
 EXACT Argument 'c': 20 bytes
 EXACT   c[0] = 0

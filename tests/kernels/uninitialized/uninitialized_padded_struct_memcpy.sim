@@ -1,0 +1,8 @@
+uninitialized_padded_struct_memcpy.cl
+uninitialized_padded_struct_memcpy
+1 1 1
+1 1 1
+
+<size=8>
+
+<size=12 int fill=0 dump>

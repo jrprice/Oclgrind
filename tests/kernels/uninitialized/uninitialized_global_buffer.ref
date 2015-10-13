@@ -1,4 +1,4 @@
-ERROR Uninitialized value read from global memory
+ERROR Uninitialized value
 
 EXACT Argument 'output': 4 bytes
 EXACT   output[0] = 0

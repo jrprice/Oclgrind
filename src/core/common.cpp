@@ -214,6 +214,51 @@ namespace oclgrind
     }
   }
 
+  ostream& operator<<(ostream& stream, const TypedValue& tv)
+  {
+      if(tv.data)
+      {
+          if(tv.num > 1)
+          {
+              stream << "(";
+          }
+
+          for(int n = 0; n < tv.num; ++n)
+          {
+              for(int i = tv.size - 1; i >= 0; --i)
+              {
+                  stream << hex << uppercase << setw(2) << setfill('0') << (int)*(tv.data + tv.size * n + i);
+              }
+
+              if(n != tv.num - 1)
+              {
+                  stream << ",";
+              }
+          }
+
+          if(tv.num > 1)
+          {
+              stream << ")";
+          }
+      }
+      else
+      {
+          stream << "NULL";
+      }
+
+      return stream;
+  }
+
+  bool TypedValue::operator==(const TypedValue& rhs) const
+  {
+      return (size == rhs.size) && (num == rhs.num) && (memcmp(data, rhs.data, size*num) == 0);
+  }
+
+  bool TypedValue::operator!=(const TypedValue& rhs) const
+  {
+      return (size != rhs.size) || (num != rhs.num) || (memcmp(data, rhs.data, size*num) != 0);
+  }
+
   TypedValue TypedValue::clone() const
   {
     TypedValue result;

@@ -1,0 +1,12 @@
+ERROR Uninitialized value
+ERROR Uninitialized value
+
+EXACT Argument 'output': 32 bytes
+EXACT   output[0] = 4
+MATCH   output[1] = 
+EXACT   output[2] = 4
+EXACT   output[3] = 4
+EXACT   output[4] = 0.2
+MATCH   output[5] = 
+EXACT   output[6] = 0.2
+EXACT   output[7] = 0.2

@@ -1,4 +1,4 @@
-ERROR Uninitialized value read from private memory
+ERROR Uninitialized value
 
 EXACT Argument 'output': 16 bytes
 EXACT   output[0] = 0

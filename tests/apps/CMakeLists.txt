@@ -11,6 +11,7 @@ include_directories(../common)
 
 # Add app tests
 foreach(test
+  image
   vecadd)
 
   add_executable(${test} ${test}/${test}.c ${COMMON_SOURCES})

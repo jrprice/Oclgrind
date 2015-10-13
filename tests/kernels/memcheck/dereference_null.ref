@@ -1,4 +1,5 @@
 ERROR Invalid read of size 4 at global memory address 0x0
+ERROR Uninitialized value
 
 EXACT Argument 'output': 4 bytes
 EXACT   output[0] = 0

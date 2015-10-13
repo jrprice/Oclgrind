@@ -34,6 +34,8 @@ function usage
   echo          "Redirect log/error messages to a file"
   echo -n "     --max-errors     NUM      "
   echo          "Limit the number of error/warning messages"
+  echo -n "     --memcheck-uninitialized  "
+  echo          "Report usage of uninitialized values"
   echo -n "     --num-threads    NUM      "
   echo          "Set the number of worker threads to use"
   echo -n "     --pch-dir        DIR      "
@@ -112,6 +114,9 @@ do
   elif [ "$1" == "--uninitialized" ]
   then
     export OCLGRIND_UNINITIALIZED=1
+  elif [ "$1" == "--memcheck-uninitialized" ]
+  then
+    export OCLGRIND_MEMCHECK_UNINITIALIZED=1
   elif [ "$1" == "-v" -o "$1" == "--version" ]
   then
     echo

@@ -186,7 +186,9 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/RaceDetector.h
   src/plugins/RaceDetector.cpp
   src/plugins/Uninitialized.h
-  src/plugins/Uninitialized.cpp)
+  src/plugins/Uninitialized.cpp
+  src/plugins/MemCheckUninitialized.h
+  src/plugins/MemCheckUninitialized.cpp)
 target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
   clangFrontend clangSerialization clangDriver clangCodeGen clangSema
   clangAnalysis clangEdit clangAST clangParse clangSema clangLex clangBasic
@@ -335,7 +337,6 @@ if (PYTHONINTERP_FOUND)
 
   # Expected failures
   set_tests_properties(
-    uninitialized/padded_struct_memcpy_fp
     PROPERTIES WILL_FAIL TRUE)
 
   # Add app and runtime tests
