@@ -866,7 +866,6 @@ bool MemCheckUninitialized::handleBuiltinFunction(const WorkItem *workItem, stri
     }
     else if(name.compare(0, 10, "get_image_") == 0)
     {
-        Image *image = *(Image**)(workItem->getOperand(CI->getArgOperand(0)).data);
         TypedValue shadowImage = shadowContext.getValue(workItem, CI->getArgOperand(0));
         TypedValue newShadow = {
             result.size,
