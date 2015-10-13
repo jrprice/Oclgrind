@@ -1110,8 +1110,6 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 function = (const llvm::Function*)funcPtr;
             }
 
-            assert(!function->isVarArg() && "Variadic functions are not supported!");
-
             // For inline asm, do the usual thing: check argument shadow and mark all
             // outputs as clean. Note that any side effects of the inline asm that are
             // not immediately visible in its constraints are not handled.
@@ -1143,6 +1141,8 @@ void MemCheckUninitialized::instructionExecuted(const WorkItem *workItem,
                 }
                 break;
             }
+
+            assert(!function->isVarArg() && "Variadic functions are not supported!");
 
             assert(!llvm::isa<const llvm::IntrinsicInst>(instruction) && "intrinsics are handled elsewhere");
 
