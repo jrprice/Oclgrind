@@ -264,6 +264,7 @@ namespace oclgrind
                     const llvm::Instruction *instruction,
                     const TypedValue& result) override;
             virtual void kernelBegin(const KernelInvocation *kernelInvocation) override;
+            virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
             virtual void memoryMap(const Memory *memory, size_t address,
                     size_t offset, size_t size, cl_map_flags flags) override;
             virtual void workItemBegin(const WorkItem *workItem) override;

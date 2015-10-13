@@ -1820,6 +1820,12 @@ void MemCheckUninitialized::kernelBegin(const KernelInvocation *kernelInvocation
     }
 }
 
+void MemCheckUninitialized::kernelEnd(const KernelInvocation *kernelInvocation)
+{
+    m_deferredInit.clear();
+    m_deferredInitGroup.clear();
+}
+
 void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM, const WorkItem *workItem, const WorkGroup *workGroup)
 {
     if(addrSpace == AddrSpaceConstant)
