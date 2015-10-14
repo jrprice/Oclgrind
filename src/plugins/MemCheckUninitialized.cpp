@@ -2205,9 +2205,7 @@ ShadowValues::~ShadowValues()
 {
     while(!m_stack->empty())
     {
-        ShadowFrame *frame = m_stack->top();
-        m_stack->pop();
-        delete frame;
+        popFrame();
     }
 
     delete m_stack;

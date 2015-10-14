@@ -76,7 +76,9 @@ namespace oclgrind
             }
             inline void popFrame()
             {
+                ShadowFrame *frame = m_stack->top();
                 m_stack->pop();
+                delete frame;
             }
             inline void pushFrame(ShadowFrame *frame)
             {
