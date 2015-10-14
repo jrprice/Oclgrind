@@ -185,6 +185,7 @@ namespace oclgrind
 
             void allocateWorkItems();
             void allocateWorkGroups();
+            void clearGlobalValues();
             void createMemoryPool();
             ShadowWorkItem* createShadowWorkItem(const WorkItem *workItem);
             ShadowWorkGroup* createShadowWorkGroup(const WorkGroup *workGroup);

@@ -1823,6 +1823,7 @@ void MemCheckUninitialized::kernelEnd(const KernelInvocation *kernelInvocation)
 {
     m_deferredInit.clear();
     m_deferredInitGroup.clear();
+    shadowContext.clearGlobalValues();
 }
 
 void MemCheckUninitialized::loadShadowMemory(unsigned addrSpace, size_t address, TypedValue &SM, const WorkItem *workItem, const WorkGroup *workGroup)
@@ -2409,6 +2410,11 @@ void ShadowContext::allocateWorkGroups()
     {
         m_workSpace.workGroups = new ShadowGroupMap();
     }
+}
+
+void ShadowContext::clearGlobalValues()
+{
+    m_globalValues.clear();
 }
 
 void ShadowContext::createMemoryPool()
