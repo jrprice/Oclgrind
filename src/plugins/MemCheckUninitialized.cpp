@@ -2099,6 +2099,7 @@ void MemCheckUninitialized::workGroupComplete(const WorkGroup *workGroup)
 {
     shadowContext.destroyShadowWorkGroup(workGroup);
     shadowContext.freeWorkGroups();
+    shadowContext.destroyMemoryPool();
 }
 
 ShadowFrame::ShadowFrame() :
