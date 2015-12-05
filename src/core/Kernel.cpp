@@ -39,12 +39,12 @@ Kernel::Kernel(const Program *program,
       unsigned size = getTypeSize(init->getType());
       TypedValue value = {size, 1, new uint8_t[size]};
       getConstantData(value.data, init);
-      m_values[itr] = value;
+      m_values[&*itr] = value;
 
       break;
     }
     case AddrSpaceConstant:
-      m_constants.push_back(itr);
+      m_constants.push_back(&*itr);
       break;
     case AddrSpaceLocal:
     {
@@ -52,7 +52,7 @@ Kernel::Kernel(const Program *program,
       TypedValue allocSize = {
         getTypeSize(itr->getInitializer()->getType()), 1, NULL
       };
-      m_values[itr] = allocSize;
+      m_values[&*itr] = allocSize;
 
       break;
     }
@@ -115,7 +115,7 @@ bool Kernel::allArgumentsSet() const
   llvm::Function::const_arg_iterator itr;
   for (itr = m_function->arg_begin(); itr != m_function->arg_end(); itr++)
   {
-    if (!m_values.count(itr))
+    if (!m_values.count(&*itr))
     {
       return false;
     }
@@ -177,7 +177,7 @@ const llvm::Argument* Kernel::getArgument(unsigned int index) const
   {
     argItr++;
   }
-  return argItr;
+  return &*argItr;
 }
 
 unsigned int Kernel::getArgumentAccessQualifier(unsigned int index) const

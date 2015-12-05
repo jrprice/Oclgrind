@@ -765,7 +765,8 @@ void Program::removeLValueLoads()
   set<llvm::StoreInst*> aggStores;
   for (llvm::Module::iterator F = m_module->begin(); F != m_module->end(); F++)
   {
-    for (llvm::inst_iterator I = inst_begin(F), E = inst_end(F); I != E; I++)
+    llvm::Function *f = &*F;
+    for (llvm::inst_iterator I = inst_begin(f), E = inst_end(f); I != E; I++)
     {
       if (auto store = llvm::dyn_cast<llvm::StoreInst>(&*I))
         aggStores.insert(store);
@@ -1025,7 +1026,8 @@ void Program::stripDebugIntrinsics()
   set<llvm::Instruction*> intrinsics;
   for (llvm::Module::iterator F = m_module->begin(); F != m_module->end(); F++)
   {
-    for (llvm::inst_iterator I = inst_begin(F), E = inst_end(F); I != E; I++)
+    llvm::Function *f = &*F;
+    for (llvm::inst_iterator I = inst_begin(f), E = inst_end(f); I != E; I++)
     {
       if (I->getOpcode() == llvm::Instruction::Call)
       {

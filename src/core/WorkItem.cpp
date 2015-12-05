@@ -31,9 +31,9 @@ using namespace std;
 struct WorkItem::Position
 {
   bool hasBegun;
-  llvm::Function::const_iterator       prevBlock;
-  llvm::Function::const_iterator       currBlock;
-  llvm::Function::const_iterator       nextBlock;
+  const llvm::BasicBlock *             prevBlock;
+  const llvm::BasicBlock *             currBlock;
+  const llvm::BasicBlock *             nextBlock;
   llvm::BasicBlock::const_iterator     currInst;
   std::stack<const llvm::Instruction*> callStack;
   std::stack< std::list<size_t> >      allocations;
@@ -109,7 +109,7 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   m_position->hasBegun = false;
   m_position->prevBlock = NULL;
   m_position->nextBlock = NULL;
-  m_position->currBlock = kernel->getFunction()->begin();
+  m_position->currBlock = &*kernel->getFunction()->begin();
   m_position->currInst = m_position->currBlock->begin();
 }
 
@@ -338,7 +338,7 @@ const llvm::BasicBlock* WorkItem::getCurrentBlock() const
 
 const llvm::Instruction* WorkItem::getCurrentInstruction() const
 {
-  return m_position->currInst;
+  return &*m_position->currInst;
 }
 
 Size3 WorkItem::getGlobalID() const
@@ -492,7 +492,7 @@ const llvm::Value* WorkItem::getVariable(std::string name) const
             global++)
   {
     if (global->getName() == globalName)
-      return global;
+      return &*global;
   }
 
   return NULL;
@@ -567,7 +567,7 @@ WorkItem::State WorkItem::step()
   }
 
   // Execute the next instruction
-  execute(m_position->currInst);
+  execute(&*m_position->currInst);
 
   // Check if we've reached the end of the block
   if (++m_position->currInst == m_position->currBlock->end() ||
@@ -724,9 +724,9 @@ INSTRUCTION(call)
   // Check if function has definition
   if (!function->isDeclaration())
   {
-    m_position->callStack.push(m_position->currInst);
+    m_position->callStack.push(&*m_position->currInst);
     m_position->allocations.push(list<size_t>());
-    m_position->nextBlock = function->begin();
+    m_position->nextBlock = &*function->begin();
 
     // Set function arguments
     llvm::Function::const_arg_iterator argItr;
@@ -752,11 +752,11 @@ INSTRUCTION(call)
           m_pool.alloc(sizeof(size_t))
         };
         address.setPointer(ptr);
-        setValue(argItr, address);
+        setValue(&*argItr, address);
       }
       else
       {
-        setValue(argItr, m_pool.clone(value));
+        setValue(&*argItr, m_pool.clone(value));
       }
     }
 
@@ -1204,7 +1204,11 @@ INSTRUCTION(ret)
 
   if (!m_position->callStack.empty())
   {
+#if LLVM_VERSION < 38
     m_position->currInst = m_position->callStack.top();
+#else
+    m_position->currInst.reset(m_position->callStack.top());
+#endif
     m_position->currBlock = m_position->currInst->getParent();
     m_position->callStack.pop();
 
@@ -1212,7 +1216,7 @@ INSTRUCTION(ret)
     const llvm::Value *returnVal = retInst->getReturnValue();
     if (returnVal)
     {
-      setValue(m_position->currInst, m_pool.clone(getOperand(returnVal)));
+      setValue(&*m_position->currInst, m_pool.clone(getOperand(returnVal)));
     }
 
     // Clear stack allocations
@@ -1460,7 +1464,7 @@ InterpreterCache::InterpreterCache(llvm::Function *kernel)
   llvm::Module::const_global_iterator G;
   for (G = module->global_begin(); G != module->global_end(); G++)
   {
-    addValueID(G);
+    addValueID(&*G);
   }
 
 
@@ -1480,7 +1484,7 @@ InterpreterCache::InterpreterCache(llvm::Function *kernel)
     llvm::Function::arg_iterator A;
     for (A = function->arg_begin(); A != function->arg_end(); A++)
     {
-      addValueID(A);
+      addValueID(&*A);
     }
 
     // Iterate through instructions in function

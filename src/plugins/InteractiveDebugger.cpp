@@ -308,7 +308,7 @@ void InteractiveDebugger::printFunction(
       cout << ", ";
     }
     cout << argItr->getName().str() << "=";
-    m_kernelInvocation->getCurrentWorkItem()->printValue(argItr);
+    m_kernelInvocation->getCurrentWorkItem()->printValue(&*argItr);
   }
 
   cout << ") at line " << dec << getLineNumber(instruction) << endl;
