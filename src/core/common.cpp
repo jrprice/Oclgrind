@@ -341,7 +341,7 @@ namespace oclgrind
   {
     // Get operands
     unsigned numOperands = expr->getNumOperands();
-    llvm::Value **valueOperands = new llvm::Value*[numOperands];
+    llvm::Value *valueOperands[numOperands];
     for (unsigned i = 0; i < numOperands; i++)
     {
       valueOperands[i] = expr->getOperand(i);
