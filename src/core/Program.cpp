@@ -514,19 +514,28 @@ Program* Program::createFromPrograms(const Context *context,
 {
   llvm::Module *module = new llvm::Module("oclgrind_linked",
                                           llvm::getGlobalContext());
+#if LLVM_VERSION < 38
   llvm::Linker linker(module);
+#else
+  llvm::Linker linker(*module, nullptr);
+#endif
 
   // Link modules
   list<const Program*>::iterator itr;
   for (itr = programs.begin(); itr != programs.end(); itr++)
   {
-    if (linker.linkInModule(CloneModule((*itr)->m_module.get())))
+#if LLVM_VERSION < 38
+    llvm::Module *m = llvm::CloneModule((*itr)->m_module.get());
+#else
+    llvm::Module &m = *llvm::CloneModule((*itr)->m_module.get());
+#endif
+    if (linker.linkInModule(m))
     {
       return NULL;
     }
   }
 
-  return new Program(context, linker.getModule());
+  return new Program(context, module);
 }
 
 Kernel* Program::createKernel(const string name)
