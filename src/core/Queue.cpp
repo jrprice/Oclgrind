@@ -7,6 +7,7 @@
 // source code.
 
 #include "common.h"
+
 #include <cassert>
 
 #include "Context.h"

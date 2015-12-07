@@ -7,6 +7,7 @@
 // source code.
 
 #include "common.h"
+
 #include <sstream>
 
 #include "llvm/IR/Module.h"
