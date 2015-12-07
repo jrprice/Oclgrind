@@ -47,7 +47,7 @@ oclgrind_includedir = $(includedir)/oclgrind
 oclgrind_include_HEADERS = src/core/common.h src/core/Context.h	\
  src/core/half.h src/core/Kernel.h src/core/KernelInvocation.h	\
  src/core/Memory.h src/core/Plugin.h src/core/Program.h		\
- src/core/Queue.h src/core/WorkItem.h src/core/WorkGroup.h config.h LICENSE
+ src/core/Queue.h src/core/WorkItem.h src/core/WorkGroup.h LICENSE
 src/core/clc_h.cpp: src/core/gen_clc_h.sh	src/core/clc.h
 	$(top_srcdir)/src/core/gen_clc_h.sh $(top_srcdir)/src/core/clc.h $@
 
