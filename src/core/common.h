@@ -9,7 +9,6 @@
 #ifndef __common_h_
 #define __common_h_
 
-#include "config.h"
 #include "CL/cl.h"
 #include <cassert>
 #include <cstdio>

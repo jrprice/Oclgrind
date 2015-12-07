@@ -6,7 +6,9 @@
 // license terms please see the LICENSE file distributed with this
 // source code.
 
+#include "config.h"
 #include "common.h"
+
 #include <algorithm>
 #include <float.h>
 #include <fenv.h>

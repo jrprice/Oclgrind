@@ -6,7 +6,6 @@
 // license terms please see the LICENSE file distributed with this
 // source code.
 
-#include "config.h"
 #include <cassert>
 #include <cmath>
 #include <iostream>
