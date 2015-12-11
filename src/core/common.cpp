@@ -358,13 +358,8 @@ namespace oclgrind
     const llvm::ConstantExpr *expr)
   {
     // Get operands
-    unsigned numOperands = expr->getNumOperands();
-    llvm::Value *valueOperands[numOperands];
-    for (unsigned i = 0; i < numOperands; i++)
-    {
-      valueOperands[i] = expr->getOperand(i);
-    }
-    llvm::ArrayRef<llvm::Value*> operands(valueOperands, numOperands);
+    vector<llvm::Value*> valueOperands(expr->op_begin(), expr->op_end());
+    llvm::ArrayRef<llvm::Value*> operands(valueOperands);
 
     // Create instruction
     unsigned opcode = expr->getOpcode();
