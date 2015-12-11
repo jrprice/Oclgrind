@@ -273,10 +273,27 @@ namespace oclgrind
     switch (type->getTypeID())
     {
     case llvm::Type::IntegerTyID:
-      memcpy(data,
-             ((llvm::ConstantInt*)constant)->getValue().getRawData(),
-             size);
+    {
+      uint64_t ui = ((llvm::ConstantInt*)constant)->getZExtValue();
+      switch (size)
+      {
+      case 1:
+        *((uint8_t*)data) = ui;
+        break;
+      case 2:
+        *((uint16_t*)data) = ui;
+        break;
+      case 4:
+        *((uint32_t*)data) = ui;
+        break;
+      case 8:
+        *((uint64_t*)data) = ui;
+        break;
+      default:
+        FATAL_ERROR("Unsupported constant int size: %u bytes", size);
+      }
       break;
+    }
     case llvm::Type::FloatTyID:
     {
       *(float*)data =
