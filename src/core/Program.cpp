@@ -519,7 +519,7 @@ Program* Program::createFromPrograms(const Context *context,
 #if LLVM_VERSION < 38
   llvm::Linker linker(module);
 #else
-  llvm::Linker linker(*module, nullptr);
+  llvm::Linker linker(*module);
 #endif
 
   // Link modules
