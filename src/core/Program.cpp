@@ -529,9 +529,9 @@ Program* Program::createFromPrograms(const Context *context,
 #if LLVM_VERSION < 38
     llvm::Module *m = llvm::CloneModule((*itr)->m_module.get());
 #else
-    llvm::Module &m = *llvm::CloneModule((*itr)->m_module.get());
+    unique_ptr<llvm::Module> m = llvm::CloneModule((*itr)->m_module.get());
 #endif
-    if (linker.linkInModule(m))
+    if (linker.linkInModule(std::move(m)))
     {
       return NULL;
     }
