@@ -170,7 +170,8 @@ bool Program::build(const char *options, list<Header> headers)
     // Ignore options that break PCH
     if (strcmp(opt, "-cl-fast-relaxed-math") != 0 &&
         strcmp(opt, "-cl-finite-math-only") != 0 &&
-        strcmp(opt, "-cl-single-precision-constant") != 0)
+        strcmp(opt, "-cl-single-precision-constant") &&
+        strcmp(opt, "-cl-unsafe-math-optimizations") != 0)
     {
       // Check for optimization flags
       if (strcmp(opt, "-O0") == 0 || strcmp(opt, "-cl-opt-disable") == 0)
