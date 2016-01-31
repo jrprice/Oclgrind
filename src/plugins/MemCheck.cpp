@@ -45,7 +45,7 @@ void MemCheck::instructionExecuted(const WorkItem *workItem,
     return;
   }
 
-  if (auto GEPI = llvm::dyn_cast<llvm::GetElementPtrInst>(PtrOp))
+  if (auto GEPI = llvm::dyn_cast<llvm::GetElementPtrInst>(PtrOp->stripPointerCasts()))
   {
     checkArrayAccess(workItem, GEPI);
   }
