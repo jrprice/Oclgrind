@@ -44,6 +44,7 @@ data-race/local_write_write_race
 data-race/uniform_write_race
 memcheck/async_copy_out_of_bounds
 memcheck/atomic_out_of_bounds
+memcheck/casted_static_array
 memcheck/dereference_null
 memcheck/fake_out_of_bounds
 memcheck/read_out_of_bounds

@@ -1,0 +1,4 @@
+ERROR exceeds static array size
+
+EXACT Argument 'output': 8 bytes
+MATCH   output[0] =
