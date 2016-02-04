@@ -1,4 +1,7 @@
 ERROR exceeds static array size
+ERROR exceeds static array size
+ERROR exceeds static array size
+ERROR exceeds static array size
 
-EXACT Argument 'output': 8 bytes
-MATCH   output[0] =
+EXACT Argument 'p1': 8 bytes
+MATCH   p1[0] =
