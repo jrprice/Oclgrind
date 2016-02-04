@@ -45,9 +45,13 @@ void MemCheck::instructionExecuted(const WorkItem *workItem,
     return;
   }
 
-  if (auto GEPI = llvm::dyn_cast<llvm::GetElementPtrInst>(PtrOp->stripPointerCasts()))
+  // Walk up chain of GEP instructions leading to this access
+  while (auto GEPI =
+           llvm::dyn_cast<llvm::GetElementPtrInst>(PtrOp->stripPointerCasts()))
   {
     checkArrayAccess(workItem, GEPI);
+
+    PtrOp = GEPI->getPointerOperand();
   }
 }
 
