@@ -142,10 +142,6 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_UNINITIALIZED", "1");
     }
-    else if (!strcmp(argv[i], "--memcheck-uninitialized"))
-    {
-      setEnvironment("OCLGRIND_MEMCHECK_UNINITIALIZED", "1");
-    }
     else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version"))
     {
       cout << endl;
@@ -213,8 +209,6 @@ static void printUsage()
              "Redirect log/error messages to a file" << endl
     << "     --max-errors     NUM      "
              "Limit the number of error/warning messages" << endl
-    << "     --memcheck-uninitialized  "
-             "Report usage of uninitialized values" << endl
     << "     --num-threads    NUM      "
              "Set the number of worker threads to use" << endl
     << "     --pch-dir        DIR      "
@@ -226,7 +220,7 @@ static void printUsage()
     << "     --uniform-writes          "
              "Don't suppress uniform write-write data-races" << endl
     << "     --uninitialized           "
-             "Report loads from uninitialized memory locations" << endl
+             "Report usage of uninitialized values" << endl
     << "  -v --version                 "
              "Display version information" << endl
     << endl

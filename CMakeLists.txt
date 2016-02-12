@@ -186,9 +186,7 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/RaceDetector.h
   src/plugins/RaceDetector.cpp
   src/plugins/Uninitialized.h
-  src/plugins/Uninitialized.cpp
-  src/plugins/MemCheckUninitialized.h
-  src/plugins/MemCheckUninitialized.cpp)
+  src/plugins/Uninitialized.cpp)
 target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
   clangFrontend clangSerialization clangDriver clangCodeGen clangSema
   clangAnalysis clangEdit clangAST clangParse clangSema clangLex clangBasic

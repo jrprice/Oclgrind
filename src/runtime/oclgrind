@@ -34,8 +34,6 @@ function usage
   echo          "Redirect log/error messages to a file"
   echo -n "     --max-errors     NUM      "
   echo          "Limit the number of error/warning messages"
-  echo -n "     --memcheck-uninitialized  "
-  echo          "Report usage of uninitialized values"
   echo -n "     --num-threads    NUM      "
   echo          "Set the number of worker threads to use"
   echo -n "     --pch-dir        DIR      "
@@ -47,7 +45,7 @@ function usage
   echo -n "     --uniform-writes          "
   echo          "Don't suppress uniform write-write data-races"
   echo -n "     --uninitialized           "
-  echo          "Report loads from uninitialized memory locations"
+  echo          "Report usage of uninitialized values"
   echo -n "  -v --version                 "
   echo          "Display version information"
   echo
@@ -114,9 +112,6 @@ do
   elif [ "$1" == "--uninitialized" ]
   then
     export OCLGRIND_UNINITIALIZED=1
-  elif [ "$1" == "--memcheck-uninitialized" ]
-  then
-    export OCLGRIND_MEMCHECK_UNINITIALIZED=1
   elif [ "$1" == "-v" -o "$1" == "--version" ]
   then
     echo
