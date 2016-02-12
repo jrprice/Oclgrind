@@ -1164,7 +1164,7 @@ void Uninitialized::instructionExecuted(const WorkItem *workItem,
                     assert(Val->getType()->isPointerTy() && "ByVal argument is not a pointer!");
                     // Make new copy of shadow in private memory
                     size_t origShadowAddress = workItem->getOperand(Val).getPointer();
-                    size_t newShadowAddress = workItem->getOperand(argItr).getPointer();
+                    size_t newShadowAddress = workItem->getOperand(&*argItr).getPointer();
                     ShadowMemory *mem = shadowWorkItem->getPrivateMemory();
                     unsigned char *origShadowData = (unsigned char*)mem->getPointer(origShadowAddress);
                     size_t size = getTypeSize(argItr->getType()->getPointerElementType());
@@ -1173,12 +1173,12 @@ void Uninitialized::instructionExecuted(const WorkItem *workItem,
                     TypedValue v = ShadowContext::getCleanValue(size);
                     memcpy(v.data, origShadowData, size);
                     allocAndStoreShadowMemory(AddrSpacePrivate, newShadowAddress, v, workItem);
-                    values->setValue(argItr, ShadowContext::getCleanValue(argItr));
+                    values->setValue(&*argItr, ShadowContext::getCleanValue(&*argItr));
                 }
                 else
                 {
                     TypedValue newShadow = shadowContext.getMemoryPool()->clone(shadowContext.getValue(workItem, Val));
-                    values->setValue(argItr, newShadow);
+                    values->setValue(&*argItr, newShadow);
                 }
             }
 
