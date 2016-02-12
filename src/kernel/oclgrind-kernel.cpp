@@ -221,7 +221,7 @@ static void printUsage()
     << "     --uniform-writes          "
              "Don't suppress uniform write-write data-races" << endl
     << "     --uninitialized           "
-             "Report loads from uninitialized memory locations" << endl
+             "Report usage of uninitialized values" << endl
     << "  -v --version                 "
              "Display version information" << endl
     << endl

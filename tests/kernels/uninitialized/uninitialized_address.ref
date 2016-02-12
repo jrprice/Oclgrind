@@ -1,0 +1,5 @@
+ERROR Uninitialized address
+ERROR Uninitialized address
+
+EXACT Argument 'output': 8 bytes
+MATCH   output[0] = 

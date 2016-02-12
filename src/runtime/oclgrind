@@ -45,7 +45,7 @@ function usage
   echo -n "     --uniform-writes          "
   echo          "Don't suppress uniform write-write data-races"
   echo -n "     --uninitialized           "
-  echo          "Report loads from uninitialized memory locations"
+  echo          "Report usage of uninitialized values"
   echo -n "  -v --version                 "
   echo          "Display version information"
   echo

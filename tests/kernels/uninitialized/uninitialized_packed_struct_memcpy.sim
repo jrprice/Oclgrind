@@ -1,0 +1,8 @@
+uninitialized_packed_struct_memcpy.cl
+uninitialized_packed_struct_memcpy
+1 1 1
+1 1 1
+
+<size=8>
+
+<size=6 char fill=0 dump>
