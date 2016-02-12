@@ -188,8 +188,8 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/Uninitialized.h
   src/plugins/Uninitialized.cpp)
 target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
-  clangFrontend clangSerialization clangDriver clangCodeGen clangAnalysis
-  clangEdit clangAST clangParse clangSema clangLex clangBasic
+  clangFrontend clangSerialization clangDriver clangCodeGen
+  clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
   ${LLVM_LIBS})
 
 # Sources for OpenCL runtime API frontend
