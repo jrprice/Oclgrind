@@ -2,12 +2,13 @@ For more information, please visit the Oclgrind Wiki:
 https://github.com/jrprice/Oclgrind/wiki
 
 
-Oclgrind 15.X
+Oclgrind 16.X
 =============
-Placeholder text for next release.
+This release incorporates the following changes:
 
-- Added plugin to detect loads from uninitialized memory locations
+- Added plugin to detect use of uninitialized values
 - Added memoryMap and memoryUnmap plugin callbacks
+- Added support for LLVM 3.7 and 3.8
 - Report invalid uses of mapped buffers inside kernels
 - Report invalid indices when accessing statically sized arrays
 - Improved coverage of race detection plugin
