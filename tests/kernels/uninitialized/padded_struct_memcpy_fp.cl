@@ -13,7 +13,7 @@ kernel void padded_struct_memcpy_fp(local struct S *scratch,
   struct S s;
   s.a = 42;
   s.b = -7;
-  s.c = 255;
+  s.c = 127;
 
   if (lid == 0)
   {
