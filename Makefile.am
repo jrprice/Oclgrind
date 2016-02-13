@@ -114,10 +114,10 @@ EXTRA_DIST = NEWS src/core/gen_clc_h.sh src/core/clc.h			\
  src/runtime/oclgrind src/CL/cl.h src/CL/cl_gl.h src/CL/cl_platform.h	\
  src/CL/cl_ext.h src/CL/cl_gl_ext.h src/CL/cl_egl.h src/CL/cl_d3d10.h	\
  src/CL/cl_d3d11.h src/CL/cl_dx9_media_sharing.h src/CL/opencl.h	\
- CMakeLists.txt tests/apps/CMakeLists.txt tests/runtime/CMakeLists.txt	\
- cmake_config.h.in src/core/gen_clc_h.cmake src/runtime/icd.def		\
- src/runtime/runtime.def src/install/INSTALL.darwin			\
- src/install/INSTALL.linux src/install/INSTALL.windows			\
- src/install/install.bat src/install/uninstall.bat			\
- src/install/oclgrind-icd.reg
+ CMakeLists.txt tests/apps/CMakeLists.txt tests/kernels/CMakeLists.txt	\
+ tests/runtime/CMakeLists.txt cmake_config.h.in				\
+ src/core/gen_clc_h.cmake src/runtime/icd.def src/runtime/runtime.def	\
+ src/install/INSTALL.darwin src/install/INSTALL.linux			\
+ src/install/INSTALL.windows src/install/install.bat			\
+ src/install/uninstall.bat src/install/oclgrind-icd.reg
 CLEANFILES = src/core/clc_h.cpp $(bin_SCRIPTS) $(noinst_SCRIPTS)
