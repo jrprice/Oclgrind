@@ -39,10 +39,6 @@ else:
   test_ref = os.path.dirname(os.path.abspath(__file__)) + os.path.sep \
     + rel_path + '.ref'
 
-print current_dir
-print test_full_path
-print test_ref
-
 # Enable race detection and uninitialized memory plugins
 os.environ["OCLGRIND_CHECK_API"] = "1"
 os.environ["OCLGRIND_DATA_RACES"] = "1"
