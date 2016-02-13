@@ -1923,14 +1923,14 @@ void Uninitialized::SimpleOrAtomic(const WorkItem *workItem, const llvm::CallIns
     const llvm::Value *Addr = CI->getArgOperand(0);
     unsigned addrSpace = Addr->getType()->getPointerAddressSpace();
     size_t address = workItem->getOperand(Addr).getPointer();
-    TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
+
     TypedValue oldShadow = {
         4,
         1,
         shadowContext.getMemoryPool()->alloc(4)
     };
 
-    TypedValue newShadow;
+    TypedValue newShadow = ShadowContext::getCleanValue(4);
 
     if(addrSpace == AddrSpaceGlobal)
     {
@@ -1939,13 +1939,18 @@ void Uninitialized::SimpleOrAtomic(const WorkItem *workItem, const llvm::CallIns
 
     loadShadowMemory(addrSpace, address, oldShadow, workItem);
 
-    if(!ShadowContext::isCleanValue(argShadow) || !ShadowContext::isCleanValue(oldShadow))
+    if (!ShadowContext::isCleanValue(oldShadow))
     {
         newShadow = ShadowContext::getPoisonedValue(4);
     }
-    else
+
+    if (CI->getNumArgOperands() > 1)
     {
-        newShadow = ShadowContext::getCleanValue(4);
+        TypedValue argShadow = shadowContext.getValue(workItem, CI->getArgOperand(1));
+        if(!ShadowContext::isCleanValue(argShadow))
+        {
+            newShadow = ShadowContext::getPoisonedValue(4);
+        }
     }
 
     storeShadowMemory(addrSpace, address, newShadow, workItem);
