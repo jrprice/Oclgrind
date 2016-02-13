@@ -9,6 +9,8 @@
 #include "config.h"
 #include "common.h"
 
+#include <math.h>
+
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/InstrTypes.h"

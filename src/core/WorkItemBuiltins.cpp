@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <float.h>
 #include <fenv.h>
+#include <math.h>
 #include <mutex>
 
 #include "llvm/IR/Instructions.h"
