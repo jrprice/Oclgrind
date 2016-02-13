@@ -1,6 +1,6 @@
 #!/bin/bash
 # oclgrind (Oclgrind)
-# Copyright (c) 2013-2015, James Price and Simon McIntosh-Smith,
+# Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
 # University of Bristol. All rights reserved.
 #
 # This program is provided under a three-clause BSD license. For full
@@ -117,7 +117,7 @@ do
     echo
     echo "Oclgrind __VERSION__"
     echo
-    echo "Copyright (c) 2013-2015"
+    echo "Copyright (c) 2013-2016"
     echo "James Price and Simon McIntosh-Smith, University of Bristol"
     echo "https://github.com/jrprice/Oclgrind"
     echo
