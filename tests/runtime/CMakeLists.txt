@@ -28,6 +28,7 @@ foreach(test
     NAME rt_${test}
     COMMAND
     ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/run_test.py
+    $<TARGET_FILE:oclgrind-kernel>
     $<TARGET_FILE:${test}>)
 
   set_tests_properties(rt_${test} PROPERTIES DEPENDS ${test})

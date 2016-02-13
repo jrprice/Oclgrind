@@ -24,9 +24,11 @@ TESTS = $(check_PROGRAMS)
 if HAVE_PYTHON
 
 TEST_EXTENSIONS = .sim
-LOG_COMPILER = $(PYTHON) $(srcdir)/run_test.py
+LOG_COMPILER = $(PYTHON) \
+  $(srcdir)/run_test.py  \
+  ${abs_top_builddir}/oclgrind-kernel
 SIM_LOG_COMPILER = $(PYTHON)        \
-  $(srcdir)/kernels/run_kernel_test.py  \
+  $(srcdir)/run_test.py  \
   ${abs_top_builddir}/oclgrind-kernel
 AM_TESTS_ENVIRONMENT = \
   export OCLGRIND_PCH_DIR=$(abs_top_builddir)/src/include/oclgrind;
@@ -44,5 +46,5 @@ check-local:
 	@echo
 endif
 
-EXTRA_DIST = run_test.py kernels/run_kernel_test.py \
-  kernels/TESTS $(KERNEL_TEST_INPUTS)
+EXTRA_DIST = run_test.py kernels/TESTS $(KERNEL_TEST_INPUTS) \
+  runtime/map_buffer.ref
