@@ -21,12 +21,11 @@ Binary releases can be found on the GitHub releases page:
 
 Building
 --------
-To build this project, you will require the LLVM and Clang 3.6
-development libraries and headers. With some modifications, it may
-also be possible to use other (recent) versions of LLVM. If building
-LLVM from source, it is recommended to enable optimizations to improve
-the performance of Oclgrind (configure with --enable-optimized, or set
-CMAKE_BUILD_TYPE to RelWithDebInfo).
+To build this project, you will need LLVM and Clang 3.6 (or newer)
+development libraries and headers. If you build LLVM from source, it
+is recommended to enable optimizations to significantly improve the
+performance of Oclgrind (set CMAKE_BUILD_TYPE to RelWithDebInfo, or
+configure with --enable-optimized).
 
 You will also need to use a compiler that supports C++11.
 
