@@ -21,11 +21,12 @@ Binary releases can be found on the GitHub releases page:
 
 Build dependencies
 ------------------
+
 To build this project, you will need LLVM and Clang 3.6 (or newer)
 development libraries and headers. If you build LLVM from source, it
 is recommended to enable optimizations to significantly improve the
-performance of Oclgrind (set CMAKE_BUILD_TYPE to RelWithDebInfo, or
-configure with --enable-optimized).
+performance of Oclgrind (set `CMAKE_BUILD_TYPE` to `RelWithDebInfo`,
+or configure with `--enable-optimized`).
 
 You will need to use a compiler that supports C++11. Python should
 also be available in order to run the test suite.
@@ -36,37 +37,40 @@ Building on Linux and OS X (CMake)
 The recommended method of building Oclgrind is via CMake.
 
 When configuring the CMake build, you may be prompted to supply a
-value for the LLVM_DIR parameter (this shouldn't be necessary if LLVM
-is installed in a standard system location). This should be set to the
-directory containing your LLVM installation's LLVMConfig.cmake file
-(typically ${LLVM_ROOT}/share/llvm/cmake/). If Clang is installed
-separately to LLVM, then you may also be prompted to supply a path for
-the CLANG_ROOT parameter, which should be the root of your Clang
-installation (containing the bin/, lib/ and include/ directories).
+value for the `LLVM_DIR` parameter (this shouldn't be necessary if
+LLVM is installed in a standard system location). This should be set
+to the directory containing your LLVM installation's
+`LLVMConfig.cmake` file (typically `${LLVM_ROOT}/share/llvm/cmake/`).
+If Clang is installed separately to LLVM, then you may also be
+prompted to supply a path for the `CLANG_ROOT` parameter, which should
+be the root of your Clang installation (containing the `bin/`, `lib/`
+and `include/` directories).
 
 A typical CMake command-line might look like this:
 
-  cmake ${OCLGRIND_SOURCE} \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_ROOT} \
-        -DLLVM_DIR=${LLVM_ROOT}/share/llvm/cmake
+    cmake ${OCLGRIND_SOURCE} \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DCMAKE_INSTALL_PREFIX=${INSTALL_ROOT} \
+          -DLLVM_DIR=${LLVM_ROOT}/share/llvm/cmake
 
-where ${OCLGRIND_SOURCE} is the path to the root directory containing
-the Oclgrind source code, ${LLVM_ROOT} is the path to the LLVM
-installation, and ${INSTALL_ROOT} is the desired installation root
-directory (this can be omitted if installing to system directories).
+where `${OCLGRIND_SOURCE}` is the path to the root directory
+containing the Oclgrind source code, `${LLVM_ROOT}` is the path to the
+LLVM installation, and `${INSTALL_ROOT}` is the desired installation
+root directory (this can be omitted if installing to system
+directories).
 
 Next, build and install with make:
 
-  make
-  make test
-  make install
+    make
+    make test
+    make install
 
-If installing to a non-system location, you should add the bin/
-directory to the PATH environment variable in order to make use of the
-oclgrind command. If you wish to use Oclgrind via the OpenCL ICD
+If installing to a non-system location, you should add the `bin/`
+directory to the `PATH` environment variable in order to make use of
+the `oclgrind` command. If you wish to use Oclgrind via the OpenCL ICD
 (optional), then you should create an ICD loading point by copying the
-oclgrind.icd file from the build directory to /etc/OpenCL/vendors/.
+`oclgrind.icd` file from the build directory to
+`/etc/OpenCL/vendors/`.
 
 
 Building on Linux and OS X (autotools)
@@ -75,34 +79,35 @@ An autotools build system is also provided as an alternative to
 CMake. This will likely be removed in a future version of Oclgrind.
 
 If you are building directly from the GitHub repository, you will need
-to run 'autoreconf -i' to generate the necessary build files. This is
+to run `autoreconf -i` to generate the necessary build files. This is
 not required if you are using a released source package.
 
-Run ./configure to generate the Makefile, optionally using
---prefix=PATH to specify the target installation directory. If you
+Run `configure` to generate the Makefile, optionally using
+`--prefix=PATH` to specify the target installation directory. If you
 don't have the LLVM includes and libraries on your search path, you
 can specify the location of your LLVM installation using the
---with-llvm=PATH option. For example:
+`--with-llvm=PATH` option. For example:
 
-  ./configure --prefix=$PWD/build/ --with-llvm=PATH/TO/LLVM/INSTALL
+    ./configure --prefix=$PWD/build/ --with-llvm=PATH/TO/LLVM/INSTALL
 
 This path should be the directory in which LLVM is installed (e.g. the
-path specified to --prefix or CMAKE_INSTALL_PATH when LLVM was
+path specified to `--prefix` or `CMAKE_INSTALL_PREFIX` when LLVM was
 built). If the Clang includes and libraries are not on your search
 path or in the same location as LLVM, you can use the
---with-clang=PATH option to specify its root directory.
+`--with-clang=PATH` option to specify its root directory.
 
 Next, build and install with make:
 
-  make
-  make check
-  make install
+    make
+    make check
+    make install
 
-If installing to a non-default location, you should add the bin/
-directory to the PATH environment variable in order to make use of the
-oclgrind command. If you wish to use Oclgrind via the OpenCL ICD
+If installing to a non-default location, you should add the `bin/`
+directory to the `PATH` environment variable in order to make use of
+the `oclgrind` command. If you wish to use Oclgrind via the OpenCL ICD
 (optional), then you should create an ICD loading point by copying the
-oclgrind.icd file from the build directory to /etc/OpenCL/vendors/.
+`oclgrind.icd` file from the build directory to
+`/etc/OpenCL/vendors/`.
 
 
 Building on Windows
@@ -111,49 +116,50 @@ Building Oclgrind on Windows requires Visual Studio 2013 (or newer),
 and Windows 7 (or newer).
 
 When configuring the CMake build, you may be prompted to supply a
-value for the LLVM_DIR parameter. This should be set to the directory
-containing your LLVM installation's LLVMConfig.cmake file (for example
-C:\Program Files\LLVM\share\llvm\cmake\). If Clang is installed
-separately to LLVM, then you will also be prompted to supply a path in
-the CLANG_ROOT parameter, which should be the root of your Clang
-installation (containing the bin/, lib/ and include/ directories).
+value for the `LLVM_DIR` parameter. This should be set to the
+directory containing your LLVM installation's `LLVMConfig.cmake` file
+(for example `C:\Program Files\LLVM\share\llvm\cmake\`). If Clang is
+installed separately to LLVM, then you may also be prompted to supply
+a path in the `CLANG_ROOT` parameter, which should be the root of your
+Clang installation (containing the `bin/`, `lib/` and `include/`
+directories).
 
 If you wish to use Oclgrind via the OpenCL ICD (recommended), then you
 should also create an ICD loading point. To do this, you should add a
-REG_DWORD value to the Windows Registry under one or both of the
+`REG_DWORD` value to the Windows Registry under one or both of the
 registry keys below, with the name set to the absolute path of the
-oclgrind-rt-icd.dll library and the value set to 0.
+`oclgrind-rt-icd.dll` library and the value set to 0.
 
 Key for 32-bit machines or 64-bit apps on a 64-bit machine:
-HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors
+`HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors`
 
 Key for 32-bit apps on a 64-bit machine:
-HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Khronos\OpenCL\Vendors
+`HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Khronos\OpenCL\Vendors`
 
 
 Usage
 -----
 The recommended method of running an application with Oclgrind is to
-use the oclgrind command, for example:
+use the `oclgrind` command, for example:
 
-  oclgrind ./application
+    oclgrind ./application
 
 This command will make it such the only OpenCL platform and device
 available to your application is Oclgrind. If you need more control
 over platform selection then installing an ICD loading point for
 Oclgrind will cause it to appear when an application calls
-clGetPlatformIDs(), alongside any other OpenCL platforms installed on
-your system.
+`clGetPlatformIDs()`, alongside any other OpenCL platforms installed
+on your system.
 
 If it encounters any invalid memory accesses, Oclgrind will
 report the details to stderr, for example:
 
-  Invalid write of size 4 at global memory address 0x1000000000040
-      Kernel:  vecadd
-      Entity:  Global(16,0,0) Local(0,0,0) Group(16,0,0)
-      store i32 %tmp9, i32 addrspace(1)* %tmp15, align 4
-      At line 4 of input.cl
-        c[i] = a[i] + b[i]
+    Invalid write of size 4 at global memory address 0x1000000000040
+        Kernel:  vecadd
+        Entity:  Global(16,0,0) Local(0,0,0) Group(16,0,0)
+        store i32 %tmp9, i32 addrspace(1)* %tmp15, align 4
+        At line 4 of input.cl
+          c[i] = a[i] + b[i]
 
 Since it is interpreting an abstract intermediate representation and
 bounds-checking each memory access, Oclgrind will run quite slowly
@@ -161,17 +167,17 @@ bounds-checking each memory access, Oclgrind will run quite slowly
 implementation). Therefore, it is recommended to run your application
 with a small problem if possible.
 
-To enable an interactive, GDB-style debugging session, supply the -i
+To enable an interactive, GDB-style debugging session, supply the `-i`
 flag to the oclgrind command, or export the environment variable
-OCLGRIND_INTERACTIVE=1. This will cause Oclgrind to automatically
+`OCLGRIND_INTERACTIVE=1`. This will cause Oclgrind to automatically
 break at the beginning of each kernel invocation, and upon
-encountering an invalid memory access. Type 'help' for details of
+encountering an invalid memory access. Type `help` for details of
 available commands.
 
 For more detailed information about using Oclgrind please visit the
 GitHub Wiki:
 
-    https://github.com/jrprice/Oclgrind/wiki/
+  https://github.com/jrprice/Oclgrind/wiki/
 
 
 Contact
@@ -179,7 +185,8 @@ Contact
 If you encounter any issues or have any questions, please use the
 GitHub issues page:
 
-    https://github.com/jrprice/Oclgrind/issues
+  https://github.com/jrprice/Oclgrind/issues
 
 You can also contact the primary developer via email:
-James Price <j.price@bristol.ac.uk>
+
+  James Price <j.price@bristol.ac.uk>
