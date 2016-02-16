@@ -1,0 +1,9 @@
+EXACT Argument 'res': 32 bytes
+EXACT   res[0] = 1
+EXACT   res[1] = 1
+EXACT   res[2] = 2
+EXACT   res[3] = 2
+EXACT   res[4] = 3
+EXACT   res[5] = 3
+EXACT   res[6] = 4
+EXACT   res[7] = 4
