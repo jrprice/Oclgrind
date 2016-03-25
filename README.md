@@ -189,4 +189,4 @@ GitHub issues page:
 
 You can also contact the primary developer via email:
 
-  James Price <j.price@bristol.ac.uk>
+  James Price `<j.price@bristol.ac.uk>`
