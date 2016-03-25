@@ -22,6 +22,7 @@ atomics/atomic_same_workitem
 barrier/barrier_different_instructions
 barrier/barrier_divergence
 bugs/byval_function_argument
+bugs/false_warning_vector_argument
 bugs/gvn_arbitrary_integers
 bugs/kernel_struct_argument
 bugs/many_alloca

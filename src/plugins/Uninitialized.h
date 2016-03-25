@@ -237,6 +237,7 @@ namespace oclgrind
             static bool isCleanValue(TypedValue v);
             static bool isCleanValue(TypedValue v, unsigned offset);
             void setGlobalValue(const llvm::Value *V, TypedValue SV);
+            static void shadowOr(TypedValue v1, TypedValue v2);
 
         private:
             ShadowMemory *m_globalMemory;
@@ -308,5 +309,6 @@ namespace oclgrind
             void SimpleOrAtomic(const WorkItem *workItem, const llvm::CallInst *CI);
             void storeShadowMemory(unsigned addrSpace, size_t address, TypedValue SM,
                                    const WorkItem *workItem = NULL, const WorkGroup *workGroup = NULL, bool unchecked = false);
+            void VectorOr(const WorkItem *workItem, const llvm::Instruction *I);
     };
 }
