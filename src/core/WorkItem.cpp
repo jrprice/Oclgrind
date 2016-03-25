@@ -880,7 +880,7 @@ INSTRUCTION(fcmp)
     }
 
     // Deal with NaN operands
-    if (::isnan(a) || ::isnan(b))
+    if (std::isnan(a) || std::isnan(b))
     {
       r = !llvm::CmpInst::isOrdered(pred);
     }

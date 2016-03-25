@@ -454,7 +454,7 @@ namespace oclgrind
 
     static double _sign_(double x)
     {
-      if (::isnan(x))  return  0.0;
+      if (std::isnan(x)) return 0.0;
       if (x  >  0.0) return  1.0;
       if (x == -0.0) return -0.0;
       if (x ==  0.0) return  0.0;
@@ -742,7 +742,7 @@ namespace oclgrind
           lengthSq = 0.0;
           for (unsigned i = 0; i < result.num; i++)
           {
-            if (::isinf(values[i]))
+            if (std::isinf(values[i]))
             {
               values[i] = copysign(1.0, FARGV(0, i));
               lengthSq += 1.0;
@@ -2385,7 +2385,7 @@ namespace oclgrind
       {
         double x = FARGV(0, i);
         double fl, r;
-        if (::isnan(x))
+        if (std::isnan(x))
         {
           r = nan("");
           fl = nan("");
@@ -2467,7 +2467,7 @@ namespace oclgrind
       {
         double x = FARGV(0, i);
         double integral = trunc(x);
-        double fractional = copysign(::isinf(x) ? 0.0 : x - integral, x);
+        double fractional = copysign(std::isinf(x) ? 0.0 : x - integral, x);
 
         size_t offset = i*result.size;
         result.setFloat(integral, i);
@@ -2517,13 +2517,13 @@ namespace oclgrind
         {
           r = nan("");
         }
-        else if (::isnan(x) || ::isnan(y))
+        else if (std::isnan(x) || std::isnan(y))
         {
           r = nan("");
         }
         else if (x == 1.0)
         {
-          if (::isinf(y))
+          if (std::isinf(y))
             r = nan("");
           else
             r = 1.0;
@@ -2683,8 +2683,8 @@ namespace oclgrind
     static int64_t _isle_(double x, double y){ return islessequal(x, y); }
     static int64_t _islg_(double x, double y){ return islessgreater(x, y); }
     static int64_t _isfin_(double x){ return isfinite(x); }
-    static int64_t _isinf_(double x){ return ::isinf(x); }
-    static int64_t _isnan_(double x){ return ::isnan(x); }
+    static int64_t _isinf_(double x){ return std::isinf(x); }
+    static int64_t _isnan_(double x){ return std::isnan(x); }
     static int64_t _isnorm_(double x){ return isnormal(x); }
     static int64_t _isord_(double x, double y){ return !isunordered(x, y); }
     static int64_t _isuord_(double x, double y){ return isunordered(x, y); }
