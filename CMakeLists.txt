@@ -61,6 +61,11 @@ llvm_map_components_to_libnames(LLVM_LIBS
   bitreader bitwriter core instrumentation ipo irreader
   linker mcparser objcarcopts option target)
 
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER "3.8")
+  llvm_map_components_to_libnames(LLVM_COVERAGE coverage)
+  list(APPEND LLVM_LIBS ${LLVM_COVERAGE})
+endif()
+
 
 # Allow user to set path to Clang installation via CLANG_ROOT
 set (CLANG_ROOT " " CACHE PATH "Root of Clang installation")
