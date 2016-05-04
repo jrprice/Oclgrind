@@ -8,6 +8,11 @@
 
 #include "common.h"
 
+namespace llvm
+{
+  class LLVMContext;
+}
+
 namespace oclgrind
 {
   class KernelInvocation;
@@ -26,6 +31,7 @@ namespace oclgrind
     virtual ~Context();
 
     Memory* getGlobalMemory() const;
+    llvm::LLVMContext* getLLVMContext() const;
     bool isThreadSafe() const;
     void logError(const char* error) const;
 
@@ -72,6 +78,8 @@ namespace oclgrind
     std::list<void*> m_pluginLibraries;
     void loadPlugins();
     void unloadPlugins();
+
+    llvm::LLVMContext *m_llvmContext;
 
   public:
     class Message

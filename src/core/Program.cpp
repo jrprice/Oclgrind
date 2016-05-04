@@ -32,6 +32,7 @@
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
 
+#include "Context.h"
 #include "Kernel.h"
 #include "Program.h"
 #include "WorkItem.h"
@@ -338,8 +339,7 @@ bool Program::build(const char *options, list<Header> headers)
   compiler.getPreprocessorOpts().addRemappedFile(REMAP_INPUT, buffer.release());
 
   // Compile
-  llvm::LLVMContext& context = llvm::getGlobalContext();
-  clang::EmitLLVMOnlyAction action(&context);
+  clang::EmitLLVMOnlyAction action(m_context->getLLVMContext());
   if (compiler.ExecuteAction(action))
   {
     // Retrieve module
@@ -468,7 +468,7 @@ Program* Program::createFromBitcode(const Context *context,
 #else
   llvm::ErrorOr<unique_ptr<llvm::Module>> module =
 #endif
-    parseBitcodeFile(buffer->getMemBufferRef(), llvm::getGlobalContext());
+    parseBitcodeFile(buffer->getMemBufferRef(), *context->getLLVMContext());
   if (!module)
   {
     return NULL;
@@ -499,7 +499,7 @@ Program* Program::createFromBitcodeFile(const Context *context,
   llvm::ErrorOr<unique_ptr<llvm::Module>> module =
 #endif
     parseBitcodeFile(buffer->get()->getMemBufferRef(),
-                     llvm::getGlobalContext());
+                     *context->getLLVMContext());
   if (!module)
   {
     return NULL;
@@ -516,7 +516,7 @@ Program* Program::createFromPrograms(const Context *context,
                                      list<const Program*> programs)
 {
   llvm::Module *module = new llvm::Module("oclgrind_linked",
-                                          llvm::getGlobalContext());
+                                          *context->getLLVMContext());
 #if LLVM_VERSION < 38
   llvm::Linker linker(module);
 #else

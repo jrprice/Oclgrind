@@ -18,6 +18,7 @@
 
 #include <mutex>
 
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/Instruction.h"
 
@@ -41,6 +42,8 @@ using namespace std;
 
 Context::Context()
 {
+  m_llvmContext = new llvm::LLVMContext;
+
   m_globalMemory = new Memory(AddrSpaceGlobal, sizeof(size_t)==8 ? 16 : 8,
                               this);
   m_kernelInvocation = NULL;
@@ -50,6 +53,7 @@ Context::Context()
 
 Context::~Context()
 {
+  delete m_llvmContext;
   delete m_globalMemory;
 
   unloadPlugins();
@@ -68,6 +72,11 @@ bool Context::isThreadSafe() const
 Memory* Context::getGlobalMemory() const
 {
   return m_globalMemory;
+}
+
+llvm::LLVMContext* Context::getLLVMContext() const
+{
+  return m_llvmContext;
 }
 
 void Context::loadPlugins()
