@@ -141,10 +141,10 @@ fi
 LIBDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../lib"
 if [ "$(uname -s)" == "Darwin" ]
 then
-  DYLD_LIBRARY_PATH=$LIBDIR:$DYLD_LIBRARY_PATH \
+  exec env DYLD_LIBRARY_PATH=$LIBDIR:$DYLD_LIBRARY_PATH \
     DYLD_INSERT_LIBRARIES=$LIBDIR/liboclgrind-rt.dylib \
     DYLD_FORCE_FLAT_NAMESPACE=1 "$@"
 else
-  LD_LIBRARY_PATH=$LIBDIR:$LD_LIBRARY_PATH \
+  exec env LD_LIBRARY_PATH=$LIBDIR:$LD_LIBRARY_PATH \
     LD_PRELOAD=$LIBDIR/liboclgrind-rt.so "$@"
 fi
