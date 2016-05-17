@@ -3504,6 +3504,44 @@ namespace oclgrind
       workItem->getMemory(addressSpace)->store(buffer, dest, size);
     }
 
+    DEFINE_BUILTIN(llvm_bswap)
+    {
+      for ( unsigned i = 0; i < result.num; i++ )
+      {
+        switch ( result.size )
+        {
+          case 2:
+          {
+            unsigned short v = UARGV( 0, i );
+            unsigned short r = ((v & 0xff) << 8) | ((v & 0xff00) >> 8);
+            result.setUInt(r, i);
+            break;
+          }
+          case 4:
+          {
+            unsigned v = UARGV(0, i);
+            unsigned r = ((v & 0xff) << 24) | ((v & 0xff00) << 8) | ((v & 0xff0000) >> 8) | ((v & 0xff000000) >> 24);
+            result.setUInt(r, i);
+            break;
+          }
+          case 8:
+          {
+            uint64_t v = UARGV(0, i);
+            uint64_t r = ((v & 0xff) << 56) | 
+                         ((v & 0xff00) << 40) | 
+                         ((v & 0xff0000) << 24) | 
+                         ((v & 0xff000000) << 8) | 
+                         ((v & 0xff00000000LL) >> 8) |
+                         ((v & 0xff0000000000LL) >> 24) | 
+                         ((v & 0xff000000000000LL) >> 40) | 
+                         ((v & 0xff00000000000000LL) >> 56);
+            result.setUInt(r, i);
+            break;
+          }
+        }
+      }
+    }
+
     DEFINE_BUILTIN(llvm_trap)
     {
       FATAL_ERROR("Encountered trap instruction");
@@ -3783,6 +3821,7 @@ namespace oclgrind
     ADD_PREFIX_BUILTIN("llvm.memmove", llvm_memcpy, NULL);
     ADD_PREFIX_BUILTIN("llvm.memset", llvm_memset, NULL);
     ADD_PREFIX_BUILTIN("llvm.fmuladd", fma_builtin, NULL);
+    ADD_PREFIX_BUILTIN("llvm.bswap", llvm_bswap, NULL);
     ADD_BUILTIN("llvm.trap", llvm_trap, NULL);
 
     return builtins;
