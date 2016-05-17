@@ -63,6 +63,7 @@ class Simulation
       size_t size;
       ArgDataType type;
       std::string name;
+      bool hex;
     };
     std::list<DumpArg> m_dumpArguments;
 

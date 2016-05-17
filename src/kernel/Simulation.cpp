@@ -58,10 +58,13 @@ void Simulation::dumpArgument(DumpArg& arg)
   for (size_t i = 0; i < num; i++)
   {
     cout << "  " << arg.name << "[" << i << "] = ";
+    if (arg.hex)
+      cout << "0x" << setfill('0') << setw(sizeof(T)*2) << hex;
     if (sizeof(T) == 1)
       cout << (int)data[i];
     else
       cout << data[i];
+    cout << dec;
     cout << endl;
   }
   cout << endl;
@@ -266,6 +269,7 @@ void Simulation::parseArgument(size_t index)
   size_t typeSize = 0;
   bool null = false;
   bool dump = false;
+  bool hex = false;
   bool noinit = false;
   string fill = "";
   string range = "";
@@ -357,6 +361,7 @@ void Simulation::parseArgument(size_t index)
     }
     else if (token == "hex")
     {
+      hex = true;
       m_lineBuffer.setf(ios_base::hex);
       m_lineBuffer.unsetf(ios_base::dec | ios_base::oct);
     }
@@ -623,6 +628,7 @@ void Simulation::parseArgument(size_t index)
           size,
           type,
           name,
+          hex
         };
         m_dumpArguments.push_back(dump);
       }
