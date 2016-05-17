@@ -961,6 +961,12 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem *workItem, const l
             }
             break;
         }
+        case llvm::Intrinsic::bswap:
+        {
+            // TODO: byte-level accuracy
+            SimpleOr(workItem, I);
+            break;
+        }
         case llvm::Intrinsic::memset:
         {
             const llvm::MemSetInst *memsetInst = (const llvm::MemSetInst*)I;
