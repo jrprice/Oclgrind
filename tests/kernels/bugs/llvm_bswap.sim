@@ -1,0 +1,12 @@
+llvm_bswap.cl
+test
+1 1 1
+1 1 1
+
+<size=16 hex>
+0x00000001
+0x10000000
+0x12345678
+0x12233445
+
+<size=16 fill=0 hex dump>

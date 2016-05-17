@@ -3413,6 +3413,17 @@ namespace oclgrind
     // LLVM Intrinsics //
     /////////////////////
 
+    DEFINE_BUILTIN(llvm_bswap)
+    {
+      uint64_t r = 0;
+      uint64_t value = UARG(0);
+      for (unsigned i = 0; i < result.size; i++)
+      {
+        r |= ((value>>(i*8)) & 0xFF) << ((result.size - i - 1)*8);
+      }
+      result.setUInt(r);
+    }
+
     DEFINE_BUILTIN(llvm_dbg_declare)
     {
       const llvm::DbgDeclareInst *dbgInst =
@@ -3774,6 +3785,7 @@ namespace oclgrind
     ADD_BUILTIN("printf", printf_builtin, NULL);
 
     // LLVM Intrinsics
+    ADD_PREFIX_BUILTIN("llvm.bswap.", llvm_bswap, NULL);
     ADD_BUILTIN("llvm.dbg.declare", llvm_dbg_declare, NULL);
     ADD_BUILTIN("llvm.dbg.value", llvm_dbg_value, NULL);
     ADD_PREFIX_BUILTIN("llvm.fabs.f", f1arg, F1ARG(fabs));
