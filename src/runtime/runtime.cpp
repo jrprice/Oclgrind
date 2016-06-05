@@ -349,13 +349,6 @@ clGetDeviceIDs
     ReturnError(NULL, CL_INVALID_VALUE);
   }
 
-  if (device_type != CL_DEVICE_TYPE_CPU &&
-      device_type != CL_DEVICE_TYPE_DEFAULT &&
-      device_type != CL_DEVICE_TYPE_ALL)
-  {
-    ReturnError(NULL, CL_DEVICE_NOT_FOUND);
-  }
-
   if (devices)
   {
     *devices = m_device;
