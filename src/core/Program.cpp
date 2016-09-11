@@ -158,7 +158,7 @@ bool Program::build(const char *options, list<Header> headers)
   bool cl12     = true;
 
   // Disable optimizations by default if in interactive mode
-  if (!checkEnv("OCLGRIND_INTERACTIVE"))
+  if (checkEnv("OCLGRIND_INTERACTIVE"))
     optimize = false;
 
   // Add OpenCL build options
