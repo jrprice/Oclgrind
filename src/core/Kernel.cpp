@@ -287,7 +287,15 @@ const llvm::StringRef Kernel::getArgumentTypeName(unsigned int index) const
     return "";
   }
 
-  return llvm::dyn_cast<llvm::MDString>(md)->getString();
+  llvm::StringRef name = llvm::dyn_cast<llvm::MDString>(md)->getString();
+#if LLVM_VERSION >= 39
+  size_t imgStart = name.find(" image");
+  if (imgStart != llvm::StringRef::npos)
+  {
+    name = name.substr(imgStart+1);
+  }
+#endif
+  return name;
 }
 
 unsigned int Kernel::getArgumentTypeQualifier(unsigned int index) const
