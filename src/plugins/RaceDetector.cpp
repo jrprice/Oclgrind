@@ -44,18 +44,16 @@ void RaceDetector::kernelBegin(const KernelInvocation *kernelInvocation)
 void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
 {
   // Log races
-  for (auto race = kernelRaces.begin(); race != kernelRaces.end(); race++)
-    logRace(*race);
+  for (auto race : kernelRaces)
+    logRace(race);
   kernelRaces.clear();
 
   // Clear all global memory accesses
-  for (auto buffer  = m_globalAccesses.begin();
-            buffer != m_globalAccesses.end();
-            buffer++)
+  for (auto buffer : m_globalAccesses)
   {
-    size_t sz = buffer->second.size();
-    buffer->second.clear();
-    buffer->second.resize(sz);
+    size_t sz = buffer.second.size();
+    buffer.second.clear();
+    buffer.second.resize(sz);
   }
 
   m_kernelInvocation = NULL;
@@ -174,17 +172,15 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
 
   // Merge global accesses across kernel invocation
   size_t group = workGroup->getGroupIndex();
-  for (auto record  = state.wgGlobal.begin();
-            record != state.wgGlobal.end();
-            record++)
+  for (auto record : state.wgGlobal)
   {
-    size_t address = record->first;
+    size_t address = record.first;
     size_t buffer = m_context->getGlobalMemory()->extractBuffer(address);
     size_t offset = m_context->getGlobalMemory()->extractOffset(address);
 
     lock_guard<mutex> lock(GLOBAL_MUTEX(buffer, offset));
 
-    AccessRecord& a = record->second;
+    AccessRecord& a = record.second;
     AccessRecord& b = m_globalAccesses.at(buffer)[offset];
 
     // Check for races with previous accesses
@@ -402,13 +398,11 @@ void RaceDetector::syncWorkItems(const Memory *memory,
   for (size_t i = 0; i < state.numWorkItems + 1; i++)
   {
     RaceList races;
-    for (auto record  = accesses[i].begin();
-              record != accesses[i].end();
-              record++)
+    for (auto record : accesses[i])
     {
-      size_t address = record->first;
+      size_t address = record.first;
 
-      AccessRecord& a = record->second;
+      AccessRecord& a = record.second;
       AccessRecord& b = wgAccesses[address];
 
       if (check(a.load,  b.store))
@@ -435,8 +429,8 @@ void RaceDetector::syncWorkItems(const Memory *memory,
     accesses[i].clear();
 
     // Log races
-    for (auto race = races.begin(); race != races.end(); race++)
-      logRace(*race);
+    for (auto race : races)
+      logRace(race);
   }
 }
 
