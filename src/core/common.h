@@ -52,7 +52,7 @@ namespace llvm
   class ConstantExpr;
   class ConstantInt;
   class Instruction;
-  class MDOperand;
+  class Metadata;
   class StructType;
   class Type;
   class Value;
@@ -161,8 +161,8 @@ namespace oclgrind
   const llvm::Instruction* getConstExprAsInstruction(
     const llvm::ConstantExpr *expr);
 
-  // Get the ConstantInt object for an MDOperand
-  const llvm::ConstantInt* getMDOpAsConstInt(const llvm::MDOperand& op);
+  // Get the ConstantInt object for a Metadata node
+  const llvm::ConstantInt* getMDAsConstInt(const llvm::Metadata *md);
 
   // Get the byte offset of a struct member
   unsigned getStructMemberOffset(const llvm::StructType *type, unsigned index);

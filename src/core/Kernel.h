@@ -17,6 +17,7 @@ namespace llvm
   class Function;
   class GlobalVariable;
   class MDNode;
+  class Metadata;
   class Module;
 }
 
@@ -64,6 +65,7 @@ namespace oclgrind
     TypedValueMap m_values;
 
     const llvm::Argument* getArgument(unsigned int index) const;
-    const llvm::MDNode* getArgumentMetadata(std::string name) const;
+    const llvm::Metadata* getArgumentMetadata(std::string name,
+                                              unsigned int index) const;
   };
 }

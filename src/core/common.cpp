@@ -499,10 +499,9 @@ namespace oclgrind
     }
   }
 
-  const llvm::ConstantInt* getMDOpAsConstInt(const llvm::MDOperand& op)
+  const llvm::ConstantInt* getMDAsConstInt(const llvm::Metadata *md)
   {
-    llvm::Metadata *md = op.get();
-    llvm::ConstantAsMetadata *cam =
+    const llvm::ConstantAsMetadata *cam =
       llvm::dyn_cast<llvm::ConstantAsMetadata>(md);
     if (!cam)
       return NULL;

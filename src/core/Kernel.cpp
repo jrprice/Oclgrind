@@ -185,16 +185,16 @@ unsigned int Kernel::getArgumentAccessQualifier(unsigned int index) const
 {
   assert(index < getNumArguments());
 
-  // Get metadata node
-  const llvm::MDNode *node = getArgumentMetadata("kernel_arg_access_qual");
-  if (!node)
+  // Get metadata
+  const llvm::Metadata *md =
+    getArgumentMetadata("kernel_arg_access_qual", index);
+  if (!md)
   {
     return -1;
   }
 
   // Get qualifier string
-  llvm::MDString *str
-    = llvm::dyn_cast<llvm::MDString>(node->getOperand(index+1));
+  const llvm::MDString *str = llvm::dyn_cast<llvm::MDString>(md);
   string access = str->getString();
   if (access == "read_only")
   {
@@ -215,15 +215,15 @@ unsigned int Kernel::getArgumentAddressQualifier(unsigned int index) const
 {
   assert(index < getNumArguments());
 
-  // Get metadata node
-  const llvm::MDNode *node = getArgumentMetadata("kernel_arg_addr_space");
-  if (!node)
+  // Get metadata
+  const llvm::Metadata *md =
+    getArgumentMetadata("kernel_arg_addr_space", index);
+  if (!md)
   {
     return -1;
   }
 
-  // Get address space
-  switch(getMDOpAsConstInt(node->getOperand(index+1))->getZExtValue())
+  switch(getMDAsConstInt(md)->getZExtValue())
   {
     case AddrSpacePrivate:
       return CL_KERNEL_ARG_ADDRESS_PRIVATE;
@@ -238,7 +238,8 @@ unsigned int Kernel::getArgumentAddressQualifier(unsigned int index) const
   }
 }
 
-const llvm::MDNode* Kernel::getArgumentMetadata(string name) const
+const llvm::Metadata* Kernel::getArgumentMetadata(string name,
+                                                  unsigned int index) const
 {
   if (!m_metadata)
   {
@@ -255,7 +256,7 @@ const llvm::MDNode* Kernel::getArgumentMetadata(string name) const
       if (node->getNumOperands() > 0 &&
           ((llvm::MDString*)(node->getOperand(0).get()))->getString() == name)
       {
-        return node;
+        return node->getOperand(index+1).get();
       }
     }
   }
@@ -271,30 +272,29 @@ const llvm::StringRef Kernel::getArgumentTypeName(unsigned int index) const
 {
   assert(index < getNumArguments());
 
-  // Get metadata node
-  const llvm::MDNode *node = getArgumentMetadata("kernel_arg_type");
-  if (!node)
+  // Get metadata
+  const llvm::Metadata *md = getArgumentMetadata("kernel_arg_type", index);
+  if (!md)
   {
     return "";
   }
 
-  return llvm::dyn_cast<llvm::MDString>(node->getOperand(index+1))->getString();
+  return llvm::dyn_cast<llvm::MDString>(md)->getString();
 }
 
 unsigned int Kernel::getArgumentTypeQualifier(unsigned int index) const
 {
   assert(index < getNumArguments());
 
-  // Get metadata node
-  const llvm::MDNode *node = getArgumentMetadata("kernel_arg_type_qual");
-  if (!node)
+  // Get metadata
+  const llvm::Metadata *md = getArgumentMetadata("kernel_arg_type_qual", index);
+  if (!md)
   {
     return -1;
   }
 
   // Get qualifiers
-  llvm::MDString *str =
-    llvm::dyn_cast<llvm::MDString>(node->getOperand(index+1));
+  const llvm::MDString *str = llvm::dyn_cast<llvm::MDString>(md);
   istringstream iss(str->getString().str());
 
   unsigned int result = CL_KERNEL_ARG_TYPE_NONE;
@@ -350,12 +350,9 @@ string Kernel::getAttributes() const
           name == "work_group_size_hint")
       {
         attributes << name << "("
-                   <<
-          getMDOpAsConstInt(val->getOperand(1))->getZExtValue()
-                   << "," <<
-          getMDOpAsConstInt(val->getOperand(2))->getZExtValue()
-                   << "," <<
-          getMDOpAsConstInt(val->getOperand(3))->getZExtValue()
+                   <<        getMDAsConstInt(val->getOperand(1))->getZExtValue()
+                   << "," << getMDAsConstInt(val->getOperand(2))->getZExtValue()
+                   << "," << getMDAsConstInt(val->getOperand(3))->getZExtValue()
                    << ") ";
       }
       else if (name == "vec_type_hint")
@@ -432,7 +429,7 @@ void Kernel::getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const
         for (int j = 0; j < 3; j++)
         {
           reqdWorkGroupSize[j] =
-            getMDOpAsConstInt(val->getOperand(j+1))->getZExtValue();
+            getMDAsConstInt(val->getOperand(j+1))->getZExtValue();
         }
       }
     }
