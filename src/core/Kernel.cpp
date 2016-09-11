@@ -6,6 +6,7 @@
 // license terms please see the LICENSE file distributed with this
 // source code.
 
+#include "config.h"
 #include "common.h"
 
 #include <sstream>
@@ -241,6 +242,7 @@ unsigned int Kernel::getArgumentAddressQualifier(unsigned int index) const
 const llvm::Metadata* Kernel::getArgumentMetadata(string name,
                                                   unsigned int index) const
 {
+#if LLVM_VERSION < 39
   if (!m_metadata)
   {
     return NULL;
@@ -261,6 +263,12 @@ const llvm::Metadata* Kernel::getArgumentMetadata(string name,
     }
   }
   return NULL;
+#else
+  llvm::MDNode *node = m_function->getMetadata(name);
+  if (!node)
+    return NULL;
+  return node->getOperand(index);
+#endif
 }
 
 const llvm::StringRef Kernel::getArgumentName(unsigned int index) const
