@@ -49,7 +49,7 @@ void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
   kernelRaces.clear();
 
   // Clear all global memory accesses
-  for (auto buffer : m_globalAccesses)
+  for (auto &buffer : m_globalAccesses)
   {
     size_t sz = buffer.second.size();
     buffer.second.clear();
@@ -172,7 +172,7 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
 
   // Merge global accesses across kernel invocation
   size_t group = workGroup->getGroupIndex();
-  for (auto record : state.wgGlobal)
+  for (auto &record : state.wgGlobal)
   {
     size_t address = record.first;
     size_t buffer = m_context->getGlobalMemory()->extractBuffer(address);
@@ -398,7 +398,7 @@ void RaceDetector::syncWorkItems(const Memory *memory,
   for (size_t i = 0; i < state.numWorkItems + 1; i++)
   {
     RaceList races;
-    for (auto record : accesses[i])
+    for (auto &record : accesses[i])
     {
       size_t address = record.first;
 
