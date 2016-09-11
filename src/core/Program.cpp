@@ -552,6 +552,37 @@ Kernel* Program::createKernel(const string name)
 
   // Iterate over functions in module to find kernel
   llvm::Function *function = NULL;
+#if LLVM_VERSION < 37
+  // Query the SPIR kernel list
+  llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
+  // No kernels in module
+  if (!tuple)
+    return NULL;
+
+  for (unsigned i = 0; i < tuple->getNumOperands(); ++i)
+  {
+    llvm::MDNode* kernel = tuple->getOperand(i);
+
+    llvm::ConstantAsMetadata *cam =
+      llvm::dyn_cast<llvm::ConstantAsMetadata>(kernel->getOperand(0).get());
+    if (!cam)
+      continue;
+
+    llvm::Function *kernelFunction =
+      llvm::dyn_cast<llvm::Function>(cam->getValue());
+
+    // Shouldn't really happen - this would mean an invalid Module as input
+    if (!kernelFunction)
+      continue;
+
+    // Is this the kernel we want?
+    if (kernelFunction->getName() == name)
+    {
+      function = kernelFunction;
+      break;
+    }
+  }
+#else
   for (auto F = m_module->begin(); F != m_module->end(); F++)
   {
     if (F->getCallingConv() == llvm::CallingConv::SPIR_KERNEL &&
@@ -561,6 +592,7 @@ Kernel* Program::createKernel(const string name)
       break;
     }
   }
+#endif
 
   if (function == NULL)
   {
@@ -652,6 +684,32 @@ list<string> Program::getKernelNames() const
 {
   list<string> names;
 
+#if LLVM_VERSION < 37
+  // Query the SPIR kernel list
+  llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
+
+  if (tuple)
+  {
+    for (unsigned i = 0; i < tuple->getNumOperands(); ++i)
+    {
+      llvm::MDNode* kernel = tuple->getOperand(i);
+
+      llvm::ConstantAsMetadata *cam =
+      llvm::dyn_cast<llvm::ConstantAsMetadata>(kernel->getOperand(0).get());
+      if (!cam)
+        continue;
+
+      llvm::Function *kernelFunction =
+        llvm::dyn_cast<llvm::Function>(cam->getValue());
+
+      // Shouldn't really happen - this would mean an invalid Module as input
+      if (!kernelFunction)
+        continue;
+
+      names.push_back(kernelFunction->getName());
+    }
+  }
+#else
   for (auto F = m_module->begin(); F != m_module->end(); F++)
   {
     if (F->getCallingConv() == llvm::CallingConv::SPIR_KERNEL)
@@ -659,6 +717,7 @@ list<string> Program::getKernelNames() const
       names.push_back(F->getName());
     }
   }
+#endif
 
   return names;
 }
@@ -667,6 +726,16 @@ unsigned int Program::getNumKernels() const
 {
   assert(m_module);
 
+#if LLVM_VERSION < 37
+  // Extract kernels from metadata
+  llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
+
+  // No kernels in module
+  if (!tuple)
+    return 0;
+
+  return tuple->getNumOperands();
+#else
   unsigned int num = 0;
 
   for (auto F = m_module->begin(); F != m_module->end(); F++)
@@ -678,6 +747,7 @@ unsigned int Program::getNumKernels() const
   }
 
   return num;
+#endif
 }
 
 const string& Program::getSource() const
