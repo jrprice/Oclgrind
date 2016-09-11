@@ -81,6 +81,8 @@ namespace oclgrind
       MemoryAccess();
       MemoryAccess(const WorkGroup *workGroup, const WorkItem *workItem,
                    bool store, bool atomic);
+
+      bool operator==(const MemoryAccess& other) const;
     };
     struct AccessRecord
     {
@@ -122,10 +124,14 @@ namespace oclgrind
     bool m_allowUniformWrites;
     const KernelInvocation *m_kernelInvocation;
 
+    std::mutex kernelRacesMutex;
+    RaceList kernelRaces;
+
     size_t getAccessWorkGroup(const MemoryAccess& access) const;
 
     bool check(const MemoryAccess& a, const MemoryAccess& b) const;
     void insert(AccessRecord& record, const MemoryAccess& access) const;
+    void insertKernelRace(const Race& race);
     void insertRace(RaceList& races, const Race& race) const;
     void logRace(const Race& race) const;
     void registerAccess(const Memory *memory,
