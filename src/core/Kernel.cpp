@@ -425,22 +425,11 @@ const Program* Kernel::getProgram() const
 void Kernel::getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const
 {
   memset(reqdWorkGroupSize, 0, 3*sizeof(size_t));
-  for (unsigned i = 0; i < m_metadata->getNumOperands(); i++)
+  for (int j = 0; j < 3; j++)
   {
-    const llvm::MDOperand& op = m_metadata->getOperand(i);
-    if (llvm::MDNode *val = llvm::dyn_cast<llvm::MDNode>(op.get()))
-    {
-      llvm::MDString *str =
-        llvm::dyn_cast<llvm::MDString>(val->getOperand(0).get());
-      if (str->getString() == "reqd_work_group_size")
-      {
-        for (int j = 0; j < 3; j++)
-        {
-          reqdWorkGroupSize[j] =
-            getMDAsConstInt(val->getOperand(j+1))->getZExtValue();
-        }
-      }
-    }
+    const llvm::Metadata *md = getArgumentMetadata("reqd_work_group_size", j);
+    if (md)
+      reqdWorkGroupSize[j] = getMDAsConstInt(md)->getZExtValue();
   }
 }
 
