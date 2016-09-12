@@ -1977,8 +1977,8 @@ namespace oclgrind
           {
             uint64_t a = UARGV(0, i);
             uint64_t b = UARGV(1, i);
-            uint64_t c = (a > UINT64_MAX-b) ? (((uint64_t)1)<<63) : 0;
-            result.setUInt(((a + b) >> 1) | c, i);
+            uint64_t c = (a & b) & 1;
+            result.setUInt((a>>1) + (b>>1) + c, i);
             break;
           }
           case 'c':
@@ -2217,8 +2217,8 @@ namespace oclgrind
           {
             uint64_t a = UARGV(0, i);
             uint64_t b = UARGV(1, i);
-            uint64_t c = (a > UINT64_MAX-(b+1)) ? (((uint64_t)1)<<63) : 0;
-            result.setUInt(((a + b + 1) >> 1) | c, i);
+            uint64_t c = (a | b) & 1;
+            result.setUInt((a>>1) + (b>>1) + c, i);
             break;
           }
           case 'c':
