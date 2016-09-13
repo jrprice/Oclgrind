@@ -1207,11 +1207,8 @@ INSTRUCTION(ret)
 
   if (!m_position->callStack.empty())
   {
-#if LLVM_VERSION < 38
-    m_position->currInst = m_position->callStack.top();
-#else
-    m_position->currInst.reset(m_position->callStack.top());
-#endif
+    m_position->currInst =
+      llvm::BasicBlock::const_iterator(m_position->callStack.top());
     m_position->currBlock = m_position->currInst->getParent();
     m_position->callStack.pop();
 
