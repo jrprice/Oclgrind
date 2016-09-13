@@ -1008,7 +1008,7 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem *workItem, const l
             //Do nothing
             break;
         default:
-            FATAL_ERROR("Unsupported intrinsic %s", llvm::Intrinsic::getName(I->getIntrinsicID()).c_str());
+            FATAL_ERROR("Unsupported intrinsic %s", llvm::Intrinsic::getName(I->getIntrinsicID()).data());
     }
 }
 
