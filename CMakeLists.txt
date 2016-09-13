@@ -59,7 +59,7 @@ link_directories(${LLVM_LIBRARY_DIRS})
 # Get LLVM libraries for linking
 llvm_map_components_to_libnames(LLVM_LIBS
   bitreader bitwriter core instrumentation ipo irreader
-  linker mcparser objcarcopts option target)
+  linker lto mcparser objcarcopts option target)
 
 if (NOT (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.9"))
   llvm_map_components_to_libnames(LLVM_COVERAGE coverage)
