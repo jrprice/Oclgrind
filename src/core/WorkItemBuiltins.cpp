@@ -1287,6 +1287,12 @@ namespace oclgrind
             +    a  *    b  *    c  * v111;
     }
 
+    DEFINE_BUILTIN(translate_sampler_initializer)
+    {
+      // A sampler initializer is just a pointer to its ConstantInt object
+      result.setPointer((size_t)ARG(0));
+    }
+
     DEFINE_BUILTIN(read_imagef)
     {
       const Image *image = *(Image**)(workItem->getValue(ARG(0)).data);
@@ -1297,7 +1303,11 @@ namespace oclgrind
       // Check for sampler version
       if (callInst->getNumArgOperands() > 2)
       {
+#if LLVM_VERSION < 40
         sampler = UARG(1);
+#else
+        sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
+#endif
         coordIndex = 2;
       }
 
@@ -1415,7 +1425,11 @@ namespace oclgrind
       // Check for sampler version
       if (callInst->getNumArgOperands() > 2)
       {
+#if LLVM_VERSION < 40
         sampler = UARG(1);
+#else
+        sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
+#endif
         coordIndex = 2;
       }
 
@@ -1488,7 +1502,11 @@ namespace oclgrind
       // Check for sampler version
       if (callInst->getNumArgOperands() > 2)
       {
+#if LLVM_VERSION < 40
         sampler = UARG(1);
+#else
+        sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
+#endif
         coordIndex = 2;
       }
 
@@ -2035,22 +2053,32 @@ namespace oclgrind
     {
       if (bits == 64)
       {
-        int64_t xl = x & UINT32_MAX;
-        int64_t xh = x >> 32;
-        int64_t yl = y & UINT32_MAX;
-        int64_t yh = y >> 32;
+        int64_t sign = (x>>63) ^ (y>>63);
 
-        int64_t xlyl = xl*yl;
-        int64_t xlyh = xl*yh;
-        int64_t xhyl = xh*yl;
-        int64_t xhyh = xh*yh;
+        uint64_t hi = _umul_hi_(abs(x), abs(y), 64);
+        if (sign)
+        {
+          hi ^= sign;
+        }
 
-        int64_t  a = xhyl + ((xlyl>>32) & UINT32_MAX);
-        int64_t al = a & UINT32_MAX;
-        int64_t ah = a >> 32;
-        int64_t  b = ((al + xlyh)>>32) + ah;
+        return *(int64_t*)&hi;
 
-        return xhyh + b;
+        // int64_t xl = x & UINT32_MAX;
+        // int64_t xh = x >> 32;
+        // int64_t yl = y & UINT32_MAX;
+        // int64_t yh = y >> 32;
+        //
+        // int64_t xlyl = xl*yl;
+        // int64_t xlyh = xl*yh;
+        // int64_t xhyl = xh*yl;
+        // int64_t xhyh = xh*yh;
+        //
+        // int64_t  a = xhyl + ((xlyl>>32) & UINT32_MAX);
+        // int64_t al = a & UINT32_MAX;
+        // int64_t ah = a >> 32;
+        // int64_t  b = ((al + xlyh)>>32) + ah;
+        //
+        // return xhyh + b;
       }
       else
       {
@@ -2137,6 +2165,9 @@ namespace oclgrind
             // Check for overflow in multiplication
             if (_smul_hi_(SARGV(0, i), SARGV(1, i), 64))
             {
+              std::cout << SARGV(0, i) << " x " << SARGV(1, i) << std::endl;
+              std::cout << _smul_hi_(SARGV(0, i), SARGV(1, i), 64) << std::endl;
+
               sresult = (SARGV(0,i)>0) ^ (SARGV(1,i)>0) ? INT64_MIN : INT64_MAX;
             }
             else
@@ -3610,6 +3641,10 @@ namespace oclgrind
     ADD_BUILTIN("write_imagef", write_imagef, NULL);
     ADD_BUILTIN("write_imagei", write_imagei, NULL);
     ADD_BUILTIN("write_imageui", write_imageui, NULL);
+#if LLVM_VERSION >= 40
+    ADD_BUILTIN("__translate_sampler_initializer",
+                translate_sampler_initializer, NULL);
+#endif
 
     // Integer Functions
     ADD_BUILTIN("abs", abs_builtin, NULL);
