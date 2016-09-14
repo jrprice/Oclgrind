@@ -2053,32 +2053,22 @@ namespace oclgrind
     {
       if (bits == 64)
       {
-        int64_t sign = (x>>63) ^ (y>>63);
+        int64_t xl = x & UINT32_MAX;
+        int64_t xh = x >> 32;
+        int64_t yl = y & UINT32_MAX;
+        int64_t yh = y >> 32;
 
-        uint64_t hi = _umul_hi_(abs(x), abs(y), 64);
-        if (sign)
-        {
-          hi ^= sign;
-        }
+        int64_t xlyl = xl*yl;
+        int64_t xlyh = xl*yh;
+        int64_t xhyl = xh*yl;
+        int64_t xhyh = xh*yh;
 
-        return *(int64_t*)&hi;
+        int64_t  a = xhyl + ((xlyl>>32) & UINT32_MAX);
+        int64_t al = a & UINT32_MAX;
+        int64_t ah = a >> 32;
+        int64_t  b = ((al + xlyh)>>32) + ah;
 
-        // int64_t xl = x & UINT32_MAX;
-        // int64_t xh = x >> 32;
-        // int64_t yl = y & UINT32_MAX;
-        // int64_t yh = y >> 32;
-        //
-        // int64_t xlyl = xl*yl;
-        // int64_t xlyh = xl*yh;
-        // int64_t xhyl = xh*yl;
-        // int64_t xhyh = xh*yh;
-        //
-        // int64_t  a = xhyl + ((xlyl>>32) & UINT32_MAX);
-        // int64_t al = a & UINT32_MAX;
-        // int64_t ah = a >> 32;
-        // int64_t  b = ((al + xlyh)>>32) + ah;
-        //
-        // return xhyh + b;
+        return xhyh + b;
       }
       else
       {
@@ -2165,9 +2155,6 @@ namespace oclgrind
             // Check for overflow in multiplication
             if (_smul_hi_(SARGV(0, i), SARGV(1, i), 64))
             {
-              std::cout << SARGV(0, i) << " x " << SARGV(1, i) << std::endl;
-              std::cout << _smul_hi_(SARGV(0, i), SARGV(1, i), 64) << std::endl;
-
               sresult = (SARGV(0,i)>0) ^ (SARGV(1,i)>0) ? INT64_MIN : INT64_MAX;
             }
             else
