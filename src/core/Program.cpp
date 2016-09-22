@@ -233,11 +233,11 @@ bool Program::build(const char *options, list<Header> headers)
 #if defined(_WIN32) && !defined(__MINGW32__)
       char libpath[4096];
       HMODULE dll;
-      if (GetModuleHandleEx(
+      if (GetModuleHandleExA(
             GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
             GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
             (LPCSTR)&Program::createFromBitcode, &dll) &&
-          GetModuleFileName(dll, libpath, sizeof(libpath)))
+          GetModuleFileNameA(dll, libpath, sizeof(libpath)))
       {
 #else
       Dl_info dlinfo;
