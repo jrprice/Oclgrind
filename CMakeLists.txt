@@ -197,6 +197,10 @@ target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
   clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
   ${LLVM_LIBS})
 
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  target_link_libraries(oclgrind PRIVATE Version)
+endif()
+
 # Sources for OpenCL runtime API frontend
 set(RUNTIME_SOURCES
   src/runtime/async_queue.h
