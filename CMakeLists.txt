@@ -206,19 +206,19 @@ set(RUNTIME_SOURCES
 
 # Add ICD exports on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  list(APPEND RUNTIME_SOURCES src/runtime/icd.def)
+  set(DLL_EXPORTS src/runtime/icd.def)
 endif()
 
-add_library(oclgrind-rt-icd SHARED ${RUNTIME_SOURCES})
+add_library(oclgrind-rt-icd SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
 set_target_properties(oclgrind-rt-icd PROPERTIES COMPILE_FLAGS -DOCLGRIND_ICD)
 target_link_libraries(oclgrind-rt-icd ${CMAKE_DL_LIBS} oclgrind)
 
 # Add runtime exports on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  list(APPEND RUNTIME_SOURCES src/runtime/runtime.def)
+  set(DLL_EXPORTS src/runtime/runtime.def)
 endif()
 
-add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES})
+add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
 target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
 add_executable(oclgrind-kernel
