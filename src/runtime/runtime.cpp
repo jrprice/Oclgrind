@@ -5624,8 +5624,7 @@ bool initOclgrind()
 
   // Get pointer to NT headers
   PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)(base);
-  PIMAGE_NT_HEADERS ntHeaders =
-    (PIMAGE_NT_HEADERS)(base + dosHeader->e_lfanew);
+  PIMAGE_NT_HEADERS ntHeaders = (PIMAGE_NT_HEADERS)(base + dosHeader->e_lfanew);
   if (ntHeaders->Signature != IMAGE_NT_SIGNATURE)
   {
     std::cout << "[Oclgrind] Invalid NT signature: "
@@ -5635,8 +5634,10 @@ bool initOclgrind()
 
   // Get pointer to import directory
   DWORD importOffset =
-    ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
-  PIMAGE_IMPORT_DESCRIPTOR importDesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + importOffset);
+    ntHeaders->OptionalHeader.
+      DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+  PIMAGE_IMPORT_DESCRIPTOR importDesc =
+    (PIMAGE_IMPORT_DESCRIPTOR)(base + importOffset);
 
   // Loop over directory entries
   while (importDesc->Name)
@@ -5699,7 +5700,8 @@ bool initOclgrind()
   }
 
   // We didn't find the function, so just warn user
-  std::cout << "[Oclgrind] Warning: unable to patch clGetPlatformIDs" << std::endl;
+  std::cout << "[Oclgrind] Warning: unable to patch clGetPlatformIDs"
+            << std::endl;
 
   return true;
 }

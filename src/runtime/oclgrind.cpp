@@ -31,8 +31,7 @@ void die(const char *op)
   FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                  buffer, 1024, NULL);
-  std::cout << "[Oclgrind] Error while '"
-            << op << "':" << std::endl
+  std::cout << "[Oclgrind] Error while '" << op << "':" << std::endl
             << buffer << std::endl;
   exit(1);
 }
@@ -51,18 +50,17 @@ int main(int argc, char *argv[])
 
 
   PROCESS_INFORMATION pinfo = { 0 };
-  STARTUPINFOA sinfo = {0};
+  STARTUPINFOA sinfo = { 0 };
   sinfo.cb = sizeof(sinfo);
 
   // Create child process in suspended state
-  if (!CreateProcessA(NULL, cmd, NULL, NULL,
-                      FALSE, CREATE_SUSPENDED,
+  if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_SUSPENDED,
                       NULL, NULL, &sinfo, &pinfo))
     die("creating child process");
 
   // Allocate memory for DLL path
-  void *childPath = VirtualAllocEx(pinfo.hProcess, NULL,
-                                   strlen(dllpath)+1, MEM_COMMIT, PAGE_READWRITE);
+  void *childPath = VirtualAllocEx(pinfo.hProcess, NULL, strlen(dllpath)+1,
+                                   MEM_COMMIT, PAGE_READWRITE);
   if (!childPath)
     die("allocating child memory");
 
