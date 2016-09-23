@@ -225,6 +225,11 @@ endif()
 add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
 target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  add_executable(oclgrind-exe src/runtime/oclgrind.cpp)
+  set_target_properties(oclgrind-exe PROPERTIES OUTPUT_NAME oclgrind)
+endif()
+
 add_executable(oclgrind-kernel
   src/kernel/oclgrind-kernel.cpp
   src/kernel/Simulation.h
@@ -304,6 +309,9 @@ install(FILES
   ${CORE_HEADERS} ${CLC_HEADERS} LICENSE
   DESTINATION include/oclgrind)
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  install(TARGETS
+    oclgrind-exe
+    DESTINATION bin)
   install(FILES
     src/CL/cl.h
     src/CL/cl_d3d10.h

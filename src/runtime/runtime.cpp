@@ -5605,3 +5605,103 @@ void *m_dispatchTable[] =
   DISPATCH_TABLE_ENTRY(NULL),
 #endif
 };
+
+#if defined(_WIN32) && !defined(OCLGRIND_ICD)
+
+#include <Psapi.h>
+
+// Function to replace calls to clGetPlatformIDs with
+// the Oclgrind implementation.
+//
+// This is invoked by oclgrind.exe after this DLL is
+// injected into the child process.
+//
+// Returns true on success, false on failure.
+bool initOclgrind()
+{
+  // Get base address of process
+  DWORD base = (DWORD)GetModuleHandle(NULL);
+
+  // Get pointer to NT headers
+  PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)(base);
+  PIMAGE_NT_HEADERS ntHeaders =
+    (PIMAGE_NT_HEADERS)(base + dosHeader->e_lfanew);
+  if (ntHeaders->Signature != IMAGE_NT_SIGNATURE)
+  {
+    std::cout << "[Oclgrind] Invalid NT signature: "
+              << ntHeaders->Signature << std::endl;
+    return false;
+  }
+
+  // Get pointer to import directory
+  DWORD importOffset =
+    ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+  PIMAGE_IMPORT_DESCRIPTOR importDesc = (PIMAGE_IMPORT_DESCRIPTOR)(base + importOffset);
+
+  // Loop over directory entries
+  while (importDesc->Name)
+  {
+    // Look for OpenCL.dll
+    const char *modname = (const char*)(base + importDesc->Name);
+    if (!stricmp(modname, "opencl.dll"))
+    {
+      // We use the OriginalFirstThunk to match the name,
+      // and then replace the function pointer in FirstThunk
+      PIMAGE_THUNK_DATA origThunk =
+        (PIMAGE_THUNK_DATA)(base + importDesc->OriginalFirstThunk);
+      PIMAGE_THUNK_DATA firstThunk =
+        (PIMAGE_THUNK_DATA)(base + importDesc->FirstThunk);
+
+      // Loop over functions
+      while (origThunk->u1.AddressOfData)
+      {
+        // Skip unnamed functions
+        if (!(origThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG))
+        {
+          // Get function name and check for clGetPlatformIDs
+          PIMAGE_IMPORT_BY_NAME import =
+            (PIMAGE_IMPORT_BY_NAME)(base + origThunk->u1.AddressOfData);
+          if (!stricmp((char*)import->Name, "clGetPlatformIDs"))
+          {
+            // Make page writable temporarily
+            MEMORY_BASIC_INFORMATION mbinfo;
+            VirtualQuery(firstThunk, &mbinfo, sizeof(mbinfo));
+            if (!VirtualProtect(mbinfo.BaseAddress, mbinfo.RegionSize,
+                                PAGE_EXECUTE_READWRITE, &mbinfo.Protect))
+            {
+              std::cout << "[Oclgrind] Failed to make page writeable: "
+                        << GetLastError() << std::endl;
+              return false;
+            }
+
+            // Replace function pointer with our implementation
+            firstThunk->u1.Function = (DWORD)clGetPlatformIDs;
+
+            // Restore page protection
+            DWORD zero = 0;
+            if (!VirtualProtect(mbinfo.BaseAddress, mbinfo.RegionSize,
+                                mbinfo.Protect, &zero))
+            {
+              std::cout << "[Oclgrind] Failed to restore page protection: "
+                << GetLastError() << std::endl;
+              return false;
+            }
+
+            return true;
+          }
+        }
+
+        origThunk++;
+        firstThunk++;
+      }
+    }
+    importDesc++;
+  }
+
+  // We didn't find the function, so just warn user
+  std::cout << "[Oclgrind] Warning: unable to patch clGetPlatformIDs" << std::endl;
+
+  return true;
+}
+
+#endif
