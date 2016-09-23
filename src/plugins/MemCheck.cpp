@@ -175,6 +175,8 @@ void MemCheck::checkLoad(const Memory *memory,
   {
     m_context->logError("Invalid read from write-only buffer");
   }
+  
+  if (memory->getAddressSpace() == AddrSpaceLocal || memory->getAddressSpace() == AddrSpacePrivate) return;
 
   // Check if memory location is currently mapped for writing
   for (auto region = m_mapRegions.begin();
@@ -203,6 +205,8 @@ void MemCheck::checkStore(const Memory *memory,
   {
     m_context->logError("Invalid write to read-only buffer");
   }
+
+  if (memory->getAddressSpace() == AddrSpaceLocal || memory->getAddressSpace() == AddrSpacePrivate) return;
 
   // Check if memory location is currently mapped
   for (auto region = m_mapRegions.begin();
