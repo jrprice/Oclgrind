@@ -1,31 +1,26 @@
+os:
+  - linux
+  - osx
+
+sudo: required
+dist: trusty
+osx_image: xcode7.3
+
 language: cpp
 compiler:
   - gcc
   - clang
 
-sudo: required
-dist: trusty
+matrix:
+  exclude:
+    - os: osx
+      compiler: gcc
 
 before_install:
-  # Add repositories
-  - sudo add-apt-repository -y 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-3.9 main'
-  - wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-  - sudo apt-get update -qq
-
-  # Remove existing LLVM
-  - sudo apt-get remove llvm
-
-  # Install Clang + LLVM
-  - sudo apt-get install -y llvm-3.9-dev libclang-3.9-dev clang-3.9
-  - sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-3.9 20
-  - sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-3.9 20
-  - sudo rm /usr/local/clang-3.5.0/bin/clang
-  - sudo rm /usr/local/clang-3.5.0/bin/clang++
-
-  # Other dependencies
-  - sudo apt-get install -y libedit-dev
+  - bash ./.travis-deps.sh
 
 script:
-  - cmake . -DLLVM_DIR=/usr/lib/llvm-3.9/lib/cmake/llvm
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then cmake . -DLLVM_DIR=/usr/lib/llvm-3.9/lib/cmake/llvm ; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then cmake . -DLLVM_DIR=/usr/local/Cellar/llvm/3.8.1/share/llvm/cmake ; fi
   - make -j 2
   - make test
