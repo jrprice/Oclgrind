@@ -33,7 +33,7 @@ namespace oclgrind
     Memory* getGlobalMemory() const;
     llvm::LLVMContext* getLLVMContext() const;
     bool isThreadSafe() const;
-    void logError(const char* error) const;
+    void logError(const char* error, MessageType type = OCLGRIND_ERROR) const;
 
     // Simulation callbacks
     void notifyInstructionExecuted(const WorkItem *workItem,

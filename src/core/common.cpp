@@ -764,6 +764,11 @@ namespace oclgrind
     }
   }
 
+  MessageType getMessageBaseType(MessageType type)
+  {
+    return (MessageType)(type & 0x3);
+  }
+
   FatalError::FatalError(const string& msg, const string& file, size_t line)
     : std::runtime_error(msg)
   {

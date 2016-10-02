@@ -200,7 +200,7 @@ void InteractiveDebugger::kernelEnd(const KernelInvocation *kernelInvocation)
 
 void InteractiveDebugger::log(MessageType type, const char *message)
 {
-  if (type == ERROR)
+  if (getMessageBaseType(type) == OCLGRIND_ERROR)
     m_forceBreak = true;
 }
 

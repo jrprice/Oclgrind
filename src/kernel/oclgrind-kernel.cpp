@@ -46,9 +46,16 @@ int main(int argc, char *argv[])
 
 static bool parseArguments(int argc, char *argv[])
 {
+  // Collect all diagnostic options before writing them to environment
+  std::vector<const char*> diagnosticOptions;
+
   for (int i = 1; i < argc; i++)
   {
-    if (!strcmp(argv[i], "--build-options"))
+    if (!strncmp(argv[i], "-W", 2))
+    {
+      diagnosticOptions.push_back(argv[i]);
+    }
+    else if (!strcmp(argv[i], "--build-options"))
     {
       if (++i >= argc)
       {
@@ -135,6 +142,15 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_QUICK", "1");
     }
+    else if (!strcmp(argv[i], "--stop-errors"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --stop-errors" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_STOP_ERRORS", argv[i]);
+    }
     else if (!strcmp(argv[i], "--uniform-writes"))
     {
       setEnvironment("OCLGRIND_UNIFORM_WRITES", "1");
@@ -174,6 +190,20 @@ static bool parseArguments(int argc, char *argv[])
     }
   }
 
+  // Set diagnostic options
+  if(diagnosticOptions.size())
+  {
+      std::stringstream options;
+      options << diagnosticOptions.front();
+
+      for(int i = 1; i < diagnosticOptions.size(); ++i)
+      {
+        options << " " << diagnosticOptions[i];
+      }
+
+      setEnvironment("OCLGRIND_DIAGNOSTIC_OPTIONS", options.str().c_str());
+  }
+
   if (simfile == NULL)
   {
     printUsage();
@@ -210,6 +240,10 @@ static void printUsage()
              "Redirect log/error messages to a file" << endl
     << "     --max-errors     NUM      "
              "Limit the number of error/warning messages" << endl
+    << "  -Wall                        "
+             "Enable all error/warning messages" << endl
+    << "  -W[no-]MSG_GROUP             "
+             "Enable/disable specific message group" << endl
     << "     --num-threads    NUM      "
              "Set the number of worker threads to use" << endl
     << "     --pch-dir        DIR      "
@@ -218,6 +252,8 @@ static void printUsage()
              "Load colon separated list of plugin libraries" << endl
     << "  -q --quick                   "
              "Only run first and last work-group" << endl
+    << "     --stop-errors    NUM      "
+             "Abort the execution after NUM error/warning messages" << endl
     << "     --uniform-writes          "
              "Don't suppress uniform write-write data-races" << endl
     << "     --uninitialized           "

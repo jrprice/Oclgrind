@@ -22,6 +22,14 @@ namespace oclgrind
     std::ostream *m_log;
 
     unsigned m_maxErrors;
+    int m_stopErrors;
+    std::map<MessageType, bool> m_diagnosticOptions;
     static unsigned m_numErrors;
-  };
+
+    bool hasDiagnosticOption(MessageType optType);
+    void enableDiagnosticOption(MessageType optType, bool status = true);
+    void enableAllDiagnostics();
+    void logBadDiagnosticOption(const char* opt, bool isInvalid = false);
+    bool parseDiagnosticOptions(char *options);
+};
 }

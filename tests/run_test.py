@@ -44,6 +44,9 @@ os.environ["OCLGRIND_CHECK_API"] = "1"
 os.environ["OCLGRIND_DATA_RACES"] = "1"
 os.environ["OCLGRIND_UNINITIALIZED"] = "1"
 
+# Enable all diagnostic output
+os.environ["OCLGRIND_DIAGNOSTIC_OPTIONS"] = "-Wall"
+
 def fail(ret=1):
   print 'FAILED'
   sys.exit(ret)

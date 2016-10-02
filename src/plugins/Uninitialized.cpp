@@ -1858,7 +1858,7 @@ void Uninitialized::loadShadowMemory(unsigned addrSpace, size_t address, TypedVa
 
 void Uninitialized::logUninitializedAddress(unsigned int addrSpace, size_t address, bool write) const
 {
-  Context::Message msg(WARNING, m_context);
+  Context::Message msg(OCLGRIND_WARNING_UNINITIALIZED, m_context);
   msg << "Uninitialized address used to " << (write ? "write to " : "read from ")
       << getAddressSpaceName(addrSpace)
       << " memory address 0x" << hex << address << endl
@@ -1871,7 +1871,7 @@ void Uninitialized::logUninitializedAddress(unsigned int addrSpace, size_t addre
 
 void Uninitialized::logUninitializedCF() const
 {
-  Context::Message msg(WARNING, m_context);
+  Context::Message msg(OCLGRIND_WARNING_UNINITIALIZED, m_context);
   msg << "Controlflow depends on uninitialized value" << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
@@ -1882,7 +1882,7 @@ void Uninitialized::logUninitializedCF() const
 
 void Uninitialized::logUninitializedIndex() const
 {
-  Context::Message msg(WARNING, m_context);
+  Context::Message msg(OCLGRIND_WARNING_UNINITIALIZED, m_context);
   msg << "Instruction depends on an uninitialized index value" << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
@@ -1893,7 +1893,7 @@ void Uninitialized::logUninitializedIndex() const
 
 void Uninitialized::logUninitializedWrite(unsigned int addrSpace, size_t address) const
 {
-  Context::Message msg(WARNING, m_context);
+  Context::Message msg(OCLGRIND_WARNING_UNINITIALIZED, m_context);
   msg << "Uninitialized value written to "
       << getAddressSpaceName(addrSpace)
       << " memory address 0x" << hex << address << endl

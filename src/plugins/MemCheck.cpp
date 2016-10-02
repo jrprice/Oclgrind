@@ -173,7 +173,7 @@ void MemCheck::checkLoad(const Memory *memory,
 
   if (memory->getBuffer(address)->flags & CL_MEM_WRITE_ONLY)
   {
-    m_context->logError("Invalid read from write-only buffer");
+    m_context->logError("Invalid read from write-only buffer", OCLGRIND_ERROR_INVALID_ACCESS);
   }
   
   if (memory->getAddressSpace() == AddrSpaceLocal || memory->getAddressSpace() == AddrSpacePrivate) return;
@@ -203,7 +203,7 @@ void MemCheck::checkStore(const Memory *memory,
 
   if (memory->getBuffer(address)->flags & CL_MEM_READ_ONLY)
   {
-    m_context->logError("Invalid write to read-only buffer");
+    m_context->logError("Invalid write to read-only buffer", OCLGRIND_ERROR_INVALID_ACCESS);
   }
 
   if (memory->getAddressSpace() == AddrSpaceLocal || memory->getAddressSpace() == AddrSpacePrivate) return;
@@ -224,7 +224,7 @@ void MemCheck::checkStore(const Memory *memory,
 void MemCheck::logInvalidAccess(bool read, unsigned addrSpace,
                                 size_t address, size_t size) const
 {
-  Context::Message msg(ERROR, m_context);
+  Context::Message msg(OCLGRIND_ERROR_INVALID_ACCESS, m_context);
   msg << "Invalid " << (read ? "read" : "write")
       << " of size " << size
       << " at " << getAddressSpaceName(addrSpace)

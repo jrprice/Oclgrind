@@ -191,9 +191,9 @@ void Context::unregisterPlugin(Plugin *plugin)
   m_plugins.remove(make_pair(plugin, false));
 }
 
-void Context::logError(const char* error) const
+void Context::logError(const char* error, MessageType type) const
 {
-  Message msg(ERROR, this);
+  Message msg(type, this);
   msg << error << endl
       << msg.INDENT
       << "Kernel: " << msg.CURRENT_KERNEL << endl
