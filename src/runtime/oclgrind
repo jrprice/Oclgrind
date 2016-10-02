@@ -17,7 +17,7 @@ function usage
   echo -n "     --build-options  OPTIONS  "
   echo          "Additional options to pass to the OpenCL compiler"
   echo -n "     --check-api               "
-  echo          "Reports errors on API calls"
+  echo          "Report errors on API calls"
   echo -n "     --data-races              "
   echo          "Enable data-race detection"
   echo -n "     --disable-pch             "
