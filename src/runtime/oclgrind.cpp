@@ -316,7 +316,7 @@ static void printUsage()
     << "     --build-options  OPTIONS  "
              "Additional options to pass to the OpenCL compiler" << endl
     << "     --check-api               "
-             "Reports errors on API calls" << endl
+             "Report errors on API calls" << endl
     << "     --data-races              "
              "Enable data-race detection" << endl
     << "     --disable-pch             "
