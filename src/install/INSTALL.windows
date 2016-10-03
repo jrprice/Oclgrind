@@ -5,4 +5,9 @@ running 'uninstall.bat' as an Administrator.
 
 Alternatively, Oclgrind can be run from any other directory. You will
 need to manually create OpenCL ICD loading points by editing the
-registry (see oclgrind-icd.reg).
+registry (see oclgrind-icd.reg), and/or add $OCLGRIND_ROOT/bin to your
+PATH environment variable to make use of the oclgrind.exe command.
+
+Information about using Oclgrind can be found on the GitHub wiki page:
+
+    http://github.com/jrprice/Oclgrind/wiki
