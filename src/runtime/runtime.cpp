@@ -5627,7 +5627,7 @@ bool initOclgrind()
   PIMAGE_NT_HEADERS ntHeaders = (PIMAGE_NT_HEADERS)(base + dosHeader->e_lfanew);
   if (ntHeaders->Signature != IMAGE_NT_SIGNATURE)
   {
-    std::cout << "[Oclgrind] Invalid NT signature: "
+    std::cerr << "[Oclgrind] Invalid NT signature: "
               << ntHeaders->Signature << std::endl;
     return false;
   }
@@ -5670,7 +5670,7 @@ bool initOclgrind()
             if (!VirtualProtect(mbinfo.BaseAddress, mbinfo.RegionSize,
                                 PAGE_EXECUTE_READWRITE, &mbinfo.Protect))
             {
-              std::cout << "[Oclgrind] Failed to make page writeable: "
+              std::cerr << "[Oclgrind] Failed to make page writeable: "
                         << GetLastError() << std::endl;
               return false;
             }
@@ -5683,8 +5683,8 @@ bool initOclgrind()
             if (!VirtualProtect(mbinfo.BaseAddress, mbinfo.RegionSize,
                                 mbinfo.Protect, &zero))
             {
-              std::cout << "[Oclgrind] Failed to restore page protection: "
-                << GetLastError() << std::endl;
+              std::cerr << "[Oclgrind] Failed to restore page protection: "
+                        << GetLastError() << std::endl;
               return false;
             }
 
@@ -5700,7 +5700,7 @@ bool initOclgrind()
   }
 
   // We didn't find the function, so just warn user
-  std::cout << "[Oclgrind] Warning: unable to patch clGetPlatformIDs"
+  std::cerr << "[Oclgrind] Warning: unable to patch clGetPlatformIDs"
             << std::endl;
 
   return true;

@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
   // Wait for child thread to complete
   if (WaitForSingleObject(childThread, INFINITE) != WAIT_OBJECT_0)
-    die("waiting for child thread");
+    die("waiting for load thread");
 
   CloseHandle(childThread);
   VirtualFreeEx(pinfo.hProcess, childPath, sizeof(dllpath), MEM_RELEASE);
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 
   // Wait for init to finish
   if (WaitForSingleObject(childThread, INFINITE) != WAIT_OBJECT_0)
-    die("wait failed");
+    die("waiting for init thread");
 
 
   // Check return value
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     die("getting init exit code");
   if (!retval)
   {
-    std::cout << "[Oclgrind] initialization failed: " << retval << std::endl;
+    cerr << "[Oclgrind] initialization failed: " << retval << endl;
     exit(retval);
   }
 
@@ -274,10 +274,8 @@ void checkWow64(HANDLE parent, HANDLE child)
   if (parentWow64 != childWow64)
   {
     const char *bits = childWow64 ? "32" : "64";
-    std::cout << "[Oclgrind] ";
-    std::cout << "target application is " << bits << "-bit" << std::endl;
-    std::cout << "Use the " << bits << "-bit version of oclgrind.exe" << std::endl;
-
+    cerr << "[Oclgrind] target application is " << bits << "-bit" << endl
+         << "Use the " << bits << "-bit version of oclgrind.exe"  << endl;
     exit(1);
   }
 }
@@ -289,8 +287,8 @@ void die(const char *op)
   FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
     buffer, 1024, NULL);
-  std::cout << "[Oclgrind] Error while '" << op << "':" << std::endl
-    << buffer << std::endl;
+  cerr << "[Oclgrind] Error while '" << op << "':" << endl
+       << buffer << endl;
   exit(1);
 }
 
