@@ -19,22 +19,12 @@ using namespace std;
 
 static char cmd[MAX_CMD];
 
+static void checkWow64(HANDLE parent, HANDLE child);
+static void die(const char *op);
 static void getDllPath(char path[MAX_DLL_PATH]);
 static bool parseArguments(int argc, char *argv[]);
 static void printUsage();
 static void setEnvironment(const char *name, const char *value);
-
-void die(const char *op)
-{
-  DWORD err = GetLastError();
-  char buffer[1024];
-  FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
-                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                 buffer, 1024, NULL);
-  std::cout << "[Oclgrind] Error while '" << op << "':" << std::endl
-            << buffer << std::endl;
-  exit(1);
-}
 
 int main(int argc, char *argv[])
 {
@@ -57,6 +47,9 @@ int main(int argc, char *argv[])
   if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_SUSPENDED,
                       NULL, NULL, &sinfo, &pinfo))
     die("creating child process");
+
+  // Check that we are running as 64-bit if and only if we need to be
+  checkWow64(GetCurrentProcess(), pinfo.hProcess);
 
   // Allocate memory for DLL path
   void *childPath = VirtualAllocEx(pinfo.hProcess, NULL, strlen(dllpath)+1,
@@ -120,9 +113,9 @@ int main(int argc, char *argv[])
 
   CloseHandle(childThread);
 
-
   // Resume child process
-  ResumeThread(pinfo.hThread);
+  if (ResumeThread(pinfo.hThread) == -1)
+    die("resuming thread");
 
   return 0;
 }
@@ -265,6 +258,48 @@ static bool parseArguments(int argc, char *argv[])
   return true;
 }
 
+void checkWow64(HANDLE parent, HANDLE child)
+{
+  BOOL parentWow64, childWow64;
+  IsWow64Process(parent, &parentWow64);
+  IsWow64Process(child, &childWow64);
+  if (parentWow64 != childWow64)
+  {
+    const char *bits = childWow64 ? "32" : "64";
+    std::cout << "[Oclgrind] ";
+    std::cout << "target application is " << bits << "-bit" << std::endl;
+    std::cout << "Use the " << bits << "-bit version of oclgrind.exe" << std::endl;
+
+    exit(1);
+  }
+}
+
+void die(const char *op)
+{
+  DWORD err = GetLastError();
+  char buffer[1024];
+  FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
+    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+    buffer, 1024, NULL);
+  std::cout << "[Oclgrind] Error while '" << op << "':" << std::endl
+    << buffer << std::endl;
+  exit(1);
+}
+
+static void getDllPath(char path[MAX_DLL_PATH])
+{
+  // Get full path to exeuctable
+  GetModuleFileNameA(GetModuleHandle(NULL), path, MAX_PATH);
+
+  // Remove executable filename
+  char *dirend;
+  if ((dirend = strrchr(path, '\\')))
+    *dirend = '\0';
+
+  // Append relative path to DLL
+  strcat_s(path, 4096, "\\..\\lib\\oclgrind-rt.dll");
+}
+
 static void printUsage()
 {
   cout
@@ -315,18 +350,4 @@ static void printUsage()
 static void setEnvironment(const char *name, const char *value)
 {
   _putenv_s(name, value);
-}
-
-static void getDllPath(char path[MAX_DLL_PATH])
-{
-  // Get full path to exeuctable
-  GetModuleFileNameA(GetModuleHandle(NULL), path, MAX_PATH);
-
-  // Remove executable filename
-  char *dirend;
-  if ((dirend = strrchr(path, '\\')))
-    *dirend = '\0';
-
-  // Append relative path to DLL
-  strcat_s(path, 4096, "\\..\\lib\\oclgrind-rt.dll");
 }
