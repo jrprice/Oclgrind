@@ -55,6 +55,10 @@ using namespace std;
   cl_khr_local_int32_extended_atomics  \
   cl_khr_byte_addressable_store        \
   cl_khr_fp64"
+#define DEVICE_TYPE (CL_DEVICE_TYPE_CPU | \
+                     CL_DEVICE_TYPE_GPU | \
+                     CL_DEVICE_TYPE_ACCELERATOR | \
+                     CL_DEVICE_TYPE_DEFAULT)
 
 
 namespace
@@ -349,9 +353,7 @@ clGetDeviceIDs
     ReturnError(NULL, CL_INVALID_VALUE);
   }
 
-  if (device_type != CL_DEVICE_TYPE_CPU &&
-      device_type != CL_DEVICE_TYPE_DEFAULT &&
-      device_type != CL_DEVICE_TYPE_ALL)
+  if (!(device_type & DEVICE_TYPE))
   {
     ReturnError(NULL, CL_DEVICE_NOT_FOUND);
   }
@@ -413,7 +415,7 @@ clGetDeviceInfo
   {
   case CL_DEVICE_TYPE:
     result_size = sizeof(cl_device_type);
-    result_data.cldevicetype = CL_DEVICE_TYPE_CPU;
+    result_data.cldevicetype = DEVICE_TYPE;
     break;
   case CL_DEVICE_VENDOR_ID:
     result_size = sizeof(cl_uint);
@@ -809,9 +811,7 @@ clCreateContextFromType
                  "pfn_notify NULL but user_data non-NULL");
     return NULL;
   }
-  if (device_type != CL_DEVICE_TYPE_CPU &&
-      device_type != CL_DEVICE_TYPE_DEFAULT &&
-      device_type != CL_DEVICE_TYPE_ALL)
+  if (!(device_type & DEVICE_TYPE))
   {
     SetErrorArg(NULL, CL_DEVICE_NOT_FOUND, device_type);
     return NULL;
