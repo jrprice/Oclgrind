@@ -5620,7 +5620,7 @@ void *m_dispatchTable[] =
 bool initOclgrind()
 {
   // Get base address of process
-  DWORD base = (DWORD)GetModuleHandle(NULL);
+  char *base = (char*)GetModuleHandle(NULL);
 
   // Get pointer to NT headers
   PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)(base);
@@ -5676,7 +5676,7 @@ bool initOclgrind()
             }
 
             // Replace function pointer with our implementation
-            firstThunk->u1.Function = (DWORD)clGetPlatformIDs;
+            firstThunk->u1.Function = (ULONG64)clGetPlatformIDs;
 
             // Restore page protection
             DWORD zero = 0;
