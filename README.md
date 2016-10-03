@@ -124,11 +124,13 @@ a path in the `CLANG_ROOT` parameter, which should be the root of your
 Clang installation (containing the `bin/`, `lib/` and `include/`
 directories).
 
-If you wish to use Oclgrind via the OpenCL ICD (recommended), then you
-should also create an ICD loading point. To do this, you should add a
-`REG_DWORD` value to the Windows Registry under one or both of the
-registry keys below, with the name set to the absolute path of the
-`oclgrind-rt-icd.dll` library and the value set to 0.
+You should add the `bin` directory of the Oclgrind installation to the
+`PATH` environment variable in order to make use of the `oclgrind`
+command. If you wish to use Oclgrind via the OpenCL ICD (optional),
+then you should also create an ICD loading point. To do this, you
+should add a `REG_DWORD` value to the Windows Registry under one or
+both of the registry keys below, with the name set to the absolute
+path of the `oclgrind-rt-icd.dll` library and the value set to 0.
 
 Key for 32-bit machines or 64-bit apps on a 64-bit machine:
 `HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors`
