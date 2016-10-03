@@ -1081,7 +1081,7 @@ namespace oclgrind
       }
 
       // Remap channels
-      float ret;
+      float ret = 0.f;
       int channel = getInputChannel(image->format, c, &ret);
       if (channel < 0)
       {
@@ -1155,7 +1155,7 @@ namespace oclgrind
       }
 
       // Remap channels
-      float ret;
+      float ret = 0.f;
       int channel = getInputChannel(image->format, c, &ret);
       if (channel < 0)
       {
@@ -1220,7 +1220,7 @@ namespace oclgrind
       }
 
       // Remap channels
-      float ret;
+      float ret = 0.f;
       int channel = getInputChannel(image->format, c, &ret);
       if (channel < 0)
       {
@@ -3130,18 +3130,20 @@ namespace oclgrind
       uint64_t max;
       switch (result.size)
       {
-        case 1:
-          max = UINT8_MAX;
-          break;
-        case 2:
-          max = UINT16_MAX;
-          break;
-        case 4:
-          max = UINT32_MAX;
-          break;
-        case 8:
-          max = UINT64_MAX;
-          break;
+      case 1:
+        max = UINT8_MAX;
+        break;
+      case 2:
+        max = UINT16_MAX;
+        break;
+      case 4:
+        max = UINT32_MAX;
+        break;
+      case 8:
+        max = UINT64_MAX;
+        break;
+      default:
+        FATAL_ERROR("Unsupported integer size %d", result.size);
       }
 
       // Use rounding mode
@@ -3228,6 +3230,8 @@ namespace oclgrind
         min = INT64_MIN;
         max = INT64_MAX;
         break;
+      default:
+        FATAL_ERROR("Unsupported integer size %d", result.size);
       }
 
       // Use rounding mode
