@@ -117,3 +117,5 @@ clEnqueueReleaseD3D11ObjectsKHR
 clGetDeviceIDsFromDX9MediaAdapterKHR
 clEnqueueAcquireDX9MediaSurfacesKHR
 clEnqueueReleaseDX9MediaSurfacesKHR
+
+initOclgrind
