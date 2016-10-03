@@ -117,7 +117,15 @@ int main(int argc, char *argv[])
   if (ResumeThread(pinfo.hThread) == -1)
     die("resuming thread");
 
-  return 0;
+  // Wait for child process to finish
+  if (WaitForSingleObject(pinfo.hProcess, INFINITE) != WAIT_OBJECT_0)
+    die("waiting for child process failed");
+
+  // Get return code and forward it
+  if (!GetExitCodeProcess(pinfo.hProcess, &retval))
+    die("getting child process exit code");
+
+  return retval;
 }
 
 static bool parseArguments(int argc, char *argv[])
