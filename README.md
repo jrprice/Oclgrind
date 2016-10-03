@@ -68,8 +68,8 @@ Next, build and install with make:
 If installing to a non-system location, you should add the `bin/`
 directory to the `PATH` environment variable in order to make use of
 the `oclgrind` command. If you wish to use Oclgrind via the OpenCL ICD
-(optional), then you should create an ICD loading point by copying the
-`oclgrind.icd` file from the build directory to
+loader (optional), then you should create an ICD loading point by
+copying the `oclgrind.icd` file from the build directory to
 `/etc/OpenCL/vendors/`.
 
 
@@ -105,8 +105,8 @@ Next, build and install with make:
 If installing to a non-default location, you should add the `bin/`
 directory to the `PATH` environment variable in order to make use of
 the `oclgrind` command. If you wish to use Oclgrind via the OpenCL ICD
-(optional), then you should create an ICD loading point by copying the
-`oclgrind.icd` file from the build directory to
+loader (optional), then you should create an ICD loading point by
+copying the `oclgrind.icd` file from the build directory to
 `/etc/OpenCL/vendors/`.
 
 
@@ -126,11 +126,12 @@ directories).
 
 You should add the `bin` directory of the Oclgrind installation to the
 `PATH` environment variable in order to make use of the `oclgrind`
-command. If you wish to use Oclgrind via the OpenCL ICD (optional),
-then you should also create an ICD loading point. To do this, you
-should add a `REG_DWORD` value to the Windows Registry under one or
-both of the registry keys below, with the name set to the absolute
-path of the `oclgrind-rt-icd.dll` library and the value set to 0.
+command. If you wish to use Oclgrind via the OpenCL ICD loader
+(optional), then you should also create an ICD loading point. To do
+this, you should add a `REG_DWORD` value to the Windows Registry under
+one or both of the registry keys below, with the name set to the
+absolute path of the `oclgrind-rt-icd.dll` library and the value set
+to 0.
 
 Key for 32-bit machines or 64-bit apps on a 64-bit machine:
 `HKEY_LOCAL_MACHINE\SOFTWARE\Khronos\OpenCL\Vendors`
