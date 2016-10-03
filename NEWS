@@ -9,6 +9,7 @@ This release incorporates the following changes:
 - Added plugin to detect use of uninitialized values
 - Added memoryMap and memoryUnmap plugin callbacks
 - Added support for LLVM 3.7, 3.8 and 3.9
+- Added oclgrind.exe command on Windows
 - Report invalid uses of mapped buffers inside kernels
 - Report invalid indices when accessing statically sized arrays
 - Improved coverage of race detection plugin
