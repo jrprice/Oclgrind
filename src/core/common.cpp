@@ -56,6 +56,7 @@ namespace oclgrind
       return z;
     default:
       assert(false && "Size3 index out of range");
+      abort();
     }
   }
 
@@ -71,6 +72,7 @@ namespace oclgrind
       return z;
     default:
       assert(false && "Size3 index out of range");
+      abort();
     }
   }
 
@@ -534,7 +536,7 @@ namespace oclgrind
     }
 
     // Unreachable
-    assert(false);
+    abort();
   }
 
   unsigned getTypeSize(const llvm::Type *type)
