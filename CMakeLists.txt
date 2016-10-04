@@ -67,6 +67,11 @@ if (NOT (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.9"))
   list(APPEND LLVM_LIBS ${LLVM_COVERAGE})
 endif()
 
+if (NOT (${LLVM_PACKAGE_VERSION} VERSION_LESS "4.0"))
+  llvm_map_components_to_libnames(LLVM_COROUTINES coroutines)
+  list(APPEND LLVM_LIBS ${LLVM_COROUTINES})
+endif()
+
 
 # Allow user to set path to Clang installation via CLANG_ROOT
 set (CLANG_ROOT " " CACHE PATH "Root of Clang installation")
