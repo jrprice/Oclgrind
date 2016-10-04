@@ -51,6 +51,8 @@ AC_MSG_RESULT($llvm_full_version)
 if test $llvm_version -lt 36; then
   AC_MSG_ERROR([LLVM version must be >= 3.6])
 fi
+AM_CONDITIONAL([LLVM_39_OR_NEWER], [test $llvm_version -ge 39])
+AM_CONDITIONAL([LLVM_40_OR_NEWER], [test $llvm_version -ge 40])
 AC_DEFINE_UNQUOTED([LLVM_VERSION],
                    [$llvm_version],
                    [Version of LLVM we are building against])

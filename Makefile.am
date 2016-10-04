@@ -20,8 +20,19 @@ endif USING_CLANG
 
 lib_LTLIBRARIES = liboclgrind.la liboclgrind-rt.la liboclgrind-rt-icd.la
 
-LLVM_LIBS = `$(llvm_config) --system-libs --libs bitreader bitwriter	\
- core instrumentation ipo irreader linker mcparser objcarcopts option target`
+
+LLVM_COMPONENTS = bitreader bitwriter core instrumentation ipo	\
+irreader linker mcparser objcarcopts option target
+
+if LLVM_39_OR_NEWER
+LLVM_COMPONENTS += coverage
+endif LLVM_39_OR_NEWER
+
+if LLVM_40_OR_NEWER
+LLVM_COMPONENTS += coroutines
+endif LLVM_40_OR_NEWER
+
+LLVM_LIBS = `$(llvm_config) --system-libs --libs $(LLVM_COMPONENTS)`
 
 liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp		\
  src/core/Context.h src/core/Context.cpp src/core/half.h		\
