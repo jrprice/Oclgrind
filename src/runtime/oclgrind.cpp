@@ -8,20 +8,44 @@
 
 #include "config.h"
 
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
+#include <string>
 
+#if defined(_WIN32) && !defined(__MINGW32__)
 #include <windows.h>
+#else
+#include <unistd.h>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+#endif
 
 using namespace std;
 
-#define MAX_DLL_PATH 4096
-#define MAX_CMD 32768
+#if defined(_WIN32) && !defined(__MINGW32__)
 
-static char cmd[MAX_CMD];
-
+static string appCmd;
 static void checkWow64(HANDLE parent, HANDLE child);
 static void die(const char *op);
-static void getDllPath(char path[MAX_DLL_PATH]);
+
+#else // not Windows
+
+static char **appArgs = NULL;
+#ifdef __APPLE__
+#define LIB_EXTENSION "dylib"
+#define LD_LIBRARY_PATH_ENV "DYLD_LIBRARY_PATH"
+#define LD_PRELOAD_ENV "DYLD_INSERT_LIBRARIES"
+#else
+#define LIB_EXTENSION "so"
+#define LD_LIBRARY_PATH_ENV "LD_LIBRARY_PATH"
+#define LD_PRELOAD_ENV "LD_PRELOAD"
+#endif
+
+#endif
+
+static string getLibDirPath();
 static bool parseArguments(int argc, char *argv[]);
 static void printUsage();
 static void setEnvironment(const char *name, const char *value);
@@ -34,9 +58,11 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+#if defined(_WIN32) && !defined(__MINGW32__)
+
   // Get full path to oclgrind-rt.dll
-  char dllpath[MAX_DLL_PATH];
-  getDllPath(dllpath);
+  string dllpath = getLibDirPath();
+  dllpath += "\\oclgrind-rt.dll";
 
 
   PROCESS_INFORMATION pinfo = { 0 };
@@ -44,22 +70,22 @@ int main(int argc, char *argv[])
   sinfo.cb = sizeof(sinfo);
 
   // Create child process in suspended state
-  if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_SUSPENDED,
-                      NULL, NULL, &sinfo, &pinfo))
+  if (!CreateProcessA(NULL, (LPSTR)appCmd.c_str(), NULL, NULL, FALSE,
+                      CREATE_SUSPENDED, NULL, NULL, &sinfo, &pinfo))
     die("creating child process");
 
   // Check that we are running as 64-bit if and only if we need to be
   checkWow64(GetCurrentProcess(), pinfo.hProcess);
 
   // Allocate memory for DLL path
-  void *childPath = VirtualAllocEx(pinfo.hProcess, NULL, strlen(dllpath)+1,
+  void *childPath = VirtualAllocEx(pinfo.hProcess, NULL, dllpath.size()+1,
                                    MEM_COMMIT, PAGE_READWRITE);
   if (!childPath)
     die("allocating child memory");
 
   // Write DLL path to child
   if (!WriteProcessMemory(pinfo.hProcess, childPath,
-                          (void*)dllpath, strlen(dllpath)+1, NULL))
+                          (void*)dllpath.c_str(), dllpath.size()+1, NULL))
     die("writing child memory");
 
   // Create thread to load DLL in child process
@@ -76,11 +102,11 @@ int main(int argc, char *argv[])
     die("waiting for load thread");
 
   CloseHandle(childThread);
-  VirtualFreeEx(pinfo.hProcess, childPath, sizeof(dllpath), MEM_RELEASE);
+  VirtualFreeEx(pinfo.hProcess, childPath, dllpath.size()+1, MEM_RELEASE);
 
 
   // Load DLL in this process as well to get function pointers
-  HMODULE dll = LoadLibraryA(dllpath);
+  HMODULE dll = LoadLibraryA(dllpath.c_str());
   if (!dll)
     die("loading DLL");
 
@@ -126,12 +152,46 @@ int main(int argc, char *argv[])
     die("getting child process exit code");
 
   return retval;
+
+#else // not Windows
+
+  // Get path to Oclgrind library directory
+  string libdir = getLibDirPath();
+
+  // Construct new LD_LIBRARY_PATH
+  string ldLibraryPath = libdir;
+  ldLibraryPath += ":";
+  ldLibraryPath += getenv(LD_LIBRARY_PATH_ENV);
+
+  // Add oclgrind-rt library to LD_PRELOAD
+  string ldPreload = libdir;
+  ldPreload += "/liboclgrind-rt.";
+  ldPreload += LIB_EXTENSION;
+  const char *oldLdPreload = getenv(LD_PRELOAD_ENV);
+  if (oldLdPreload)
+  {
+    ldPreload += ":";
+    ldPreload += oldLdPreload;
+  }
+
+  setEnvironment(LD_LIBRARY_PATH_ENV, ldLibraryPath.c_str());
+  setEnvironment(LD_PRELOAD_ENV, ldPreload.c_str());
+#ifdef __APPLE__
+  setEnvironment("DYLD_FORCE_FLAT_NAMESPACE", "1");
+#endif
+
+  // Launch target application
+  if (execvp(appArgs[0], appArgs) == -1)
+  {
+    cerr << "[Oclgrind] Failed to launch target application" << endl;
+    exit(1);
+  }
+
+#endif
 }
 
 static bool parseArguments(int argc, char *argv[])
 {
-  cmd[0] = '\0';
-
   for (int i = 1; i < argc; i++)
   {
     if (!strcmp(argv[i], "--build-options"))
@@ -248,16 +308,31 @@ static bool parseArguments(int argc, char *argv[])
     }
     else
     {
+#if defined(_WIN32) && !defined(__MINGW32__)
+      // Build command-line for target application
       for (; i < argc; i++)
       {
-        strcat_s(cmd, MAX_CMD, argv[i]);
-        strcat_s(cmd, MAX_CMD, " ");
+        appCmd += argv[i];
+        appCmd += " ";
       }
+#else // not Windows
+      appArgs = (char**)malloc((argc-i+1) * sizeof(char*));
+      int offset = i;
+      for (; i < argc; i++)
+      {
+        appArgs[i-offset] = argv[i];
+      }
+      appArgs[argc-offset] = NULL;
+#endif
       break;
     }
   }
 
-  if (strlen(cmd) == 0)
+#if defined(_WIN32) && !defined(__MINGW32__)
+  if (appCmd.size() == 0)
+#else
+  if (!appArgs)
+#endif
   {
     printUsage();
     return false;
@@ -266,44 +341,54 @@ static bool parseArguments(int argc, char *argv[])
   return true;
 }
 
-void checkWow64(HANDLE parent, HANDLE child)
+static string getLibDirPath()
 {
-  BOOL parentWow64, childWow64;
-  IsWow64Process(parent, &parentWow64);
-  IsWow64Process(child, &childWow64);
-  if (parentWow64 != childWow64)
+  string libdir;
+
+  // Get full path to executable
+#if defined(_WIN32) && !defined(__MINGW32__)
+  char path[MAX_PATH];
+  GetModuleFileNameA(GetModuleHandle(NULL), path, MAX_PATH);
+  if (GetLastError() != ERROR_SUCCESS)
+    die("getting path to Oclgrind installation");
+  libdir = path;
+#elif defined(__APPLE__)
+  char path[4096];
+  uint32_t sz = 4096;
+  if (_NSGetExecutablePath(path, &sz))
   {
-    const char *bits = childWow64 ? "32" : "64";
-    cerr << "[Oclgrind] target application is " << bits << "-bit" << endl
-         << "Use the " << bits << "-bit version of oclgrind.exe"  << endl;
+    cerr << "[Oclgrind] Unable to get path to Oclgrind installation" << endl;
     exit(1);
   }
-}
+  libdir = path;
+#else
+  char path[4096];
+  if (readlink("/proc/self/exe", path, 4096) == -1)
+  {
+    cerr << "[Oclgrind] Unable to get path to Oclgrind installation" << endl;
+    exit(1);
+  }
+  libdir = path;
+#endif
 
-void die(const char *op)
-{
-  DWORD err = GetLastError();
-  char buffer[1024];
-  FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
-    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-    buffer, 1024, NULL);
-  cerr << "[Oclgrind] Error while '" << op << "':" << endl
-       << buffer << endl;
-  exit(1);
-}
+  // Remove executable filename and containing directory
+  size_t slash;
+  for (int i = 0; i < 2; i++)
+  {
+#if defined(_WIN32) && !defined(__MINGW32__)
+    if ((slash = libdir.find_last_of('\\')) == string::npos)
+#else
+    if ((slash = libdir.find_last_of('/')) == string::npos)
+#endif
+      cerr << "[Oclgrind] Failed to get path to library directory" << endl;
 
-static void getDllPath(char path[MAX_DLL_PATH])
-{
-  // Get full path to exeuctable
-  GetModuleFileNameA(GetModuleHandle(NULL), path, MAX_PATH);
+    libdir.resize(slash);
+  }
 
-  // Remove executable filename
-  char *dirend;
-  if ((dirend = strrchr(path, '\\')))
-    *dirend = '\0';
+  // Append library directory
+  libdir += "/lib";
 
-  // Append relative path to DLL
-  strcat_s(path, 4096, "\\..\\lib\\oclgrind-rt.dll");
+  return libdir;
 }
 
 static void printUsage()
@@ -355,5 +440,39 @@ static void printUsage()
 
 static void setEnvironment(const char *name, const char *value)
 {
+#if defined(_WIN32) && !defined(__MINGW32__)
   _putenv_s(name, value);
+#else
+  setenv(name, value, 1);
+#endif
 }
+
+#if defined(_WIN32) && !defined(__MINGW32__)
+
+void checkWow64(HANDLE parent, HANDLE child)
+{
+  BOOL parentWow64, childWow64;
+  IsWow64Process(parent, &parentWow64);
+  IsWow64Process(child, &childWow64);
+  if (parentWow64 != childWow64)
+  {
+    const char *bits = childWow64 ? "32" : "64";
+    cerr << "[Oclgrind] target application is " << bits << "-bit" << endl
+         << "Use the " << bits << "-bit version of oclgrind.exe"  << endl;
+    exit(1);
+  }
+}
+
+void die(const char *op)
+{
+  DWORD err = GetLastError();
+  char buffer[1024];
+  FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
+    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+    buffer, 1024, NULL);
+  cerr << "[Oclgrind] Error while '" << op << "':" << endl
+       << buffer << endl;
+  exit(1);
+}
+
+#endif

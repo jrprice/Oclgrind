@@ -231,10 +231,8 @@ endif()
 add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
 target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  add_executable(oclgrind-exe src/runtime/oclgrind.cpp)
-  set_target_properties(oclgrind-exe PROPERTIES OUTPUT_NAME oclgrind)
-endif()
+add_executable(oclgrind-exe src/runtime/oclgrind.cpp)
+set_target_properties(oclgrind-exe PROPERTIES OUTPUT_NAME oclgrind)
 
 add_executable(oclgrind-kernel
   src/kernel/oclgrind-kernel.cpp
@@ -288,25 +286,14 @@ add_custom_command(
 configure_file("cmake_config.h.in" "config.h")
 
 
-# Install oclgrind script if not on Windows
+# Generate ICD loader if not on Windows
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  file(READ src/runtime/oclgrind OCLGRIND_SCRIPT)
-  string(REGEX REPLACE
-    "__VERSION__" "${Oclgrind_VERSION_MAJOR}.${Oclgrind_VERSION_MINOR}"
-    OCLGRIND_SCRIPT "${OCLGRIND_SCRIPT}")
-  file(WRITE ${CMAKE_BINARY_DIR}/oclgrind "${OCLGRIND_SCRIPT}")
-
-  # Generate ICD loader
   file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/oclgrind.icd
        CONTENT "$<TARGET_FILE:oclgrind-rt-icd>\n")
-
-  install(PROGRAMS
-    ${CMAKE_BINARY_DIR}/oclgrind
-    DESTINATION bin)
 endif()
 
 install(TARGETS
-  oclgrind-kernel
+  oclgrind-exe oclgrind-kernel
   DESTINATION bin)
 install(TARGETS
   oclgrind oclgrind-rt oclgrind-rt-icd
@@ -315,9 +302,6 @@ install(FILES
   ${CORE_HEADERS} ${CLC_HEADERS} LICENSE
   DESTINATION include/oclgrind)
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  install(TARGETS
-    oclgrind-exe
-    DESTINATION bin)
   install(FILES
     src/CL/cl.h
     src/CL/cl_d3d10.h
