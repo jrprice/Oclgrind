@@ -304,7 +304,7 @@ void Memory::dump() const
 {
   for (unsigned b = 1; b < m_memory.size(); b++)
   {
-    if (!m_memory[b]->data)
+    if (!m_memory[b] || !m_memory[b]->data)
     {
       continue;
     }
