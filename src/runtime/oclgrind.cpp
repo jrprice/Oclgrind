@@ -160,8 +160,12 @@ int main(int argc, char *argv[])
 
   // Construct new LD_LIBRARY_PATH
   string ldLibraryPath = libdir;
-  ldLibraryPath += ":";
-  ldLibraryPath += getenv(LD_LIBRARY_PATH_ENV);
+  const char *oldLdLibraryPath = getenv(LD_LIBRARY_PATH_ENV);
+  if (oldLdLibraryPath)
+  {
+    ldLibraryPath += ":";
+    ldLibraryPath += oldLdLibraryPath;
+  }
 
   // Add oclgrind-rt library to LD_PRELOAD
   string ldPreload = libdir;
