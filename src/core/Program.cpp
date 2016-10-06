@@ -293,6 +293,7 @@ bool Program::build(const char *options, list<Header> headers)
 
     args.push_back("-include-pch");
     args.push_back(pch);
+    args.push_back("-fno-validate-pch");
   }
   else
   {
