@@ -49,6 +49,7 @@ tests/apps/vecadd/vecadd
 # Misc
 oclgrind-*.tar.gz
 oclgrind-*.zip
+.clang_complete
 .DS_Store
 *.kdev4
 *.sublime-*
