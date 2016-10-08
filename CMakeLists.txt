@@ -338,3 +338,18 @@ if (PYTHONINTERP_FOUND)
 else()
   message(WARNING "Tests will not be run (Python required)")
 endif()
+
+
+# CPack config
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenCL device simulator")
+set(CPACK_PACKAGE_VENDOR "University of Bristol")
+set(CPACK_PACKAGE_VERSION_MAJOR ${Oclgrind_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${Oclgrind_VERSION_MINOR})
+set(CPACK_RPM_PACKAGE_VERSION "${Oclgrind_VERSION_MAJOR}.${Oclgrind_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "0")
+
+# CPack RPM config
+set(CPACK_RPM_PACKAGE_GROUP "Development/Tools")
+set(CPACK_RPM_PACKAGE_LICENSE "BSD")
+
+include(CPack)
