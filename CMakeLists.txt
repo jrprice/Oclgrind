@@ -147,7 +147,7 @@ endif()
 # Check for library directory suffixes
 set(LIBDIR_SUFFIX "")
 get_property(USING_LIB64 GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS)
-if (USING_LIB64)
+if (USING_LIB64 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
   set(LIBDIR_SUFFIX "64")
 endif()
 
