@@ -144,6 +144,13 @@ else()
  set(HAVE_READLINE 0)
 endif()
 
+# Check for library directory suffixes
+set(LIBDIR_SUFFIX "")
+get_property(USING_LIB64 GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS)
+if (USING_LIB64)
+  set(LIBDIR_SUFFIX "64")
+endif()
+
 # Generate stringified clc.h
 add_custom_command(
   OUTPUT src/core/clc_h.cpp
@@ -233,6 +240,7 @@ target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
 add_executable(oclgrind-exe src/runtime/oclgrind.cpp)
 set_target_properties(oclgrind-exe PROPERTIES OUTPUT_NAME oclgrind)
+target_compile_definitions(oclgrind-exe PRIVATE "-DLIBDIR_SUFFIX=\"${LIBDIR_SUFFIX}\"")
 
 add_executable(oclgrind-kernel
   src/kernel/oclgrind-kernel.cpp
@@ -292,18 +300,12 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
        CONTENT "$<TARGET_FILE:oclgrind-rt-icd>\n")
 endif()
 
-set(LIBDIR "lib")
-get_property(USING_LIB64 GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS)
-if (USING_LIB64)
-  set(LIBDIR "lib64")
-endif()
-
 install(TARGETS
   oclgrind-exe oclgrind-kernel
   DESTINATION bin)
 install(TARGETS
   oclgrind oclgrind-rt oclgrind-rt-icd
-  DESTINATION ${LIBDIR})
+  DESTINATION "lib${LIBDIR_SUFFIX}")
 install(FILES
   ${CORE_HEADERS} ${CLC_HEADERS} LICENSE
   DESTINATION include/oclgrind)

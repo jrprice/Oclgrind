@@ -390,7 +390,7 @@ static string getLibDirPath()
   }
 
   // Append library directory
-  libdir += "/lib";
+  libdir += "/lib" LIBDIR_SUFFIX;
 
   return libdir;
 }
