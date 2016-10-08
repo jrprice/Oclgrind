@@ -292,12 +292,18 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
        CONTENT "$<TARGET_FILE:oclgrind-rt-icd>\n")
 endif()
 
+set(LIBDIR "lib")
+get_property(USING_LIB64 GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS)
+if (USING_LIB64)
+  set(LIBDIR "lib64")
+endif()
+
 install(TARGETS
   oclgrind-exe oclgrind-kernel
   DESTINATION bin)
 install(TARGETS
   oclgrind oclgrind-rt oclgrind-rt-icd
-  DESTINATION lib)
+  DESTINATION ${LIBDIR})
 install(FILES
   ${CORE_HEADERS} ${CLC_HEADERS} LICENSE
   DESTINATION include/oclgrind)
