@@ -1,0 +1,11 @@
+Oclgrind is an extensible OpenCL device simulator that provides a
+plugin interface to facilitate the creation of tools to aid analysis
+and development of OpenCL programs. Among the tools that Oclgrind
+provides are various debugging aids, such as out-of-bounds memory
+access checking, data-race detection, and an interactive debugger.
+
+Oclgrind implements the OpenCL 1.2 runtime API, which makes simulating
+an existing OpenCL program very straightforward - simply prefix your
+usual application command-line with 'oclgrind'. There is also a simple
+interface for simulating individual kernels in isolation via the
+'oclgrind-kernel' command.

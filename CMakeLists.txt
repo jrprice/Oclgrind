@@ -342,10 +342,13 @@ endif()
 
 # CPack config
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenCL device simulator")
+set(CPACK_PACKAGE_DESCRIPTION_FILE
+    "${CMAKE_SOURCE_DIR}/src/install/cpack-description")
 set(CPACK_PACKAGE_VENDOR "University of Bristol")
 set(CPACK_PACKAGE_VERSION_MAJOR ${Oclgrind_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${Oclgrind_VERSION_MINOR})
-set(CPACK_RPM_PACKAGE_VERSION "${Oclgrind_VERSION_MAJOR}.${Oclgrind_VERSION_MINOR}")
+set(CPACK_RPM_PACKAGE_VERSION
+    "${Oclgrind_VERSION_MAJOR}.${Oclgrind_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "0")
 
 # CPack RPM config
