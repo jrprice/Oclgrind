@@ -87,6 +87,7 @@ liboclgrind_rt_icd_la_LDFLAGS = -shared
 bin_PROGRAMS = oclgrind oclgrind-kernel
 
 oclgrind_SOURCES = src/runtime/oclgrind.cpp
+oclgrind_CPPFLAGS = -DLIBDIR_SUFFIX=""
 
 oclgrind_kernel_SOURCES = src/kernel/oclgrind-kernel.cpp	\
  src/kernel/Simulation.h src/kernel/Simulation.cpp
