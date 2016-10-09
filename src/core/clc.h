@@ -421,37 +421,41 @@ BUILTIN_1ARG_FLOATS(fast_normalize);
 // Image Functions //
 /////////////////////
 
-size_t __OVERLOAD__ get_image_array_size(image1d_array_t image);
-size_t __OVERLOAD__ get_image_array_size(image2d_array_t image);
+#define IMAGE_QUERY(ret, name, type) \
+  ret __OVERLOAD__ name(read_only type image); \
+  ret __OVERLOAD__ name(write_only type image)
 
-int __OVERLOAD__ get_image_channel_data_type(image1d_t image);
-int __OVERLOAD__ get_image_channel_data_type(image1d_buffer_t image);
-int __OVERLOAD__ get_image_channel_data_type(image1d_array_t image);
-int __OVERLOAD__ get_image_channel_data_type(image2d_t image);
-int __OVERLOAD__ get_image_channel_data_type(image2d_array_t image);
-int __OVERLOAD__ get_image_channel_data_type(image3d_t image);
+IMAGE_QUERY(size_t, get_image_array_size, image1d_array_t);
+IMAGE_QUERY(size_t, get_image_array_size, image2d_array_t);
 
-int __OVERLOAD__ get_image_channel_order(image1d_t image);
-int __OVERLOAD__ get_image_channel_order(image1d_buffer_t image);
-int __OVERLOAD__ get_image_channel_order(image1d_array_t image);
-int __OVERLOAD__ get_image_channel_order(image2d_t image);
-int __OVERLOAD__ get_image_channel_order(image2d_array_t image);
-int __OVERLOAD__ get_image_channel_order(image3d_t image);
+IMAGE_QUERY(int, get_image_channel_data_type, image1d_t);
+IMAGE_QUERY(int, get_image_channel_data_type, image1d_buffer_t);
+IMAGE_QUERY(int, get_image_channel_data_type, image1d_array_t);
+IMAGE_QUERY(int, get_image_channel_data_type, image2d_t);
+IMAGE_QUERY(int, get_image_channel_data_type, image2d_array_t);
+IMAGE_QUERY(int, get_image_channel_data_type, image3d_t);
 
-int2 __OVERLOAD__ get_image_dim(image2d_t image);
-int2 __OVERLOAD__ get_image_dim(image2d_array_t image);
-int4 __OVERLOAD__ get_image_dim(image3d_t image);
+IMAGE_QUERY(int, get_image_channel_order, image1d_t);
+IMAGE_QUERY(int, get_image_channel_order, image1d_buffer_t);
+IMAGE_QUERY(int, get_image_channel_order, image1d_array_t);
+IMAGE_QUERY(int, get_image_channel_order, image2d_t);
+IMAGE_QUERY(int, get_image_channel_order, image2d_array_t);
+IMAGE_QUERY(int, get_image_channel_order, image3d_t);
 
-int __OVERLOAD__ get_image_depth(image3d_t image);
-int __OVERLOAD__ get_image_height(image2d_t image);
-int __OVERLOAD__ get_image_height(image2d_array_t image);
-int __OVERLOAD__ get_image_height(image3d_t image);
-int __OVERLOAD__ get_image_width(image1d_t image);
-int __OVERLOAD__ get_image_width(image1d_buffer_t image);
-int __OVERLOAD__ get_image_width(image1d_array_t image);
-int __OVERLOAD__ get_image_width(image2d_t image);
-int __OVERLOAD__ get_image_width(image2d_array_t image);
-int __OVERLOAD__ get_image_width(image3d_t image);
+IMAGE_QUERY(int2, get_image_dim, image2d_t);
+IMAGE_QUERY(int2, get_image_dim, image2d_array_t);
+IMAGE_QUERY(int4, get_image_dim, image3d_t);
+
+IMAGE_QUERY(int, get_image_depth, image3d_t);
+IMAGE_QUERY(int, get_image_height, image2d_t);
+IMAGE_QUERY(int, get_image_height, image2d_array_t);
+IMAGE_QUERY(int, get_image_height, image3d_t);
+IMAGE_QUERY(int, get_image_width, image1d_t);
+IMAGE_QUERY(int, get_image_width, image1d_buffer_t);
+IMAGE_QUERY(int, get_image_width, image1d_array_t);
+IMAGE_QUERY(int, get_image_width, image2d_t);
+IMAGE_QUERY(int, get_image_width, image2d_array_t);
+IMAGE_QUERY(int, get_image_width, image3d_t);
 
 float4 __OVERLOAD__ read_imagef(image1d_t, int);
 float4 __OVERLOAD__ read_imagef(image1d_buffer_t, int);
