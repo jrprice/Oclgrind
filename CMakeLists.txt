@@ -37,7 +37,9 @@ endif()
 
 # Suppress warnings from OpenCL runtime API headers
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes -Wno-gcc-compat -Wno-availability")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-gcc-compat")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-availability")
 endif()
 
 
@@ -129,8 +131,10 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 
   check_include_files("stdio.h;readline/readline.h" HAVE_READLINE_H)
   check_include_files("stdio.h;readline/history.h" HAVE_HISTORY_H)
-  check_library_exists(readline readline "${READLINE_DIR}/lib" HAVE_READLINE_LIB)
-  check_library_exists(readline add_history "${READLINE_DIR}/lib" HAVE_HISTORY_LIB)
+  check_library_exists(readline readline
+                       "${READLINE_DIR}/lib" HAVE_READLINE_LIB)
+  check_library_exists(readline add_history
+                       "${READLINE_DIR}/lib" HAVE_HISTORY_LIB)
   if (HAVE_READLINE_H AND HAVE_HISTORY_H AND
       HAVE_READLINE_LIB AND HAVE_HISTORY_LIB)
     set(HAVE_READLINE 1)
@@ -240,7 +244,8 @@ target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
 add_executable(oclgrind-exe src/runtime/oclgrind.cpp)
 set_target_properties(oclgrind-exe PROPERTIES OUTPUT_NAME oclgrind)
-target_compile_definitions(oclgrind-exe PRIVATE "-DLIBDIR_SUFFIX=\"${LIBDIR_SUFFIX}\"")
+target_compile_definitions(oclgrind-exe PRIVATE
+                           "-DLIBDIR_SUFFIX=\"${LIBDIR_SUFFIX}\"")
 
 add_executable(oclgrind-kernel
   src/kernel/oclgrind-kernel.cpp
