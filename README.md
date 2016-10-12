@@ -113,12 +113,13 @@ copying the `oclgrind.icd` file from the build directory to
 Building on Windows
 -------------------
 Building Oclgrind on Windows requires Visual Studio 2013 (or newer),
-and Windows 7 (or newer).
+and Windows 7 (or newer). Compiling against recent versions of LLVM
+may require Visual Studio 2015.
 
 When configuring the CMake build, you may be prompted to supply a
 value for the `LLVM_DIR` parameter. This should be set to the
 directory containing your LLVM installation's `LLVMConfig.cmake` file
-(for example `C:\Program Files\LLVM\share\llvm\cmake\`). If Clang is
+(for example `C:\Program Files\LLVM\lib\cmake\llvm`). If Clang is
 installed separately to LLVM, then you may also be prompted to supply
 a path in the `CLANG_ROOT` parameter, which should be the root of your
 Clang installation (containing the `bin/`, `lib/` and `include/`
