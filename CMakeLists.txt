@@ -307,7 +307,7 @@ install(TARGETS
   oclgrind oclgrind-rt oclgrind-rt-icd
   DESTINATION "lib${LIBDIR_SUFFIX}")
 install(FILES
-  ${CORE_HEADERS} ${CLC_HEADERS} LICENSE
+  ${CORE_HEADERS} ${CLC_HEADERS}
   DESTINATION include/oclgrind)
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   install(FILES
