@@ -1,16 +1,12 @@
 To install Oclgrind, simply copy the bin, lib and include directories
-to (for example) /usr/local/, ensuring that file modification times
-are preserved. The easiest way to do this is with the following
-command:
+to (for example) /usr/local/:
 
-    sudo cp -rp {bin,lib,include} /usr/local
+    sudo cp -r {bin,lib,include} /usr/local
 
 Alternatively, Oclgrind can be used from a non-system directory. To do
 so, add $OCLGRIND_ROOT/bin to your PATH environment variable, and
 $OCLGRIND_ROOT/lib to your DYLD_LIBRARY_PATH environment variable
-(where $OCLGRIND_ROOT is the directory containing this file). If
-copying Oclgrind to a new location, ensure that the -p flag is passed
-to cp, to ensure that file modification times are preserved.
+(where $OCLGRIND_ROOT is the directory containing this file).
 
 Information about using Oclgrind can be found on the GitHub wiki page:
 
