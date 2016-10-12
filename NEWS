@@ -6,14 +6,15 @@ Oclgrind 16.X
 =============
 This release incorporates the following changes:
 
-- Added plugin to detect use of uninitialized values
+- Added plugin to detect use of uninitialized values (from Moritz Pflanzer)
 - Added memoryMap and memoryUnmap plugin callbacks
-- Added support for LLVM 3.7, 3.8 and 3.9
+- Added support for LLVM 3.7, 3.8, and 3.9
 - Added oclgrind.exe command on Windows
 - Report invalid uses of mapped buffers inside kernels
 - Report invalid indices when accessing statically sized arrays
 - Improved coverage of race detection plugin
 - Fixed memcheck false-positive when writing to a write-only vector array
+- Oclgrind will now appear with device type (CPU | GPU | ACCELERATOR | DEFAULT)
 - Various minor bug fixes
 
 
