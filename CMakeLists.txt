@@ -269,6 +269,10 @@ add_custom_command(
   DEPENDS src/core/clc.h)
 
 # Generate precompiled headers for clc.h
+set(CLC_SYSROOT "${CMAKE_BINARY_DIR}/include/oclgrind/")
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  string(REPLACE "/" "\\" CLC_SYSROOT "${CLC_SYSROOT}")
+endif()
 add_custom_command(
   OUTPUT include/oclgrind/clc32.pch
   POST_BUILD
@@ -276,8 +280,8 @@ add_custom_command(
     ${CLANG}
     -cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin
     -emit-pch -triple spir-unknown-unknown
-    -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
-    ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
+    -relocatable-pch -isysroot "${CLC_SYSROOT}"
+    include/oclgrind/clc.h
     -o include/oclgrind/clc32.pch
   DEPENDS include/oclgrind/clc.h
 )
@@ -288,8 +292,8 @@ add_custom_command(
     ${CLANG}
     -cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin
     -emit-pch -triple spir64-unknown-unknown
-    -relocatable-pch -isysroot ${CMAKE_BINARY_DIR}/include/oclgrind/
-    ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
+    -relocatable-pch -isysroot "${CLC_SYSROOT}"
+    include/oclgrind/clc.h
     -o include/oclgrind/clc64.pch
   DEPENDS include/oclgrind/clc.h
 )
