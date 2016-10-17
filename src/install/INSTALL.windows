@@ -8,6 +8,13 @@ need to manually create OpenCL ICD loading points by editing the
 registry (see oclgrind-icd.reg), and/or add $OCLGRIND_ROOT/bin to your
 PATH environment variable to make use of the oclgrind.exe command.
 
+You may be warned about a missing MSVCP140.dll during the installation
+process, which can cause Oclgrind to fail to run properly. This can be
+fixed by installing the Microsoft Visual C++ Redistributable from
+here:
+
+    https://www.microsoft.com/en-us/download/details.aspx?id=48145
+
 Information about using Oclgrind can be found on the GitHub wiki page:
 
     http://github.com/jrprice/Oclgrind/wiki
