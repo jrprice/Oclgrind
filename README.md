@@ -21,12 +21,11 @@ Binary releases can be found on the GitHub releases page:
 
 Build dependencies
 ------------------
-
 To build this project, you will need LLVM and Clang 3.6 (or newer)
 development libraries and headers. If you build LLVM from source, it
 is recommended to enable optimizations to significantly improve the
-performance of Oclgrind (set `CMAKE_BUILD_TYPE` to `RelWithDebInfo`,
-or configure with `--enable-optimized`).
+performance of Oclgrind (set `CMAKE_BUILD_TYPE` to `Release` or
+`RelWithDebInfo`).
 
 You will need to use a compiler that supports C++11. Python should
 also be available in order to run the test suite.
@@ -40,7 +39,8 @@ When configuring the CMake build, you may be prompted to supply a
 value for the `LLVM_DIR` parameter (this shouldn't be necessary if
 LLVM is installed in a standard system location). This should be set
 to the directory containing your LLVM installation's
-`LLVMConfig.cmake` file (typically `${LLVM_ROOT}/share/llvm/cmake/`).
+`LLVMConfig.cmake` file (typically either
+`${LLVM_ROOT}/lib/cmake/llvm` or `${LLVM_ROOT}/share/llvm/cmake/`).
 If Clang is installed separately to LLVM, then you may also be
 prompted to supply a path for the `CLANG_ROOT` parameter, which should
 be the root of your Clang installation (containing the `bin/`, `lib/`
@@ -51,7 +51,7 @@ A typical CMake command-line might look like this:
     cmake ${OCLGRIND_SOURCE} \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DCMAKE_INSTALL_PREFIX=${INSTALL_ROOT} \
-          -DLLVM_DIR=${LLVM_ROOT}/share/llvm/cmake
+          -DLLVM_DIR=${LLVM_ROOT}/lib/cmake/llvm
 
 where `${OCLGRIND_SOURCE}` is the path to the root directory
 containing the Oclgrind source code, `${LLVM_ROOT}` is the path to the
