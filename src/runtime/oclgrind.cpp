@@ -16,6 +16,7 @@
 #if defined(_WIN32) && !defined(__MINGW32__)
 #include <windows.h>
 #else
+#include <limits.h>
 #include <unistd.h>
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -356,22 +357,22 @@ static string getLibDirPath()
   if (GetLastError() != ERROR_SUCCESS)
     die("getting path to Oclgrind installation");
   libdir = path;
-#elif defined(__APPLE__)
-  char path[4096];
-  uint32_t sz = 4096;
-  if (_NSGetExecutablePath(path, &sz))
-  {
-    cerr << "[Oclgrind] Unable to get path to Oclgrind installation" << endl;
-    exit(1);
-  }
-  libdir = path;
 #else
-  char path[4096];
-  if (readlink("/proc/self/exe", path, 4096) == -1)
+  char exepath[PATH_MAX];
+  char path[PATH_MAX];
+  // Get path to executable
+#if defined(__APPLE__)
+  uint32_t sz = PATH_MAX;
+  if (_NSGetExecutablePath(exepath, &sz))
+#else // not apple
+  if (readlink("/proc/self/exe", exepath, PATH_MAX) == -1)
+#endif
   {
     cerr << "[Oclgrind] Unable to get path to Oclgrind installation" << endl;
     exit(1);
   }
+  // Resolve symbolic links and normalise path
+  realpath(exepath, path);
   libdir = path;
 #endif
 
