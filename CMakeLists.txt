@@ -149,11 +149,13 @@ else()
 endif()
 
 # Check for library directory suffixes
-set(LIBDIR_SUFFIX "")
+set(_LIBDIR_SUFFIX "")
 get_property(USING_LIB64 GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS)
 if (USING_LIB64 AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-  set(LIBDIR_SUFFIX "64")
+  set(_LIBDIR_SUFFIX "64")
 endif()
+set(LIBDIR_SUFFIX "${_LIBDIR_SUFFIX}"
+    CACHE STRING "Suffix for installed library directory")
 
 # Generate stringified clc.h
 add_custom_command(
