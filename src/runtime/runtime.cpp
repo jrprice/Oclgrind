@@ -216,6 +216,11 @@ clIcdGetPlatformIDsKHR
   cl_uint *num_platforms
 )
 {
+  if (platforms && num_entries < 1)
+  {
+    ReturnError(NULL, CL_INVALID_VALUE);
+  }
+
   if (!m_platform)
   {
     m_platform = new _cl_platform_id;
@@ -225,7 +230,7 @@ clIcdGetPlatformIDsKHR
     m_device->dispatch = m_dispatchTable;
   }
 
-  if (num_entries > 0)
+  if (platforms)
   {
     platforms[0] = m_platform;
   }
