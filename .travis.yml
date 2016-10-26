@@ -21,6 +21,6 @@ before_install:
 
 script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then cmake . -DLLVM_DIR=/usr/lib/llvm-3.9/lib/cmake/llvm ; fi
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then cmake . -DLLVM_DIR=/usr/local/Cellar/llvm/3.8.1/share/llvm/cmake ; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then cmake . -DLLVM_DIR=/usr/local/Cellar//llvm/3.9.0/lib/cmake/llvm ; fi
   - make -j 2
   - ctest --output-on-failure
