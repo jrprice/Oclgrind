@@ -328,7 +328,7 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_dec");
       }
-      uint32_t old = memory->atomic(AtomicDec, address);
+      uint32_t old = memory->atomic<uint32_t>(AtomicDec, address);
       result.setUInt(old);
     }
 
@@ -342,7 +342,7 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_dec");
       }
-      uint32_t old = memory->atomic(AtomicInc, address);
+      uint32_t old = memory->atomic<uint32_t>(AtomicInc, address);
       result.setUInt(old);
     }
 
@@ -356,8 +356,17 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_max");
       }
-      uint32_t old = memory->atomic(AtomicMax, address, UARG(1));
-      result.setUInt(old);
+      bool is_signed = overload.back() == 'i';
+      if (is_signed)
+      {
+        int32_t old = memory->atomic<int32_t>(AtomicMax, address, SARG(1));
+        result.setSInt(old);
+      }
+      else
+      {
+        uint32_t old = memory->atomic<uint32_t>(AtomicMax, address, UARG(1));
+        result.setUInt(old);
+      }
     }
 
     DEFINE_BUILTIN(atomic_min)
@@ -370,8 +379,17 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_min");
       }
-      uint32_t old = memory->atomic(AtomicMin, address, UARG(1));
-      result.setUInt(old);
+      bool is_signed = overload.back() == 'i';
+      if (is_signed)
+      {
+        int32_t old = memory->atomic<int32_t>(AtomicMin, address, SARG(1));
+        result.setSInt(old);
+      }
+      else
+      {
+        uint32_t old = memory->atomic<uint32_t>(AtomicMin, address, UARG(1));
+        result.setUInt(old);
+      }
     }
 
     DEFINE_BUILTIN(atomic_or)
