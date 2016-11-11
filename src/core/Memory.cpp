@@ -91,7 +91,13 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags,
   return address;
 }
 
-uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
+template uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value);
+template int32_t Memory::atomic(AtomicOp op, size_t address, int32_t value);
+template uint64_t Memory::atomic(AtomicOp op, size_t address, uint64_t value);
+template int64_t Memory::atomic(AtomicOp op, size_t address, int64_t value);
+
+template<typename T>
+T Memory::atomic(AtomicOp op, size_t address, T value)
 {
   m_context->notifyMemoryAtomicLoad(this, op, address, 4);
   m_context->notifyMemoryAtomicStore(this, op, address, 4);
@@ -105,12 +111,12 @@ uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value)
   // Get buffer
   size_t offset = extractOffset(address);
   Buffer *buffer = m_memory[extractBuffer(address)];
-  uint32_t *ptr = (uint32_t*)(buffer->data + offset);
+  T *ptr = (T*)(buffer->data + offset);
 
   if (m_addressSpace == AddrSpaceGlobal)
     ATOMIC_MUTEX(offset).lock();
 
-  uint32_t old = *ptr;
+  T old = *ptr;
   switch(op)
   {
   case AtomicAdd:
