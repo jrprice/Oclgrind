@@ -308,7 +308,7 @@ configure_file("cmake_config.h.in" "config.h")
 # Generate ICD loader if not on Windows
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/oclgrind.icd
-       CONTENT "$<TARGET_FILE:oclgrind-rt-icd>\n")
+       CONTENT "${CMAKE_INSTALL_PREFIX}/lib${LIBDIR_SUFFIX}/$<TARGET_FILE_NAME:oclgrind-rt-icd>\n")
 endif()
 
 install(TARGETS
