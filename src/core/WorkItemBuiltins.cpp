@@ -286,7 +286,7 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_add");
       }
-      uint32_t old = memory->atomic(AtomicAdd, address, UARG(1));
+      uint32_t old = memory->atomic<uint32_t>(AtomicAdd, address, UARG(1));
       result.setUInt(old);
     }
 
@@ -300,7 +300,7 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_and");
       }
-      uint32_t old = memory->atomic(AtomicAnd, address, UARG(1));
+      uint32_t old = memory->atomic<uint32_t>(AtomicAnd, address, UARG(1));
       result.setUInt(old);
     }
 
@@ -402,7 +402,7 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_or");
       }
-      uint32_t old = memory->atomic(AtomicOr, address, UARG(1));
+      uint32_t old = memory->atomic<uint32_t>(AtomicOr, address, UARG(1));
       result.setUInt(old);
     }
 
@@ -416,7 +416,7 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_sub");
       }
-      uint32_t old = memory->atomic(AtomicSub, address, UARG(1));
+      uint32_t old = memory->atomic<uint32_t>(AtomicSub, address, UARG(1));
       result.setUInt(old);
     }
 
@@ -430,7 +430,7 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_xchg");
       }
-      uint32_t old = memory->atomic(AtomicXchg, address, UARG(1));
+      uint32_t old = memory->atomic<uint32_t>(AtomicXchg, address, UARG(1));
       result.setUInt(old);
     }
 
@@ -444,7 +444,7 @@ namespace oclgrind
       if ((address & 0x3) != 0) {
         workItem->m_context->logError("Unaligned address on atomic_xor");
       }
-      uint32_t old = memory->atomic(AtomicXor, address, UARG(1));
+      uint32_t old = memory->atomic<uint32_t>(AtomicXor, address, UARG(1));
       result.setUInt(old);
     }
 

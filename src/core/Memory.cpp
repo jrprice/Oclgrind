@@ -93,8 +93,6 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags,
 
 template uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value);
 template int32_t Memory::atomic(AtomicOp op, size_t address, int32_t value);
-template uint64_t Memory::atomic(AtomicOp op, size_t address, uint64_t value);
-template int64_t Memory::atomic(AtomicOp op, size_t address, int64_t value);
 
 template<typename T>
 T Memory::atomic(AtomicOp op, size_t address, T value)
