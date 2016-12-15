@@ -2808,7 +2808,11 @@ clSetKernelArg
   const void *  arg_value
 ) CL_API_SUFFIX__VERSION_1_0
 {
-  // Check parameters
+  // Check parameters are valid
+  if (!kernel)
+  {
+    ReturnErrorArg(NULL, CL_INVALID_KERNEL, kernel);
+  }
   if (arg_index >= kernel->kernel->getNumArguments())
   {
     ReturnErrorInfo(kernel->program->context, CL_INVALID_ARG_INDEX,
