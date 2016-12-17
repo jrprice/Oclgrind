@@ -17,7 +17,12 @@
 #include <dlfcn.h>
 #endif
 
+#if LLVM_VERSION < 40
 #include "llvm/Bitcode/ReaderWriter.h"
+#else
+#include "llvm/Bitcode/BitcodeReader.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
+#endif
 #include "llvm/IR/AssemblyAnnotationWriter.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
@@ -471,8 +476,10 @@ Program* Program::createFromBitcode(const Context *context,
   // Parse bitcode into IR module
 #if LLVM_VERSION < 37
   llvm::ErrorOr<llvm::Module*> module =
-#else
+#elif LLVM_VERSION < 40
   llvm::ErrorOr<unique_ptr<llvm::Module>> module =
+#else
+  llvm::Expected<unique_ptr<llvm::Module>> module =
 #endif
     parseBitcodeFile(buffer->getMemBufferRef(), *context->getLLVMContext());
   if (!module)
@@ -501,8 +508,10 @@ Program* Program::createFromBitcodeFile(const Context *context,
   // Parse bitcode into IR module
 #if LLVM_VERSION < 37
   llvm::ErrorOr<llvm::Module*> module =
-#else
+#elif LLVM_VERSION < 40
   llvm::ErrorOr<unique_ptr<llvm::Module>> module =
+#else
+  llvm::Expected<unique_ptr<llvm::Module>> module =
 #endif
     parseBitcodeFile(buffer->get()->getMemBufferRef(),
                      *context->getLLVMContext());
