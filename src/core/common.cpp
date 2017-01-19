@@ -808,6 +808,9 @@ namespace oclgrind
 
   uint8_t* MemoryPool::alloc(size_t size)
   {
+    if (size == 0)
+      return NULL;
+
     // Check if requested size larger than block size
     if (size > m_blockSize)
     {
@@ -816,6 +819,22 @@ namespace oclgrind
       m_blocks.push_back(buffer);
       return buffer;
     }
+
+    // Round up size to nearest power of two for alignment
+    // Taken from here:
+    //   http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    unsigned align = size;
+    align--;
+    align |= align >> 1;
+    align |= align >> 2;
+    align |= align >> 4;
+    align |= align >> 8;
+    align |= align >> 16;
+    align++;
+
+    // Align offset to size of requested allocation
+    if (m_offset & (align-1))
+      m_offset += (align - (m_offset & (align-1)));
 
     // Check if enough space in current block
     if (m_offset + size > m_blockSize)
