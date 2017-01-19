@@ -644,22 +644,7 @@ INSTRUCTION(ashr)
 
 INSTRUCTION(bitcast)
 {
-  const llvm::Value *op = instruction->getOperand(0);
-
-  // Check for address space casts
-  if (instruction->getType()->isPointerTy())
-  {
-    unsigned srcAddrSpace = op->getType()->getPointerAddressSpace();
-    unsigned dstAddrSpace = instruction->getType()->getPointerAddressSpace();
-    if (srcAddrSpace != dstAddrSpace)
-    {
-      FATAL_ERROR("Invalid pointer cast from %s to %s address spaces",
-                  getAddressSpaceName(srcAddrSpace),
-                  getAddressSpaceName(dstAddrSpace));
-    }
-  }
-
-  TypedValue operand = getOperand(op);
+  TypedValue operand = getOperand(instruction->getOperand(0));
   memcpy(result.data, operand.data, result.size*result.num);
 }
 
