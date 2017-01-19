@@ -7,6 +7,6 @@ kernel void atomic_cmpxchg_read_race(global int *data)
   }
   else
   {
-    atomic_cmpxchg(data, 0, i);
+    atomic_cmpxchg(data, 0, 0x01000001);
   }
 }

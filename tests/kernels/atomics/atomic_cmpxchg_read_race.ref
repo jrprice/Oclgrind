@@ -2,4 +2,4 @@ ERROR Read-write data race at global memory
 ERROR Write-write data race at global memory
 
 EXACT Argument 'data': 4 bytes
-EXACT   data[0] = 1
+MATCH   data[0] =

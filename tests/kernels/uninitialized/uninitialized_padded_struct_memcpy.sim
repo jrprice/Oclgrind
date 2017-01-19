@@ -5,4 +5,4 @@ uninitialized_padded_struct_memcpy
 
 <size=8>
 
-<size=12 int fill=0 dump>
+<size=12 char fill=0 dump>

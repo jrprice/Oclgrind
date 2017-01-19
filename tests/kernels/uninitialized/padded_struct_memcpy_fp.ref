@@ -1,4 +1,13 @@
 EXACT Argument 'output': 12 bytes
 EXACT   output[0] = 42
-EXACT   output[1] = -7
-EXACT   output[2] = 127
+EXACT   output[1] = 0
+EXACT   output[2] = 0
+EXACT   output[3] = 0
+EXACT   output[4] = -7
+EXACT   output[5] = -1
+EXACT   output[6] = -1
+EXACT   output[7] = -7
+EXACT   output[8] = 127
+EXACT   output[9] = 0
+EXACT   output[10] = 0
+EXACT   output[11] = 0

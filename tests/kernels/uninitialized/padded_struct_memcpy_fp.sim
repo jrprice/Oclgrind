@@ -5,4 +5,4 @@ padded_struct_memcpy_fp
 
 <size=12 char>
 
-<size=12 int fill=0 dump>
+<size=12 char fill=0 dump>

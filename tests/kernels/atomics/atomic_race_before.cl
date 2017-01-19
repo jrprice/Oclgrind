@@ -4,5 +4,5 @@ kernel void atomic_race_before(global int *data)
   {
     *data = 0;
   }
-  atomic_inc(data);
+  atomic_dec(data);
 }
