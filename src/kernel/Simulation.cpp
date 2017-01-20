@@ -748,7 +748,7 @@ void Simulation::run(bool dumpGlobalMemory)
 
     switch (itr->type)
     {
-      DUMP_TYPE(TYPE_CHAR, char);
+      DUMP_TYPE(TYPE_CHAR, int8_t);
       DUMP_TYPE(TYPE_UCHAR, uint8_t);
       DUMP_TYPE(TYPE_SHORT, int16_t);
       DUMP_TYPE(TYPE_USHORT, uint16_t);
