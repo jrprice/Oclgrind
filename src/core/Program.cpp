@@ -323,7 +323,12 @@ bool Program::build(const char *options, list<Header> headers)
   compiler.createDiagnostics(diagConsumer, false);
 
   // Create compiler invocation
+#if LLVM_VERSION < 40
   clang::CompilerInvocation *invocation = new clang::CompilerInvocation;
+#else
+  std::shared_ptr<clang::CompilerInvocation> invocation(
+      new clang::CompilerInvocation);
+#endif
   clang::CompilerInvocation::CreateFromArgs(*invocation,
                                             &args[0], &args[0] + args.size(),
                                             compiler.getDiagnostics());
