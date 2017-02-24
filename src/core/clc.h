@@ -7,6 +7,7 @@
 // source code.
 
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+#pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
