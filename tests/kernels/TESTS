@@ -1,5 +1,11 @@
 alignment/packed
 alignment/unaligned
+arithmetic/add
+arithmetic/div
+arithmetic/mul
+arithmetic/ptr
+arithmetic/rem
+arithmetic/sub
 async_copy/async_copy
 async_copy/async_copy_divergent
 async_copy/async_copy_global_race

@@ -36,6 +36,7 @@
 #include "plugins/MemCheck.h"
 #include "plugins/RaceDetector.h"
 #include "plugins/Uninitialized.h"
+#include "plugins/ArithmeticExceptions.h"
 
 using namespace oclgrind;
 using namespace std;
@@ -96,6 +97,9 @@ void Context::loadPlugins()
 
   if (checkEnv("OCLGRIND_INTERACTIVE"))
     m_plugins.push_back(make_pair(new InteractiveDebugger(this), true));
+
+  if (checkEnv("OCLGRIND_ARITHMETIC_EXCEPTIONS"))
+    m_plugins.push_back(make_pair(new ArithmeticExceptions(this), true));
 
 
   // Load dynamic plugins

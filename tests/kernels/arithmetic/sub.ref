@@ -1,0 +1,8 @@
+ERROR Undefined behaviour due to an arithmetic exception
+ERROR Undefined behaviour due to an arithmetic exception
+
+EXACT Argument 'output': 16 bytes
+EXACT   output[0] = -2
+MATCH   output[1] =
+EXACT   output[2] = -2
+MATCH   output[3] =

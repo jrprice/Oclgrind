@@ -1,0 +1,18 @@
+ERROR Undefined behaviour due to an arithmetic exception
+ERROR Undefined behaviour due to an arithmetic exception
+ERROR Undefined behaviour due to an arithmetic exception
+ERROR Undefined behaviour due to an arithmetic exception
+ERROR Undefined behaviour due to an arithmetic exception
+ERROR Undefined behaviour due to an arithmetic exception
+
+EXACT Argument 'output': 40 bytes
+EXACT   output[0] = 0
+MATCH   output[1] =
+MATCH   output[2] =
+MATCH   output[3] =
+EXACT   output[4] = 0
+MATCH   output[5] =
+MATCH   output[6] =
+EXACT   output[7] = 0
+MATCH   output[8] =
+EXACT   output[9] = 0

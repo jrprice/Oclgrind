@@ -43,6 +43,7 @@ else:
 os.environ["OCLGRIND_CHECK_API"] = "1"
 os.environ["OCLGRIND_DATA_RACES"] = "1"
 os.environ["OCLGRIND_UNINITIALIZED"] = "1"
+os.environ["OCLGRIND_ARITHMETIC_EXCEPTIONS"] = "1"
 
 def fail(ret=1):
   print('FAILED')

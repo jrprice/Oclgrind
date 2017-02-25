@@ -43,6 +43,7 @@ liboclgrind_la_SOURCES = src/core/common.h src/core/common.cpp		\
  src/core/Queue.h src/core/Queue.cpp src/core/WorkItem.h		\
  src/core/WorkItem.cpp src/core/WorkItemBuiltins.cpp			\
  src/core/WorkGroup.h src/core/WorkGroup.cpp				\
+ src/plugins/ArithmeticExceptions.h src/plugins/ArithmeticExceptions.cpp	\
  src/plugins/InstructionCounter.h src/plugins/InstructionCounter.cpp	\
  src/plugins/InteractiveDebugger.h src/plugins/InteractiveDebugger.cpp	\
  src/plugins/Logger.h src/plugins/Logger.cpp src/plugins/MemCheck.h	\

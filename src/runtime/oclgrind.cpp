@@ -199,7 +199,11 @@ static bool parseArguments(int argc, char *argv[])
 {
   for (int i = 1; i < argc; i++)
   {
-    if (!strcmp(argv[i], "--build-options"))
+    if (!strcmp(argv[i], "--arithmetic-exceptions"))
+    {
+      setEnvironment("OCLGRIND_ARITHMETIC_EXCEPTIONS", "1");
+    }
+    else if (!strcmp(argv[i], "--build-options"))
     {
       if (++i >= argc)
       {
