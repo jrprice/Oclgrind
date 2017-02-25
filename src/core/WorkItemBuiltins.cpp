@@ -3036,6 +3036,12 @@ namespace oclgrind
     // Other Functions //
     /////////////////////
 
+    DEFINE_BUILTIN(astype)
+    {
+      TypedValue src = workItem->getOperand(ARG(0));
+      memcpy(result.data, src.data, src.size*src.num);
+    }
+
     static void setConvertRoundingMode(const string& name, int def)
     {
       size_t rpos = name.find("_rt");
@@ -3823,6 +3829,7 @@ namespace oclgrind
     ADD_BUILTIN("get_work_dim", get_work_dim, NULL);
 
     // Other Functions
+    ADD_PREFIX_BUILTIN("as_",            astype, NULL);
     ADD_PREFIX_BUILTIN("convert_half",   convert_half, NULL);
     ADD_PREFIX_BUILTIN("convert_float",  convert_float, NULL);
     ADD_PREFIX_BUILTIN("convert_double", convert_float, NULL);
