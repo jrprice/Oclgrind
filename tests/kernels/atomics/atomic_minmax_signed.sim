@@ -1,0 +1,18 @@
+atomic_minmax_signed.cl
+atomic_minmax_signed
+1 1 1
+1 1 1
+
+<size=48 int dump>
+-7
+-7
+-7
+7
+7
+7
+-7
+-7
+-7
+7
+7
+7

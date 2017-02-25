@@ -16,6 +16,7 @@ atomics/atomic_global_fence_race
 atomics/atomic_increment
 atomics/atomic_intergroup_race
 atomics/atomic_local_fence
+atomics/atomic_minmax_signed
 atomics/atomic_race_after
 atomics/atomic_race_before
 atomics/atomic_same_workitem
