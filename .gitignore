@@ -1,11 +1,27 @@
+# CMake output
+*.cmake
+!src/core/gen_clc_h.cmake
+CMakeCache.txt
+CMakeFiles/
+Makefile
+config.h
+.ninja_deps
+.ninja_log
+build.ninja
+rules.ninja
+
 # Compiler output
 *.o
 *.so
 *.dylib
+include
 /oclgrind
 oclgrind.icd
 oclgrind-kernel
 src/core/clc_h.cpp
+tests/apps/image/image
+tests/apps/vecadd/vecadd
+tests/runtime/map_buffer
 
 # Misc
 oclgrind-*.tar.gz
