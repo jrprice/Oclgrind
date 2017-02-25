@@ -11,7 +11,8 @@ include_directories(../common)
 
 # Add runtime tests
 foreach(test
-  map_buffer)
+  map_buffer
+  sampler)
 
   add_executable(${test} ${test}.c ${COMMON_SOURCES})
   target_link_libraries(${test} oclgrind-rt)
