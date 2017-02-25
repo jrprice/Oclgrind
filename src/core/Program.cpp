@@ -55,8 +55,8 @@
 #endif
 
 #define REMAP_INPUT "input.cl"
-#define CLC_H_PATH REMAP_DIR"clc.h"
-extern const char CLC_H_DATA[];
+#define OPENCL_C_H_PATH REMAP_DIR"opencl-c.h"
+extern const char OPENCL_C_H_DATA[];
 
 const char *EXTENSIONS[] =
 {
@@ -272,7 +272,8 @@ bool Program::build(const char *options, list<Header> headers)
     {
       // Select precompiled header
       pch = new char[strlen(pchdir) + 20];
-      sprintf(pch, "%s/clc%d.pch", pchdir, (sizeof(size_t) == 4 ? 32 : 64));
+      sprintf(pch, "%s/opencl-c-%d.pch",
+              pchdir, (sizeof(size_t) == 4 ? 32 : 64));
 
       // Check if precompiled header exists
       ifstream pchfile(pch);
@@ -302,9 +303,9 @@ bool Program::build(const char *options, list<Header> headers)
   }
   else
   {
-    // Fall back to embedded clc.h
+    // Fall back to embedded opencl-c.h
     args.push_back("-include");
-    args.push_back(CLC_H_PATH);
+    args.push_back(OPENCL_C_H_PATH);
   }
 
   // Append input file to arguments (remapped later)
@@ -346,9 +347,10 @@ bool Program::build(const char *options, list<Header> headers)
                                                    buffer.release());
   }
 
-  // Remap clc.h
-  buffer = llvm::MemoryBuffer::getMemBuffer(CLC_H_DATA, "", false);
-  compiler.getPreprocessorOpts().addRemappedFile(CLC_H_PATH, buffer.release());
+  // Remap opencl-c.h
+  buffer = llvm::MemoryBuffer::getMemBuffer(OPENCL_C_H_DATA, "", false);
+  compiler.getPreprocessorOpts().addRemappedFile(
+    OPENCL_C_H_PATH, buffer.release());
 
   // Remap input file
   buffer = llvm::MemoryBuffer::getMemBuffer(m_source, "", false);

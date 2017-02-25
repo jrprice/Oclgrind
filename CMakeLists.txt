@@ -52,7 +52,6 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 if (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.9")
   message(FATAL_ERROR "LLVM version must be >= 3.9")
 endif()
-set(LLVM_VERSION ${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR})
 
 # Add flags for LLVM
 add_definitions(${LLVM_DEFINITIONS})
@@ -104,6 +103,18 @@ if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")
   message(FATAL_ERROR "Clang libraries not found (set CLANG_ROOT)")
 endif()
 
+# Get path to Clang's opencl-c.h header
+get_filename_component(CLANG_LIB_DIR "${CLANG_LIB}" DIRECTORY)
+set(CLANG_FULL_VERSION
+    "${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}")
+set(CLANG_OPENCL_C_H
+    "${CLANG_LIB_DIR}/clang/${CLANG_FULL_VERSION}/include/opencl-c.h")
+if (NOT EXISTS "${CLANG_OPENCL_C_H}")
+  message(FATAL_ERROR "\nClang opencl-c.h not found:\n\t${CLANG_OPENCL_C_H}")
+else()
+  message(STATUS "Using opencl-c.h: ${CLANG_OPENCL_C_H}")
+endif()
+
 # Check for clang
 find_program(CLANG clang
              PATHS "${CLANG_ROOT}/bin" "${LLVM_TOOLS_BINARY_DIR}"
@@ -121,8 +132,6 @@ if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CMAKE_REQUIRED_INCLUDES ${READLINE_DIR}/include)
   include_directories(${READLINE_DIR}/include)
   link_directories(${READLINE_DIR}/lib)
-
-  message(STATUS ${CMAKE_REQUIRED_LIBRARIES})
 
   check_include_files("stdio.h;readline/readline.h" HAVE_READLINE_H)
   check_include_files("stdio.h;readline/history.h" HAVE_HISTORY_H)
@@ -152,12 +161,12 @@ endif()
 set(LIBDIR_SUFFIX "${_LIBDIR_SUFFIX}"
     CACHE STRING "Suffix for installed library directory")
 
-# Generate stringified clc.h
+# Generate stringified opencl-c.h
 add_custom_command(
-  OUTPUT src/core/clc_h.cpp
-  COMMAND ${CMAKE_COMMAND} -DSOURCE_FILE=${CMAKE_SOURCE_DIR}/src/core/clc.h
-    -P ${CMAKE_SOURCE_DIR}/src/core/gen_clc_h.cmake
-  DEPENDS src/core/clc.h src/core/gen_clc_h.cmake
+  OUTPUT src/core/opencl-c.h.cpp
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_FILE=${CLANG_OPENCL_C_H}
+    -P ${CMAKE_SOURCE_DIR}/src/core/gen_opencl-c.h.cmake
+  DEPENDS ${CLANG_OPENCL_C_H} src/core/gen_opencl-c.h.cmake
 )
 
 include_directories("src/" "${PROJECT_BINARY_DIR}")
@@ -181,7 +190,7 @@ set(CORE_HEADERS
 
 add_library(oclgrind ${CORE_LIB_TYPE}
   ${CORE_HEADERS}
-  src/core/clc_h.cpp
+  src/core/opencl-c.h.cpp
   src/core/common.cpp
   src/core/Context.cpp
   src/core/half.cpp
@@ -250,53 +259,54 @@ add_executable(oclgrind-kernel
   src/kernel/Simulation.cpp)
 target_link_libraries(oclgrind-kernel oclgrind)
 
-set(CLC_HEADERS
- ${CMAKE_BINARY_DIR}/include/oclgrind/clc.h
- ${CMAKE_BINARY_DIR}/include/oclgrind/clc32.pch
- ${CMAKE_BINARY_DIR}/include/oclgrind/clc64.pch
+set(OPENCL_C_H
+ ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c.h
+ ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c-32.pch
+ ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c-64.pch
 )
 
-add_custom_target(CLC_HEADERS ALL DEPENDS ${CLC_HEADERS})
+add_custom_target(OPENCL_C_HEADERS ALL DEPENDS ${OPENCL_C_H})
 
 add_custom_command(
-  OUTPUT include/oclgrind/clc.h
+  OUTPUT include/oclgrind/opencl-c.h
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E
-    copy ${CMAKE_SOURCE_DIR}/src/core/clc.h include/oclgrind/clc.h
-  DEPENDS src/core/clc.h)
+    copy ${CLANG_OPENCL_C_H} include/oclgrind/opencl-c.h
+  DEPENDS ${CLANG_OPENCL_C_H})
 
-# Generate precompiled headers for clc.h
-set(CLC_SYSROOT "${CMAKE_BINARY_DIR}/include/oclgrind/")
+# Generate precompiled headers for opencl-c.h
+set(OPENCL_C_H_SYSROOT "${CMAKE_BINARY_DIR}/include/oclgrind/")
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  string(REPLACE "/" "\\" CLC_SYSROOT "${CLC_SYSROOT}")
+  string(REPLACE "/" "\\" OPENCL_C_H_SYSROOT "${OPENCL_C_H_SYSROOT}")
 endif()
 add_custom_command(
-  OUTPUT include/oclgrind/clc32.pch
+  OUTPUT include/oclgrind/opencl-c-32.pch
   POST_BUILD
   COMMAND
     ${CLANG}
     -cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin
     -emit-pch -triple spir-unknown-unknown
-    -relocatable-pch -isysroot "${CLC_SYSROOT}"
-    include/oclgrind/clc.h
-    -o include/oclgrind/clc32.pch
-  DEPENDS include/oclgrind/clc.h
+    -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
+    include/oclgrind/opencl-c.h
+    -o include/oclgrind/opencl-c-32.pch
+  DEPENDS include/oclgrind/opencl-c.h
 )
 add_custom_command(
-  OUTPUT include/oclgrind/clc64.pch
+  OUTPUT include/oclgrind/opencl-c-64.pch
   POST_BUILD
   COMMAND
     ${CLANG}
     -cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin
     -emit-pch -triple spir64-unknown-unknown
-    -relocatable-pch -isysroot "${CLC_SYSROOT}"
-    include/oclgrind/clc.h
-    -o include/oclgrind/clc64.pch
-  DEPENDS include/oclgrind/clc.h
+    -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
+    include/oclgrind/opencl-c.h
+    -o include/oclgrind/opencl-c-64.pch
+  DEPENDS include/oclgrind/opencl-c.h
 )
 
 
 # Generate config.h
+set(LLVM_VERSION ${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR})
 configure_file("config.h.in" "config.h")
 
 
@@ -313,7 +323,7 @@ install(TARGETS
   oclgrind oclgrind-rt oclgrind-rt-icd
   DESTINATION "lib${LIBDIR_SUFFIX}")
 install(FILES
-  ${CORE_HEADERS} ${CLC_HEADERS}
+  ${CORE_HEADERS} ${OPENCL_C_H}
   DESTINATION include/oclgrind)
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   install(FILES
