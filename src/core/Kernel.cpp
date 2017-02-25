@@ -285,13 +285,11 @@ const llvm::StringRef Kernel::getArgumentTypeName(unsigned int index) const
   }
 
   llvm::StringRef name = llvm::dyn_cast<llvm::MDString>(md)->getString();
-#if LLVM_VERSION >= 39
   size_t imgStart = name.find(" image");
   if (imgStart != llvm::StringRef::npos)
   {
     name = name.substr(imgStart+1);
   }
-#endif
   return name;
 }
 

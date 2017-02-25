@@ -479,15 +479,9 @@ Context::Message& Context::Message::operator<<(
     }
     else
     {
-#if LLVM_VERSION > 36
       llvm::DILocation *loc = (llvm::DILocation*)md;
       unsigned lineNumber = loc->getLine();
       llvm::StringRef filename = loc->getFilename();
-#else
-      llvm::DILocation loc((llvm::MDLocation*)md);
-      unsigned lineNumber = loc.getLineNumber();
-      llvm::StringRef filename = loc.getFilename();
-#endif
 
       *this << "At line " << dec << lineNumber
            << " of " << filename.str() << ":" << endl;

@@ -140,11 +140,7 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-D__IMAGE_SUPPORT__=1");
   args.push_back("-D__OPENCL_VERSION__=120");
   args.push_back("-fno-builtin");
-#if LLVM_VERSION >= 38
   args.push_back("-debug-info-kind=standalone");
-#else
-  args.push_back("-g");
-#endif
   args.push_back("-triple");
   if (sizeof(size_t) == 4)
     args.push_back("spir-unknown-unknown");
@@ -198,11 +194,9 @@ bool Program::build(const char *options, list<Header> headers)
         continue;
       }
 
-#if LLVM_VERSION >= 37
       // Clang no longer supports -cl-no-signed-zeros
       if (strcmp(opt, "-cl-no-signed-zeros") == 0)
         continue;
-#endif
 
       // Check for -cl-std flag
       if (strncmp(opt, "-cl-std=", 8) == 0)
@@ -377,10 +371,6 @@ bool Program::build(const char *options, list<Header> headers)
       // Initialize pass managers
       llvm::legacy::PassManager modulePasses;
       llvm::legacy::FunctionPassManager functionPasses(m_module.get());
-#if LLVM_VERSION < 37
-      modulePasses.add(new llvm::DataLayoutPass());
-      functionPasses.add(new llvm::DataLayoutPass());
-#endif
 
       // Populate pass managers with -Oz
       llvm::PassManagerBuilder builder;
@@ -483,9 +473,7 @@ Program* Program::createFromBitcode(const Context *context,
   }
 
   // Parse bitcode into IR module
-#if LLVM_VERSION < 37
-  llvm::ErrorOr<llvm::Module*> module =
-#elif LLVM_VERSION < 40
+#if LLVM_VERSION < 40
   llvm::ErrorOr<unique_ptr<llvm::Module>> module =
 #else
   llvm::Expected<unique_ptr<llvm::Module>> module =
@@ -496,11 +484,7 @@ Program* Program::createFromBitcode(const Context *context,
     return NULL;
   }
 
-#if LLVM_VERSION < 37
-  return new Program(context, module.get());
-#else
   return new Program(context, module.get().release());
-#endif
 }
 
 Program* Program::createFromBitcodeFile(const Context *context,
@@ -515,9 +499,7 @@ Program* Program::createFromBitcodeFile(const Context *context,
   }
 
   // Parse bitcode into IR module
-#if LLVM_VERSION < 37
-  llvm::ErrorOr<llvm::Module*> module =
-#elif LLVM_VERSION < 40
+#if LLVM_VERSION < 40
   llvm::ErrorOr<unique_ptr<llvm::Module>> module =
 #else
   llvm::Expected<unique_ptr<llvm::Module>> module =
@@ -529,11 +511,7 @@ Program* Program::createFromBitcodeFile(const Context *context,
     return NULL;
   }
 
-#if LLVM_VERSION < 37
-  return new Program(context, module.get());
-#else
   return new Program(context, module.get().release());
-#endif
 }
 
 Program* Program::createFromPrograms(const Context *context,
@@ -541,21 +519,13 @@ Program* Program::createFromPrograms(const Context *context,
 {
   llvm::Module *module = new llvm::Module("oclgrind_linked",
                                           *context->getLLVMContext());
-#if LLVM_VERSION < 38
-  llvm::Linker linker(module);
-#else
   llvm::Linker linker(*module);
-#endif
 
   // Link modules
   list<const Program*>::iterator itr;
   for (itr = programs.begin(); itr != programs.end(); itr++)
   {
-#if LLVM_VERSION < 38
-    llvm::Module *m = llvm::CloneModule((*itr)->m_module.get());
-#else
     unique_ptr<llvm::Module> m = llvm::CloneModule((*itr)->m_module.get());
-#endif
     if (linker.linkInModule(std::move(m)))
     {
       return NULL;
@@ -572,37 +542,7 @@ Kernel* Program::createKernel(const string name)
 
   // Iterate over functions in module to find kernel
   llvm::Function *function = NULL;
-#if LLVM_VERSION < 37
-  // Query the SPIR kernel list
-  llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
-  // No kernels in module
-  if (!tuple)
-    return NULL;
 
-  for (unsigned i = 0; i < tuple->getNumOperands(); ++i)
-  {
-    llvm::MDNode* kernel = tuple->getOperand(i);
-
-    llvm::ConstantAsMetadata *cam =
-      llvm::dyn_cast<llvm::ConstantAsMetadata>(kernel->getOperand(0).get());
-    if (!cam)
-      continue;
-
-    llvm::Function *kernelFunction =
-      llvm::dyn_cast<llvm::Function>(cam->getValue());
-
-    // Shouldn't really happen - this would mean an invalid Module as input
-    if (!kernelFunction)
-      continue;
-
-    // Is this the kernel we want?
-    if (kernelFunction->getName() == name)
-    {
-      function = kernelFunction;
-      break;
-    }
-  }
-#else
   for (auto F = m_module->begin(); F != m_module->end(); F++)
   {
     if (F->getCallingConv() == llvm::CallingConv::SPIR_KERNEL &&
@@ -612,7 +552,6 @@ Kernel* Program::createKernel(const string name)
       break;
     }
   }
-#endif
 
   if (function == NULL)
   {
@@ -703,33 +642,6 @@ const InterpreterCache* Program::getInterpreterCache(
 list<string> Program::getKernelNames() const
 {
   list<string> names;
-
-#if LLVM_VERSION < 37
-  // Query the SPIR kernel list
-  llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
-
-  if (tuple)
-  {
-    for (unsigned i = 0; i < tuple->getNumOperands(); ++i)
-    {
-      llvm::MDNode* kernel = tuple->getOperand(i);
-
-      llvm::ConstantAsMetadata *cam =
-      llvm::dyn_cast<llvm::ConstantAsMetadata>(kernel->getOperand(0).get());
-      if (!cam)
-        continue;
-
-      llvm::Function *kernelFunction =
-        llvm::dyn_cast<llvm::Function>(cam->getValue());
-
-      // Shouldn't really happen - this would mean an invalid Module as input
-      if (!kernelFunction)
-        continue;
-
-      names.push_back(kernelFunction->getName());
-    }
-  }
-#else
   for (auto F = m_module->begin(); F != m_module->end(); F++)
   {
     if (F->getCallingConv() == llvm::CallingConv::SPIR_KERNEL)
@@ -737,8 +649,6 @@ list<string> Program::getKernelNames() const
       names.push_back(F->getName());
     }
   }
-#endif
-
   return names;
 }
 
@@ -746,18 +656,7 @@ unsigned int Program::getNumKernels() const
 {
   assert(m_module);
 
-#if LLVM_VERSION < 37
-  // Extract kernels from metadata
-  llvm::NamedMDNode* tuple = m_module->getNamedMetadata("opencl.kernels");
-
-  // No kernels in module
-  if (!tuple)
-    return 0;
-
-  return tuple->getNumOperands();
-#else
   unsigned int num = 0;
-
   for (auto F = m_module->begin(); F != m_module->end(); F++)
   {
     if (F->getCallingConv() == llvm::CallingConv::SPIR_KERNEL)
@@ -765,9 +664,7 @@ unsigned int Program::getNumKernels() const
       num++;
     }
   }
-
   return num;
-#endif
 }
 
 const string& Program::getSource() const
@@ -870,9 +767,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       }
       indices.push_back(index);
       scalarPtr = llvm::GetElementPtrInst::Create(
-#if LLVM_VERSION > 36
         gep->getPointerOperandType()->getPointerElementType(),
-#endif
         gep->getPointerOperand(), indices);
     }
     else
@@ -882,9 +777,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       indices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
       indices.push_back(index);
       scalarPtr = llvm::GetElementPtrInst::Create(
-#if LLVM_VERSION > 36
         vectorPtr->getType()->getPointerElementType(),
-#endif
         vectorPtr, indices);
     }
     scalarPtr->setDebugLoc(store->getDebugLoc());
@@ -1002,9 +895,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         }
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
         scalarPtr = llvm::GetElementPtrInst::Create(
-#if LLVM_VERSION > 36
           gep->getPointerOperandType()->getPointerElementType(),
-#endif
           gep->getPointerOperand(), gepIndices);
       }
       else
@@ -1014,9 +905,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
         scalarPtr = llvm::GetElementPtrInst::Create(
-#if LLVM_VERSION > 36
           vectorPtr->getType()->getPointerElementType(),
-#endif
           vectorPtr, gepIndices);
       }
       scalarPtr->setDebugLoc(store->getDebugLoc());
