@@ -137,6 +137,8 @@ bool Program::build(const char *options, list<Header> headers)
   vector<const char*> args;
   args.push_back("-cl-std=CL1.2");
   args.push_back("-cl-kernel-arg-info");
+  args.push_back("-D__IMAGE_SUPPORT__=1");
+  args.push_back("-D__OPENCL_VERSION__=120");
   args.push_back("-fno-builtin");
 #if LLVM_VERSION >= 38
   args.push_back("-debug-info-kind=standalone");
