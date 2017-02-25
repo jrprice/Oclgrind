@@ -1,50 +1,11 @@
-# Autotools generated files
-aclocal.m4
-autom4te.cache
-compile
-config.guess
-config.h
-config.h.in
-config.log
-config.status
-config.sub
-configure
-depcomp
-.deps
-*.dirstamp
-install-sh
-ltmain.sh
-m4/libtool.m4
-m4/ltoptions.m4
-m4/ltsugar.m4
-m4/ltversion.m4
-m4/lt~obsolete.m4
-Makefile
-Makefile.in
-missing
-stamp-h1
-test-driver
-
 # Compiler output
 *.o
-*.lo
-.libs
-liboclgrind.la
-liboclgrind-rt.la
-liboclgrind-rt-icd.la
-libtool
+*.so
+*.dylib
 /oclgrind
 oclgrind.icd
 oclgrind-kernel
 src/core/clc_h.cpp
-
-# Test output
-test-suite.log
-*.trs
-*.log
-*.out
-*.diff
-tests/apps/vecadd/vecadd
 
 # Misc
 oclgrind-*.tar.gz

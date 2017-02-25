@@ -73,43 +73,6 @@ copying the `oclgrind.icd` file from the build directory to
 `/etc/OpenCL/vendors/`.
 
 
-Building on Linux and OS X (autotools)
---------------------------------------
-An autotools build system is also provided as an alternative to
-CMake. This will likely be removed in a future version of Oclgrind.
-
-If you are building directly from the GitHub repository, you will need
-to run `autoreconf -i` to generate the necessary build files. This is
-not required if you are using a released source package.
-
-Run `configure` to generate the Makefile, optionally using
-`--prefix=PATH` to specify the target installation directory. If you
-don't have the LLVM includes and libraries on your search path, you
-can specify the location of your LLVM installation using the
-`--with-llvm=PATH` option. For example:
-
-    ./configure --prefix=$PWD/build/ --with-llvm=PATH/TO/LLVM/INSTALL
-
-This path should be the directory in which LLVM is installed (e.g. the
-path specified to `--prefix` or `CMAKE_INSTALL_PREFIX` when LLVM was
-built). If the Clang includes and libraries are not on your search
-path or in the same location as LLVM, you can use the
-`--with-clang=PATH` option to specify its root directory.
-
-Next, build and install with make:
-
-    make
-    make check
-    make install
-
-If installing to a non-default location, you should add the `bin/`
-directory to the `PATH` environment variable in order to make use of
-the `oclgrind` command. If you wish to use Oclgrind via the OpenCL ICD
-loader (optional), then you should create an ICD loading point by
-copying the `oclgrind.icd` file from the build directory to
-`/etc/OpenCL/vendors/`.
-
-
 Building on Windows
 -------------------
 Building Oclgrind on Windows requires Visual Studio 2013 (or newer),

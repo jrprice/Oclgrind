@@ -302,7 +302,7 @@ add_custom_command(
 
 
 # Generate config.h
-configure_file("cmake_config.h.in" "config.h")
+configure_file("config.h.in" "config.h")
 
 
 # Generate ICD loader if not on Windows
