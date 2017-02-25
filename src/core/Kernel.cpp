@@ -453,7 +453,24 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     delete[] m_values[argument].data;
   }
 
-  m_values[argument] = value.clone();
+#if LLVM_VERSION >= 40
+  if (getArgumentTypeName(index).str() == "sampler_t")
+  {
+    // We store the actual sampler i32 value after the pointer value
+    TypedValue sampler;
+    sampler.size = sizeof(size_t);
+    sampler.num = 1;
+    sampler.data = new unsigned char[sizeof(size_t) + 4];
+    sampler.setPointer((size_t)(sampler.data + sizeof(size_t)));
+    memcpy(sampler.data+sizeof(size_t), value.data, 4);
+
+    m_values[argument] = sampler;
+  }
+  else
+#endif
+  {
+    m_values[argument] = value.clone();
+  }
 }
 
 TypedValueMap::const_iterator Kernel::values_begin() const
