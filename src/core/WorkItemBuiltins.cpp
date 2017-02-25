@@ -2377,6 +2377,34 @@ namespace oclgrind
       }
     }
 
+    DEFINE_BUILTIN(fmax_builtin)
+    {
+      TypedValue a = workItem->getOperand(ARG(0));
+      TypedValue b = workItem->getOperand(ARG(1));
+      for (unsigned i = 0; i < result.num; i++)
+      {
+        double _b = b.num > 1 ? b.getFloat(i) : b.getFloat();
+        if (result.size == 4)
+          result.setFloat(fmaxf(a.getFloat(i), _b), i);
+        else
+          result.setFloat(fmax(a.getFloat(i), _b), i);
+      }
+    }
+
+    DEFINE_BUILTIN(fmin_builtin)
+    {
+      TypedValue a = workItem->getOperand(ARG(0));
+      TypedValue b = workItem->getOperand(ARG(1));
+      for (unsigned i = 0; i < result.num; i++)
+      {
+        double _b = b.num > 1 ? b.getFloat(i) : b.getFloat();
+        if (result.size == 4)
+          result.setFloat(fminf(a.getFloat(i), _b), i);
+        else
+          result.setFloat(fmin(a.getFloat(i), _b), i);
+      }
+    }
+
     static double _maxmag_(double x, double y)
     {
       double _x = fabs(x);
@@ -3708,8 +3736,8 @@ namespace oclgrind
     ADD_BUILTIN("fdim", f2arg, F2ARG(fdim));
     ADD_BUILTIN("floor", f1arg, F1ARG(floor));
     ADD_BUILTIN("fma", fma_builtin, NULL);
-    ADD_BUILTIN("fmax", f2arg, F2ARG(fmax));
-    ADD_BUILTIN("fmin", f2arg, F2ARG(fmin));
+    ADD_BUILTIN("fmax", fmax_builtin, NULL);
+    ADD_BUILTIN("fmin", fmin_builtin, NULL);
     ADD_BUILTIN("fmod", f2arg, F2ARG(fmod));
     ADD_BUILTIN("fract", fract, NULL);
     ADD_BUILTIN("frexp", frexp_builtin, NULL);
