@@ -49,8 +49,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 # Check LLVM version
-if (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.6")
-  message(FATAL_ERROR "LLVM version must be >= 3.6")
+if (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.9")
+  message(FATAL_ERROR "LLVM version must be >= 3.9")
 endif()
 set(LLVM_VERSION ${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR})
 
@@ -61,13 +61,8 @@ link_directories(${LLVM_LIBRARY_DIRS})
 
 # Get LLVM libraries for linking
 llvm_map_components_to_libnames(LLVM_LIBS
-  bitreader bitwriter core instrumentation ipo irreader
+  bitreader bitwriter core coverage instrumentation ipo irreader
   linker lto mcparser objcarcopts option target)
-
-if (NOT (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.9"))
-  llvm_map_components_to_libnames(LLVM_COVERAGE coverage)
-  list(APPEND LLVM_LIBS ${LLVM_COVERAGE})
-endif()
 
 if (NOT (${LLVM_PACKAGE_VERSION} VERSION_LESS "4.0"))
   llvm_map_components_to_libnames(LLVM_COROUTINES coroutines)
