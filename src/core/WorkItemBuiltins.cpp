@@ -2496,7 +2496,11 @@ namespace oclgrind
     {
       for (unsigned i = 0; i < result.num; i++)
       {
-        result.setSInt(ilogb(FARGV(0, i)), i);
+        double x = FARGV(0, i);
+        if (std::isnan(x))
+          result.setSInt(INT_MAX);
+        else
+          result.setSInt(ilogb(x), i);
       }
     }
 
