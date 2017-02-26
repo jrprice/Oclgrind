@@ -5459,6 +5459,200 @@ clEnqueueReleaseDX9MediaSurfacesKHR
 
 #endif // DX extension functions
 
+
+/////////////////////
+// OpenCL 2.0 APIs //
+/////////////////////
+
+CL_API_ENTRY cl_command_queue CL_API_CALL
+clCreateCommandQueueWithProperties
+(
+  cl_context                  context,
+  cl_device_id                device,
+  const cl_queue_properties * properties,
+  cl_int *                    errcode_ret
+) CL_API_SUFFIX__VERSION_2_0
+{
+  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
+  return NULL;
+}
+
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreatePipe
+(
+  cl_context                 context,
+  cl_mem_flags               flags,
+  cl_uint                    pipe_packet_size,
+  cl_uint                    pipe_max_packets,
+  const cl_pipe_properties * properties,
+  cl_int *                   errcode_ret
+) CL_API_SUFFIX__VERSION_2_0
+{
+  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
+  return NULL;
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clGetPipeInfo
+(
+  cl_mem       pipe,
+  cl_pipe_info param_name,
+  size_t       param_value_size,
+  void *       param_value,
+  size_t *     param_value_size_ret
+) CL_API_SUFFIX__VERSION_2_0
+{
+  ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
+}
+
+CL_API_ENTRY void * CL_API_CALL
+clSVMAlloc
+(
+  cl_context       context,
+  cl_svm_mem_flags flags,
+  size_t           size,
+  cl_uint          alignment
+) CL_API_SUFFIX__VERSION_2_0
+{
+  notifyAPIError(context, CL_INVALID_OPERATION, __func__,
+                 "Unimplemented OpenCL 2.0 API");
+  return NULL;
+}
+
+CL_API_ENTRY void CL_API_CALL
+clSVMFree
+(
+  cl_context context,
+  void *     svm_pointer
+) CL_API_SUFFIX__VERSION_2_0
+{
+  notifyAPIError(context, CL_INVALID_OPERATION, __func__,
+                 "Unimplemented OpenCL 2.0 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueSVMFree
+(
+  cl_command_queue command_queue,
+  cl_uint num_svm_pointers,
+  void* svm_pointers[],
+  void (CL_CALLBACK* pfn_free_func)(
+      cl_command_queue queue,
+      cl_uint num_svm_pointers,
+      void* svm_pointers[],
+      void* user_data),
+  void* user_data,
+  cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list,
+  cl_event* event
+) CL_API_SUFFIX__VERSION_2_0
+{
+  ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.0 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueSVMMemcpy
+(
+  cl_command_queue  command_queue,
+  cl_bool           blocking_copy,
+  void *            dst_ptr,
+  const void *      src_ptr,
+  size_t            size,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_2_0
+{
+  ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.0 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueSVMMemFill
+(
+  cl_command_queue command_queue,
+  void *           svm_ptr,
+  const void *     pattern,
+  size_t           pattern_size,
+  size_t           size,
+  cl_uint          num_events_in_wait_list,
+  const cl_event * event_wait_list,
+  cl_event *       event
+) CL_API_SUFFIX__VERSION_2_0
+{
+  ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.0 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueSVMMap
+(
+  cl_command_queue  command_queue,
+  cl_bool           blocking_map,
+  cl_map_flags      flags,
+  void *            svm_ptr,
+  size_t            size,
+  cl_uint           num_events_in_wait_list,
+  const cl_event *  event_wait_list,
+  cl_event *        event
+) CL_API_SUFFIX__VERSION_2_0
+{
+  ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.0 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clEnqueueSVMUnmap
+(
+  cl_command_queue command_queue,
+  void *           svm_ptr,
+  cl_uint          num_events_in_wait_list,
+  const cl_event * event_wait_list,
+  cl_event *       event
+) CL_API_SUFFIX__VERSION_2_0
+{
+  ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.0 API");
+}
+
+CL_API_ENTRY cl_sampler CL_API_CALL
+clCreateSamplerWithProperties
+(
+  cl_context                     context,
+  const cl_sampler_properties *  sampler_properties,
+  cl_int *                       errcode_ret
+) CL_API_SUFFIX__VERSION_2_0
+{
+  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
+  return NULL;
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clSetKernelArgSVMPointer
+(
+  cl_kernel    kernel,
+  cl_uint      arg_index,
+  const void * arg_value
+) CL_API_SUFFIX__VERSION_2_0
+{
+  ReturnErrorInfo(kernel->program->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.0 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clSetKernelExecInfo
+(
+  cl_kernel            kernel,
+  cl_kernel_exec_info  param_name,
+  size_t               param_value_size,
+  const void *         param_value
+) CL_API_SUFFIX__VERSION_2_0
+{
+  ReturnErrorInfo(kernel->program->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.0 API");
+}
+
 ////////////////////
 // Dispatch Table //
 ////////////////////
@@ -5617,6 +5811,32 @@ void *m_dispatchTable[] =
   DISPATCH_TABLE_ENTRY(NULL),
   DISPATCH_TABLE_ENTRY(NULL),
 #endif
+
+  // cl_khr_egl_image
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+  DISPATCH_TABLE_ENTRY(NULL),
+
+  // cl_khr_egl_event
+  DISPATCH_TABLE_ENTRY(NULL),
+
+  // OpenCL 2.0
+  DISPATCH_TABLE_ENTRY(clCreateCommandQueueWithProperties),
+  DISPATCH_TABLE_ENTRY(clCreatePipe),
+  DISPATCH_TABLE_ENTRY(clGetPipeInfo),
+  DISPATCH_TABLE_ENTRY(clSVMAlloc),
+  DISPATCH_TABLE_ENTRY(clSVMFree),
+  DISPATCH_TABLE_ENTRY(clEnqueueSVMFree),
+  DISPATCH_TABLE_ENTRY(clEnqueueSVMMemcpy),
+  DISPATCH_TABLE_ENTRY(clEnqueueSVMMemFill),
+  DISPATCH_TABLE_ENTRY(clEnqueueSVMMap),
+  DISPATCH_TABLE_ENTRY(clEnqueueSVMUnmap),
+  DISPATCH_TABLE_ENTRY(clCreateSamplerWithProperties),
+  DISPATCH_TABLE_ENTRY(clSetKernelArgSVMPointer),
+  DISPATCH_TABLE_ENTRY(clSetKernelExecInfo),
+
+  // cl_khr_sub_groups
+  DISPATCH_TABLE_ENTRY(NULL),
 };
 
 #if defined(_WIN32) && !defined(OCLGRIND_ICD)
