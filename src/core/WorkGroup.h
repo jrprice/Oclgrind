@@ -57,6 +57,7 @@ namespace oclgrind
 
   public:
     WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid);
+    WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid, Size3 size);
     virtual ~WorkGroup();
 
     size_t async_copy(

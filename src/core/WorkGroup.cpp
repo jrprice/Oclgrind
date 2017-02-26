@@ -23,10 +23,16 @@ using namespace oclgrind;
 using namespace std;
 
 WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid)
+  : WorkGroup(kernelInvocation, wgid, kernelInvocation->getLocalSize())
+{
+}
+
+WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation,
+                     Size3 wgid, Size3 size)
  : m_context(kernelInvocation->getContext())
 {
-  m_groupID = wgid;
-  m_groupSize = kernelInvocation->getLocalSize();
+  m_groupID   = wgid;
+  m_groupSize = size;
 
   m_groupIndex = (m_groupID.x +
                  (m_groupID.y +

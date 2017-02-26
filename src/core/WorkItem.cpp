@@ -52,7 +52,7 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
 
   // Compute global ID
   Size3 groupID = workGroup->getGroupID();
-  Size3 groupSize = workGroup->getGroupSize();
+  Size3 groupSize = kernelInvocation->getLocalSize();
   Size3 globalOffset = kernelInvocation->getGlobalOffset();
   m_globalID.x = lid.x + groupID.x*groupSize.x + globalOffset.x;
   m_globalID.y = lid.y + groupID.y*groupSize.y + globalOffset.y;

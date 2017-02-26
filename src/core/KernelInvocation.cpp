@@ -16,6 +16,7 @@
 #include "Kernel.h"
 #include "KernelInvocation.h"
 #include "Memory.h"
+#include "Program.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
 
@@ -45,6 +46,12 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   m_numGroups.x = m_globalSize.x/m_localSize.x;
   m_numGroups.y = m_globalSize.y/m_localSize.y;
   m_numGroups.z = m_globalSize.z/m_localSize.z;
+  if (!m_kernel->getProgram()->requiresUniformWorkGroups())
+  {
+    m_numGroups.x += m_globalSize.x % m_localSize.x ? 1 : 0;
+    m_numGroups.y += m_globalSize.y % m_localSize.y ? 1 : 0;
+    m_numGroups.z += m_globalSize.z % m_localSize.z ? 1 : 0;
+  }
 
   // Check for user overriding number of threads
   m_numWorkers = 0;
@@ -227,7 +234,17 @@ void KernelInvocation::runWorker()
           // No more work to do
           break;
 
-        workerState.workGroup = new WorkGroup(this, m_workGroups[index]);
+        Size3 wgid   = m_workGroups[index];
+        Size3 wgsize = m_localSize;
+
+        // Handle remainder work-groups
+        for (unsigned i = 0; i < 3; i++)
+        {
+          if (wgsize[i]*(wgid[i]+1) > m_globalSize[i])
+            wgsize[i] = m_globalSize[i] % wgsize[i];
+        }
+
+        workerState.workGroup = new WorkGroup(this, wgid, wgsize);
         m_context->notifyWorkGroupBegin(workerState.workGroup);
       }
 
