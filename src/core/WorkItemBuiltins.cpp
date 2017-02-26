@@ -2859,7 +2859,7 @@ namespace oclgrind
     // Synchronization Functions //
     ///////////////////////////////
 
-    DEFINE_BUILTIN(barrier)
+    DEFINE_BUILTIN(work_group_barrier)
     {
       workItem->m_state = WorkItem::BARRIER;
       workItem->m_workGroup->notifyBarrier(workItem, callInst, UARG(0));
@@ -3825,7 +3825,8 @@ namespace oclgrind
     ADD_BUILTIN("signbit", rel1arg, _signbit_);
 
     // Synchronization Functions
-    ADD_BUILTIN("barrier", barrier, NULL);
+    ADD_BUILTIN("barrier", work_group_barrier, NULL);
+    ADD_BUILTIN("work_group_barrier", work_group_barrier, NULL);
     ADD_BUILTIN("mem_fence", mem_fence, NULL);
     ADD_BUILTIN("read_mem_fence", mem_fence, NULL);
     ADD_BUILTIN("write_mem_fence", mem_fence, NULL);
