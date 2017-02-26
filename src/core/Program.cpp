@@ -146,7 +146,7 @@ bool Program::build(const char *options, list<Header> headers)
   else
     args.push_back("spir64-unknown-unknown");
 
-#if ! BIG_ENDIAN
+#if ! IS_BIG_ENDIAN
   args.push_back("-D__ENDIAN_LITTLE__=1");
 #endif
 

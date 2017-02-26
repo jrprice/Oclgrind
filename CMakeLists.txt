@@ -44,7 +44,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 endif()
 
 # Detect endianness
-test_big_endian(BIG_ENDIAN)
+test_big_endian(IS_BIG_ENDIAN)
 
 
 # Find LLVM
