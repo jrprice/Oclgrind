@@ -247,14 +247,6 @@ clIcdGetPlatformIDsKHR
 // OpenCL Runtime API Definitions //
 ////////////////////////////////////
 
-#ifndef CL_USE_DEPRECATED_OPENCL_1_0_APIS
-#define CL_USE_DEPRECATED_OPENCL_1_0_APIS
-#endif
-
-#ifndef CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#define CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#endif
-
 CL_API_ENTRY void* CL_API_CALL
 clGetExtensionFunctionAddress
 (
