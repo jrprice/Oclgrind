@@ -5465,8 +5465,64 @@ clCreateCommandQueueWithProperties
   cl_int *                    errcode_ret
 ) CL_API_SUFFIX__VERSION_2_0
 {
-  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
-  return NULL;
+  // Check parameters
+  if (!context)
+  {
+    SetErrorArg(NULL, CL_INVALID_CONTEXT, context);
+    return NULL;
+  }
+  if (device != m_device)
+  {
+    SetErrorArg(context, CL_INVALID_DEVICE, device);
+    return NULL;
+  }
+
+  // Parse properties
+  cl_command_queue_properties props = 0;
+  unsigned i = 0;
+  while (properties && properties[i])
+  {
+    switch (properties[i++])
+    {
+    case CL_QUEUE_PROPERTIES:
+      if (properties[i] & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE)
+      {
+        SetErrorInfo(context, CL_INVALID_QUEUE_PROPERTIES,
+                     "Out-of-order command queues not supported");
+        return NULL;
+      }
+      if (properties[i] &
+          (CL_QUEUE_ON_DEVICE|CL_QUEUE_ON_DEVICE_DEFAULT))
+      {
+        SetErrorInfo(context, CL_INVALID_QUEUE_PROPERTIES,
+                     "On device queues not implemented");
+        return NULL;
+      }
+      props = properties[i];
+      break;
+    case CL_QUEUE_SIZE:
+      SetErrorInfo(context, CL_INVALID_VALUE, "CL_QUEUE_SIZE not implemented");
+      return NULL;
+    default:
+      SetErrorInfo(context, CL_INVALID_VALUE, properties);
+      return NULL;
+    }
+    i++;
+  }
+
+  // Create command-queue object
+  cl_command_queue queue;
+  queue = new _cl_command_queue;
+  queue->queue = new oclgrind::Queue(context->context);
+  queue->dispatch = m_dispatchTable;
+  queue->properties = props;
+  queue->context = context;
+  queue->refCount = 1;
+
+  clRetainContext(context);
+
+  SetError(context, CL_SUCCESS);
+  return queue;
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL
