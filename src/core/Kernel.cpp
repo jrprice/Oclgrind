@@ -304,6 +304,11 @@ unsigned int Kernel::getArgumentTypeQualifier(unsigned int index) const
     return -1;
   }
 
+  // Ignore type qualifiers for non-pointer arguments
+  const llvm::Argument *arg = getArgument(index);
+  if (!arg->getType()->isPointerTy() || arg->hasByValAttr())
+    return CL_KERNEL_ARG_TYPE_NONE;
+
   // Get qualifiers
   const llvm::MDString *str = llvm::dyn_cast<llvm::MDString>(md);
   istringstream iss(str->getString().str());
