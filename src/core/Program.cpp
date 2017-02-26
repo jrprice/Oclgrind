@@ -155,16 +155,19 @@ void Program::allocateProgramScopeVars()
       if (!initializer)
         continue;
 
-      void *ptr = globalMemory->getPointer(itr->second.getPointer());
-
+      size_t varptr = itr->second.getPointer();
       if (initializer->getType()->getTypeID() == llvm::Type::PointerTyID)
       {
-        *((size_t*)ptr) =
-          resolveConstantPointer(initializer, m_programScopeVars);
+        size_t ptr = resolveConstantPointer(initializer, m_programScopeVars);
+        globalMemory->store((uint8_t*)&ptr, varptr, sizeof(size_t));
       }
       else
       {
-        getConstantData((uint8_t*)ptr, (const llvm::Constant*)initializer);
+        size_t size = getTypeSize(initializer->getType());
+        uint8_t *data = new uint8_t[size];
+        getConstantData((uint8_t*)data, (const llvm::Constant*)initializer);
+        globalMemory->store(data, varptr, size);
+        delete[] data;
       }
     }
   }
