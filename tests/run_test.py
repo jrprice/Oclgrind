@@ -73,8 +73,18 @@ def run(output_suffix):
   # Run test
   if test_file.endswith('.sim'):
     os.chdir(test_dir)
-    retval = subprocess.call([oclgrind_kernel, test_file],
-                             stdout=out, stderr=out)
+
+    cmd = [oclgrind_kernel]
+
+    # Add any additional arguments specified in the test file
+    first_line = open(test_file).readline()[:-1]
+    if first_line[:7] == '# ARGS:':
+        cmd.extend(first_line[8:].split(' '))
+
+    cmd.append(test_file)
+
+    retval = subprocess.call(cmd, stdout=out, stderr=out)
+
     os.chdir(current_dir)
   else:
     retval = subprocess.call([test_full_path], stdout=out, stderr=out)
