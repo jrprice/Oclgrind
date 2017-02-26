@@ -3035,6 +3035,14 @@ namespace oclgrind
       result.setUInt(r);
     }
 
+    DEFINE_BUILTIN(get_enqueued_local_size)
+    {
+      uint64_t dim = UARG(0);
+      size_t r = dim < 3 ?
+        workItem->m_kernelInvocation->getLocalSize()[dim] : 0;
+      result.setUInt(r);
+    }
+
     DEFINE_BUILTIN(get_num_groups)
     {
       uint64_t dim = UARG(0);
@@ -3870,6 +3878,7 @@ namespace oclgrind
     ADD_BUILTIN("get_work_dim", get_work_dim, NULL);
     ADD_BUILTIN("get_global_linear_id", get_global_linear_id, NULL);
     ADD_BUILTIN("get_local_linear_id", get_local_linear_id, NULL);
+    ADD_BUILTIN("get_enqueued_local_size", get_enqueued_local_size, NULL);
 
     // Other Functions
     ADD_PREFIX_BUILTIN("as_",            astype, NULL);
