@@ -551,7 +551,11 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_ENDIAN_LITTLE:
     result_size = sizeof(cl_bool);
+#if BIG_ENDIAN
+    result_data.clbool = CL_FALSE;
+#else
     result_data.clbool = CL_TRUE;
+#endif
     break;
   case CL_DEVICE_AVAILABLE:
     result_size = sizeof(cl_bool);

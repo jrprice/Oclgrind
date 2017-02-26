@@ -14,6 +14,7 @@ set(Oclgrind_VERSION_MINOR 10)
 include(CheckIncludeFiles)
 include(CheckIncludeFileCXX)
 include(CheckLibraryExists)
+include(TestBigEndian)
 
 # Enable C99 for GCC (required for tests)
 if (CMAKE_COMPILER_IS_GNUCC)
@@ -41,6 +42,9 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-gcc-compat")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-availability")
 endif()
+
+# Detect endianness
+test_big_endian(BIG_ENDIAN)
 
 
 # Find LLVM
