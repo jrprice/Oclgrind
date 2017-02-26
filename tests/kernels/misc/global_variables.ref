@@ -1,0 +1,7 @@
+EXACT Argument 'output': 24 bytes
+EXACT   output[0] = 7
+EXACT   output[1] = 42
+EXACT   output[2] = -3
+EXACT   output[3] = 56
+EXACT   output[4] = 42
+EXACT   output[5] = 56

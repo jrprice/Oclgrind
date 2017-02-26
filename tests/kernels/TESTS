@@ -59,6 +59,7 @@ memcheck/static_array_padded_struct
 memcheck/write_out_of_bounds
 memcheck/write_read_only_memory
 misc/array
+misc/global_variables
 misc/lvalue_loads
 misc/program_scope_constant_array
 misc/reduce
