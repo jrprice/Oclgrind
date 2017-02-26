@@ -163,6 +163,7 @@ bool Program::build(const char *options, list<Header> headers)
 
   bool optimize = true;
   const char *clstd = NULL;
+  m_requiresUniformWorkGroups = false;
 
   // Disable optimizations by default if in interactive mode
   if (checkEnv("OCLGRIND_INTERACTIVE"))
@@ -201,6 +202,13 @@ bool Program::build(const char *options, list<Header> headers)
       if (strcmp(opt, "-cl-no-signed-zeros") == 0)
         continue;
 
+      // Check for -cl-uniform-work-group-size flag
+      if (strcmp(opt, "-cl-uniform-work-group-size") == 0)
+      {
+        m_requiresUniformWorkGroups = true;
+        continue;
+      }
+
       // Check for -cl-std flag
       if (strncmp(opt, "-cl-std=", 8) == 0)
       {
@@ -217,6 +225,10 @@ bool Program::build(const char *options, list<Header> headers)
     clstd = "-cl-std=CL1.2";
   }
   args.push_back(clstd);
+
+  // If compiling for OpenCL 1.X, require uniform work-groups
+  if (strncmp(clstd, "-cl-std=CL1.", 12) == 0)
+    m_requiresUniformWorkGroups = true;
 
   // Pre-compiled header
   char *pchdir = NULL;
@@ -739,6 +751,11 @@ void Program::removeLValueLoads()
   {
     scalarizeAggregateStore(*itr);
   }
+}
+
+bool Program::requiresUniformWorkGroups() const
+{
+  return m_requiresUniformWorkGroups;
 }
 
 void Program::scalarizeAggregateStore(llvm::StoreInst *store)

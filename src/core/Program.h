@@ -55,6 +55,7 @@ namespace oclgrind
     const char* getSourceLine(size_t lineNumber) const;
     size_t getNumSourceLines() const;
     unsigned long getUID() const;
+    bool requiresUniformWorkGroups() const;
 
   private:
     Program(const Context *context, llvm::Module *module);
@@ -66,6 +67,8 @@ namespace oclgrind
     unsigned int m_buildStatus;
     const Context *m_context;
     std::vector<std::string> m_sourceLines;
+
+    bool m_requiresUniformWorkGroups;
 
     unsigned long m_uid;
     unsigned long generateUID() const;
