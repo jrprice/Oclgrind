@@ -1,11 +1,14 @@
 set(OUTPUT src/core/opencl-c.h.cpp)
 
-file(WRITE ${OUTPUT} "extern const char OPENCL_C_H_DATA[] = \n\"")
-
+# Load opencl-c.h
 file(READ ${SOURCE_FILE} OPENCL_C_H)
-string(REGEX REPLACE "\\\\" "\\\\\\\\" OPENCL_C_H "${OPENCL_C_H}")
-string(REGEX REPLACE "\"" "\\\\\"" OPENCL_C_H "${OPENCL_C_H}")
-string(REGEX REPLACE "\n" "\\\\n\"\n\"" OPENCL_C_H "${OPENCL_C_H}")
-file(APPEND ${OUTPUT} "${OPENCL_C_H}")
 
-file(APPEND ${OUTPUT} "\";")
+# Replace each character with a C character literal, escaping as necessary
+string(REGEX REPLACE "(.)" "'\\1', " CONTENT "${OPENCL_C_H}")
+string(REGEX REPLACE "\n'" "\\\\n'\n" CONTENT "${CONTENT}")
+string(REGEX REPLACE "\\\\'" "\\\\\\\\'" CONTENT "${CONTENT}")
+
+# Write character array
+file(WRITE ${OUTPUT} "extern const char OPENCL_C_H_DATA[] = {\n")
+file(APPEND ${OUTPUT} "${CONTENT}")
+file(APPEND ${OUTPUT} "};\n")
