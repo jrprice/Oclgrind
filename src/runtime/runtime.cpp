@@ -4887,7 +4887,8 @@ clEnqueueNDRangeKernel
       ReturnErrorInfo(command_queue->context, CL_INVALID_GLOBAL_WORK_SIZE,
                       "global_work_size[" << i << "] = 0");
     }
-    if (local_work_size && global_work_size[i] % local_work_size[i])
+    if (kernel->kernel->getProgram()->requiresUniformWorkGroups() &&
+        local_work_size && global_work_size[i] % local_work_size[i])
     {
       ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_GROUP_SIZE,
                       "local_work_size[" << i << "]=" << local_work_size[i] <<
