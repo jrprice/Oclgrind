@@ -233,8 +233,8 @@ bool Program::build(const char *options, list<Header> headers)
   // Pre-compiled header
   char *pchdir = NULL;
   char *pch    = NULL;
-  // TODO: Add a PCH for -cl-std=CL2.0
-  if (!checkEnv("OCLGRIND_DISABLE_PCH") && !strcmp(clstd, "-cl-std=CL1.2"))
+  if (!checkEnv("OCLGRIND_DISABLE_PCH") &&
+      (!strcmp(clstd, "-cl-std=CL1.2") || !strcmp(clstd, "-cl-std=CL2.0")))
   {
     const char *pchdirOverride = getenv("OCLGRIND_PCH_DIR");
     if (pchdirOverride)
@@ -280,9 +280,9 @@ bool Program::build(const char *options, list<Header> headers)
     if (pchdir)
     {
       // Select precompiled header
-      pch = new char[strlen(pchdir) + 20];
-      sprintf(pch, "%s/opencl-c-%d.pch",
-              pchdir, (sizeof(size_t) == 4 ? 32 : 64));
+      pch = new char[strlen(pchdir) + 24];
+      sprintf(pch, "%s/opencl-c-%s-%d.pch",
+              pchdir, clstd+10, (sizeof(size_t) == 4 ? 32 : 64));
 
       // Check if precompiled header exists
       ifstream pchfile(pch);

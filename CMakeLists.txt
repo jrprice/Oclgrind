@@ -265,8 +265,10 @@ target_link_libraries(oclgrind-kernel oclgrind)
 
 set(OPENCL_C_H
  ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c.h
- ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c-32.pch
- ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c-64.pch
+ ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c-1.2-32.pch
+ ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c-1.2-64.pch
+ ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c-2.0-32.pch
+ ${CMAKE_BINARY_DIR}/include/oclgrind/opencl-c-2.0-64.pch
 )
 
 add_custom_target(OPENCL_C_HEADERS ALL DEPENDS ${OPENCL_C_H})
@@ -284,7 +286,7 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   string(REPLACE "/" "\\" OPENCL_C_H_SYSROOT "${OPENCL_C_H_SYSROOT}")
 endif()
 add_custom_command(
-  OUTPUT include/oclgrind/opencl-c-32.pch
+  OUTPUT include/oclgrind/opencl-c-1.2-32.pch
   POST_BUILD
   COMMAND
     ${CLANG}
@@ -292,11 +294,11 @@ add_custom_command(
     -emit-pch -triple spir-unknown-unknown
     -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
     include/oclgrind/opencl-c.h
-    -o include/oclgrind/opencl-c-32.pch
+    -o include/oclgrind/opencl-c-1.2-32.pch
   DEPENDS include/oclgrind/opencl-c.h
 )
 add_custom_command(
-  OUTPUT include/oclgrind/opencl-c-64.pch
+  OUTPUT include/oclgrind/opencl-c-1.2-64.pch
   POST_BUILD
   COMMAND
     ${CLANG}
@@ -304,7 +306,31 @@ add_custom_command(
     -emit-pch -triple spir64-unknown-unknown
     -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
     include/oclgrind/opencl-c.h
-    -o include/oclgrind/opencl-c-64.pch
+    -o include/oclgrind/opencl-c-1.2-64.pch
+  DEPENDS include/oclgrind/opencl-c.h
+)
+add_custom_command(
+  OUTPUT include/oclgrind/opencl-c-2.0-32.pch
+  POST_BUILD
+  COMMAND
+    ${CLANG}
+    -cc1 -x cl -cl-std=CL2.0 -O0 -fno-builtin
+    -emit-pch -triple spir-unknown-unknown
+    -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
+    include/oclgrind/opencl-c.h
+    -o include/oclgrind/opencl-c-2.0-32.pch
+  DEPENDS include/oclgrind/opencl-c.h
+)
+add_custom_command(
+  OUTPUT include/oclgrind/opencl-c-2.0-64.pch
+  POST_BUILD
+  COMMAND
+    ${CLANG}
+    -cc1 -x cl -cl-std=CL2.0 -O0 -fno-builtin
+    -emit-pch -triple spir64-unknown-unknown
+    -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
+    include/oclgrind/opencl-c.h
+    -o include/oclgrind/opencl-c-2.0-64.pch
   DEPENDS include/oclgrind/opencl-c.h
 )
 
