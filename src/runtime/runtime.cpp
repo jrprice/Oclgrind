@@ -5672,8 +5672,92 @@ clCreateSamplerWithProperties
   cl_int *                       errcode_ret
 ) CL_API_SUFFIX__VERSION_2_0
 {
-  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
-  return NULL;
+  // Check parameters
+  if (!context)
+  {
+    SetErrorArg(NULL, CL_INVALID_CONTEXT, context);
+    return NULL;
+  }
+
+  cl_bool             normalized_coords = CL_TRUE;
+  cl_addressing_mode  addressing_mode   = CL_ADDRESS_CLAMP;
+  cl_filter_mode      filter_mode       = CL_FILTER_NEAREST;
+
+  // Parse properties
+  unsigned i = 0;
+  while (sampler_properties && sampler_properties[i])
+  {
+    switch (sampler_properties[i++])
+    {
+    case CL_SAMPLER_NORMALIZED_COORDS:
+      normalized_coords = sampler_properties[i];
+      break;
+    case CL_SAMPLER_ADDRESSING_MODE:
+      addressing_mode = sampler_properties[i];
+      break;
+    case CL_SAMPLER_FILTER_MODE:
+      filter_mode = sampler_properties[i];
+      break;
+    default:
+      SetErrorInfo(context, CL_INVALID_VALUE, sampler_properties);
+      return NULL;
+    }
+    i++;
+  }
+
+  // Create sampler bitfield
+  uint32_t bitfield = 0;
+
+  if (normalized_coords)
+  {
+    bitfield |= CLK_NORMALIZED_COORDS_TRUE;
+  }
+
+  switch (addressing_mode)
+  {
+    case CL_ADDRESS_NONE:
+      break;
+    case CL_ADDRESS_CLAMP_TO_EDGE:
+      bitfield |= CLK_ADDRESS_CLAMP_TO_EDGE;
+      break;
+    case CL_ADDRESS_CLAMP:
+      bitfield |= CLK_ADDRESS_CLAMP;
+      break;
+    case CL_ADDRESS_REPEAT:
+      bitfield |= CLK_ADDRESS_REPEAT;
+      break;
+    case CL_ADDRESS_MIRRORED_REPEAT:
+      bitfield |= CLK_ADDRESS_MIRRORED_REPEAT;
+      break;
+    default:
+      SetErrorArg(context, CL_INVALID_VALUE, sampler_properties);
+      return NULL;
+  }
+
+  switch (filter_mode)
+  {
+    case CL_FILTER_NEAREST:
+      bitfield |= CLK_FILTER_NEAREST;
+      break;
+    case CL_FILTER_LINEAR:
+      bitfield |= CLK_FILTER_LINEAR;
+      break;
+    default:
+      SetErrorArg(context, CL_INVALID_VALUE, sampler_properties);
+      return NULL;
+  }
+
+  // Create sampler
+  cl_sampler sampler = new _cl_sampler;
+  sampler->dispatch = m_dispatchTable;
+  sampler->context = context;
+  sampler->normCoords = normalized_coords;
+  sampler->addressMode = addressing_mode;
+  sampler->filterMode = filter_mode;
+  sampler->sampler = bitfield;
+
+  SetError(context, CL_SUCCESS);
+  return sampler;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
