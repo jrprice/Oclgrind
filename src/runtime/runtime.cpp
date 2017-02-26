@@ -404,6 +404,7 @@ clGetDeviceInfo
     cl_platform_id clplatid;
     cl_device_partition_property cldevpartprop;
     cl_device_affinity_domain cldevaffdom;
+    cl_device_svm_capabilities svm;
   } result_data;
   // The result is actually a string that needs copying
   const char* str = 0;
@@ -459,7 +460,11 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_WRITE_IMAGE_ARGS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 8;
+    result_data.cluint = 64;
+    break;
+  case CL_DEVICE_MAX_READ_WRITE_IMAGE_ARGS:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 64;
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
     result_size = sizeof(cl_ulong);
@@ -486,7 +491,27 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_SAMPLERS:
     result_size = sizeof(cl_uint);
-    result_data.sizet = 16;
+    result_data.cluint = 16;
+    break;
+  case CL_DEVICE_IMAGE_PITCH_ALIGNMENT:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 1;
+    break;
+  case CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 4;
+    break;
+  case CL_DEVICE_MAX_PIPE_ARGS:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 16;
+    break;
+  case CL_DEVICE_PIPE_MAX_ACTIVE_RESERVATIONS:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 1;
+    break;
+  case CL_DEVICE_PIPE_MAX_PACKET_SIZE:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 1024;
     break;
   case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
     result_size = sizeof(cl_uint);
@@ -525,6 +550,14 @@ clGetDeviceInfo
     result_size = sizeof(cl_uint);
     result_data.cluint = 1024;
     break;
+  case CL_DEVICE_MAX_GLOBAL_VARIABLE_SIZE:
+    result_size = sizeof(size_t);
+    result_data.sizet = MAX_GLOBAL_MEM_SIZE;
+    break;
+  case CL_DEVICE_GLOBAL_VARIABLE_PREFERRED_TOTAL_SIZE:
+    result_size = sizeof(size_t);
+    result_data.sizet = 64 * 1024;
+    break;
   case CL_DEVICE_LOCAL_MEM_TYPE:
     result_size = sizeof(cl_device_local_mem_type);
     result_data.devicelocalmemtype = CL_LOCAL;
@@ -561,9 +594,30 @@ clGetDeviceInfo
     result_size = sizeof(cl_device_exec_capabilities);
     result_data.cldevexeccap =  CL_EXEC_KERNEL | CL_EXEC_NATIVE_KERNEL;
     break;
-  case CL_DEVICE_QUEUE_PROPERTIES:
+  case CL_DEVICE_QUEUE_ON_HOST_PROPERTIES:
     result_size = sizeof(cl_command_queue_properties);
     result_data.clcmdqprop = CL_QUEUE_PROFILING_ENABLE;
+    break;
+  case CL_DEVICE_QUEUE_ON_DEVICE_PROPERTIES:
+    result_size = sizeof(cl_command_queue_properties);
+    result_data.clcmdqprop =
+      CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE;
+    break;
+  case CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 16 * 1024;
+    break;
+  case CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 256 * 1024;
+    break;
+  case CL_DEVICE_MAX_ON_DEVICE_QUEUES:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 1;
+    break;
+  case CL_DEVICE_MAX_ON_DEVICE_EVENTS:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 1024;
     break;
   case CL_DEVICE_NAME:
     result_size = sizeof(DEVICE_NAME);
@@ -669,6 +723,22 @@ clGetDeviceInfo
   case CL_DEVICE_PRINTF_BUFFER_SIZE:
     result_size = sizeof(size_t);
     result_data.sizet = 1024;
+    break;
+  case CL_DEVICE_SVM_CAPABILITIES:
+    result_size = sizeof(cl_device_svm_capabilities);
+    result_data.svm = CL_DEVICE_SVM_COARSE_GRAIN_BUFFER;
+    break;
+  case CL_DEVICE_PREFERRED_PLATFORM_ATOMIC_ALIGNMENT:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 0;
+    break;
+  case CL_DEVICE_PREFERRED_GLOBAL_ATOMIC_ALIGNMENT:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 0;
+    break;
+  case CL_DEVICE_PREFERRED_LOCAL_ATOMIC_ALIGNMENT:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_SPIR_VERSIONS:
     result_size = sizeof(DEVICE_SPIR_VERSIONS);
