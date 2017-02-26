@@ -1503,7 +1503,7 @@ clCreateImage2D
     0,
     0,
     0,
-    NULL
+    {NULL}
   };
   return clCreateImage(context, flags,
                        image_format, &desc,
@@ -1536,7 +1536,7 @@ clCreateImage3D
     image_slice_pitch,
     0,
     0,
-    NULL
+    {NULL}
   };
   return clCreateImage(context, flags,
                        image_format, &desc,
