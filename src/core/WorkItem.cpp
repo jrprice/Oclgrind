@@ -955,50 +955,18 @@ INSTRUCTION(gep)
     (const llvm::GetElementPtrInst*)instruction;
 
   // Get base address
-  const llvm::Value *base = gepInst->getPointerOperand();
-  size_t address = getOperand(base).getPointer();
+  size_t base = getOperand(gepInst->getPointerOperand()).getPointer();
   const llvm::Type *ptrType = gepInst->getPointerOperandType();
 
-  // Iterate over indices
+  // Get indices
+  std::vector<int64_t> offsets;
   llvm::User::const_op_iterator opItr;
   for (opItr = gepInst->idx_begin(); opItr != gepInst->idx_end(); opItr++)
   {
-    int64_t offset = getOperand(opItr->get()).getSInt();
-
-    if (ptrType->isPointerTy())
-    {
-      // Get pointer element size
-      const llvm::Type *elemType = ptrType->getPointerElementType();
-      address += offset*getTypeSize(elemType);
-      ptrType = elemType;
-    }
-    else if (ptrType->isArrayTy())
-    {
-      // Get array element size
-      const llvm::Type *elemType = ptrType->getArrayElementType();
-      address += offset*getTypeSize(elemType);
-      ptrType = elemType;
-    }
-    else if (ptrType->isVectorTy())
-    {
-      // Get vector element size
-      const llvm::Type *elemType = ptrType->getVectorElementType();
-      address += offset*getTypeSize(elemType);
-      ptrType = elemType;
-    }
-    else if (ptrType->isStructTy())
-    {
-      address +=
-        getStructMemberOffset((const llvm::StructType*)ptrType, offset);
-      ptrType = ptrType->getStructElementType(offset);
-    }
-    else
-    {
-      FATAL_ERROR("Unsupported GEP base type: %d", ptrType->getTypeID());
-    }
+    offsets.push_back(getOperand(opItr->get()).getSInt());
   }
 
-  result.setPointer(address);
+  result.setPointer(resolveGEP(base, ptrType, offsets));
 }
 
 INSTRUCTION(icmp)

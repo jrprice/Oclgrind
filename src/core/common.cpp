@@ -761,6 +761,93 @@ namespace oclgrind
     }
   }
 
+  size_t resolveConstantPointer(const llvm::Value *ptr, TypedValueMap& values)
+  {
+    if (values.count(ptr))
+    {
+      // In the value map - just return the pointer
+      return values.at(ptr).getPointer();
+    }
+    else if (auto gep = llvm::dyn_cast<llvm::GEPOperator>(ptr))
+    {
+      // Get base address
+      size_t base = resolveConstantPointer(gep->getPointerOperand(), values);
+      const llvm::Type *ptrType = gep->getPointerOperandType();
+
+      // Get indices
+      std::vector<int64_t> offsets;
+      llvm::User::const_op_iterator opItr;
+      for (opItr = gep->idx_begin(); opItr != gep->idx_end(); opItr++)
+      {
+        auto idx = (llvm::ConstantInt*)(opItr->get());
+        offsets.push_back(idx->getSExtValue());
+      }
+
+      return resolveGEP(base, ptrType, offsets);
+    }
+    else if (auto bc = llvm::dyn_cast<llvm::BitCastOperator>(ptr))
+    {
+      // bitcast - no change to the source pointer
+      return resolveConstantPointer(bc->getOperand(0), values);
+    }
+    else if (ptr->getValueID() == llvm::Value::ConstantPointerNullVal)
+    {
+      return 0;
+    }
+    else
+    {
+      FATAL_ERROR("Unsupported constant pointer type: %d", ptr->getValueID());
+    }
+
+    return 0;
+  }
+
+  size_t resolveGEP(size_t base, const llvm::Type *ptrType,
+                    std::vector<int64_t>& offsets)
+  {
+    size_t address = base;
+
+    // Iterate over indices
+    for (int i = 0; i < offsets.size(); i++)
+    {
+      int64_t offset = offsets[i];
+
+      if (ptrType->isPointerTy())
+      {
+        // Get pointer element size
+        const llvm::Type *elemType = ptrType->getPointerElementType();
+        address += offset*getTypeSize(elemType);
+        ptrType = elemType;
+      }
+      else if (ptrType->isArrayTy())
+      {
+        // Get array element size
+        const llvm::Type *elemType = ptrType->getArrayElementType();
+        address += offset*getTypeSize(elemType);
+        ptrType = elemType;
+      }
+      else if (ptrType->isVectorTy())
+      {
+        // Get vector element size
+        const llvm::Type *elemType = ptrType->getVectorElementType();
+        address += offset*getTypeSize(elemType);
+        ptrType = elemType;
+      }
+      else if (ptrType->isStructTy())
+      {
+        address +=
+          getStructMemberOffset((const llvm::StructType*)ptrType, offset);
+        ptrType = ptrType->getStructElementType(offset);
+      }
+      else
+      {
+        FATAL_ERROR("Unsupported GEP base type: %d", ptrType->getTypeID());
+      }
+    }
+
+    return address;
+  }
+
   FatalError::FatalError(const string& msg, const string& file, size_t line)
     : std::runtime_error(msg)
   {

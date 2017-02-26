@@ -552,11 +552,11 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_GLOBAL_VARIABLE_SIZE:
     result_size = sizeof(size_t);
-    result_data.sizet = MAX_GLOBAL_MEM_SIZE;
+    result_data.sizet = 64 * 1024;
     break;
   case CL_DEVICE_GLOBAL_VARIABLE_PREFERRED_TOTAL_SIZE:
     result_size = sizeof(size_t);
-    result_data.sizet = 64 * 1024;
+    result_data.sizet = MAX_GLOBAL_MEM_SIZE;
     break;
   case CL_DEVICE_LOCAL_MEM_TYPE:
     result_size = sizeof(cl_device_local_mem_type);
@@ -2689,6 +2689,7 @@ clGetProgramBuildInfo
   {
     cl_build_status status;
     cl_program_binary_type type;
+    size_t sizet;
   } result_data;
   const char* str = 0;
 
@@ -2709,6 +2710,10 @@ clGetProgramBuildInfo
   case CL_PROGRAM_BINARY_TYPE:
     result_size = sizeof(cl_program_binary_type);
     result_data.type = CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
+    break;
+  case CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE:
+    result_size = sizeof(size_t);
+    result_data.sizet = program->program->getTotalProgramScopeVarSize();
     break;
   default:
     ReturnErrorArg(program->context, CL_INVALID_VALUE, param_name);

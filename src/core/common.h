@@ -197,6 +197,13 @@ namespace oclgrind
   // Print data in a human readable format (according to its type)
   void printTypedData(const llvm::Type *type, const unsigned char *data);
 
+  // Resolve a constant pointer, using a set of known constant values
+  size_t resolveConstantPointer(const llvm::Value *ptr, TypedValueMap& values);
+
+  // Resolve a GEP from a base address and list of offsets
+  size_t resolveGEP(size_t base, const llvm::Type *ptrType,
+                    std::vector<int64_t>& offsets);
+
   // Exception class for raising fatal errors
   class FatalError : std::runtime_error
   {

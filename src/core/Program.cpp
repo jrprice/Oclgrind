@@ -40,6 +40,7 @@
 
 #include "Context.h"
 #include "Kernel.h"
+#include "Memory.h"
 #include "Program.h"
 #include "WorkItem.h"
 
@@ -79,6 +80,9 @@ Program::Program(const Context *context, llvm::Module *module)
   m_buildOptions = "";
   m_buildStatus = CL_BUILD_SUCCESS;
   m_uid = generateUID();
+  m_totalProgramScopeVarSize = 0;
+
+  allocateProgramScopeVars();
 }
 
 Program::Program(const Context *context, const string& source)
@@ -89,6 +93,7 @@ Program::Program(const Context *context, const string& source)
   m_buildOptions = "";
   m_buildStatus = CL_BUILD_NONE;
   m_uid = 0;
+  m_totalProgramScopeVarSize = 0;
 
   // Split source into individual lines
   m_sourceLines.clear();
@@ -106,6 +111,71 @@ Program::Program(const Context *context, const string& source)
 Program::~Program()
 {
   clearInterpreterCache();
+  deallocateProgramScopeVars();
+}
+
+void Program::allocateProgramScopeVars()
+{
+  deallocateProgramScopeVars();
+
+  Memory *globalMemory = m_context->getGlobalMemory();
+
+  // Create the pointer values for each global variable
+  llvm::Module::const_global_iterator itr;
+  for (itr = m_module->global_begin(); itr != m_module->global_end(); itr++)
+  {
+    unsigned addrspace = itr->getType()->getPointerAddressSpace();
+    if (addrspace != AddrSpaceGlobal && addrspace != AddrSpaceConstant)
+      continue;
+
+    // Allocate global variable
+    const llvm::Type *type = itr->getType()->getPointerElementType();
+    size_t size = getTypeSize(type);
+    size_t ptr = globalMemory->allocateBuffer(size);
+    m_totalProgramScopeVarSize += size;
+
+    // Create pointer value
+    TypedValue ptrValue =
+    {
+      sizeof(size_t), 1, new uint8_t[sizeof(size_t)]
+    };
+    ptrValue.setPointer(ptr);
+    m_programScopeVars[&*itr] = ptrValue;
+  }
+
+  try
+  {
+    // Initialize global variables
+    for (auto itr  = m_programScopeVars.begin();
+              itr != m_programScopeVars.end();
+              itr++)
+    {
+      auto var = llvm::cast<llvm::GlobalVariable>(itr->first);
+      const llvm::Constant *initializer = var->getInitializer();
+      if (!initializer)
+        continue;
+
+      void *ptr = globalMemory->getPointer(itr->second.getPointer());
+
+      if (initializer->getType()->getTypeID() == llvm::Type::PointerTyID)
+      {
+        *((size_t*)ptr) =
+          resolveConstantPointer(initializer, m_programScopeVars);
+      }
+      else
+      {
+        getConstantData((uint8_t*)ptr, (const llvm::Constant*)initializer);
+      }
+    }
+  }
+  catch (FatalError& err)
+  {
+    cerr << endl << "OCLGRIND FATAL ERROR "
+         << "(" << err.getFile() << ":" << err.getLine() << ")"
+         << endl << err.what()
+         << endl << "When initializing program scope global variables"
+         << endl;
+  }
 }
 
 bool Program::build(const char *options, list<Header> headers)
@@ -121,6 +191,9 @@ bool Program::build(const char *options, list<Header> headers)
   if (m_source.empty() && m_module)
   {
     m_buildStatus = CL_BUILD_SUCCESS;
+
+    allocateProgramScopeVars();
+
     return true;
   }
 
@@ -403,6 +476,8 @@ bool Program::build(const char *options, list<Header> headers)
 
     removeLValueLoads();
 
+    allocateProgramScopeVars();
+
     m_buildStatus = CL_BUILD_SUCCESS;
   }
   else
@@ -593,6 +668,19 @@ Kernel* Program::createKernel(const string name)
   }
 }
 
+void Program::deallocateProgramScopeVars()
+{
+  for (auto psv  = m_programScopeVars.begin();
+            psv != m_programScopeVars.end();
+            psv++)
+  {
+    m_context->getGlobalMemory()->deallocateBuffer(psv->second.getPointer());
+    delete[] psv->second.data;
+  }
+  m_programScopeVars.clear();
+  m_totalProgramScopeVarSize = 0;
+}
+
 void Program::getBinary(unsigned char *binary) const
 {
   if (!m_module)
@@ -680,6 +768,11 @@ unsigned int Program::getNumKernels() const
   return num;
 }
 
+const TypedValue& Program::getProgramScopeVar(const llvm::Value *variable) const
+{
+  return m_programScopeVars.at(variable);
+}
+
 const string& Program::getSource() const
 {
   return m_source;
@@ -696,6 +789,11 @@ const char* Program::getSourceLine(size_t lineNumber) const
 size_t Program::getNumSourceLines() const
 {
   return m_sourceLines.size();
+}
+
+size_t Program::getTotalProgramScopeVarSize() const
+{
+  return m_totalProgramScopeVarSize;
 }
 
 unsigned long Program::getUID() const

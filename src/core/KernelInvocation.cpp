@@ -158,23 +158,6 @@ void KernelInvocation::run(const Context *context, Kernel *kernel,
                            Size3 globalSize,
                            Size3 localSize)
 {
-  try
-  {
-    // Allocate and initialise constant memory
-    kernel->allocateConstants(context->getGlobalMemory());
-  }
-  catch (FatalError& err)
-  {
-    ostringstream info;
-    info << "OCLGRIND FATAL ERROR "
-         << "(" << err.getFile() << ":" << err.getLine() << ")"
-         << endl << err.what()
-         << endl << "When allocating kernel constants for '"
-         << kernel->getName() << "'";
-    context->logError(info.str().c_str());
-    return;
-  }
-
   // Create kernel invocation
   KernelInvocation *ki = new KernelInvocation(context, kernel, workDim,
                                               globalOffset,
@@ -187,9 +170,6 @@ void KernelInvocation::run(const Context *context, Kernel *kernel,
   context->notifyKernelEnd(ki);
 
   delete ki;
-
-  // Deallocate constant memory
-  kernel->deallocateConstants(context->getGlobalMemory());
 }
 
 void KernelInvocation::run()

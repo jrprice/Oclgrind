@@ -37,8 +37,6 @@ namespace oclgrind
     TypedValueMap::const_iterator values_begin() const;
     TypedValueMap::const_iterator values_end() const;
     bool allArgumentsSet() const;
-    void allocateConstants(Memory *memory);
-    void deallocateConstants(Memory *memory);
     unsigned int getArgumentAccessQualifier(unsigned int index) const;
     unsigned int getArgumentAddressQualifier(unsigned int index) const;
     const llvm::StringRef getArgumentName(unsigned int index) const;
@@ -57,8 +55,6 @@ namespace oclgrind
   private:
     const Program *m_program;
     const llvm::Function *m_function;
-    std::list<const llvm::GlobalVariable*> m_constants;
-    std::list<size_t> m_constantBuffers;
     const llvm::MDNode *m_metadata;
     std::string m_name;
 

@@ -54,6 +54,8 @@ namespace oclgrind
     const std::string& getSource() const;
     const char* getSourceLine(size_t lineNumber) const;
     size_t getNumSourceLines() const;
+    const TypedValue& getProgramScopeVar(const llvm::Value *var) const;
+    size_t getTotalProgramScopeVarSize() const;
     unsigned long getUID() const;
     bool requiresUniformWorkGroups() const;
 
@@ -70,9 +72,14 @@ namespace oclgrind
 
     bool m_requiresUniformWorkGroups;
 
+    TypedValueMap m_programScopeVars;
+    size_t m_totalProgramScopeVarSize;
+
     unsigned long m_uid;
     unsigned long generateUID() const;
 
+    void allocateProgramScopeVars();
+    void deallocateProgramScopeVars();
     void pruneDeadCode(llvm::Instruction*);
     void removeLValueLoads();
     void scalarizeAggregateStore(llvm::StoreInst *store);

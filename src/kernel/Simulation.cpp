@@ -213,10 +213,6 @@ bool Simulation::load(const char *filename)
       return false;
     }
 
-    // Clear global memory
-    Memory *globalMemory = m_context->getGlobalMemory();
-    globalMemory->clear();
-
     // Parse kernel arguments
     m_dumpArguments.clear();
     for (unsigned index = 0; index < m_kernel->getNumArguments(); index++)
