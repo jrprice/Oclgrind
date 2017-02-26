@@ -2,6 +2,15 @@ For more information, please visit the Oclgrind Wiki:
 https://github.com/jrprice/Oclgrind/wiki
 
 
+Oclgrind X.Y
+============
+- Switched to using Clang's builtin OpenCL header (opencl-c.h)
+- Dropped support for LLVM 3.6, 3.7 and 3.8
+- Added support for LLVM 4.0
+- Removed autotools build system
+- Improved support for big-endian systems
+
+
 Oclgrind 16.10
 ==============
 This release incorporates the following changes:
