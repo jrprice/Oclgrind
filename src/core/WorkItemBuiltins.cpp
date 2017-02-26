@@ -3051,6 +3051,26 @@ namespace oclgrind
       result.setUInt(workItem->m_kernelInvocation->getWorkDim());
     }
 
+    DEFINE_BUILTIN(get_global_linear_id)
+    {
+      Size3 globalID = workItem->m_globalID;
+      Size3 globalSize = workItem->m_kernelInvocation->getGlobalSize();
+      Size3 globalOffset = workItem->m_kernelInvocation->getGlobalOffset();
+      size_t r =
+        ((globalID.z - globalOffset.z)  * globalSize.y +
+         (globalID.y - globalOffset.y)) * globalSize.x +
+          globalID.x - globalOffset.x;
+      result.setUInt(r);
+    }
+
+    DEFINE_BUILTIN(get_local_linear_id)
+    {
+      Size3 localID = workItem->m_localID;
+      Size3 localSize = workItem->m_workGroup->getGroupSize();
+      size_t r =
+        (localID.z * localSize.y + localID.y) * localSize.x + localID.x;
+      result.setUInt(r);
+    }
 
     /////////////////////
     // Other Functions //
@@ -3848,6 +3868,8 @@ namespace oclgrind
     ADD_BUILTIN("get_local_size", get_local_size, NULL);
     ADD_BUILTIN("get_num_groups", get_num_groups, NULL);
     ADD_BUILTIN("get_work_dim", get_work_dim, NULL);
+    ADD_BUILTIN("get_global_linear_id", get_global_linear_id, NULL);
+    ADD_BUILTIN("get_local_linear_id", get_local_linear_id, NULL);
 
     // Other Functions
     ADD_PREFIX_BUILTIN("as_",            astype, NULL);
