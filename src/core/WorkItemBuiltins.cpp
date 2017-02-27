@@ -2498,7 +2498,7 @@ namespace oclgrind
       {
         double x = FARGV(0, i);
         if (std::isnan(x))
-          result.setSInt(INT_MAX);
+          result.setSInt(INT_MAX, i);
         else
           result.setSInt(ilogb(x), i);
       }
