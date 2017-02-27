@@ -1,0 +1,7 @@
+# ARGS: --build-options -cl-std=CL2.0
+non_uniform_work_groups.cl
+non_uniform_work_groups
+3 3 3
+2 2 2
+
+<size=132 fill=0 dump>
