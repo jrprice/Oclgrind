@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 
   err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_input);
   err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_output);
-  err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &sampler);
+  err |= clSetKernelArg(kernel, 2, sizeof(cl_sampler), &sampler);
   checkError(err, "setting kernel args");
 
   size_t global[2] = {N, N};
