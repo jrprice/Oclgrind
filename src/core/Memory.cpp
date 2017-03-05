@@ -91,17 +91,19 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags,
   return address;
 }
 
+template uint64_t Memory::atomic(AtomicOp op, size_t address, uint64_t value);
+template int64_t Memory::atomic(AtomicOp op, size_t address, int64_t value);
 template uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value);
 template int32_t Memory::atomic(AtomicOp op, size_t address, int32_t value);
 
 template<typename T>
 T Memory::atomic(AtomicOp op, size_t address, T value)
 {
-  m_context->notifyMemoryAtomicLoad(this, op, address, 4);
-  m_context->notifyMemoryAtomicStore(this, op, address, 4);
+  m_context->notifyMemoryAtomicLoad(this, op, address, sizeof(T));
+  m_context->notifyMemoryAtomicStore(this, op, address, sizeof(T));
 
   // Bounds check
-  if (!isAddressValid(address, 4))
+  if (!isAddressValid(address, sizeof(T)))
   {
     return 0;
   }
@@ -158,12 +160,16 @@ T Memory::atomic(AtomicOp op, size_t address, T value)
   return old;
 }
 
-uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
+template uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value);
+template uint64_t Memory::atomicCmpxchg(size_t address, uint64_t cmp, uint64_t value);
+
+template<typename T>
+T Memory::atomicCmpxchg(size_t address, T cmp, T value)
 {
-  m_context->notifyMemoryAtomicLoad(this, AtomicCmpXchg, address, 4);
+  m_context->notifyMemoryAtomicLoad(this, AtomicCmpXchg, address, sizeof(T));
 
   // Bounds check
-  if (!isAddressValid(address, 4))
+  if (!isAddressValid(address, sizeof(T)))
   {
     return 0;
   }
@@ -171,18 +177,18 @@ uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value)
   // Get buffer
   size_t offset = extractOffset(address);
   Buffer *buffer = m_memory[extractBuffer(address)];
-  uint32_t *ptr = (uint32_t*)(buffer->data + offset);
+  T *ptr = (T *)(buffer->data + offset);
 
   if (m_addressSpace == AddrSpaceGlobal)
     ATOMIC_MUTEX(offset).lock();
 
   // Perform cmpxchg
-  uint32_t old = *ptr;
+  T old = *ptr;
   if (old == cmp)
   {
     *ptr = value;
 
-    m_context->notifyMemoryAtomicStore(this, AtomicCmpXchg, address, 4);
+    m_context->notifyMemoryAtomicStore(this, AtomicCmpXchg, address, sizeof(T));
   }
 
   if (m_addressSpace == AddrSpaceGlobal)
