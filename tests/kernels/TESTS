@@ -20,6 +20,7 @@ atomics/atomic_minmax_signed
 atomics/atomic_race_after
 atomics/atomic_race_before
 atomics/atomic_same_workitem
+atomics/atom_add
 barrier/barrier_different_instructions
 barrier/barrier_divergence
 bugs/byval_function_argument

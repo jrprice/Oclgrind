@@ -29,7 +29,7 @@ namespace oclgrind
     size_t allocateBuffer(size_t size, cl_mem_flags flags=0,
                           const uint8_t *initData = NULL);
     template<typename T> T atomic(AtomicOp op, size_t address, T value = 0);
-    uint32_t atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value);
+    template<typename T> T atomicCmpxchg(size_t address, T cmp, T value);
     void clear();
     size_t createHostBuffer(size_t size, void *ptr, cl_mem_flags flags=0);
     bool copy(size_t dest, size_t src, size_t size);

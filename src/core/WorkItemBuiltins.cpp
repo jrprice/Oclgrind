@@ -263,179 +263,88 @@ namespace oclgrind
     //////////////////////
     // Atomic Functions //
     //////////////////////
-
-    DEFINE_BUILTIN(atomic_add)
+    static bool _is_signed_type(char c)
     {
+      const string signed_vals("casilxn"); //CXXNameMangler
+      return signed_vals.find(c) != string::npos;
+    }
+
+    DEFINE_BUILTIN(atomic_op)
+    {
+      const static map<string, AtomicOp> name_to_op = {
+        { "atomic_add", AtomicAdd },
+        { "atom_add", AtomicAdd },
+        { "atomic_and", AtomicAnd },
+        { "atom_and", AtomicAnd },
+        { "atom_cmpxchg", AtomicCmpXchg },
+        { "atomic_cmpxchg", AtomicCmpXchg },
+        { "atom_dec", AtomicDec },
+        { "atomic_dec", AtomicDec },
+        { "atom_inc", AtomicInc },
+        { "atomic_inc", AtomicInc },
+        { "atom_max", AtomicMax },
+        { "atomic_max", AtomicMax },
+        { "atom_min", AtomicMin },
+        { "atomic_min", AtomicMin },
+        { "atom_or", AtomicOr },
+        { "atomic_or", AtomicOr },
+        { "atom_sub", AtomicSub },
+        { "atomic_sub", AtomicSub },
+        { "atom_xchg", AtomicXchg },
+        { "atomic_xchg", AtomicXchg },
+        { "atom_xor", AtomicXor },
+        { "atomic_xor", AtomicXor },
+      };
+
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
+      
+      const bool is_64bit(ARG(0)->getType()->getPointerElementType()->getScalarSizeInBits() == 64);
+      const bool is_signed_type(_is_signed_type(overload.back()));
+      const auto op(name_to_op.at(fnName));
 
       size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_add");
+      // Verify the address is 4/8-byte aligned
+      if ((address & ((is_64bit ? 8 : 4) - 1)) != 0) {
+        workItem->m_context->logError(("Unaligned address on " + fnName).c_str());
       }
-      uint32_t old = memory->atomic<uint32_t>(AtomicAdd, address, UARG(1));
+
+      uint64_t old;
+      if (op == AtomicCmpXchg) {
+        if (is_64bit) {
+          old = memory->atomicCmpxchg<uint64_t>(address, UARG(1), UARG(2));
+        } else {
+          old = memory->atomicCmpxchg<uint32_t>(address, UARG(1), UARG(2));
+        }
+      } else if (op == AtomicInc || op == AtomicDec) {
+        if (is_64bit) {
+          old = memory->atomic<uint64_t>(op, address);
+        } else {
+          old = memory->atomic<uint32_t>(op, address);
+        }
+      } else if (op == AtomicMax || op == AtomicMin) {
+        if (is_64bit) {
+          if (is_signed_type) {
+            old = memory->atomic<int64_t>(op, address, SARG(1));
+          } else {
+            old = memory->atomic<uint64_t>(op, address, UARG(1));
+          }
+        } else {
+          if (is_signed_type) {
+            old = memory->atomic<int32_t>(op, address, SARG(1));
+          } else {
+            old = memory->atomic<uint32_t>(op, address, UARG(1));
+          }
+        }
+      } else {
+        if (is_64bit) {
+          old = memory->atomic<uint64_t>(op, address, UARG(1));
+        } else {
+          old = memory->atomic<uint32_t>(op, address, UARG(1));
+        }
+      }
       result.setUInt(old);
     }
-
-    DEFINE_BUILTIN(atomic_and)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_and");
-      }
-      uint32_t old = memory->atomic<uint32_t>(AtomicAnd, address, UARG(1));
-      result.setUInt(old);
-    }
-
-    DEFINE_BUILTIN(atomic_cmpxchg)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_cmpxchg");
-      }
-      uint32_t old = memory->atomicCmpxchg(address, UARG(1), UARG(2));
-      result.setUInt(old);
-    }
-
-    DEFINE_BUILTIN(atomic_dec)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_dec");
-      }
-      uint32_t old = memory->atomic<uint32_t>(AtomicDec, address);
-      result.setUInt(old);
-    }
-
-    DEFINE_BUILTIN(atomic_inc)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_dec");
-      }
-      uint32_t old = memory->atomic<uint32_t>(AtomicInc, address);
-      result.setUInt(old);
-    }
-
-    DEFINE_BUILTIN(atomic_max)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_max");
-      }
-      bool is_signed = overload.back() == 'i';
-      if (is_signed)
-      {
-        int32_t old = memory->atomic<int32_t>(AtomicMax, address, SARG(1));
-        result.setSInt(old);
-      }
-      else
-      {
-        uint32_t old = memory->atomic<uint32_t>(AtomicMax, address, UARG(1));
-        result.setUInt(old);
-      }
-    }
-
-    DEFINE_BUILTIN(atomic_min)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_min");
-      }
-      bool is_signed = overload.back() == 'i';
-      if (is_signed)
-      {
-        int32_t old = memory->atomic<int32_t>(AtomicMin, address, SARG(1));
-        result.setSInt(old);
-      }
-      else
-      {
-        uint32_t old = memory->atomic<uint32_t>(AtomicMin, address, UARG(1));
-        result.setUInt(old);
-      }
-    }
-
-    DEFINE_BUILTIN(atomic_or)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_or");
-      }
-      uint32_t old = memory->atomic<uint32_t>(AtomicOr, address, UARG(1));
-      result.setUInt(old);
-    }
-
-    DEFINE_BUILTIN(atomic_sub)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_sub");
-      }
-      uint32_t old = memory->atomic<uint32_t>(AtomicSub, address, UARG(1));
-      result.setUInt(old);
-    }
-
-    DEFINE_BUILTIN(atomic_xchg)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_xchg");
-      }
-      uint32_t old = memory->atomic<uint32_t>(AtomicXchg, address, UARG(1));
-      result.setUInt(old);
-    }
-
-    DEFINE_BUILTIN(atomic_xor)
-    {
-      Memory *memory =
-        workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-
-      size_t address = PARG(0);
-      // Verify the address is 4-byte aligned
-      if ((address & 0x3) != 0) {
-        workItem->m_context->logError("Unaligned address on atomic_xor");
-      }
-      uint32_t old = memory->atomic<uint32_t>(AtomicXor, address, UARG(1));
-      result.setUInt(old);
-    }
-
 
     //////////////////////
     // Common Functions //
@@ -3647,28 +3556,28 @@ namespace oclgrind
     ADD_BUILTIN("prefetch", prefetch, NULL);
 
     // Atomic Functions
-    ADD_BUILTIN("atom_add", atomic_add, NULL);
-    ADD_BUILTIN("atomic_add", atomic_add, NULL);
-    ADD_BUILTIN("atom_and", atomic_and, NULL);
-    ADD_BUILTIN("atomic_and", atomic_and, NULL);
-    ADD_BUILTIN("atom_cmpxchg", atomic_cmpxchg, NULL);
-    ADD_BUILTIN("atomic_cmpxchg", atomic_cmpxchg, NULL);
-    ADD_BUILTIN("atom_dec", atomic_dec, NULL);
-    ADD_BUILTIN("atomic_dec", atomic_dec, NULL);
-    ADD_BUILTIN("atom_inc", atomic_inc, NULL);
-    ADD_BUILTIN("atomic_inc", atomic_inc, NULL);
-    ADD_BUILTIN("atom_max", atomic_max, NULL);
-    ADD_BUILTIN("atomic_max", atomic_max, NULL);
-    ADD_BUILTIN("atom_min", atomic_min, NULL);
-    ADD_BUILTIN("atomic_min", atomic_min, NULL);
-    ADD_BUILTIN("atom_or", atomic_or, NULL);
-    ADD_BUILTIN("atomic_or", atomic_or, NULL);
-    ADD_BUILTIN("atom_sub", atomic_sub, NULL);
-    ADD_BUILTIN("atomic_sub", atomic_sub, NULL);
-    ADD_BUILTIN("atom_xchg", atomic_xchg, NULL);
-    ADD_BUILTIN("atomic_xchg", atomic_xchg, NULL);
-    ADD_BUILTIN("atom_xor", atomic_xor, NULL);
-    ADD_BUILTIN("atomic_xor", atomic_xor, NULL);
+    ADD_BUILTIN("atom_add", atomic_op, NULL);
+    ADD_BUILTIN("atomic_add", atomic_op, NULL);
+    ADD_BUILTIN("atom_and", atomic_op, NULL);
+    ADD_BUILTIN("atomic_and", atomic_op, NULL);
+    ADD_BUILTIN("atom_cmpxchg", atomic_op, NULL);
+    ADD_BUILTIN("atomic_cmpxchg", atomic_op, NULL);
+    ADD_BUILTIN("atom_dec", atomic_op, NULL);
+    ADD_BUILTIN("atomic_dec", atomic_op, NULL);
+    ADD_BUILTIN("atom_inc", atomic_op, NULL);
+    ADD_BUILTIN("atomic_inc", atomic_op, NULL);
+    ADD_BUILTIN("atom_max", atomic_op, NULL);
+    ADD_BUILTIN("atomic_max", atomic_op, NULL);
+    ADD_BUILTIN("atom_min", atomic_op, NULL);
+    ADD_BUILTIN("atomic_min", atomic_op, NULL);
+    ADD_BUILTIN("atom_or", atomic_op, NULL);
+    ADD_BUILTIN("atomic_or", atomic_op, NULL);
+    ADD_BUILTIN("atom_sub", atomic_op, NULL);
+    ADD_BUILTIN("atomic_sub", atomic_op, NULL);
+    ADD_BUILTIN("atom_xchg", atomic_op, NULL);
+    ADD_BUILTIN("atomic_xchg", atomic_op, NULL);
+    ADD_BUILTIN("atom_xor", atomic_op, NULL);
+    ADD_BUILTIN("atomic_xor", atomic_op, NULL);
 
     // Common Functions
     ADD_BUILTIN("clamp", clamp, NULL);
