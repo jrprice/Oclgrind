@@ -252,6 +252,13 @@ endif()
 add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
 target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
+if (UNIX)
+  # Change the SONAME of the library so that it gets recognized by dlopen
+  set_target_properties(oclgrind-rt PROPERTIES
+                        NO_SONAME ON
+                        LINK_FLAGS "-Wl,-soname,libOpenCL.so")
+endif()
+
 add_executable(oclgrind-exe src/runtime/oclgrind.cpp)
 set_target_properties(oclgrind-exe PROPERTIES OUTPUT_NAME oclgrind)
 target_compile_definitions(oclgrind-exe PRIVATE
