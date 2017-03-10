@@ -461,6 +461,8 @@ namespace oclgrind
         (llvm::Instruction::OtherOps)opcode,
         (llvm::CmpInst::Predicate)expr->getPredicate(),
         operands[0], operands[1]);
+    case llvm::Instruction::AddrSpaceCast:
+      FATAL_ERROR("Unsupported constant expression: addrspacecast");
     default:
       assert(expr->getNumOperands() == 2 && "Must be binary operator?");
 
