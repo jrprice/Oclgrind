@@ -57,6 +57,14 @@ if (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.9")
   message(FATAL_ERROR "LLVM version must be >= 3.9")
 endif()
 
+# Warn about LLVM 4.0 InstCombine/addrspacecast bug
+if ("${LLVM_VERSION_MAJOR}" STREQUAL "4")
+   message(WARNING
+   "There is a known bug with LLVM 4.0 that will cause "
+   "Oclgrind to fail on some kernels with a message about "
+   " `addrspacecast`. Use LLVM 3.9 or 5.0+ if possible.")
+endif()
+
 # Add flags for LLVM
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
