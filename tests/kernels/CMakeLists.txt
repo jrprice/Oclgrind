@@ -22,6 +22,17 @@ endforeach(${test})
 set_tests_properties(${KERNEL_TESTS} PROPERTIES
     ENVIRONMENT "OCLGRIND_PCH_DIR=${CMAKE_BINARY_DIR}/include/oclgrind")
 
+if ("${LLVM_VERSION_MAJOR}" STREQUAL "4")
+  set(XFAIL
+      ${XFAIL}
+      bugs/byval_function_argument
+      bugs/const_gep_expr_pointee_type
+      bugs/multidim_array_in_struct
+      memcheck/static_array_padded_struct
+      misc/array
+      uninitialized/private_array_initializer_list
+  )
+endif()
+
 # Expected failures
-set_tests_properties(
-  PROPERTIES WILL_FAIL TRUE)
+set_tests_properties(${XFAIL} PROPERTIES WILL_FAIL TRUE)
