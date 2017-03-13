@@ -67,6 +67,8 @@ const char *EXTENSIONS[] =
   "cl_khr_global_int32_extended_atomics",
   "cl_khr_local_int32_base_atomics",
   "cl_khr_local_int32_extended_atomics",
+  "cl_khr_int64_base_atomics",
+  "cl_khr_int64_extended_atomics",
   "cl_khr_byte_addressable_store",
 };
 
