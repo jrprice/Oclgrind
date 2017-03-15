@@ -219,6 +219,7 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-fno-builtin");
   args.push_back("-fgnu89-inline");
   args.push_back("-debug-info-kind=standalone");
+  args.push_back("-dwarf-column-info");
   args.push_back("-triple");
   if (sizeof(size_t) == 4)
     args.push_back("spir-unknown-unknown");
