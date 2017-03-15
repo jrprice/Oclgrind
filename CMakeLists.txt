@@ -305,7 +305,7 @@ add_custom_command(
   POST_BUILD
   COMMAND
     ${CLANG}
-    -cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin
+    -cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin -fgnu89-inline
     -emit-pch -triple spir-unknown-unknown
     -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
     include/oclgrind/opencl-c.h
@@ -317,7 +317,7 @@ add_custom_command(
   POST_BUILD
   COMMAND
     ${CLANG}
-    -cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin
+    -cc1 -x cl -cl-std=CL1.2 -O0 -fno-builtin -fgnu89-inline
     -emit-pch -triple spir64-unknown-unknown
     -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
     include/oclgrind/opencl-c.h
@@ -329,7 +329,7 @@ add_custom_command(
   POST_BUILD
   COMMAND
     ${CLANG}
-    -cc1 -x cl -cl-std=CL2.0 -O0 -fno-builtin
+    -cc1 -x cl -cl-std=CL2.0 -O0 -fno-builtin -fgnu89-inline
     -emit-pch -triple spir-unknown-unknown
     -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
     include/oclgrind/opencl-c.h
@@ -341,7 +341,7 @@ add_custom_command(
   POST_BUILD
   COMMAND
     ${CLANG}
-    -cc1 -x cl -cl-std=CL2.0 -O0 -fno-builtin
+    -cc1 -x cl -cl-std=CL2.0 -O0 -fno-builtin -fgnu89-inline
     -emit-pch -triple spir64-unknown-unknown
     -relocatable-pch -isysroot "${OPENCL_C_H_SYSROOT}"
     include/oclgrind/opencl-c.h

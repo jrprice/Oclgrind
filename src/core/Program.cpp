@@ -217,6 +217,7 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-D__IMAGE_SUPPORT__=1");
   args.push_back("-D__OPENCL_VERSION__=120");
   args.push_back("-fno-builtin");
+  args.push_back("-fgnu89-inline");
   args.push_back("-debug-info-kind=standalone");
   args.push_back("-triple");
   if (sizeof(size_t) == 4)
