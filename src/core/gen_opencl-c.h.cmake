@@ -11,4 +11,4 @@ string(REGEX REPLACE "\\\\'" "\\\\\\\\'" CONTENT "${CONTENT}")
 # Write character array
 file(WRITE ${OUTPUT} "extern const char OPENCL_C_H_DATA[] = {\n")
 file(APPEND ${OUTPUT} "${CONTENT}")
-file(APPEND ${OUTPUT} "};\n")
+file(APPEND ${OUTPUT} "'\\0'};\n")
