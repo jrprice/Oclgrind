@@ -260,7 +260,7 @@ endif()
 add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
 target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
-if (UNIX)
+if (UNIX AND NOT APPLE)
   # Change the SONAME of the library so that it gets recognized by dlopen
   set_target_properties(oclgrind-rt PROPERTIES
                         NO_SONAME ON
