@@ -29,13 +29,14 @@ foreach(test
     NAME rt_${test}
     COMMAND
     ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/run_test.py
-    $<TARGET_FILE:oclgrind-kernel>
+    $<TARGET_FILE:oclgrind-exe>
     $<TARGET_FILE:${test}>)
 
   set_tests_properties(rt_${test} PROPERTIES DEPENDS ${test})
 
   # Set PCH directory
-  set_tests_properties(rt_${test} PROPERTIES
-      ENVIRONMENT "OCLGRIND_PCH_DIR=${CMAKE_BINARY_DIR}/include/oclgrind")
+  set(ENV "OCLGRIND_TESTING=1")
+  list(APPEND ENV "OCLGRIND_PCH_DIR=${CMAKE_BINARY_DIR}/include/oclgrind")
+  set_tests_properties(rt_${test} PROPERTIES ENVIRONMENT "${ENV}")
 
 endforeach(${test})

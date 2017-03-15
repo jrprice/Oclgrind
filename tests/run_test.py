@@ -14,14 +14,14 @@ import sys
 
 # Check arguments
 if len(sys.argv) != 3:
-  print('Usage: python run_test.py OCLGRIND-KERNEL TEST_EXE|TEST.sim')
+  print('Usage: python run_test.py OCLGRIND-EXE TEST_EXE|TEST.sim')
   sys.exit(1)
 if not os.path.isfile(sys.argv[2]):
   print('Test file not found')
   sys.exit(1)
 
 # Construct paths to test inputs/outputs
-oclgrind_kernel = sys.argv[1]
+oclgrind_exe    = sys.argv[1]
 test_full_path  = sys.argv[2]
 test_dir        = os.path.dirname(os.path.realpath(test_full_path))
 test_file       = os.path.basename(test_full_path)
@@ -74,7 +74,7 @@ def run(output_suffix):
   if test_file.endswith('.sim'):
     os.chdir(test_dir)
 
-    cmd = [oclgrind_kernel]
+    cmd = [oclgrind_exe]
 
     # Add any additional arguments specified in the test file
     first_line = open(test_file).readline()[:-1]
@@ -87,7 +87,7 @@ def run(output_suffix):
 
     os.chdir(current_dir)
   else:
-    retval = subprocess.call([test_full_path], stdout=out, stderr=out)
+    retval = subprocess.call([oclgrind_exe,test_full_path], stdout=out, stderr=out)
 
   out.close()
   if retval != 0:

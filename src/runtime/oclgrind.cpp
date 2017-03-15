@@ -346,6 +346,22 @@ static bool parseArguments(int argc, char *argv[])
   return true;
 }
 
+static void stripLastComponent(string& path)
+{
+  size_t slash;
+#if defined(_WIN32) && !defined(__MINGW32__)
+  if ((slash = path.find_last_of('\\')) == string::npos)
+#else
+  if ((slash = path.find_last_of('/')) == string::npos)
+#endif
+  {
+    cerr << "[Oclgrind] Failed to get path to library directory" << endl;
+    exit(1);
+  }
+
+  path.resize(slash);
+}
+
 static string getLibDirPath()
 {
   string libdir;
@@ -376,22 +392,16 @@ static string getLibDirPath()
   libdir = path;
 #endif
 
-  // Remove executable filename and containing directory
-  size_t slash;
-  for (int i = 0; i < 2; i++)
+  // Remove executable filename
+  stripLastComponent(libdir);
+
+  const char *testing = getenv("OCLGRIND_TESTING");
+  if (!testing)
   {
-#if defined(_WIN32) && !defined(__MINGW32__)
-    if ((slash = libdir.find_last_of('\\')) == string::npos)
-#else
-    if ((slash = libdir.find_last_of('/')) == string::npos)
-#endif
-      cerr << "[Oclgrind] Failed to get path to library directory" << endl;
-
-    libdir.resize(slash);
+    // Remove containing directory and append library directory
+    stripLastComponent(libdir);
+    libdir += "/lib" LIBDIR_SUFFIX;
   }
-
-  // Append library directory
-  libdir += "/lib" LIBDIR_SUFFIX;
 
   return libdir;
 }
