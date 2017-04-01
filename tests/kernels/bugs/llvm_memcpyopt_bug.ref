@@ -1,0 +1,5 @@
+
+EXACT Argument 'out': 12 bytes
+EXACT   out[0] = 7
+EXACT   out[1] = 7
+EXACT   out[2] = 7

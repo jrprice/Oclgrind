@@ -29,6 +29,7 @@ bugs/false_warning_vector_argument
 bugs/gvn_arbitrary_integers
 bugs/kernel_struct_argument
 bugs/llvm_bswap
+bugs/llvm_memcpyopt_bug
 bugs/many_alloca
 bugs/multidim_array_in_struct
 bugs/null_argument
