@@ -34,5 +34,11 @@ if ("${LLVM_VERSION_MAJOR}" STREQUAL "4")
   )
 endif()
 
+# LLVM bug, exposed in 4.0 and newer
+# Pending fix: https://reviews.llvm.org/D31569
+if ("${LLVM_VERSION_MAJOR}" STRGREATER "3")
+  set(XFAIL ${XFAIL} bugs/llvm_memcpyopt_bug)
+endif()
+
 # Expected failures
 set_tests_properties(${XFAIL} PROPERTIES WILL_FAIL TRUE)
