@@ -1,3 +1,5 @@
+#pragma clang diagnostic ignored "-Wunused-value"
+
 struct S0 {
   int d;
   long b;
