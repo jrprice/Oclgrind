@@ -142,6 +142,14 @@ def run(output_suffix):
         print('Invalid match type in reference file')
         fail()
 
+    # Check there are no more lines in output
+    while oi < len(out):
+      if len(out[oi]) > 0:
+          print('Unexpected output after all matches completed (line %d):' % oi)
+          print(out[oi])
+          fail()
+      oi += 1
+
 print('Running test with optimisations')
 run('')
 print('PASSED')
