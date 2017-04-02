@@ -112,7 +112,12 @@ def run(output_suffix):
       text = line[6:]
 
       # Find next non-blank line in output file
-      while not len(out[oi]):
+      while True:
+        if oi >= len(out):
+            print('Unexpected end of output when matching ' + line)
+            fail()
+        if len(out[oi]):
+            break
         oi += 1
 
       if type == 'ERROR':
