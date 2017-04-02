@@ -50,7 +50,7 @@ int main()
         }
     }
 
-    Context cl = createContext(KERNEL_SOURCE);
+    Context cl = createContext(KERNEL_SOURCE, "");
     kernel = clCreateKernel(cl.program, "image_copy", &err);
     checkError(err, "creating kernel");
 

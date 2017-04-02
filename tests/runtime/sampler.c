@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
   cl_mem d_input, d_output;
   cl_sampler sampler;
 
-  Context cl = createContext(KERNEL_SOURCE);
+  Context cl = createContext(KERNEL_SOURCE, "");
 
   kernel = clCreateKernel(cl.program, "test_sampler", &err);
   checkError(err, "creating kernel");

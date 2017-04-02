@@ -12,7 +12,7 @@ void checkError(cl_int err, const char *operation)
   }
 }
 
-Context createContext(const char *source)
+Context createContext(const char *source, const char *options)
 {
   Context cl;
   cl_int err;
@@ -42,7 +42,7 @@ Context createContext(const char *source)
   cl.program = clCreateProgramWithSource(cl.context, 1, &source, NULL, &err);
   checkError(err, "creating program");
 
-  err = clBuildProgram(cl.program, 1, &cl.device, "", NULL, NULL);
+  err = clBuildProgram(cl.program, 1, &cl.device, options, NULL, NULL);
   if (err == CL_BUILD_PROGRAM_FAILURE)
   {
     size_t sz;

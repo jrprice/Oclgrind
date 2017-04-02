@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
     N = atoi(argv[1]);
   }
 
-  Context cl = createContext(KERNEL_SOURCE);
+  Context cl = createContext(KERNEL_SOURCE, "");
 
   kernel = clCreateKernel(cl.program, "vecadd", &err);
   checkError(err, "creating kernel");
