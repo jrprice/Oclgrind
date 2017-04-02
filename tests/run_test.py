@@ -87,7 +87,8 @@ def run(output_suffix):
 
     os.chdir(current_dir)
   else:
-    retval = subprocess.call([oclgrind_exe,test_full_path], stdout=out, stderr=out)
+    retval = subprocess.call([oclgrind_exe,test_full_path],
+                             stdout=out, stderr=out)
 
   out.close()
   if retval != 0:
