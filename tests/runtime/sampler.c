@@ -131,8 +131,8 @@ unsigned checkResults(uint8_t *input, uint8_t *output)
       }
     }
   }
-  if (errors)
-    printf("%d errors detected\n", errors);
+
+  printf("%d errors detected\n", errors);
 
   return errors;
 }
