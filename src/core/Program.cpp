@@ -230,12 +230,23 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-D__ENDIAN_LITTLE__=1");
 #endif
 
+#if LLVM_VERSION < 40
   // Define extensions
   for (unsigned i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
   {
     args.push_back("-D");
     args.push_back(EXTENSIONS[i]);
   }
+#else
+  // Disable all extensions
+  std::string cl_ext("-cl-ext=-all");
+  // Explicitly enable supported extensions
+  for (unsigned i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
+  {
+    cl_ext += ",+" + std::string(EXTENSIONS[i]);
+  }
+  args.push_back(cl_ext.c_str());
+#endif
 
   // Disable Clang's optimizations.
   // We will manually run optimization passes and legalize the IR later.
