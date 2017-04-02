@@ -183,6 +183,54 @@ void Program::allocateProgramScopeVars()
   }
 }
 
+// Utility to split a string up to the next unquoted space
+// After this returns, input will point to the start of the next string (no
+// leading spaces), and next will point to where the next string will start.
+// Modifies the content of input in place.
+void split_token(char *input, char **next)
+{
+  char *output = input;
+
+  // Strip leading spaces
+  while (*input == ' ')
+    input++;
+
+  // Loop until end of string
+  bool quoted = false;
+  while (*input != '\0')
+  {
+    // Stop at space, unless we're in quotes
+    if (*input == ' ' && !quoted)
+      break;
+
+    if (*input == '"')
+    {
+      // Enter/exit quoted region, don't emit quote
+      quoted = !quoted;
+    }
+    else
+    {
+      // Check for escaped space
+      if (*input == '\\' && *(input+1) == ' ')
+        input++;
+
+      // Copy character to output string
+      *output = *input;
+      output++;
+    }
+
+    input++;
+  }
+
+  // Set *next to start of next potential string
+  *next = input;
+  if (**next != '\0')
+    (*next)++;
+
+  // Split token with null terminator
+  *output = '\0';
+}
+
 bool Program::build(const char *options, list<Header> headers)
 {
   m_buildStatus = CL_BUILD_IN_PROGRESS;
@@ -258,8 +306,17 @@ bool Program::build(const char *options, list<Header> headers)
     extraOptions = "";
   char *tmpOptions = new char[strlen(mainOptions) + strlen(extraOptions) + 2];
   sprintf(tmpOptions, "%s %s", mainOptions, extraOptions);
-  for (char *opt = strtok(tmpOptions, " "); opt; opt = strtok(NULL, " "))
+  char *opt = tmpOptions;
+  char *next = NULL;
+  while (strlen(opt) > 0)
   {
+    // Split token up to next unquoted space
+    if (next)
+      opt = next;
+    split_token(opt, &next);
+    if (!strlen(opt))
+      break;
+
     // Ignore options that break PCH
     if (strcmp(opt, "-cl-fast-relaxed-math") != 0 &&
         strcmp(opt, "-cl-finite-math-only") != 0 &&
