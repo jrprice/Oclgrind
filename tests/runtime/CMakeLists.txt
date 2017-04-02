@@ -11,10 +11,13 @@ include_directories(../common)
 
 # Add runtime tests
 foreach(test
+  build_program
   map_buffer
   sampler)
 
   add_executable(${test} ${test}.c ${COMMON_SOURCES})
+  target_compile_definitions(${test} PRIVATE
+                             "-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
   target_link_libraries(${test} oclgrind-rt)
 
   # Generate test binaries in same dir as Oclgrind libraries on Windows

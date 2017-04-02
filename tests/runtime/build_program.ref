@@ -1,0 +1,6 @@
+EXACT out = 42
+EXACT out = -7
+EXACT MSG = hello
+MATCH out =
+EXACT MSG = foo and bar
+MATCH out =
