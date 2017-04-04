@@ -703,6 +703,7 @@ namespace oclgrind
       cout << *(double*)data;
       break;
     case llvm::Type::IntegerTyID:
+      cout << dec;
       switch (size)
       {
       case 1:
