@@ -1,0 +1,21 @@
+step
+step
+step
+step
+print s
+print s.a
+print s.b
+print s.c
+print s.
+step
+step
+print t.a
+print t.b
+step
+step
+step
+step
+print out[0].a
+print out[0].b
+print out->a
+print out->b

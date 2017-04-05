@@ -1,0 +1,32 @@
+MATCH 7	kernel void struct_member(global int *i, global float *f, global struct S *out)
+MATCH 9	  struct S s;
+MATCH 11	  s.a = *i;
+MATCH 12	  s.b = *f;
+MATCH 13	  t = s;
+MATCH s = (raw) 0x0700000000002842
+MATCH s.a = 7
+MATCH s.b = 42
+MATCH s.c = no member named 'c' found
+MATCH s. = no member named '' found
+MATCH 14	  t.a += 1;
+MATCH 15	  t.b += 0.1f;
+MATCH t.a = 8
+MATCH t.b = 42
+MATCH 16	  *out = t;
+MATCH 17	  out->a += 2;
+MATCH 18	  out->b += 0.2f;
+MATCH out[0].a = 10
+MATCH out[0].b = 42.3
+MATCH out->a = 10
+MATCH out->b = 42.3
+MATCH (quit)
+
+MATCH Argument 'out': 8 bytes
+MATCH   out[0] = 0x0A
+MATCH   out[1] = 0x00
+MATCH   out[2] = 0x00
+MATCH   out[3] = 0x00
+MATCH   out[4] = 0x33
+MATCH   out[5] = 0x33
+MATCH   out[6] = 0x29
+MATCH   out[7] = 0x42

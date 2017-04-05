@@ -49,6 +49,7 @@ data-race/local_only_fence
 data-race/local_read_write_race
 data-race/local_write_write_race
 data-race/uniform_write_race
+interactive/struct_member
 memcheck/async_copy_out_of_bounds
 memcheck/atomic_out_of_bounds
 memcheck/casted_static_array

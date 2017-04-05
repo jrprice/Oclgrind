@@ -1,0 +1,9 @@
+# ARGS: -i
+struct_member.cl
+struct_member
+1 1 1
+1 1 1
+
+<size=4 int fill=7>
+<size=4 float fill=42>
+<size=8 hex char fill=0 dump>
