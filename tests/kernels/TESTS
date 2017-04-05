@@ -65,6 +65,7 @@ misc/array
 misc/global_variables
 misc/lvalue_loads
 misc/non_uniform_work_groups
+misc/printf
 misc/program_scope_constant_array
 misc/reduce
 misc/vecadd

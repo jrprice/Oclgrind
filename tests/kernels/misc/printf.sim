@@ -1,0 +1,12 @@
+printf.cl
+printf_kernel
+1 1 1
+1 1 1
+
+<size=4 fill=7>
+<size=4 fill=42>
+<size=16>
+42.123
+-3.7
+100001.01
+-0.0
