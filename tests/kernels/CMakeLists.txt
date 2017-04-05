@@ -34,6 +34,11 @@ if ("${LLVM_VERSION_MAJOR}" STREQUAL "4")
   )
 endif()
 
+# Can't seem to get DIGlobalVariable in LLVM 3.9
+if ("${LLVM_VERSION_MAJOR}" STRLESS "4")
+  set(XFAIL ${XFAIL} interactive/struct_member)
+endif()
+
 # LLVM bug, exposed in 4.0 and newer
 # Pending fix: https://reviews.llvm.org/D31569
 if ("${LLVM_VERSION_MAJOR}" STRGREATER "3")
