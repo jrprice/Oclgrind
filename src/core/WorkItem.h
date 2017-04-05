@@ -13,7 +13,7 @@ namespace llvm
   class BasicBlock;
   class CallInst;
   class ConstExpr;
-  class DbgValueInst;
+  class DILocalVariable;
   class Function;
   class Module;
 }
@@ -113,10 +113,9 @@ namespace oclgrind
     Memory* getPrivateMemory() const;
     State getState() const;
     const unsigned char* getValueData(const llvm::Value *value) const;
-    const llvm::Value* getVariable(std::string name) const;
     const WorkGroup* getWorkGroup() const;
+    void printExpression(std::string expr) const;
     bool printValue(const llvm::Value *value) const;
-    bool printVariable(std::string name) const;
     State step();
 
     // SPIR instructions
@@ -173,7 +172,9 @@ namespace oclgrind
 #undef INSTRUCTION
 
   private:
-    typedef std::map<std::string, const llvm::Value*> VariableMap;
+    typedef std::map<std::string,
+                     std::pair<const llvm::Value*,
+                               const llvm::DILocalVariable*>> VariableMap;
 
     size_t m_globalIndex;
     Size3 m_globalID;

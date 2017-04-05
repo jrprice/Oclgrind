@@ -826,126 +826,15 @@ bool InteractiveDebugger::print(vector<string> args)
   for (unsigned i = 1; i < args.size(); i++)
   {
     cout << args[i] << " = ";
-
-    // Check for subscript operator
-    size_t start = args[i].find("[");
-    if (start != string::npos)
+    try
     {
-      // Find end of subscript
-      size_t end = args[i].find(']');
-      if (end == string::npos)
-      {
-        cout << "missing ']'" << endl;
-        return false;
-      }
-      if (end != args[i].length() - 1)
-      {
-        cout << "invalid variable" << endl;
-        return false;
-      }
-
-      // Parse index value
-      size_t index = 0;
-      string var = args[i].substr(0, start);
-      stringstream ss(args[i].substr(start+1, end-start-1));
-      ss >> index;
-      if (!ss.eof())
-      {
-        cout << "invalid index" << endl;
-        return false;
-      }
-
-      // Get variable value and type
-      const llvm::Value *ptr = workItem->getVariable(var);
-      if (!ptr)
-      {
-        cout << "not found" << endl;
-        return false;
-      }
-
-      const llvm::Type *ptrType = ptr->getType();
-      unsigned addrSpace = ptrType->getPointerAddressSpace();
-
-      // Check for alloca instruction, in which case look at allocated type
-      bool alloca = false;
-      if (ptr->getValueID() == llvm::Value::GlobalVariableVal)
-      {
-        ptrType = ptrType->getPointerElementType();
-      }
-      if (ptr->getValueID() >= llvm::Value::InstructionVal &&
-          ((llvm::Instruction*)ptr)->getOpcode() == llvm::Instruction::Alloca)
-      {
-        ptrType = ((const llvm::AllocaInst*)ptr)->getAllocatedType();
-        if (ptrType->isPointerTy())
-          addrSpace = ptrType->getPointerAddressSpace();
-        alloca = true;
-      }
-
-      // Ensure type is a pointer
-      if (!ptrType->isPointerTy() && !ptrType->isArrayTy())
-      {
-        cout << "not a pointer" << endl;
-        return false;
-      }
-
-      // Get base address
-      size_t base = *(size_t*)workItem->getValueData(ptr);
-      if (alloca)
-      {
-        // Load base address from private memory
-        workItem->getPrivateMemory()->load((unsigned char*)&base,
-                                           base, sizeof(size_t));
-      }
-
-      // Get target memory object
-      Memory *memory = NULL;
-      switch (addrSpace)
-      {
-      case AddrSpacePrivate:
-        memory = workItem->getPrivateMemory();
-        break;
-      case AddrSpaceGlobal:
-      case AddrSpaceConstant:
-        memory = m_context->getGlobalMemory();
-        break;
-      case AddrSpaceLocal:
-        memory = m_kernelInvocation->getCurrentWorkGroup()->getLocalMemory();
-        break;
-      default:
-        cout << "invalid address space" << endl;
-        return false;
-      }
-
-      // Get element type
-      const llvm::Type *elemType = ptrType->getPointerElementType();
-      unsigned elemSize = getTypeSize(elemType);
-
-      // Load data
-      if (!memory->isAddressValid(base + index*elemSize, elemSize))
-      {
-        cout << "invalid memory address" << endl;
-      }
-      else
-      {
-        // Print data
-        void *data = (void*)memory->getPointer(base+index*elemSize);
-        printTypedData(elemType, (unsigned char*)data);
-        cout << endl;
-      }
+      workItem->printExpression(args[i]);
     }
-    else
+    catch (FatalError err)
     {
-      try
-      {
-        if (!workItem->printVariable(args[i]))
-          cout << "not found";
-      }
-      catch (FatalError err)
-      {
-        cout << "not found";
-      }
-      cout << endl;
+      cout << "fatal error: " << err.what();
     }
+    cout << endl;
   }
 
   return false;

@@ -296,7 +296,7 @@ namespace oclgrind
 
       Memory *memory =
         workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
-      
+
       const bool is_64bit(ARG(0)->getType()->getPointerElementType()->getScalarSizeInBits() == 64);
       const bool is_signed_type(_is_signed_type(overload.back()));
       const auto op(name_to_op.at(fnName));
@@ -3433,8 +3433,8 @@ namespace oclgrind
         (const llvm::DbgDeclareInst*)callInst;
       const llvm::Value *addr = dbgInst->getAddress();
 
-     const llvm::DILocalVariable *var = dbgInst->getVariable();
-     workItem->m_variables[var->getName()] = addr;
+      const llvm::DILocalVariable *var = dbgInst->getVariable();
+      workItem->m_variables[var->getName()] = {addr, var};
     }
 
     DEFINE_BUILTIN(llvm_dbg_value)
@@ -3446,7 +3446,7 @@ namespace oclgrind
       //uint64_t offset = dbgInst->getOffset();
 
       const llvm::DILocalVariable *var = dbgInst->getVariable();
-      workItem->m_variables[var->getName()] = value;
+      workItem->m_variables[var->getName()] = {value, var};
     }
 
     DEFINE_BUILTIN(llvm_lifetime_start)
