@@ -19,7 +19,6 @@ MATCH out[0].a = 10
 MATCH out[0].b = 42.3
 MATCH out->a = 10
 MATCH out->b = 42.3
-MATCH (quit)
 
 MATCH Argument 'out': 8 bytes
 MATCH   out[0] = 0x0A

@@ -14,6 +14,7 @@
 
 #if !defined(_WIN32) || defined(__MINGW32__)
 #include <signal.h>
+#include <unistd.h>
 #endif
 
 #if HAVE_READLINE
@@ -109,32 +110,40 @@ void InteractiveDebugger::instructionExecuted(
   m_continue     = false;
   m_next         = false;
 
+  bool interactive = isatty(STDIN_FILENO) == 1;
   while (true)
   {
     // Prompt for command
     bool eof = false;
     string cmd;
   #if HAVE_READLINE
-    char *line = readline("(oclgrind) ");
-    if (line)
+    if (interactive)
     {
-      cmd = line;
-      free(line);
+      char *line = readline("(oclgrind) ");
+      if (line)
+      {
+        cmd = line;
+        free(line);
+      }
+      else
+      {
+        eof = true;
+      }
     }
     else
-    {
-      eof = true;
-    }
-  #else
-    cout << "(oclgrind) " << flush;
-    getline(cin, cmd);
-    eof = cin.eof();
   #endif
+    {
+      if (interactive)
+        cout << "(oclgrind) " << flush;
+      getline(cin, cmd);
+      eof = cin.eof();
+    }
 
     // Quit on EOF
     if (eof)
     {
-      cout << "(quit)" << endl;
+      if (interactive)
+        cout << "(quit)" << endl;
       quit(vector<string>());
       return;
     }
@@ -153,7 +162,8 @@ void InteractiveDebugger::instructionExecuted(
     }
 
   #if HAVE_READLINE
-    add_history(cmd.c_str());
+    if (interactive)
+      add_history(cmd.c_str());
   #endif
 
     // Find command in map and execute
