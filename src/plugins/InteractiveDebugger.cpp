@@ -15,6 +15,10 @@
 #if !defined(_WIN32) || defined(__MINGW32__)
 #include <signal.h>
 #include <unistd.h>
+#else
+#include <io.h>
+#define isatty _isatty
+#define STDIN_FILENO _fileno(stdin)
 #endif
 
 #if HAVE_READLINE
@@ -110,7 +114,7 @@ void InteractiveDebugger::instructionExecuted(
   m_continue     = false;
   m_next         = false;
 
-  bool interactive = isatty(STDIN_FILENO) == 1;
+  bool interactive = isatty(STDIN_FILENO);
   while (true)
   {
     // Prompt for command
