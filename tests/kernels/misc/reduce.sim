@@ -1,11 +1,11 @@
 reduce.cl
 reduce
-4 1 1
+64 1 1
 4 1 1
 
 <size=4>
-16
+256
 
-<size=64 range=0:1:15>
-<size=4 fill=0 dump>
+<size=1024 range=0:1:255>
+<size=64 fill=0 dump>
 <size=16>

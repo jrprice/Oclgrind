@@ -1,2 +1,17 @@
-EXACT Argument 'result': 4 bytes
-EXACT   result[0] = 120
+EXACT Argument 'result': 64 bytes
+EXACT   result[0] = 1560
+EXACT   result[1] = 1624
+EXACT   result[2] = 1688
+EXACT   result[3] = 1752
+EXACT   result[4] = 1816
+EXACT   result[5] = 1880
+EXACT   result[6] = 1944
+EXACT   result[7] = 2008
+EXACT   result[8] = 2072
+EXACT   result[9] = 2136
+EXACT   result[10] = 2200
+EXACT   result[11] = 2264
+EXACT   result[12] = 2328
+EXACT   result[13] = 2392
+EXACT   result[14] = 2456
+EXACT   result[15] = 2520

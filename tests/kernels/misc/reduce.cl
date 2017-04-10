@@ -1,18 +1,22 @@
-kernel void reduce(unsigned int n,
-                   global unsigned int *data,
-                   global unsigned int *result,
-                   local unsigned int *localData)
+kernel void reduce(uint n,
+                   global uint *data,
+                   global uint *result,
+                   local uint *localData)
 {
-  unsigned int lid = get_local_id(0);
-  unsigned int lsz = get_local_size(0);
-  unsigned int sum = 0;
-  for (unsigned int i = lid; i < n; i+=lsz)
+  uint gid = get_global_id(0);
+  uint lid = get_local_id(0);
+  uint gsz = get_global_size(0);
+  uint lsz = get_local_size(0);
+  uint grp = get_group_id(0);
+
+  uint sum = 0;
+  for (uint i = gid; i < n; i+=gsz)
   {
     sum += data[i];
   }
 
   localData[lid] = sum;
-  for (unsigned int offset = lsz/2; offset > 0; offset/=2)
+  for (uint offset = lsz/2; offset > 0; offset/=2)
   {
     barrier(CLK_LOCAL_MEM_FENCE);
     if (lid < offset)
@@ -23,6 +27,6 @@ kernel void reduce(unsigned int n,
 
   if (lid == 0)
   {
-    *result = localData[lid];
+    result[grp] = localData[lid];
   }
 }
