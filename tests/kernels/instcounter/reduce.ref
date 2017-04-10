@@ -1,6 +1,6 @@
 EXACT Instructions executed for kernel 'reduce':
-EXACT            1,264 - br
-EXACT            1,056 - phi
+MATCH
+MATCH
 EXACT              704 - icmp
 EXACT              608 - add
 EXACT              384 - getelementptr
