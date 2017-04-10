@@ -5,18 +5,18 @@ EXACT              704 - icmp
 EXACT              608 - add
 EXACT              384 - getelementptr
 EXACT              304 - zext
-EXACT              256 - trunc
 EXACT              256 - load global (1,024 bytes)
+EXACT              256 - trunc
 EXACT              192 - lshr
 EXACT              128 - call _Z7barrierj()
 EXACT              112 - load local (448 bytes)
 EXACT              112 - store local (448 bytes)
 EXACT               80 - and
+EXACT               64 - call _Z12get_group_idj()
 EXACT               64 - call _Z12get_local_idj()
 EXACT               64 - call _Z13get_global_idj()
-EXACT               64 - call _Z15get_global_sizej()
 EXACT               64 - call _Z14get_local_sizej()
-EXACT               64 - call _Z12get_group_idj()
+EXACT               64 - call _Z15get_global_sizej()
 EXACT               64 - ret
 EXACT               16 - store global (64 bytes)
 

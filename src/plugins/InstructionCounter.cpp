@@ -32,7 +32,12 @@ THREAD_LOCAL InstructionCounter::WorkerState
 
 static bool compareNamedCount(pair<string,size_t> a, pair<string,size_t> b)
 {
-  return a.second > b.second;
+  if (a.second > b.second)
+    return true;
+  else if (a.second < b.second)
+    return false;
+  else
+    return a.first < b.first;
 }
 
 string InstructionCounter::getOpcodeName(unsigned opcode) const
