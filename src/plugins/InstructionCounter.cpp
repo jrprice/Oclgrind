@@ -27,6 +27,9 @@ using namespace std;
 #define COUNTED_STORE_BASE (COUNTED_LOAD_BASE + 8)
 #define COUNTED_CALL_BASE  (COUNTED_STORE_BASE + 8)
 
+THREAD_LOCAL InstructionCounter::WorkerState
+  InstructionCounter::m_state = {NULL};
+
 static bool compareNamedCount(pair<string,size_t> a, pair<string,size_t> b)
 {
   return a.second > b.second;
@@ -36,7 +39,7 @@ string InstructionCounter::getOpcodeName(unsigned opcode) const
 {
   if (opcode >= COUNTED_CALL_BASE)
   {
-    // Get functon name
+    // Get function name
     unsigned index = opcode - COUNTED_CALL_BASE;
     assert(index < m_functions.size());
     return "call " + m_functions[index]->getName().str() + "()";
@@ -92,7 +95,7 @@ void InstructionCounter::instructionExecuted(
 
     // Count total number of bytes loaded/stored
     unsigned bytes = getTypeSize(type->getPointerElementType());
-    m_memopBytes[opcode-COUNTED_LOAD_BASE] += bytes;
+    (*m_state.memopBytes)[opcode-COUNTED_LOAD_BASE] += bytes;
   }
   else if (opcode == llvm::Instruction::Call)
   {
@@ -102,35 +105,29 @@ void InstructionCounter::instructionExecuted(
     if (function)
     {
       vector<const llvm::Function*>::iterator itr =
-        find(m_functions.begin(), m_functions.end(), function);
-      if (itr == m_functions.end())
+        find(m_state.functions->begin(), m_state.functions->end(), function);
+      if (itr == m_state.functions->end())
       {
-        opcode = COUNTED_CALL_BASE + m_functions.size();
-        m_functions.push_back(function);
+        opcode = COUNTED_CALL_BASE + m_state.functions->size();
+        m_state.functions->push_back(function);
       }
       else
       {
-        opcode = COUNTED_CALL_BASE + (itr - m_functions.begin());
+        opcode = COUNTED_CALL_BASE + (itr - m_state.functions->begin());
       }
     }
   }
 
-  if (opcode >= m_instructionCounts.size())
+  if (opcode >= m_state.instCounts->size())
   {
-    m_instructionCounts.resize(opcode+1);
+    m_state.instCounts->resize(opcode+1);
   }
-  m_instructionCounts[opcode]++;
-}
-
-bool InstructionCounter::isThreadSafe() const
-{
-  return false;
+  (*m_state.instCounts)[opcode]++;
 }
 
 void InstructionCounter::kernelBegin(const KernelInvocation *kernelInvocation)
 {
   m_instructionCounts.clear();
-  m_instructionCounts.resize(COUNTED_CALL_BASE);
 
   m_memopBytes.clear();
   m_memopBytes.resize(16);
@@ -181,4 +178,62 @@ void InstructionCounter::kernelEnd(const KernelInvocation *kernelInvocation)
 
   // Restore locale
   cout.imbue(previousLocale);
+}
+
+void InstructionCounter::workGroupBegin(const WorkGroup *workGroup)
+{
+  // Create worker state if haven't already
+  if (!m_state.instCounts)
+  {
+    m_state.instCounts = new vector<size_t>;
+    m_state.memopBytes = new vector<size_t>;
+    m_state.functions = new vector<const llvm::Function*>;
+  }
+
+  m_state.instCounts->clear();
+  m_state.instCounts->resize(COUNTED_CALL_BASE);
+
+  m_state.memopBytes->clear();
+  m_state.memopBytes->resize(16);
+
+  m_state.functions->clear();
+}
+
+void InstructionCounter::workGroupComplete(const WorkGroup *workGroup)
+{
+  lock_guard<mutex> lock(m_mtx);
+
+  if (m_state.instCounts->size() > m_instructionCounts.size())
+    m_instructionCounts.resize(m_state.instCounts->size());
+
+  // Merge instruction counts into global list
+  for (unsigned i = 0; i < m_state.instCounts->size(); i++)
+  {
+    if (m_state.instCounts->at(i) == 0)
+      continue;
+
+    // Merge functions into global list
+    unsigned opcode = i;
+    if (i >= COUNTED_CALL_BASE)
+    {
+      const llvm::Function *func = m_state.functions->at(i - COUNTED_CALL_BASE);
+      vector<const llvm::Function*>::iterator itr =
+        find(m_functions.begin(), m_functions.end(), func);
+      if (itr == m_functions.end())
+      {
+        opcode = COUNTED_CALL_BASE + m_functions.size();
+        m_functions.push_back(func);
+      }
+      else
+      {
+        opcode = COUNTED_CALL_BASE + (itr - m_functions.begin());
+      }
+    }
+
+    m_instructionCounts[opcode] += m_state.instCounts->at(i);
+  }
+
+  // Merge memory transfer sizes into global list
+  for (unsigned i = 0; i < m_state.memopBytes->size(); i++)
+    m_memopBytes[i] += m_state.memopBytes->at(i);
 }
