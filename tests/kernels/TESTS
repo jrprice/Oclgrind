@@ -68,6 +68,7 @@ misc/non_uniform_work_groups
 misc/printf
 misc/program_scope_constant_array
 misc/reduce
+misc/switch_case
 misc/vecadd
 misc/vector_argument
 uninitialized/padded_nested_struct_memcpy
