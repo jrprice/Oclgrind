@@ -1514,7 +1514,11 @@ INSTRUCTION(swtch)
   uint64_t val = getOperand(cond).getUInt();
   const llvm::ConstantInt *cval =
     (const llvm::ConstantInt*)llvm::ConstantInt::get(cond->getType(), val);
+#if LLVM_VERSION < 50
   m_position->nextBlock = swtch->findCaseValue(cval).getCaseSuccessor();
+#else
+  m_position->nextBlock = swtch->findCaseValue(cval)->getCaseSuccessor();
+#endif
 }
 
 INSTRUCTION(udiv)
