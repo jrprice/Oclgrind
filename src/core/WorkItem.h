@@ -76,7 +76,7 @@ namespace oclgrind
     typedef std::unordered_map<const llvm::Value*, unsigned> ValueMap;
     typedef std::unordered_map<const llvm::Function*, Builtin> BuiltinMap;
     typedef std::unordered_map<const llvm::Value*, TypedValue> ConstantMap;
-    typedef std::unordered_map<const llvm::Value*, const llvm::Instruction*>
+    typedef std::unordered_map<const llvm::Value*, llvm::Instruction*>
       ConstExprMap;
 
     BuiltinMap m_builtins;

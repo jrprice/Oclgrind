@@ -1655,7 +1655,11 @@ InterpreterCache::~InterpreterCache()
   for (constExprItr  = m_constExpressions.begin();
        constExprItr != m_constExpressions.end(); constExprItr++)
   {
+#if LLVM_VERSION < 50
     delete constExprItr->second;
+#else
+    constExprItr->second->deleteValue();
+#endif
   }
 }
 

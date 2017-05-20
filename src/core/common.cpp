@@ -404,8 +404,7 @@ namespace oclgrind
     }
   }
 
-  const llvm::Instruction* getConstExprAsInstruction(
-    const llvm::ConstantExpr *expr)
+  llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr *expr)
   {
     // Get operands
     vector<llvm::Value*> valueOperands(expr->op_begin(), expr->op_end());

@@ -167,8 +167,7 @@ namespace oclgrind
   void getConstantData(unsigned char *data, const llvm::Constant *constant);
 
   // Creates an instruction from a constant expression
-  const llvm::Instruction* getConstExprAsInstruction(
-    const llvm::ConstantExpr *expr);
+  llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr *expr);
 
   // Get the ConstantInt object for a Metadata node
   const llvm::ConstantInt* getMDAsConstInt(const llvm::Metadata *md);
