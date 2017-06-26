@@ -22,7 +22,9 @@ endforeach(${test})
 set_tests_properties(${KERNEL_TESTS} PROPERTIES
     ENVIRONMENT "OCLGRIND_PCH_DIR=${CMAKE_BINARY_DIR}/include/oclgrind")
 
-if ("${LLVM_VERSION_MAJOR}" STREQUAL "4")
+# LLVM bug, exposed in 4.0, fixed in 5.0, backported to 4.0.1
+if ("${LLVM_VERSION_MAJOR}" STREQUAL "4" AND
+    "${LLVM_VERSION_PATCH}" STREQUAL "0")
   set(XFAIL
       ${XFAIL}
       bugs/byval_function_argument
@@ -39,8 +41,9 @@ if ("${LLVM_VERSION_MAJOR}" STRLESS "4")
   set(XFAIL ${XFAIL} interactive/struct_member)
 endif()
 
-# LLVM bug, exposed in 4.0, fixed in 5.0
-if ("${LLVM_VERSION_MAJOR}" STREQUAL "4")
+# LLVM bug, exposed in 4.0, fixed in 5.0, backported to 4.0.1
+if ("${LLVM_VERSION_MAJOR}" STREQUAL "4" AND
+    "${LLVM_VERSION_PATCH}" STREQUAL "0")
   set(XFAIL ${XFAIL} bugs/llvm_memcpyopt_bug)
 endif()
 

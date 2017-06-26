@@ -58,7 +58,8 @@ if (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.9")
 endif()
 
 # Warn about LLVM 4.0 InstCombine/addrspacecast bug
-if ("${LLVM_VERSION_MAJOR}" STREQUAL "4")
+if ("${LLVM_VERSION_MAJOR}" STREQUAL "4" AND
+    "${LLVM_VERSION_PATCH}" STREQUAL "0")
    message(WARNING
    "There is a known bug with LLVM 4.0 that will cause "
    "Oclgrind to fail on some kernels with a message about "
