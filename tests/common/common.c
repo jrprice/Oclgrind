@@ -12,10 +12,11 @@ void checkError(cl_int err, const char *operation)
   }
 }
 
-Context createContext(const char *source, const char *options)
+Context createContext(const char *source, const char *options, const char *binary)
 {
   Context cl;
   cl_int err;
+  cl_int status;
 
   err = clGetPlatformIDs(1, &cl.platform, NULL);
   checkError(err, "getting platform");
@@ -39,8 +40,18 @@ Context createContext(const char *source, const char *options)
   cl.queue = clCreateCommandQueue(cl.context, cl.device, 0, &err);
   checkError(err, "creating command queue");
 
-  cl.program = clCreateProgramWithSource(cl.context, 1, &source, NULL, &err);
-  checkError(err, "creating program");
+  if (source)
+  {
+    cl.program = clCreateProgramWithSource(cl.context, 1, &source, NULL, &err);
+    checkError(err, "creating program");
+  }
+
+  if (binary)
+  {
+    cl.program = clCreateProgramWithBinary(cl.context, 1, &cl.device, NULL, 
+                                           &binary, &status, &err);
+    checkError(err, "creating program");
+  }
 
   err = clBuildProgram(cl.program, 1, &cl.device, options, NULL, NULL);
   if (err == CL_BUILD_PROGRAM_FAILURE)

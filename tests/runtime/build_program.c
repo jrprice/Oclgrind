@@ -30,7 +30,7 @@ void run(const char *source, const char *options)
   cl_kernel kernel;
   cl_mem d_out;
 
-  Context cl = createContext(source, options);
+  Context cl = createContext(source, options, NULL);
 
   kernel = clCreateKernel(cl.program, "test_kernel", &err);
   checkError(err, "creating kernel");

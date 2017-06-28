@@ -11,5 +11,5 @@ typedef struct
 
 void checkError(cl_int err, const char *operation);
 
-Context createContext(const char *source, const char *options);
+Context createContext(const char *source, const char *options, const char *binary);
 void    releaseContext(Context cl);
