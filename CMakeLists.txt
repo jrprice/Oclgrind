@@ -61,9 +61,9 @@ endif()
 if ("${LLVM_VERSION_MAJOR}" STREQUAL "4" AND
     "${LLVM_VERSION_PATCH}" STREQUAL "0")
    message(WARNING
-   "There is a known bug with LLVM 4.0 that will cause "
+   "There is a known bug with LLVM 4.0.0 that will cause "
    "Oclgrind to fail on some kernels with a message about "
-   " `addrspacecast`. Use LLVM 3.9 or 5.0+ if possible.")
+   "`addrspacecast`. Use LLVM 3.9 or 4.0.1+ if possible.")
 endif()
 
 # Add flags for LLVM
