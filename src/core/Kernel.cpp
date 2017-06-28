@@ -409,13 +409,16 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
 #if LLVM_VERSION >= 40
   if (getArgumentTypeName(index).str() == "sampler_t")
   {
-    // We store the actual sampler i32 value after the pointer value
+    // Get an llvm::ConstantInt that represents the sampler value
+    llvm::Type *i32 = llvm::Type::getInt32Ty(m_program->getLLVMContext());
+    llvm::Constant *samplerValue = llvm::ConstantInt::get(i32, value.getSInt());
+
+    // A sampler argument is a pointer to the llvm::ConstantInt value
     TypedValue sampler;
     sampler.size = sizeof(size_t);
     sampler.num = 1;
-    sampler.data = new unsigned char[sizeof(size_t) + 4];
-    sampler.setPointer((size_t)(sampler.data + sizeof(size_t)));
-    memcpy(sampler.data+sizeof(size_t), value.data, 4);
+    sampler.data = new unsigned char[sizeof(size_t)];
+    sampler.setPointer((size_t)samplerValue);
 
     m_values[argument] = sampler;
   }

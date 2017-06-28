@@ -1202,10 +1202,8 @@ namespace oclgrind
 
     DEFINE_BUILTIN(translate_sampler_initializer)
     {
-      // A sampler initializer is just a pointer to its i32 value
-      uint32_t *data = (uint32_t*)workItem->m_pool.alloc(4);
-      *data = ((llvm::ConstantInt*)ARG(0))->getZExtValue();
-      result.setPointer((size_t)data);
+      // A sampler initializer is just a pointer to its ConstantInt value
+      result.setPointer((size_t)ARG(0));
     }
 
     DEFINE_BUILTIN(read_imagef)
@@ -1221,7 +1219,7 @@ namespace oclgrind
 #if LLVM_VERSION < 40
         sampler = UARG(1);
 #else
-        sampler = *((uint32_t*)PARG(1));
+        sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
 #endif
         coordIndex = 2;
       }
@@ -1343,7 +1341,7 @@ namespace oclgrind
 #if LLVM_VERSION < 40
         sampler = UARG(1);
 #else
-        sampler = *((uint32_t*)PARG(1));
+        sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
 #endif
         coordIndex = 2;
       }
@@ -1420,7 +1418,7 @@ namespace oclgrind
 #if LLVM_VERSION < 40
         sampler = UARG(1);
 #else
-        sampler = *((uint32_t*)PARG(1));
+        sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
 #endif
         coordIndex = 2;
       }
