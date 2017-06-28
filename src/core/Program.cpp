@@ -828,6 +828,11 @@ list<string> Program::getKernelNames() const
   return names;
 }
 
+llvm::LLVMContext& Program::getLLVMContext() const
+{
+  return m_module->getContext();
+}
+
 unsigned int Program::getNumKernels() const
 {
   assert(m_module);

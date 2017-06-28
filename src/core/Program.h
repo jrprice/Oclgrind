@@ -11,6 +11,7 @@
 namespace llvm
 {
   class Function;
+  class LLVMContext;
   class Module;
   class StoreInst;
 }
@@ -50,6 +51,7 @@ namespace oclgrind
     const InterpreterCache* getInterpreterCache(
       const llvm::Function *kernel) const;
     std::list<std::string> getKernelNames() const;
+    llvm::LLVMContext& getLLVMContext() const;
     unsigned int getNumKernels() const;
     const std::string& getSource() const;
     const char* getSourceLine(size_t lineNumber) const;
