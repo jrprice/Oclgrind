@@ -2,6 +2,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+
+#define CREATE_PROGRAM_WITH_BIN "creating program with binary"
 
 void checkError(cl_int err, const char *operation)
 {
@@ -43,14 +46,36 @@ Context createContext(const char *source, const char *options, const char *binar
   if (source)
   {
     cl.program = clCreateProgramWithSource(cl.context, 1, &source, NULL, &err);
-    checkError(err, "creating program");
+    checkError(err, "creating program with source");
   }
 
   if (binary)
   {
-    cl.program = clCreateProgramWithBinary(cl.context, 1, &cl.device, NULL, 
-                                           &binary, &status, &err);
-    checkError(err, "creating program");
+    struct stat st;
+    stat(binary, &st);
+    cl.program = clCreateProgramWithBinary(cl.context, 1, &cl.device,
+                                           &st.st_size, &binary, &status, &err);
+    switch (err)
+    {
+    case CL_INVALID_CONTEXT:
+      checkError(err, CREATE_PROGRAM_WITH_BIN " context is not valid");
+      break;
+    case CL_INVALID_VALUE:
+      checkError(err, CREATE_PROGRAM_WITH_BIN " invalid value");
+      break;
+    case CL_INVALID_DEVICE:
+      checkError(err, CREATE_PROGRAM_WITH_BIN " invalid device");
+      break;
+    case CL_INVALID_BINARY:
+      checkError(err, CREATE_PROGRAM_WITH_BIN " invalid program binary");
+      break;
+    case CL_OUT_OF_HOST_MEMORY:
+      checkError(err, CREATE_PROGRAM_WITH_BIN " out of host memory");
+      break;
+    case CL_SUCCESS:
+    default:
+      break;
+    }
   }
 
   err = clBuildProgram(cl.program, 1, &cl.device, options, NULL, NULL);
