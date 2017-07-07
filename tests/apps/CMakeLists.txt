@@ -12,7 +12,8 @@ include_directories(../common)
 # Add app tests
 foreach(test
   image
-  vecadd)
+  vecadd
+  cos)
 
   add_executable(${test} ${test}/${test}.c ${COMMON_SOURCES})
   target_link_libraries(${test} oclgrind-rt)
