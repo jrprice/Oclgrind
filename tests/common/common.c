@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#define CREATE_PROGRAM_WITH_SRC "creating program with source"
 #define CREATE_PROGRAM_WITH_BIN "creating program with binary"
 
 void checkError(cl_int err, const char *operation)
@@ -47,35 +48,63 @@ Context createContext(const char *source, const char *options, const char *binar
   {
     cl.program = clCreateProgramWithSource(cl.context, 1, &source, NULL, &err);
     checkError(err, "creating program with source");
-  }
-
-  if (binary)
-  {
-    struct stat st;
-    stat(binary, &st);
-    cl.program = clCreateProgramWithBinary(cl.context, 1, &cl.device,
-                                           &st.st_size, &binary, &status, &err);
     switch (err)
     {
     case CL_INVALID_CONTEXT:
-      checkError(err, CREATE_PROGRAM_WITH_BIN " context is not valid");
+      checkError(err, CREATE_PROGRAM_WITH_SRC " context is not valid");
       break;
     case CL_INVALID_VALUE:
-      checkError(err, CREATE_PROGRAM_WITH_BIN " invalid value");
-      break;
-    case CL_INVALID_DEVICE:
-      checkError(err, CREATE_PROGRAM_WITH_BIN " invalid device");
-      break;
-    case CL_INVALID_BINARY:
-      checkError(err, CREATE_PROGRAM_WITH_BIN " invalid program binary");
+      checkError(err, CREATE_PROGRAM_WITH_SRC " invalid value");
       break;
     case CL_OUT_OF_HOST_MEMORY:
-      checkError(err, CREATE_PROGRAM_WITH_BIN " out of host memory");
+      checkError(err, CREATE_PROGRAM_WITH_SRC " out of host memory");
       break;
     case CL_SUCCESS:
     default:
       break;
     }
+  }
+
+  if (binary)
+  {
+    struct stat st;
+    char *buf = NULL;
+    FILE *fptr = NULL;
+    // Read the contents of the binary file
+    stat(binary, &st);
+    buf = malloc(st.st_size * sizeof(char));
+    fptr = fopen(binary, "rb");
+    if (buf && fptr)
+    {
+      fread(buf, st.st_size, sizeof(char), fptr);
+      cl.program = clCreateProgramWithBinary(cl.context, 1, &cl.device,
+                                             &st.st_size, &buf, &status, &err);
+      switch (err)
+      {
+      case CL_INVALID_CONTEXT:
+        checkError(err, CREATE_PROGRAM_WITH_BIN " context is not valid");
+        break;
+      case CL_INVALID_VALUE:
+        checkError(err, CREATE_PROGRAM_WITH_BIN " invalid value");
+        break;
+      case CL_INVALID_DEVICE:
+        checkError(err, CREATE_PROGRAM_WITH_BIN " invalid device");
+        break;
+      case CL_INVALID_BINARY:
+        checkError(err, CREATE_PROGRAM_WITH_BIN " invalid program binary");
+        break;
+      case CL_OUT_OF_HOST_MEMORY:
+        checkError(err, CREATE_PROGRAM_WITH_BIN " out of host memory");
+        break;
+      case CL_SUCCESS:
+      default:
+        break;
+      }
+    }
+    if (fptr)
+      fclose(fptr);
+    if (buf)
+      free(buf);
   }
 
   err = clBuildProgram(cl.program, 1, &cl.device, options, NULL, NULL);
