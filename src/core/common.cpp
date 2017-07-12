@@ -288,6 +288,23 @@ namespace oclgrind
     return (value && !strcmp(value, "1"));
   }
 
+  unsigned getEnvInt(const char *var, int def)
+  {
+    const char *value = getenv(var);
+    if (!value)
+      return def;
+
+    char *next;
+    uint64_t result = strtoul(value, &next, 10);
+    if (strlen(next) || result == ULONG_MAX)
+    {
+      cerr << endl << "Oclgrind: Invalid value for " << var << endl;
+      abort();
+    }
+
+    return result;
+  }
+
   void dumpInstruction(ostream& out, const llvm::Instruction *instruction)
   {
     llvm::raw_os_ostream stream(out);

@@ -38,17 +38,7 @@ Logger::Logger(const Context *context)
     }
   }
 
-  m_maxErrors = DEFAULT_MAX_ERRORS;
-  const char *maxErrors = getenv("OCLGRIND_MAX_ERRORS");
-  if (maxErrors)
-  {
-    char *next;
-    m_maxErrors = strtoul(maxErrors, &next, 10);
-    if (strlen(next))
-    {
-      cerr << "Oclgrind: Invalid value for OCLGRIND_MAX_ERRORS" << endl;
-    }
-  }
+  m_maxErrors = getEnvInt("OCLGRIND_MAX_ERRORS", DEFAULT_MAX_ERRORS);
 }
 
 Logger::~Logger()

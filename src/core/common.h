@@ -157,6 +157,9 @@ namespace oclgrind
   // Check if an environment variable is set to 1
   bool checkEnv(const char *var);
 
+  // Get an environment variable as an integer
+  unsigned getEnvInt(const char *var, int def=0);
+
   // Output an instruction in human-readable format
   void dumpInstruction(std::ostream& out, const llvm::Instruction *instruction);
 
