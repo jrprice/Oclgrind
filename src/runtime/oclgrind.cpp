@@ -255,6 +255,15 @@ static bool parseArguments(int argc, char *argv[])
       }
       setEnvironment("OCLGRIND_MAX_ERRORS", argv[i]);
     }
+    else if (!strcmp(argv[i], "--max-wgsize"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --max-wgsize" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_MAX_WGSIZE", argv[i]);
+    }
     else if (!strcmp(argv[i], "--num-threads"))
     {
       if (++i >= argc)
@@ -433,6 +442,8 @@ static void printUsage()
              "Redirect log/error messages to a file" << endl
     << "     --max-errors     NUM      "
              "Limit the number of error/warning messages" << endl
+    << "     --max-wgsize     WGSIZE   "
+             "Change the maximum work-group size of the device" << endl
     << "     --num-threads    NUM      "
              "Set the number of worker threads to use" << endl
     << "     --pch-dir        DIR      "
