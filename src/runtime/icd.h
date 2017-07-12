@@ -148,6 +148,7 @@ struct _cl_platform_id
 struct _cl_device_id
 {
   void **dispatch;
+  size_t maxWGSize;
 };
 
 struct _cl_context

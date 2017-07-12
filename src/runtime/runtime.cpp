@@ -29,7 +29,7 @@ using namespace std;
 #define MAX_GLOBAL_MEM_SIZE      (128 * 1048576)
 #define MAX_CONSTANT_BUFFER_SIZE (1048576)
 #define MAX_LOCAL_MEM_SIZE       (32768)
-#define MAX_WI_SIZE              (1024)
+#define DEFAULT_MAX_WGSIZE       (1024)
 
 #define PLATFORM_NAME       "Oclgrind"
 #define PLATFORM_VENDOR     "University of Bristol"
@@ -229,6 +229,8 @@ clIcdGetPlatformIDsKHR
 
     m_device = new _cl_device_id;
     m_device->dispatch = m_dispatchTable;
+    m_device->maxWGSize =
+      oclgrind::getEnvInt("OCLGRIND_MAX_WGSIZE", DEFAULT_MAX_WGSIZE);
   }
 
   if (platforms)
@@ -430,13 +432,13 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
-    result_data.sizet = MAX_WI_SIZE;
+    result_data.sizet = m_device->maxWGSize;
     break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES:
     result_size = 3*sizeof(size_t);
-    result_data.sizet3[0] = MAX_WI_SIZE;
-    result_data.sizet3[1] = MAX_WI_SIZE;
-    result_data.sizet3[2] = MAX_WI_SIZE;
+    result_data.sizet3[0] = m_device->maxWGSize;
+    result_data.sizet3[1] = m_device->maxWGSize;
+    result_data.sizet3[2] = m_device->maxWGSize;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT:
@@ -3161,7 +3163,7 @@ clGetKernelWorkGroupInfo
                     "CL_KERNEL_GLOBAL_SIZE only valid on custom devices");
   case CL_KERNEL_WORK_GROUP_SIZE:
     result_size = sizeof(size_t);
-    result_data.sizet = MAX_WI_SIZE;
+    result_data.sizet = m_device->maxWGSize;
     break;
   case CL_KERNEL_COMPILE_WORK_GROUP_SIZE:
     result_size = sizeof(size_t[3]);
