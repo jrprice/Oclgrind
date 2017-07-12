@@ -4887,6 +4887,7 @@ clEnqueueNDRangeKernel
 
   // Check global and local sizes are valid
   size_t reqdWorkGroupSize[3];
+  size_t totalWGSize = 1;
   kernel->kernel->getRequiredWorkGroupSize(reqdWorkGroupSize);
   for (unsigned i = 0; i < work_dim; i++)
   {
@@ -4903,6 +4904,16 @@ clEnqueueNDRangeKernel
                       " does not divide global_work_size[" << i << "]=" <<
                       global_work_size[i]);
     }
+    if (local_work_size)
+    {
+      if (local_work_size[i] > m_device->maxWGSize)
+      {
+        ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_ITEM_SIZE,
+                        "local_work_size[" << i << "]=" << local_work_size[i] <<
+                        " exceeds device maximum of " << m_device->maxWGSize);
+      }
+      totalWGSize *= local_work_size[i];
+    }
     if (local_work_size && reqdWorkGroupSize[i] &&
         local_work_size[i] != reqdWorkGroupSize[i])
     {
@@ -4911,6 +4922,12 @@ clEnqueueNDRangeKernel
                       " does not match reqd_work_group_size[" << i << "]=" <<
                       reqdWorkGroupSize[i])
     }
+  }
+  if (totalWGSize > m_device->maxWGSize)
+  {
+    ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_GROUP_SIZE,
+                    "total work-group size (" << totalWGSize << ")"
+                    " exceeds device maximum of " << m_device->maxWGSize);
   }
 
   // Ensure all arguments have been set
