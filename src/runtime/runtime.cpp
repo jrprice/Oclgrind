@@ -156,8 +156,7 @@ namespace
     string error = oss.str();
 
     // Output message to stderr if required
-    const char *checkAPI = getenv("OCLGRIND_CHECK_API");
-    if (checkAPI && strcmp(checkAPI, "1") == 0)
+    if (oclgrind::checkEnv("OCLGRIND_CHECK_API"))
     {
       cerr << error << endl;
     }
