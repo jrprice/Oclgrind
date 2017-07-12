@@ -158,7 +158,7 @@ namespace oclgrind
   bool checkEnv(const char *var);
 
   // Get an environment variable as an integer
-  unsigned getEnvInt(const char *var, int def=0);
+  unsigned getEnvInt(const char *var, int def=0, bool allowZero=true);
 
   // Output an instruction in human-readable format
   void dumpInstruction(std::ostream& out, const llvm::Instruction *instruction);

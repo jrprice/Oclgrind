@@ -288,7 +288,7 @@ namespace oclgrind
     return (value && !strcmp(value, "1"));
   }
 
-  unsigned getEnvInt(const char *var, int def)
+  unsigned getEnvInt(const char *var, int def, bool allowZero)
   {
     const char *value = getenv(var);
     if (!value)
@@ -296,7 +296,7 @@ namespace oclgrind
 
     char *next;
     uint64_t result = strtoul(value, &next, 10);
-    if (strlen(next) || result == ULONG_MAX)
+    if (strlen(next) || result == ULONG_MAX || (!allowZero && !result))
     {
       cerr << endl << "Oclgrind: Invalid value for " << var << endl;
       abort();

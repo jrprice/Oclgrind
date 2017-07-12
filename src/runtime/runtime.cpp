@@ -230,7 +230,7 @@ clIcdGetPlatformIDsKHR
     m_device = new _cl_device_id;
     m_device->dispatch = m_dispatchTable;
     m_device->maxWGSize =
-      oclgrind::getEnvInt("OCLGRIND_MAX_WGSIZE", DEFAULT_MAX_WGSIZE);
+      oclgrind::getEnvInt("OCLGRIND_MAX_WGSIZE", DEFAULT_MAX_WGSIZE, false);
   }
 
   if (platforms)

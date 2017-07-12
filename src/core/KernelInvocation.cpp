@@ -55,7 +55,7 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
 
   // Check for user overriding number of threads
   m_numWorkers = getEnvInt("OCLGRIND_NUM_THREADS",
-                           thread::hardware_concurrency());
+                           thread::hardware_concurrency(), false);
   if (!m_numWorkers || !m_context->isThreadSafe())
     m_numWorkers = 1;
 
