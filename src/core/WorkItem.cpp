@@ -1512,13 +1512,19 @@ INSTRUCTION(swtch)
   const llvm::SwitchInst *swtch = (const llvm::SwitchInst*)instruction;
   const llvm::Value *cond = swtch->getCondition();
   uint64_t val = getOperand(cond).getUInt();
-  const llvm::ConstantInt *cval =
-    (const llvm::ConstantInt*)llvm::ConstantInt::get(cond->getType(), val);
-#if LLVM_VERSION < 50
-  m_position->nextBlock = swtch->findCaseValue(cval).getCaseSuccessor();
-#else
-  m_position->nextBlock = swtch->findCaseValue(cval)->getCaseSuccessor();
-#endif
+
+  // Look for case matching condition value
+  for (auto C : swtch->cases())
+  {
+    if (C.getCaseValue()->getZExtValue() == val)
+    {
+      m_position->nextBlock = C.getCaseSuccessor();
+      return;
+    }
+  }
+
+  // No matching cases - use default
+  m_position->nextBlock = swtch->getDefaultDest();
 }
 
 INSTRUCTION(udiv)
