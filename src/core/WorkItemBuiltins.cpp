@@ -3094,6 +3094,7 @@ namespace oclgrind
           case 'd':
           case 'f':
             f = FARGV(0, i);
+            break;
           default:
             FATAL_ERROR("Unsupported argument type: %c",
                         getOverloadArgType(overload));
