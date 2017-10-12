@@ -2926,7 +2926,7 @@ clSetKernelArg
     }
     break;
   case CL_KERNEL_ARG_ADDRESS_LOCAL:
-    delete value.data;
+    delete[] value.data;
     value.data = NULL;
     break;
   case CL_KERNEL_ARG_ADDRESS_GLOBAL:
