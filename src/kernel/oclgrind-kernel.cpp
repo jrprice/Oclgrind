@@ -82,6 +82,10 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_INST_COUNTS", "1");
     }
+    else if (!strcmp(argv[i], "--workload-characterisation"))
+    {
+      setEnvironment("OCLGRIND_WORKLOAD_CHARACTERISATION", "1");
+    }
     else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--interactive"))
     {
       setEnvironment("OCLGRIND_INTERACTIVE", "1");
@@ -213,6 +217,8 @@ static void printUsage()
              "Display usage information" << endl
     << "     --inst-counts             "
              "Output histograms of instructions executed" << endl
+    << "     --workgroup-characterisation"
+             "Output results of the ISA independent workload characterisation" << endl
     << "  -i --interactive             "
              "Enable interactive mode" << endl
     << "     --log            LOGFILE  "

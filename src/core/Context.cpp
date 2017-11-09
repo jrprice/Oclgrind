@@ -31,6 +31,7 @@
 #include "WorkItem.h"
 
 #include "plugins/InstructionCounter.h"
+#include "plugins/WorkloadCharacterisation.h"
 #include "plugins/InteractiveDebugger.h"
 #include "plugins/Logger.h"
 #include "plugins/MemCheck.h"
@@ -87,6 +88,9 @@ void Context::loadPlugins()
 
   if (checkEnv("OCLGRIND_INST_COUNTS"))
     m_plugins.push_back(make_pair(new InstructionCounter(this), true));
+
+  if (checkEnv("OCLGRIND_WORKLOAD_CHARACTERISATION"))
+    m_plugins.push_back(make_pair(new WorkloadCharacterisation(this), true));
 
   if (checkEnv("OCLGRIND_DATA_RACES"))
     m_plugins.push_back(make_pair(new RaceDetector(this), true));
