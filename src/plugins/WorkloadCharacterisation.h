@@ -33,11 +33,13 @@ namespace oclgrind
     virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
     virtual void workGroupBegin(const WorkGroup *workGroup) override;
     virtual void workGroupComplete(const WorkGroup *workGroup) override;
+    virtual void workItemBegin(const WorkItem *workItem) override;
 
   private:
     std::vector<std::pair<size_t,size_t>> m_memoryOps;
     std::unordered_map<std::string,size_t> m_computeOps;
     std::unordered_map<unsigned,std::vector<bool>> m_branchOps;
+    unsigned m_threads_invoked;
 
     struct WorkerState
     {
@@ -47,6 +49,7 @@ namespace oclgrind
       std::string target1, target2;
       unsigned branch_loc;
       std::unordered_map<unsigned,std::vector<bool>> *branchOps;
+      unsigned threads_invoked;
     };
     static THREAD_LOCAL WorkerState m_state;
 

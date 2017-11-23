@@ -108,6 +108,11 @@ void WorkloadCharacterisation::instructionExecuted(
 
 }
 
+void WorkloadCharacterisation::workItemBegin(const WorkItem *workItem)
+{
+    m_state.threads_invoked++;
+}
+
 void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocation)
 {
     m_memoryOps.clear();
@@ -160,6 +165,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     }
 
     cout << "Unique Opcodes required to cover 90\% of Dynamic Instructions: " << major_operations << endl;
+    cout << "# of workitems/threads invoked: " << m_threads_invoked << endl;
 
     cout << "+--------------------------------------------------------------------------+" << endl;
     cout << "|Total Memory Footprint -- total number of unique memory addresses accessed|" << endl;
@@ -365,6 +371,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "90\% branch instructions," << unique_branch_addresses << "\n";
     logfile << "branch entropy (yokota)," << yokota_entropy_per_workload << "\n";
     logfile << "branch entropy (average linear)," << average_entropy << "\n";
+    logfile << "workitems," << m_threads_invoked << "\n";
     logfile.close();
 
     cout << "The Architecture-Independent Workload Characterisation was written to file: " << logfile_name << endl;
@@ -375,7 +382,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     m_memoryOps.clear();
     m_computeOps.clear();
     m_branchOps.clear();
-
+    m_threads_invoked = 0;
 }
 
 void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
@@ -391,6 +398,8 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
     m_state.memoryOps->clear();
     m_state.computeOps->clear();
     m_state.branchOps->clear();
+
+    m_state.threads_invoked=0;
 
     //branch logic variables
     m_state.previous_instruction_is_branch=false;
@@ -419,4 +428,6 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
         for(auto const& branch_taken:item.second)
             m_branchOps[item.first].push_back(branch_taken);
 
+    // add the current work-group item / thread counter to the global variable
+    m_threads_invoked += m_state.threads_invoked;
 }
