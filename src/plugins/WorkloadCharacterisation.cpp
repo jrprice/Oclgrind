@@ -348,6 +348,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     assert(logfile);
     logfile << "metric,count\n";
     logfile << "opcode," << major_operations << "\n";
+    logfile << "workitems," << m_threads_invoked << "\n";
     logfile << "total memory footprint," << unique_sorted_addresses.size() << "\n";
     logfile << "90\% memory footprint," << unique_memory_addresses  << "\n";
     logfile << "global memory address entropy," << mem_entropy << "\n";
@@ -371,7 +372,6 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "90\% branch instructions," << unique_branch_addresses << "\n";
     logfile << "branch entropy (yokota)," << yokota_entropy_per_workload << "\n";
     logfile << "branch entropy (average linear)," << average_entropy << "\n";
-    logfile << "workitems," << m_threads_invoked << "\n";
     logfile.close();
 
     cout << "The Architecture-Independent Workload Characterisation was written to file: " << logfile_name << endl;
