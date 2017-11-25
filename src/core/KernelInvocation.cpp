@@ -25,6 +25,7 @@ using namespace std;
 
 struct
 {
+  int id;
   WorkGroup *workGroup;
   WorkItem  *workItem;
 } static THREAD_LOCAL workerState;
@@ -168,7 +169,7 @@ void KernelInvocation::run()
   vector<thread> threads;
   for (unsigned i = 0; i < m_numWorkers; i++)
   {
-    threads.push_back(thread(&KernelInvocation::runWorker, this));
+    threads.push_back(thread(&KernelInvocation::runWorker, this, i));
   }
 
   // Wait for workers to complete
@@ -178,10 +179,16 @@ void KernelInvocation::run()
   }
 }
 
-void KernelInvocation::runWorker()
+int KernelInvocation::getWorkerID() const
+{
+  return workerState.id;
+}
+
+void KernelInvocation::runWorker(int id)
 {
   workerState.workGroup = NULL;
   workerState.workItem = NULL;
+  workerState.id = id;
   try
   {
     while (true)

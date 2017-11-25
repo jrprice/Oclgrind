@@ -35,6 +35,8 @@ namespace oclgrind
     size_t getWorkDim() const;
     bool switchWorkItem(const Size3 gid);
 
+    int getWorkerID() const;
+
   private:
     KernelInvocation(const Context *context, const Kernel *kernel,
                      unsigned int workDim,
@@ -58,7 +60,7 @@ namespace oclgrind
     std::list<WorkGroup*> m_runningGroups;
 
     // Worker threads
-    void runWorker();
+    void runWorker(int id);
     unsigned m_numWorkers;
   };
 }
