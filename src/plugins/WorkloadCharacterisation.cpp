@@ -28,6 +28,7 @@
 
 #include "core/Kernel.h"
 #include "core/KernelInvocation.h"
+#include "core/WorkGroup.h"
 
 using namespace oclgrind;
 using namespace std;
@@ -104,9 +105,18 @@ void WorkloadCharacterisation::instructionExecuted(
             m_state.branch_loc = loc.getLine();
         }
     }
-    //TODO: add support for Phi, Switch and Select control operations
 
+    //counter for instructions to barrier and other parallelism metrics
+    m_state.instruction_count++;
+
+    //TODO: add support for Phi, Switch and Select control operations
 }
+
+void WorkloadCharacterisation::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
+{
+    m_state.instructionsBetweenBarriers->push_back(m_state.instruction_count);
+    m_state.instruction_count = 0;
+} 
 
 void WorkloadCharacterisation::workItemBegin(const WorkItem *workItem)
 {
@@ -118,6 +128,7 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
     m_memoryOps.clear();
     m_computeOps.clear();
     m_branchOps.clear();
+    m_instructionsToBarrier.clear();
 }
 
 void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocation)
@@ -165,7 +176,31 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     }
 
     cout << "Unique Opcodes required to cover 90\% of Dynamic Instructions: " << major_operations << endl;
+
+    cout << "+--------------------------------------------------------------------------+" << endl;
+    cout << "|Instruction Level Parallelism                                             |" << endl;
+    cout << "+==========================================================================+" << endl;
+
     cout << "# of workitems/threads invoked: " << m_threads_invoked << endl;
+    cout << "total # of workgroup barriers hit: " << m_instructionsToBarrier.size() << endl;
+    //cout << "# of barriers hit per thread: " << m_instructionsToBarrier.size()/m_threads_invoked << endl;
+    cout << "Min instructions to barrier: " << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << endl;
+    cout << "Max instructions to barrier: " << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << endl;
+
+    double median_itb;
+    std::vector<float> itb = m_instructionsToBarrier;
+    sort(itb.begin(), itb.end());
+
+    size_t size = itb.size();
+    if (size  % 2 == 0)
+    {
+        median_itb = (itb[size / 2 - 1] + itb[size / 2]) / 2;
+    }
+    else 
+    {
+        median_itb = itb[size / 2];
+    }
+    cout << "Median instructions to barrier: " << median_itb << endl;
 
     cout << "+--------------------------------------------------------------------------+" << endl;
     cout << "|Total Memory Footprint -- total number of unique memory addresses accessed|" << endl;
@@ -193,7 +228,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "+==============================================================================================+" << endl;
 
     unordered_map<unsigned, size_t> count;
-    for (int i=0; i<addresses.size(); i++)        
+    for (unsigned i=0; i<addresses.size(); i++)        
         count[addresses[i]]++;
 
     std::vector<std::pair<unsigned,size_t> > sorted_count;
@@ -245,7 +280,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     for(int nskip = 1; nskip < 11; nskip++){
         float skip_value = pow(2,nskip);
         unordered_map<unsigned, size_t> local_address_count;
-        for (int i=0; i<addresses.size(); i++){
+        for (unsigned i=0; i<addresses.size(); i++){
             int local_addr = int(int(addresses[i]) / skip_value);
             local_address_count[local_addr]++;
         } 
@@ -349,13 +384,17 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "metric,count\n";
     logfile << "opcode," << major_operations << "\n";
     logfile << "workitems," << m_threads_invoked << "\n";
+    logfile << "total # of barriers hit," << m_instructionsToBarrier.size() << "\n";
+    logfile << "min instructions to barrier," << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
+    logfile << "max instructions to barrier," << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
+    //logfile << "median instructions to barrier," << median_itb << "\n";
     logfile << "total memory footprint," << unique_sorted_addresses.size() << "\n";
     logfile << "90\% memory footprint," << unique_memory_addresses  << "\n";
     logfile << "global memory address entropy," << mem_entropy << "\n";
     for(int nskip = 1; nskip < 11; nskip++){
         float skip_value = pow(2,nskip);
         unordered_map<unsigned, size_t> local_address_count;
-        for (int i=0; i<addresses.size(); i++){
+        for (unsigned i=0; i<addresses.size(); i++){
             int local_addr = int(int(addresses[i]) / skip_value);
             local_address_count[local_addr]++;
         } 
@@ -373,7 +412,10 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "branch entropy (yokota)," << yokota_entropy_per_workload << "\n";
     logfile << "branch entropy (average linear)," << average_entropy << "\n";
     logfile.close();
-
+    //logfile.open("instructionsToBarrier.log", std::ofstream::out | std::ofstream::app);
+    //for(const auto& it : m_instructionsToBarrier)
+    //    logfile << it << "\n";
+    //logfile.close();
     cout << "The Architecture-Independent Workload Characterisation was written to file: " << logfile_name << endl;
     // Restore locale
     cout.imbue(previousLocale);
@@ -382,6 +424,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     m_memoryOps.clear();
     m_computeOps.clear();
     m_branchOps.clear();
+    m_instructionsToBarrier.clear();
     m_threads_invoked = 0;
 }
 
@@ -393,14 +436,16 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
         m_state.memoryOps = new vector<std::pair<size_t,size_t>>;
         m_state.computeOps = new unordered_map<std::string,size_t>;
         m_state.branchOps = new unordered_map<unsigned,std::vector<bool>>;
+        m_state.instructionsBetweenBarriers = new vector<unsigned>;
     }
 
     m_state.memoryOps->clear();
     m_state.computeOps->clear();
     m_state.branchOps->clear();
+    m_state.instructionsBetweenBarriers->clear();
 
     m_state.threads_invoked=0;
-
+    m_state.instruction_count=0;
     //branch logic variables
     m_state.previous_instruction_is_branch=false;
     m_state.target1="";
@@ -411,6 +456,9 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
 
 void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
 {
+    m_state.instructionsBetweenBarriers->push_back(m_state.instruction_count);
+    m_state.instruction_count = 0;
+
     lock_guard<mutex> lock(m_mtx);
 
     // merge operation counts back into global unordered map
@@ -430,4 +478,10 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
 
     // add the current work-group item / thread counter to the global variable
     m_threads_invoked += m_state.threads_invoked;
+
+    // add the instructions between barriers back to the global setting
+    for(auto const& item: (*m_state.instructionsBetweenBarriers))
+        m_instructionsToBarrier.push_back(item);
+
 }
+
