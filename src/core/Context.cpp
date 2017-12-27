@@ -360,6 +360,16 @@ void Context::notifyWorkItemComplete(const WorkItem *workItem) const
   NOTIFY(workItemComplete, workItem);
 }
 
+void Context::notifyWorkItemBarrier(const WorkItem *workItem) const
+{
+  NOTIFY(workItemBarrier, workItem);
+}
+
+void Context::notifyWorkItemClearBarrier(const WorkItem *workItem) const
+{
+  NOTIFY(workItemClearBarrier, workItem);
+}
+
 #undef NOTIFY
 
 

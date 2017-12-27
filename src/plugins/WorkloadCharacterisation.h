@@ -34,14 +34,17 @@ namespace oclgrind
     virtual void workGroupBegin(const WorkGroup *workGroup) override;
     virtual void workGroupComplete(const WorkGroup *workGroup) override;
     virtual void workItemBegin(const WorkItem *workItem) override;
-    virtual void workGroupBarrier(const WorkGroup *workGroup, uint32_t flags) override;
+    virtual void workItemComplete(const WorkItem *workItem) override;
+    virtual void workItemBarrier(const WorkItem *workItem) override;
+    virtual void workItemClearBarrier(const WorkItem *workItem) override;
 
   private:
     std::vector<std::pair<size_t,size_t>> m_memoryOps;
     std::unordered_map<std::string,size_t> m_computeOps;
     std::unordered_map<unsigned,std::vector<bool>> m_branchOps;
     std::vector<float> m_instructionsToBarrier;
-    float m_threads_invoked;
+    unsigned m_threads_invoked;
+    unsigned m_barriers_hit;
 
     struct WorkerState
     {
@@ -52,6 +55,7 @@ namespace oclgrind
       unsigned branch_loc;
       std::unordered_map<unsigned,std::vector<bool>> *branchOps;
       unsigned threads_invoked;
+      unsigned barriers_hit;
       unsigned instruction_count;
       std::vector<unsigned> *instructionsBetweenBarriers;
     };

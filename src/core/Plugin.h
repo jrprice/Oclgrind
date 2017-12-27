@@ -65,6 +65,8 @@ namespace oclgrind
     virtual void workGroupComplete(const WorkGroup *workGroup){}
     virtual void workItemBegin(const WorkItem *workItem){}
     virtual void workItemComplete(const WorkItem *workItem){}
+    virtual void workItemBarrier(const WorkItem *workItem){}
+    virtual void workItemClearBarrier(const WorkItem *workItem){}
 
     virtual bool isThreadSafe() const;
 

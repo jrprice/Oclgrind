@@ -127,6 +127,7 @@ void WorkItem::clearBarrier()
   if (m_state == BARRIER)
   {
     m_state = READY;
+    m_context->notifyWorkItemClearBarrier(this);
   }
 }
 

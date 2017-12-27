@@ -29,6 +29,7 @@
 #include "core/Kernel.h"
 #include "core/KernelInvocation.h"
 #include "core/WorkGroup.h"
+#include "core/WorkItem.h"
 
 using namespace oclgrind;
 using namespace std;
@@ -112,15 +113,27 @@ void WorkloadCharacterisation::instructionExecuted(
     //TODO: add support for Phi, Switch and Select control operations
 }
 
-void WorkloadCharacterisation::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
+void WorkloadCharacterisation::workItemBarrier(const WorkItem *workItem)
 {
+    m_state.barriers_hit++;
     m_state.instructionsBetweenBarriers->push_back(m_state.instruction_count);
     m_state.instruction_count = 0;
-} 
+}
+
+void WorkloadCharacterisation::workItemClearBarrier(const WorkItem *workItem){
+    m_state.instruction_count = 0;
+}
 
 void WorkloadCharacterisation::workItemBegin(const WorkItem *workItem)
 {
     m_state.threads_invoked++;
+    m_state.instruction_count = 0;
+}
+
+void WorkloadCharacterisation::workItemComplete(const WorkItem *workItem)
+{
+    m_state.instructionsBetweenBarriers->push_back(m_state.instruction_count);
+    m_state.instruction_count = 0;
 }
 
 void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocation)
@@ -129,6 +142,8 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
     m_computeOps.clear();
     m_branchOps.clear();
     m_instructionsToBarrier.clear();
+    m_threads_invoked = 0;
+    m_barriers_hit = 0;
 }
 
 void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocation)
@@ -181,8 +196,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "|Instruction Level Parallelism                                             |" << endl;
     cout << "+==========================================================================+" << endl;
 
-    cout << "# of workitems/threads invoked: " << m_threads_invoked << endl;
-    cout << "total # of workgroup barriers hit: " << m_instructionsToBarrier.size() << endl;
+    cout << "# of workitems invoked: " << m_threads_invoked << endl;
+    cout << "total # of workitem barriers hit: " << m_barriers_hit << endl;
     //cout << "# of barriers hit per thread: " << m_instructionsToBarrier.size()/m_threads_invoked << endl;
     cout << "Min instructions to barrier: " << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << endl;
     cout << "Max instructions to barrier: " << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << endl;
@@ -384,10 +399,10 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "metric,count\n";
     logfile << "opcode," << major_operations << "\n";
     logfile << "workitems," << m_threads_invoked << "\n";
-    logfile << "total # of barriers hit," << m_instructionsToBarrier.size() << "\n";
+    logfile << "total # of barriers hit," << m_barriers_hit << "\n";
     logfile << "min instructions to barrier," << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
     logfile << "max instructions to barrier," << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
-    //logfile << "median instructions to barrier," << median_itb << "\n";
+    logfile << "median instructions to barrier," << median_itb << "\n";
     logfile << "total memory footprint," << unique_sorted_addresses.size() << "\n";
     logfile << "90\% memory footprint," << unique_memory_addresses  << "\n";
     logfile << "global memory address entropy," << mem_entropy << "\n";
@@ -446,18 +461,18 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
 
     m_state.threads_invoked=0;
     m_state.instruction_count=0;
+    m_state.barriers_hit = 0;
+
     //branch logic variables
     m_state.previous_instruction_is_branch=false;
     m_state.target1="";
     m_state.target2="";
     m_state.branch_loc=0;
-
+    
 }
 
 void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
 {
-    m_state.instructionsBetweenBarriers->push_back(m_state.instruction_count);
-    m_state.instruction_count = 0;
 
     lock_guard<mutex> lock(m_mtx);
 
@@ -482,6 +497,8 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
     // add the instructions between barriers back to the global setting
     for(auto const& item: (*m_state.instructionsBetweenBarriers))
         m_instructionsToBarrier.push_back(item);
+    
+    m_barriers_hit += m_state.barriers_hit;
 
 }
 
