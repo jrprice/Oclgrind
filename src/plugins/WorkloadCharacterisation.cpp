@@ -423,9 +423,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "min instructions to barrier," << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
     logfile << "max instructions to barrier," << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
     logfile << "median instructions to barrier," << median_itb << "\n";
-    logfile << "max simd width: " << *std::max_element(m_instructionWidth.begin(),m_instructionWidth.end()) << "\n";
-    logfile << "mean simd width: " << simd_mean << "\n";
-    logfile << "stdev simd width: "<< simd_stdev << "\n";
+    logfile << "max simd width," << *std::max_element(m_instructionWidth.begin(),m_instructionWidth.end()) << "\n";
+    logfile << "mean simd width," << simd_mean << "\n";
+    logfile << "stdev simd width,"<< simd_stdev << "\n";
     logfile << "total memory footprint," << unique_sorted_addresses.size() << "\n";
     logfile << "90\% memory footprint," << unique_memory_addresses  << "\n";
     logfile << "global memory address entropy," << mem_entropy << "\n";
