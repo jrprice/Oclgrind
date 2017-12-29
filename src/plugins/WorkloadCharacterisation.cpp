@@ -110,6 +110,9 @@ void WorkloadCharacterisation::instructionExecuted(
     //counter for instructions to barrier and other parallelism metrics
     m_state.instruction_count++;
 
+    //SIMD instruction width metrics use the following
+    m_state.instructionWidth->push_back(result.num);
+
     //TODO: add support for Phi, Switch and Select control operations
 }
 
@@ -142,6 +145,7 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
     m_computeOps.clear();
     m_branchOps.clear();
     m_instructionsToBarrier.clear();
+    m_instructionWidth.clear();
     m_threads_invoked = 0;
     m_barriers_hit = 0;
 }
@@ -216,6 +220,22 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         median_itb = itb[size / 2];
     }
     cout << "Median instructions to barrier: " << median_itb << endl;
+
+    cout << "+--------------------------------------------------------------------------+" << endl;
+    cout << "|Data Level Parallelism                                                    |" << endl;
+    cout << "+==========================================================================+" << endl;
+    cout << "Min data width: " << *std::min_element(m_instructionWidth.begin(),m_instructionWidth.end()) << endl;
+    cout << "Max data width: " << *std::max_element(m_instructionWidth.begin(),m_instructionWidth.end()) << endl;
+
+    double simd_sum = std::accumulate(m_instructionWidth.begin(), m_instructionWidth.end(), 0.0);
+    double simd_mean = simd_sum / m_instructionWidth.size();
+    std::vector<double> diff(m_instructionWidth.size());
+    std::transform(m_instructionWidth.begin(), m_instructionWidth.end(), diff.begin(), [simd_mean](double x) { return x - simd_mean; });
+    double simd_sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    double simd_stdev = std::sqrt(simd_sq_sum / m_instructionWidth.size());
+
+    cout << "Mean data width: " << simd_mean << endl;
+    cout << "stdev data width: "<< simd_stdev << endl;
 
     cout << "+--------------------------------------------------------------------------+" << endl;
     cout << "|Total Memory Footprint -- total number of unique memory addresses accessed|" << endl;
@@ -403,6 +423,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "min instructions to barrier," << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
     logfile << "max instructions to barrier," << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
     logfile << "median instructions to barrier," << median_itb << "\n";
+    logfile << "max simd width: " << *std::max_element(m_instructionWidth.begin(),m_instructionWidth.end()) << "\n";
+    logfile << "mean simd width: " << simd_mean << "\n";
+    logfile << "stdev simd width: "<< simd_stdev << "\n";
     logfile << "total memory footprint," << unique_sorted_addresses.size() << "\n";
     logfile << "90\% memory footprint," << unique_memory_addresses  << "\n";
     logfile << "global memory address entropy," << mem_entropy << "\n";
@@ -427,10 +450,13 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "branch entropy (yokota)," << yokota_entropy_per_workload << "\n";
     logfile << "branch entropy (average linear)," << average_entropy << "\n";
     logfile.close();
-    //logfile.open("instructionsToBarrier.log", std::ofstream::out | std::ofstream::app);
-    //for(const auto& it : m_instructionsToBarrier)
-    //    logfile << it << "\n";
-    //logfile.close();
+    //ITP -- SIMT logfile
+    std::string itb_logfile_name = logfile_name;
+    itb_logfile_name.replace(itb_logfile_name.end()-4,itb_logfile_name.end(),"_itb.log");
+    logfile.open(itb_logfile_name, std::ofstream::out | std::ofstream::app);
+    for(const auto& it : m_instructionsToBarrier)
+        logfile << it << "\n";
+    logfile.close();
     cout << "The Architecture-Independent Workload Characterisation was written to file: " << logfile_name << endl;
     // Restore locale
     cout.imbue(previousLocale);
@@ -452,12 +478,14 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
         m_state.computeOps = new unordered_map<std::string,size_t>;
         m_state.branchOps = new unordered_map<unsigned,std::vector<bool>>;
         m_state.instructionsBetweenBarriers = new vector<unsigned>;
+        m_state.instructionWidth = new vector<unsigned>;
     }
 
     m_state.memoryOps->clear();
     m_state.computeOps->clear();
     m_state.branchOps->clear();
     m_state.instructionsBetweenBarriers->clear();
+    m_state.instructionWidth->clear();
 
     m_state.threads_invoked=0;
     m_state.instruction_count=0;
@@ -499,6 +527,10 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
         m_instructionsToBarrier.push_back(item);
     
     m_barriers_hit += m_state.barriers_hit;
+
+    // add the SIMD scores back to the global setting
+    for(auto const& item: (*m_state.instructionWidth))
+        m_instructionWidth.push_back(item);
 
 }
 

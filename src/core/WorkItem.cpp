@@ -295,6 +295,7 @@ void WorkItem::execute(const llvm::Instruction *instruction)
     resultSize.second,
     NULL
   };
+
   if (result.size)
   {
     result.data = m_pool.alloc(result.size*result.num);
