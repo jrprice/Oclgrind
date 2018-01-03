@@ -185,6 +185,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     size_t significant_operation_count = (unsigned)ceil(operation_count * 0.9);
 
     size_t major_operations = 0;
+    size_t total_instruction_count = operation_count;
     operation_count = 0;
 
     cout << "Unique Op Codes comprising of 90\% of dynamic instructions:" << endl;
@@ -195,6 +196,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     }
 
     cout << "Unique Opcodes required to cover 90\% of Dynamic Instructions: " << major_operations << endl;
+    cout << "Total Instruction Count: " << total_instruction_count << endl;
 
     cout << "+--------------------------------------------------------------------------+" << endl;
     cout << "|Instruction Level Parallelism                                             |" << endl;
@@ -233,9 +235,17 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     std::transform(m_instructionWidth.begin(), m_instructionWidth.end(), diff.begin(), [simd_mean](double x) { return x - simd_mean; });
     double simd_sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
     double simd_stdev = std::sqrt(simd_sq_sum / m_instructionWidth.size());
-
+    cout << "Operand sum: " << simd_sum << endl;
     cout << "Mean data width: " << simd_mean << endl;
     cout << "stdev data width: "<< simd_stdev << endl;
+    
+    double granularity = 1.0/static_cast<double>(total_instruction_count);
+    double barriers_per_instruction = static_cast<double>(m_barriers_hit+1)/static_cast<double>(total_instruction_count);
+    double instructions_per_operand = static_cast<double>(total_instruction_count)/simd_sum;
+
+    cout << "Granularity: " << granularity << endl;
+    cout << "Barriers Per Instruction : " << barriers_per_instruction << endl;
+    cout << "Instructions Per Operand : " << instructions_per_operand << endl;
 
     cout << "+--------------------------------------------------------------------------+" << endl;
     cout << "|Total Memory Footprint -- total number of unique memory addresses accessed|" << endl;
@@ -418,7 +428,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     assert(logfile);
     logfile << "metric,count\n";
     logfile << "opcode," << major_operations << "\n";
+    logfile << "total instruction count," << total_instruction_count << "\n";
     logfile << "workitems," << m_threads_invoked << "\n";
+    logfile << "operand sum," << simd_sum << "\n";
     logfile << "total # of barriers hit," << m_barriers_hit << "\n";
     logfile << "min instructions to barrier," << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
     logfile << "max instructions to barrier," << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
@@ -426,6 +438,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "max simd width," << *std::max_element(m_instructionWidth.begin(),m_instructionWidth.end()) << "\n";
     logfile << "mean simd width," << simd_mean << "\n";
     logfile << "stdev simd width,"<< simd_stdev << "\n";
+    logfile << "granularity," << granularity << "\n";
+    logfile << "barriers per instruction," << barriers_per_instruction << "\n";
+    logfile << "instructions per operand," << instructions_per_operand << "\n";
     logfile << "total memory footprint," << unique_sorted_addresses.size() << "\n";
     logfile << "90\% memory footprint," << unique_memory_addresses  << "\n";
     logfile << "global memory address entropy," << mem_entropy << "\n";
