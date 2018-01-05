@@ -276,9 +276,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     for (unsigned i=0; i<addresses.size(); i++)        
         count[addresses[i]]++;
 
-    std::vector<std::pair<unsigned,size_t> > sorted_count;
-    for(auto const& umap: count)
-        sorted_count.push_back(make_pair(umap.first,umap.second)); 
+    std::vector<std::pair<unsigned,size_t> > sorted_count(count.begin(),count.end());
+    //for(auto const& umap: count)
+    //    sorted_count.push_back(make_pair(umap.first,umap.second)); 
 
     std::sort(sorted_count.begin(),sorted_count.end(),[](const std::pair<unsigned,size_t> &left, const std::pair<unsigned,size_t> &right){
             return (left.second > right.second);
@@ -290,9 +290,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         //cout << "address: "<< e.first << " accessed: " << e.second << " times!" << endl;
     }
 
-    //cout << "total number of memory accesses = " << memory_access_count << endl;
+    cout << "total number of memory accesses = " << memory_access_count << endl;
     size_t significant_memory_access_count = (unsigned)ceil(memory_access_count * 0.9);
-    //cout << "90\% of memory accesses:" << significant_memory_access_count << endl;
+    cout << "90\% of memory accesses:" << significant_memory_access_count << endl;
 
     size_t unique_memory_addresses = 0;
     size_t access_count = 0;
