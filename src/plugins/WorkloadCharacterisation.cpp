@@ -381,6 +381,10 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     unsigned N = 0;
 
     for(auto const& branch: m_branchOps){
+        //if we have fewer branches than the history window, skip it.
+        if(branch.second.size() < m)
+            continue;
+
         //generate the set of history patterns
         std::unordered_map<std::string,unsigned> H;
         for(unsigned i = 0; i < branch.second.size()-m-1; i++){
