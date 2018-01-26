@@ -387,7 +387,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 
         //generate the set of history patterns
         std::unordered_map<std::string,unsigned> H;
-        for(unsigned i = 0; i < branch.second.size()-m-1; i++){
+        for(unsigned i = 0; i < branch.second.size()-(m-1); i++){
             std::string current_pattern = "";
             for(unsigned j = 0; j < m; j++){
                 bool b = branch.second[i+j];
