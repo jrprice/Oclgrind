@@ -416,6 +416,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         }
     }
     average_entropy = average_entropy/N;
+    if(isnan(average_entropy)){
+        average_entropy = 0.0;
+    }
     cout << "Using a branch history of " << m << endl;
     cout << "Yokota Branch Entropy: " << yokota_entropy << endl;
     cout << "Yokota Branch Entropy Per Workload: " << yokota_entropy_per_workload << endl;
