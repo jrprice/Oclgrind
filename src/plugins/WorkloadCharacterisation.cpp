@@ -89,8 +89,8 @@ void WorkloadCharacterisation::instructionExecuted(
         }
         m_state.previous_instruction_is_branch = false;
     }
-    //if a conditional branch -- they have labels
-    if (opcode == llvm::Instruction::Br){
+    //if a conditional branch -- they have labels and thus temporarily store them and see where we jump to in the next instruction
+    if (opcode == llvm::Instruction::Br && instruction->getNumOperands() == 3){
         if(instruction->getOperand(1)->getType()->isLabelTy() && instruction->getOperand(2)->getType()->isLabelTy()){
             m_state.previous_instruction_is_branch = true;
             std::string Str;
