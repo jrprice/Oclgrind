@@ -596,7 +596,11 @@ bool Program::build(const char *options, list<Header> headers)
 
       // Dump bitcode
       llvm::raw_fd_ostream bc(tempBC, err, llvm::sys::fs::F_None);
+#if LLVM_VERSION < 70
       llvm::WriteBitcodeToFile(m_module.get(), bc);
+#else
+      llvm::WriteBitcodeToFile(*m_module, bc);
+#endif
       bc.close();
     }
 
@@ -688,7 +692,11 @@ Program* Program::createFromPrograms(const Context *context,
   list<const Program*>::iterator itr;
   for (itr = programs.begin(); itr != programs.end(); itr++)
   {
+#if LLVM_VERSION < 70
     unique_ptr<llvm::Module> m = llvm::CloneModule((*itr)->m_module.get());
+#else
+    unique_ptr<llvm::Module> m = llvm::CloneModule(*(*itr)->m_module);
+#endif
     if (linker.linkInModule(std::move(m)))
     {
       return NULL;
@@ -763,7 +771,11 @@ void Program::getBinary(unsigned char *binary) const
 
   std::string str;
   llvm::raw_string_ostream stream(str);
+#if LLVM_VERSION < 70
   llvm::WriteBitcodeToFile(m_module.get(), stream);
+#else
+  llvm::WriteBitcodeToFile(*m_module, stream);
+#endif
   stream.str();
 
   memcpy(binary, str.c_str(), str.length());
@@ -778,7 +790,11 @@ size_t Program::getBinarySize() const
 
   std::string str;
   llvm::raw_string_ostream stream(str);
+#if LLVM_VERSION < 70
   llvm::WriteBitcodeToFile(m_module.get(), stream);
+#else
+  llvm::WriteBitcodeToFile(*m_module, stream);
+#endif
   stream.str();
   return str.length();
 }
