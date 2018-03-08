@@ -148,6 +148,9 @@ struct _cl_platform_id
 struct _cl_device_id
 {
   void **dispatch;
+  size_t globalMemSize;
+  size_t constantMemSize;
+  size_t localMemSize;
   size_t maxWGSize;
 };
 

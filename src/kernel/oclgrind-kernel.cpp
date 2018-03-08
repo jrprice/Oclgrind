@@ -57,6 +57,15 @@ static bool parseArguments(int argc, char *argv[])
       }
       setEnvironment("OCLGRIND_BUILD_OPTIONS", argv[i]);
     }
+    else if (!strcmp(argv[i], "--constant-mem-size"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --constant-mem-size" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_CONSTANT_MEM_SIZE", argv[i]);
+    }
     else if (!strcmp(argv[i], "--data-races"))
     {
       setEnvironment("OCLGRIND_DATA_RACES", "1");
@@ -73,6 +82,15 @@ static bool parseArguments(int argc, char *argv[])
     {
       outputGlobalMemory = true;
     }
+    else if (!strcmp(argv[i], "--global-mem-size"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --global-mem-size" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_GLOBAL_MEM_SIZE", argv[i]);
+    }
     else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help"))
     {
       printUsage();
@@ -85,6 +103,15 @@ static bool parseArguments(int argc, char *argv[])
     else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--interactive"))
     {
       setEnvironment("OCLGRIND_INTERACTIVE", "1");
+    }
+    else if (!strcmp(argv[i], "--local-mem-size"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --local-mem-size" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_LOCAL_MEM_SIZE", argv[i]);
     }
     else if (!strcmp(argv[i], "--log"))
     {

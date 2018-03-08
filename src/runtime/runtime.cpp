@@ -26,10 +26,10 @@
 
 using namespace std;
 
-#define MAX_GLOBAL_MEM_SIZE      (128 * 1048576)
-#define MAX_CONSTANT_BUFFER_SIZE (1048576)
-#define MAX_LOCAL_MEM_SIZE       (32768)
-#define DEFAULT_MAX_WGSIZE       (1024)
+#define DEFAULT_GLOBAL_MEM_SIZE   (128 * 1048576)
+#define DEFAULT_CONSTANT_MEM_SIZE (65536)
+#define DEFAULT_LOCAL_MEM_SIZE    (32768)
+#define DEFAULT_MAX_WGSIZE        (1024)
 
 #define PLATFORM_NAME       "Oclgrind"
 #define PLATFORM_VENDOR     "University of Bristol"
@@ -229,6 +229,15 @@ clIcdGetPlatformIDsKHR
 
     m_device = new _cl_device_id;
     m_device->dispatch = m_dispatchTable;
+    m_device->globalMemSize =
+      oclgrind::getEnvInt("OCLGRIND_GLOBAL_MEM_SIZE",
+                          DEFAULT_GLOBAL_MEM_SIZE, false);
+    m_device->constantMemSize =
+      oclgrind::getEnvInt("OCLGRIND_CONSTANT_MEM_SIZE",
+                          DEFAULT_CONSTANT_MEM_SIZE, false);
+    m_device->localMemSize =
+      oclgrind::getEnvInt("OCLGRIND_LOCAL_MEM_SIZE",
+                          DEFAULT_LOCAL_MEM_SIZE, false);
     m_device->maxWGSize =
       oclgrind::getEnvInt("OCLGRIND_MAX_WGSIZE", DEFAULT_MAX_WGSIZE, false);
   }
@@ -471,7 +480,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_GLOBAL_MEM_SIZE;
+    result_data.clulong = m_device->globalMemSize;
     break;
   case CL_DEVICE_IMAGE2D_MAX_WIDTH:
   case CL_DEVICE_IMAGE2D_MAX_HEIGHT:
@@ -543,11 +552,11 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_GLOBAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_GLOBAL_MEM_SIZE;
+    result_data.clulong = device->globalMemSize;
     break;
   case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_CONSTANT_BUFFER_SIZE;
+    result_data.clulong = device->constantMemSize;
     break;
   case CL_DEVICE_MAX_CONSTANT_ARGS:
     result_size = sizeof(cl_uint);
@@ -559,7 +568,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_GLOBAL_VARIABLE_PREFERRED_TOTAL_SIZE:
     result_size = sizeof(size_t);
-    result_data.sizet = MAX_GLOBAL_MEM_SIZE;
+    result_data.sizet = device->globalMemSize;
     break;
   case CL_DEVICE_LOCAL_MEM_TYPE:
     result_size = sizeof(cl_device_local_mem_type);
@@ -567,7 +576,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_LOCAL_MEM_SIZE;
+    result_data.clulong = device->localMemSize;
     break;
   case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
     result_size = sizeof(cl_bool);
