@@ -4946,6 +4946,31 @@ clEnqueueNDRangeKernel
                     "Not all kernel arguments set");
   }
 
+  // Check that local memory requirement is within device maximum
+  size_t totalLocal = kernel->kernel->getLocalMemorySize();
+  if (totalLocal > m_device->localMemSize)
+  {
+    ReturnErrorInfo(command_queue->context, CL_OUT_OF_RESOURCES,
+                    "total local memory size (" << totalLocal << ")"
+                    " exceeds device maximum of " << m_device->localMemSize);
+  }
+
+  // Check that constant memory requirement is within device maximum
+  size_t totalConstant = 0;
+  std::map<cl_uint,cl_mem>::iterator arg;
+  for (arg = kernel->memArgs.begin(); arg != kernel->memArgs.end(); arg++)
+  {
+    if (kernel->kernel->getArgumentAddressQualifier(arg->first) ==
+        CL_KERNEL_ARG_ADDRESS_CONSTANT)
+      totalConstant += arg->second->size;
+  }
+  if (totalConstant > m_device->constantMemSize)
+  {
+    ReturnErrorInfo(command_queue->context, CL_OUT_OF_RESOURCES,
+                    "total constant memory size (" << totalConstant << ")"
+                    " exceeds device maximum of " << m_device->constantMemSize);
+  }
+
   // Set-up offsets and sizes
   oclgrind::Queue::KernelCommand *cmd = new oclgrind::Queue::KernelCommand();
   cmd->kernel = new oclgrind::Kernel(*kernel->kernel);
