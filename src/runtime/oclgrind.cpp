@@ -335,7 +335,7 @@ static bool parseArguments(int argc, char *argv[])
       cout << endl;
       cout << "Oclgrind " PACKAGE_VERSION << endl;
       cout << endl;
-      cout << "Copyright (c) 2013-2016" << endl;
+      cout << "Copyright (c) 2013-2018" << endl;
       cout << "James Price and Simon McIntosh-Smith, University of Bristol"
            << endl;
       cout << "https://github.com/jrprice/Oclgrind" << endl;
