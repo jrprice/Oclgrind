@@ -30,6 +30,7 @@
 #include "core/KernelInvocation.h"
 #include "core/WorkGroup.h"
 #include "core/WorkItem.h"
+#include "core/Memory.h"
 
 using namespace oclgrind;
 using namespace std;
@@ -42,24 +43,24 @@ THREAD_LOCAL WorkloadCharacterisation::WorkerState
 WorkloadCharacterisation::m_state = {NULL};
 
 void WorkloadCharacterisation::memoryLoad(const Memory *memory, const WorkItem *workItem,size_t address, size_t size){
-    m_state.memoryOps->push_back(std::make_pair(address,//address
+    m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
                 size));//size (in bytes)
 }
 
 void WorkloadCharacterisation::memoryStore(const Memory *memory, const WorkItem *workItem,size_t address, size_t size, const uint8_t *storeData){
-    m_state.memoryOps->push_back(std::make_pair(address,//address
+    m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
                 size));//size (in bytes)
 }
 
 void WorkloadCharacterisation::memoryAtomicLoad(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size)
 {
-    m_state.memoryOps->push_back(std::make_pair(address,//address
+    m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
                 size));//size (in bytes)
 }
 
 void WorkloadCharacterisation::memoryAtomicStore(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size)
 {
-    m_state.memoryOps->push_back(std::make_pair(address,//address
+    m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
                 size));//size (in bytes)
 }
 
@@ -531,10 +532,8 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
         m_computeOps[item.first]+=item.second;
 
     // merge memory operations into global list
-    for(unsigned i = 0; i < m_state.memoryOps->size(); i++){
-        m_memoryOps.push_back(m_state.memoryOps->back());
-        m_state.memoryOps->pop_back();
-    }
+    m_memoryOps.insert(m_memoryOps.end(),m_state.memoryOps->begin(),m_state.memoryOps->end());
+    m_state.memoryOps->clear();
 
     // merge control operations into global unordered map
     for(auto const& item: (*m_state.branchOps))
