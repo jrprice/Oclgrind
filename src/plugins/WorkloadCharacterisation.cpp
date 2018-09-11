@@ -16,6 +16,7 @@
 
 #include <csignal>
 #include <iomanip>
+#include <numeric>
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instruction.h"
