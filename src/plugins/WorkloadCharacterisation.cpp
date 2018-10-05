@@ -111,6 +111,7 @@ void WorkloadCharacterisation::instructionExecuted(
 
     //counter for instructions to barrier and other parallelism metrics
     m_state.instruction_count++;
+    m_state.workitem_instruction_count++;
 
     //SIMD instruction width metrics use the following
     m_state.instructionWidth->push_back(result.num);
@@ -133,12 +134,16 @@ void WorkloadCharacterisation::workItemBegin(const WorkItem *workItem)
 {
     m_state.threads_invoked++;
     m_state.instruction_count = 0;
+    m_state.workitem_instruction_count = 0;
 }
 
 void WorkloadCharacterisation::workItemComplete(const WorkItem *workItem)
 {
     m_state.instructionsBetweenBarriers->push_back(m_state.instruction_count);
+    m_state.instructionsPerWorkitem->push_back(m_state.workitem_instruction_count);
+
     m_state.instruction_count = 0;
+    m_state.workitem_instruction_count = 0;
 }
 
 void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocation)
@@ -148,6 +153,7 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
     m_branchOps.clear();
     m_instructionsToBarrier.clear();
     m_instructionWidth.clear();
+    m_instructionsPerWorkitem.clear();
     m_threads_invoked = 0;
     m_barriers_hit = 0;
 }
@@ -224,6 +230,29 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         median_itb = itb[size / 2];
     }
     cout << "Median instructions to barrier: " << median_itb << endl;
+
+    cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
+    cout << "|Work Distribution -- Measure of work between threads     |" << endl;
+    cout << "+=======================================================================================================+" << endl;
+    
+    cout << "Min instructions executed by a work-item: " << *std::min_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << endl;
+    cout << "Max instructions executed by a work-item: " << *std::max_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << endl;
+
+
+    unsigned int median_ins;
+    std::vector<unsigned int> ins = m_instructionsPerWorkitem;
+    sort(ins.begin(), ins.end());
+
+    size = ins.size();
+    if (size  % 2 == 0)
+    {
+        median_ins = (ins[size / 2 - 1] + ins[size / 2]) / 2;
+    }
+    else 
+    {
+        median_ins = ins[size / 2];
+    }
+    cout << "Median instructions executed by a work-item: " << median_ins << endl;
 
     cout << "+--------------------------------------------------------------------------+" << endl;
     cout << "|Data Level Parallelism                                                    |" << endl;
@@ -444,6 +473,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "min instructions to barrier," << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
     logfile << "max instructions to barrier," << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << "\n";
     logfile << "median instructions to barrier," << median_itb << "\n";
+    logfile << "min instructions executed by a work-item," << *std::min_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << "\n";
+    logfile << "max instructions executed by a work-item," << *std::max_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << "\n";
+    logfile << "median instructions executed by a work-item," << median_ins << "\n";
     logfile << "max simd width," << *std::max_element(m_instructionWidth.begin(),m_instructionWidth.end()) << "\n";
     logfile << "mean simd width," << simd_mean << "\n";
     logfile << "stdev simd width,"<< simd_stdev << "\n";
@@ -490,6 +522,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     m_computeOps.clear();
     m_branchOps.clear();
     m_instructionsToBarrier.clear();
+    m_instructionsPerWorkitem.clear();
     m_threads_invoked = 0;
 }
 
@@ -503,6 +536,7 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
         m_state.branchOps = new unordered_map<unsigned,std::vector<bool>>;
         m_state.instructionsBetweenBarriers = new vector<unsigned>;
         m_state.instructionWidth = new vector<unsigned>;
+        m_state.instructionsPerWorkitem = new vector<unsigned>;
     }
 
     m_state.memoryOps->clear();
@@ -510,6 +544,7 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
     m_state.branchOps->clear();
     m_state.instructionsBetweenBarriers->clear();
     m_state.instructionWidth->clear();
+    m_state.instructionsPerWorkitem->clear();
 
     m_state.threads_invoked=0;
     m_state.instruction_count=0;
@@ -554,5 +589,8 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
     for(auto const& item: (*m_state.instructionWidth))
         m_instructionWidth.push_back(item);
 
+    // add the instructions executed per workitem scores back to the global setting
+    for(auto const& item: (*m_state.instructionsPerWorkitem))
+        m_instructionsPerWorkitem.push_back(item);
 }
 
