@@ -22,6 +22,8 @@ namespace oclgrind
   public:
     WorkloadCharacterisation(const Context *context) : Plugin(context){};
 
+    virtual void hostMemoryLoad(const Memory *memory,size_t address, size_t size) override;
+    virtual void hostMemoryStore(const Memory *memory, size_t address, size_t size,const uint8_t *storeData) override;
     virtual void instructionExecuted(const WorkItem *workItem,
                                      const llvm::Instruction *instruction,
                                      const TypedValue& result) override;

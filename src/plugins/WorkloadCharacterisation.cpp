@@ -43,6 +43,14 @@ using namespace std;
 THREAD_LOCAL WorkloadCharacterisation::WorkerState
 WorkloadCharacterisation::m_state = {NULL};
 
+void WorkloadCharacterisation::hostMemoryLoad(const Memory *memory,size_t address, size_t size){
+    std::cout << "Host memory load! Does this correspond to a syncronization?" << std::endl;
+}
+
+void WorkloadCharacterisation::hostMemoryStore(const Memory *memory, size_t address, size_t size,const uint8_t *storeData){
+    std::cout << "Host memory store! Does this correspond to a syncronization?" << std::endl;
+}
+
 void WorkloadCharacterisation::memoryLoad(const Memory *memory, const WorkItem *workItem,size_t address, size_t size){
     m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
                 size));//size (in bytes)
