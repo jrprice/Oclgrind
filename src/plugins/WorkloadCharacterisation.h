@@ -20,7 +20,8 @@ namespace oclgrind
   class WorkloadCharacterisation : public Plugin
   {
   public:
-    WorkloadCharacterisation(const Context *context) : Plugin(context){};
+    WorkloadCharacterisation(const Context *context);
+    ~WorkloadCharacterisation();
 
     virtual void hostMemoryLoad(const Memory *memory,size_t address, size_t size) override;
     virtual void hostMemoryStore(const Memory *memory, size_t address, size_t size,const uint8_t *storeData) override;
@@ -49,6 +50,9 @@ namespace oclgrind
     std::vector<unsigned int> m_instructionsPerWorkitem;
     unsigned m_threads_invoked;
     unsigned m_barriers_hit;
+    std::vector<std::string> m_hostToDeviceCopy;
+    std::vector<std::string> m_deviceToHostCopy;
+    std::string m_last_kernel_name;
 
     struct WorkerState
     {
