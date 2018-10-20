@@ -151,6 +151,27 @@ void WorkloadCharacterisation::instructionExecuted(
     std::string opcode_name = llvm::Instruction::getOpcodeName(opcode);
     (*m_state.computeOps)[opcode_name]++;
 
+    //get all unique labels
+    int num_labels = -1;
+    if (instruction->isTerminator()){
+        auto inst = llvm::dyn_cast<llvm::TerminatorInst>(instruction);
+        num_labels = inst->getNumSuccessors();
+    }
+    for (int i = 0; i <= num_labels; i++) { 
+        cout << "label is: " << instruction->getName().data() << endl; 
+        cout << "label successor " << i << " is: " << instruction->getOperand(i)->getName().data() << endl; 
+    }
+
+    if (auto inst = llvm::dyn_cast<llvm::LoadInst>(instruction)) {
+        cout << inst->get() << endl;
+        cout << "load inst label is: " << inst->getPointerOperand()->getName().data() << endl; 
+    }
+    if (auto inst = llvm::dyn_cast<llvm::StoreInst>(instruction)) {
+        cout << "store inst label is: " << inst->getValueOperand()->getName().data() << endl; 
+    }
+   
+    
+
     //collect conditional branches and the associated trace to count which ones were taken and which weren't
     if (m_state.previous_instruction_is_branch == true){
         std::string Str;
