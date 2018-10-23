@@ -151,27 +151,21 @@ void WorkloadCharacterisation::instructionExecuted(
     std::string opcode_name = llvm::Instruction::getOpcodeName(opcode);
     (*m_state.computeOps)[opcode_name]++;
 
-    //get all unique labels
-    int num_labels = -1;
-    if (instruction->isTerminator()){
-        auto inst = llvm::dyn_cast<llvm::TerminatorInst>(instruction);
-        num_labels = inst->getNumSuccessors();
-    }
-    for (int i = 0; i <= num_labels; i++) { 
-        cout << "label is: " << instruction->getName().data() << endl; 
-        cout << "label successor " << i << " is: " << instruction->getOperand(i)->getName().data() << endl; 
-    }
-
+    //get all unique labels -- for register use -- and the # of instructions between loads and stores -- as the freedom to reorder
+    m_state.ops_between_load_or_store ++;
     if (auto inst = llvm::dyn_cast<llvm::LoadInst>(instruction)) {
-        cout << inst->get() << endl;
-        cout << "load inst label is: " << inst->getPointerOperand()->getName().data() << endl; 
+        std::string name = inst->getPointerOperand()->getName().data();
+        (*m_state.loadInstructionLabels)[name]++;
+        m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
+        m_state.ops_between_load_or_store = 0;
     }
     if (auto inst = llvm::dyn_cast<llvm::StoreInst>(instruction)) {
-        cout << "store inst label is: " << inst->getValueOperand()->getName().data() << endl; 
+        std::string name = inst->getPointerOperand()->getName().data();
+        (*m_state.storeInstructionLabels)[name]++;
+        m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
+        m_state.ops_between_load_or_store = 0;
     }
    
-    
-
     //collect conditional branches and the associated trace to count which ones were taken and which weren't
     if (m_state.previous_instruction_is_branch == true){
         std::string Str;
@@ -233,15 +227,13 @@ void WorkloadCharacterisation::workItemBegin(const WorkItem *workItem)
     m_state.threads_invoked++;
     m_state.instruction_count = 0;
     m_state.workitem_instruction_count = 0;
+    m_state.ops_between_load_or_store = 0;
 }
 
 void WorkloadCharacterisation::workItemComplete(const WorkItem *workItem)
 {
     m_state.instructionsBetweenBarriers->push_back(m_state.instruction_count);
     m_state.instructionsPerWorkitem->push_back(m_state.workitem_instruction_count);
-
-    m_state.instruction_count = 0;
-    m_state.workitem_instruction_count = 0;
 }
 
 void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocation)
@@ -253,6 +245,9 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
     m_instructionsToBarrier.clear();
     m_instructionWidth.clear();
     m_instructionsPerWorkitem.clear();
+    m_instructionsBetweenLoadOrStore.clear();
+    m_loadInstructionLabels.clear();
+    m_storeInstructionLabels.clear();
     m_threads_invoked = 0;
     m_barriers_hit = 0;
 }
@@ -481,6 +476,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
             return (left.second.size() > right.second.size());
             });
 
+
     cout << "Branch At Line\tCount (hit and miss)" << endl;
     size_t branch_op_count = 0;
     for(auto const& x: sorted_branch_ops){
@@ -612,6 +608,23 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     for(const auto& it : m_instructionsToBarrier)
         logfile << it << "\n";
     logfile.close();
+    //load Instruction Labels -- with count -- logfile
+    std::string load_instruction_labels_logfile_name = logfile_name;
+    load_instruction_labels_logfile_name.replace(load_instruction_labels_logfile_name.end()-4,load_instruction_labels_logfile_name.end(),"_load_labels.log");
+    logfile.open(load_instruction_labels_logfile_name, std::ofstream::out | std::ofstream::app);
+    logfile << "label,count\n";
+    for(const auto& it : m_loadInstructionLabels)
+        logfile << it.first << "," << it.second << "\n";
+    logfile.close();
+    //store Instruction Labels -- with count -- logfile
+    std::string store_instruction_labels_logfile_name = logfile_name;
+    store_instruction_labels_logfile_name.replace(store_instruction_labels_logfile_name.end()-4,store_instruction_labels_logfile_name.end(),"_store_labels.log");
+    logfile.open(store_instruction_labels_logfile_name, std::ofstream::out | std::ofstream::app);
+    logfile << "label,count\n";
+    for(const auto& it : m_storeInstructionLabels)
+        logfile << it.first << "," << it.second << "\n";
+    logfile.close();
+
     cout << "The Architecture-Independent Workload Characterisation was written to file: " << logfile_name << endl;
     // Restore locale
     cout.imbue(previousLocale);
@@ -623,7 +636,11 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     m_instructionsToBarrier.clear();
     m_instructionsPerWorkitem.clear();
     m_threads_invoked = 0;
-}
+    m_state.instructionsBetweenLoadOrStore->clear();
+    m_state.loadInstructionLabels->clear();
+    m_state.storeInstructionLabels->clear();
+
+ }
 
 void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
 {
@@ -636,6 +653,9 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
         m_state.instructionsBetweenBarriers = new vector<unsigned>;
         m_state.instructionWidth = new vector<unsigned>;
         m_state.instructionsPerWorkitem = new vector<unsigned>;
+        m_state.instructionsBetweenLoadOrStore = new vector<unsigned>;
+        m_state.loadInstructionLabels = new unordered_map<std::string,size_t>;
+        m_state.storeInstructionLabels = new unordered_map<std::string,size_t>;
     }
 
     m_state.memoryOps->clear();
@@ -644,6 +664,9 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
     m_state.instructionsBetweenBarriers->clear();
     m_state.instructionWidth->clear();
     m_state.instructionsPerWorkitem->clear();
+    m_state.instructionsBetweenLoadOrStore->clear();
+    m_state.loadInstructionLabels->clear();
+    m_state.storeInstructionLabels->clear();
 
     m_state.threads_invoked=0;
     m_state.instruction_count=0;
@@ -691,5 +714,16 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
     // add the instructions executed per workitem scores back to the global setting
     for(auto const& item: (*m_state.instructionsPerWorkitem))
         m_instructionsPerWorkitem.push_back(item);
+
+    // add the instruction reordering (flexability) metrics
+    for(auto const& item: (*m_state.instructionsBetweenLoadOrStore))
+        m_instructionsBetweenLoadOrStore.push_back(item);
+
+    for(auto const& item: (*m_state.loadInstructionLabels))
+        m_loadInstructionLabels[item.first]+=item.second;
+
+    for(auto const& item: (*m_state.storeInstructionLabels))
+        m_storeInstructionLabels[item.first]+=item.second;
+
 }
 

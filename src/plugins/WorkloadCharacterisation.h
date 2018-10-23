@@ -53,6 +53,9 @@ namespace oclgrind
     std::vector<std::string> m_hostToDeviceCopy;
     std::vector<std::string> m_deviceToHostCopy;
     std::string m_last_kernel_name;
+    std::vector<unsigned> m_instructionsBetweenLoadOrStore;
+    std::unordered_map<std::string,size_t> m_loadInstructionLabels;
+    std::unordered_map<std::string,size_t> m_storeInstructionLabels;
 
     struct WorkerState
     {
@@ -65,10 +68,14 @@ namespace oclgrind
       unsigned threads_invoked;
       unsigned barriers_hit;
       unsigned instruction_count;
+      unsigned ops_between_load_or_store;
       unsigned workitem_instruction_count;
       std::vector<unsigned> *instructionsBetweenBarriers;
       std::vector<unsigned> *instructionsPerWorkitem;
       std::vector<unsigned> *instructionWidth;
+      std::unordered_map<std::string,size_t> *loadInstructionLabels;
+      std::unordered_map<std::string,size_t> *storeInstructionLabels;
+      std::vector<unsigned> *instructionsBetweenLoadOrStore;
     };
     static THREAD_LOCAL WorkerState m_state;
 
