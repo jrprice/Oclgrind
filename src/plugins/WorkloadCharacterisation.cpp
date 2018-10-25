@@ -301,6 +301,20 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "Total Instruction Count: " << total_instruction_count << endl;
 
     cout << "+--------------------------------------------------------------------------+" << endl;
+    cout << "|Utilization                                                               |" << endl;
+    cout << "+==========================================================================+" << endl;
+    double freedom_to_reorder = std::accumulate(m_instructionsBetweenLoadOrStore.begin(), m_instructionsBetweenLoadOrStore.end(), 0.0);
+    freedom_to_reorder = freedom_to_reorder / m_instructionsBetweenLoadOrStore.size();
+    cout << "Freedom to Reorder: " << freedom_to_reorder << endl;
+
+    double resource_pressure = 0;
+    for(auto const& item: m_storeInstructionLabels)
+        resource_pressure += item.second; 
+    for(auto const& item: m_loadInstructionLabels)
+        resource_pressure += item.second; 
+    resource_pressure = resource_pressure / m_threads_invoked;
+    cout << "Resource Pressure: " << resource_pressure << endl;
+    cout << "+--------------------------------------------------------------------------+" << endl;
     cout << "|Instruction Level Parallelism                                             |" << endl;
     cout << "+==========================================================================+" << endl;
 
@@ -562,6 +576,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "metric,count\n";
     logfile << "opcode," << major_operations << "\n";
     logfile << "total instruction count," << total_instruction_count << "\n";
+    logfile << "freedom to reorder," << freedom_to_reorder << "\n";
+    logfile << "resource pressure," << resource_pressure << "\n";
     logfile << "workitems," << m_threads_invoked << "\n";
     logfile << "operand sum," << simd_sum << "\n";
     logfile << "total # of barriers hit," << m_barriers_hit << "\n";
@@ -636,9 +652,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     m_instructionsToBarrier.clear();
     m_instructionsPerWorkitem.clear();
     m_threads_invoked = 0;
-    m_state.instructionsBetweenLoadOrStore->clear();
-    m_state.loadInstructionLabels->clear();
-    m_state.storeInstructionLabels->clear();
+    m_instructionsBetweenLoadOrStore.clear();
+    m_loadInstructionLabels.clear();
+    m_storeInstructionLabels.clear();
 
  }
 
