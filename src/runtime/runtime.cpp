@@ -433,7 +433,8 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_COMPUTE_UNITS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1;
+    result_data.cluint =
+        oclgrind::getEnvInt("OCLGRIND_COMPUTE_UNITS", 1, false);
     break;
   case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:
     result_size = sizeof(cl_uint);

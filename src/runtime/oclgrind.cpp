@@ -212,6 +212,15 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_CHECK_API", "1");
     }
+    else if (!strcmp(argv[i], "--compute-units"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --compute-units" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_COMPUTE_UNITS", argv[i]);
+    }
     else if (!strcmp(argv[i], "--constant-mem-size"))
     {
       if (++i >= argc)
@@ -453,6 +462,8 @@ static void printUsage()
           "Additional options to pass to the OpenCL compiler" << endl
     << "  --check-api                  "
           "Report errors on API calls"  << endl
+    << "  --compute-units     UNITS    "
+          "Change the number of compute units reported" << endl
     << "  --constant-mem-size BYTES    "
           "Change the constant memory size of the device" << endl
     << "  --data-races                 "
