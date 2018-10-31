@@ -1,3 +1,5 @@
+#pragma clang diagnostic ignored "-Wformat-invalid-specifier"
+
 kernel void printf_kernel(
   const int i,
   const float f,
