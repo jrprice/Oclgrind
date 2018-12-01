@@ -50,6 +50,7 @@ namespace oclgrind
     std::vector<unsigned int> m_instructionsPerWorkitem;
     unsigned m_threads_invoked;
     unsigned m_barriers_hit;
+    int m_numberOfHostToDeviceCopiesBeforeKernelNamed;
     std::vector<std::string> m_hostToDeviceCopy;
     std::vector<std::string> m_deviceToHostCopy;
     std::string m_last_kernel_name;

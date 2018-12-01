@@ -13,7 +13,6 @@
 #include <vector>
 #include <math.h>
 #include <fstream>
-
 #include <csignal>
 #include <iomanip>
 #include <numeric>
@@ -44,6 +43,7 @@ THREAD_LOCAL WorkloadCharacterisation::WorkerState
 WorkloadCharacterisation::m_state = {NULL};
 
 WorkloadCharacterisation::WorkloadCharacterisation(const Context *context) : WorkloadCharacterisation::Plugin(context){
+    m_numberOfHostToDeviceCopiesBeforeKernelNamed = 0;
     m_last_kernel_name = "";
 }
 
@@ -56,7 +56,7 @@ WorkloadCharacterisation::~WorkloadCharacterisation() {
     cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
     cout << "|Memory Transfers -- statistics around host to device and device to host memory transfers               |" << endl;
     cout << "+=======================================================================================================+" << endl;
-    // I can't imagine a scenario where data are copied from the device before a kernel is executed. So I use the deviceToHostCopy kernel names for the final statistics
+    // I can't imagine a scenario where data are copied from the device before a kernel is executed. So I use the deviceToHostCopy kernel names for the final statistics -- these names for the m_hostToDeviceCopy's are updated when the kernel is enqueued.
     std::vector<std::string> x = m_deviceToHostCopy;
     std::vector<std::string>::iterator unique_x = std::unique(x.begin(),x.end());
     x.resize(std::distance(x.begin(),unique_x));
@@ -67,22 +67,15 @@ WorkloadCharacterisation::~WorkloadCharacterisation() {
     x.resize(std::distance(x.begin(),unique_x));
     std::vector<std::string> unique_kernels_involved_with_host_to_device_copies = x;
 
-    if (unique_kernels_involved_with_host_to_device_copies.size() != unique_kernels_involved_with_device_to_host_copies.size()){
-        std::cout << "ERROR! different number of unique kernels transferred to and from the device." << std::endl;
-        std::cout << "# of unique kernels called with device to host memory transfers: " << unique_kernels_involved_with_device_to_host_copies.size() << std::endl;
-	std::cout << "# of unique kernels called with host to device memory transfers: " << unique_kernels_involved_with_host_to_device_copies.size() << std::endl;
-    }
-
-    int index = 0;
+    cout << "Total Host To Device Transfers (#) for kernel:" << endl;
     for (auto const& item: unique_kernels_involved_with_host_to_device_copies){
-        std::string kernel_name = unique_kernels_involved_with_device_to_host_copies[index];
-        index++;
-        std::cout << "kernel: " << kernel_name << " had: " << std::count(m_hostToDeviceCopy.begin(), m_hostToDeviceCopy.end(), item) <<  " host to device transfers." << std::endl;
+        cout << "\t" << item << ": " << std::count(m_hostToDeviceCopy.begin(), m_hostToDeviceCopy.end(), item) << endl;
     }
-
+    cout << "Total Device To Host Transfers (#) for kernel:" << endl;
     for (auto const& item: unique_kernels_involved_with_device_to_host_copies){
-        std::cout << "kernel: " << item << " had: " << std::count(m_deviceToHostCopy.begin(), m_deviceToHostCopy.end(), item) << " device to host transfers." << std::endl;
+        cout << "\t" << item << ": " << std::count(m_deviceToHostCopy.begin(), m_deviceToHostCopy.end(), item) << endl;
     }
+    
 
     //write it out to special .csv file
     int logfile_count = 0;
@@ -95,11 +88,9 @@ WorkloadCharacterisation::~WorkloadCharacterisation() {
     logfile.open(logfile_name);
     assert(logfile);
     logfile << "metric,kernel,count\n";
-    index = 0;
+
     for (auto const& item: unique_kernels_involved_with_host_to_device_copies){
-        std::string kernel_name = unique_kernels_involved_with_device_to_host_copies[index];
-        index++;
-        logfile << "transfer: host to device," << kernel_name << "," << std::count(m_hostToDeviceCopy.begin(), m_hostToDeviceCopy.end(), item) <<  "\n";
+        logfile << "transfer: host to device," << item << "," << std::count(m_hostToDeviceCopy.begin(), m_hostToDeviceCopy.end(), item) <<  "\n";
     }
     for (auto const& item: unique_kernels_involved_with_device_to_host_copies){
         logfile << "transfer: device to host," << item << "," << std::count(m_deviceToHostCopy.begin(), m_deviceToHostCopy.end(), item) << "\n";
@@ -118,6 +109,7 @@ void WorkloadCharacterisation::hostMemoryLoad(const Memory *memory,size_t addres
 void WorkloadCharacterisation::hostMemoryStore(const Memory *memory, size_t address, size_t size,const uint8_t *storeData){
     //host to device copy -- synchronization
     m_hostToDeviceCopy.push_back(m_last_kernel_name);
+    m_numberOfHostToDeviceCopiesBeforeKernelNamed++;
 }
 
 void WorkloadCharacterisation::memoryLoad(const Memory *memory, const WorkItem *workItem,size_t address, size_t size){
@@ -238,7 +230,15 @@ void WorkloadCharacterisation::workItemComplete(const WorkItem *workItem)
 
 void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocation)
 {
+    //update the list of memory copies from host to device; since the only reason to write to the device is before an execution.
     m_last_kernel_name = kernelInvocation->getKernel()->getName();
+    
+    int end_of_list = m_hostToDeviceCopy.size()-1;
+    for(int i = 0; i < m_numberOfHostToDeviceCopiesBeforeKernelNamed; i++){
+	m_hostToDeviceCopy[end_of_list-i] = m_last_kernel_name;
+    }
+    m_numberOfHostToDeviceCopiesBeforeKernelNamed = 0;
+
     m_memoryOps.clear();
     m_computeOps.clear();
     m_branchOps.clear();
