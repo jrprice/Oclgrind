@@ -21,6 +21,7 @@ then
     sudo apt-get install -y libedit-dev
 elif [ "$TRAVIS_OS_NAME" == "osx" ]
 then
-    brew update
-    brew install -v llvm --with-clang
+    wget http://releases.llvm.org/7.0.0/clang+llvm-7.0.0-x86_64-apple-darwin.tar.xz
+    mkdir -p llvm-7.0
+    tar xf clang+llvm-7.0.0-x86_64-apple-darwin.tar.xz --strip-components 1 -C llvm-7.0
 fi
