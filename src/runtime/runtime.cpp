@@ -269,6 +269,10 @@ clGetExtensionFunctionAddress
   {
     return (void*)clIcdGetPlatformIDsKHR;
   }
+  else if (strcmp(funcname, "clGetPlatformInfo") == 0)
+  {
+    return (void*)clGetPlatformInfo;
+  }
   else
   {
     return NULL;
