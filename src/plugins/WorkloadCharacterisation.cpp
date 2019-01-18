@@ -13,7 +13,6 @@
 #include <vector>
 #include <math.h>
 #include <fstream>
-
 #include <csignal>
 #include <iomanip>
 #include <numeric>
@@ -42,6 +41,76 @@ using namespace std;
 
 THREAD_LOCAL WorkloadCharacterisation::WorkerState
 WorkloadCharacterisation::m_state = {NULL};
+
+WorkloadCharacterisation::WorkloadCharacterisation(const Context *context) : WorkloadCharacterisation::Plugin(context){
+    m_numberOfHostToDeviceCopiesBeforeKernelNamed = 0;
+    m_last_kernel_name = "";
+}
+
+WorkloadCharacterisation::~WorkloadCharacterisation() {
+    locale previousLocale = cout.getloc();
+    locale defaultLocale("");
+    cout.imbue(defaultLocale);
+
+    // present memory transfer statistics -- only run once, since these are collected outside kernel invocations
+    cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
+    cout << "|Memory Transfers -- statistics around host to device and device to host memory transfers               |" << endl;
+    cout << "+=======================================================================================================+" << endl;
+    // I can't imagine a scenario where data are copied from the device before a kernel is executed. So I use the deviceToHostCopy kernel names for the final statistics -- these names for the m_hostToDeviceCopy's are updated when the kernel is enqueued.
+    std::vector<std::string> x = m_deviceToHostCopy;
+    std::vector<std::string>::iterator unique_x = std::unique(x.begin(),x.end());
+    x.resize(std::distance(x.begin(),unique_x));
+    std::vector<std::string> unique_kernels_involved_with_device_to_host_copies = x;
+
+    x = m_hostToDeviceCopy;
+    unique_x = std::unique(x.begin(),x.end());
+    x.resize(std::distance(x.begin(),unique_x));
+    std::vector<std::string> unique_kernels_involved_with_host_to_device_copies = x;
+
+    cout << "Total Host To Device Transfers (#) for kernel:" << endl;
+    for (auto const& item: unique_kernels_involved_with_host_to_device_copies){
+        cout << "\t" << item << ": " << std::count(m_hostToDeviceCopy.begin(), m_hostToDeviceCopy.end(), item) << endl;
+    }
+    cout << "Total Device To Host Transfers (#) for kernel:" << endl;
+    for (auto const& item: unique_kernels_involved_with_device_to_host_copies){
+        cout << "\t" << item << ": " << std::count(m_deviceToHostCopy.begin(), m_deviceToHostCopy.end(), item) << endl;
+    }
+    
+
+    //write it out to special .csv file
+    int logfile_count = 0;
+    std::string logfile_name = "aiwc_memory_transfers_" + std::to_string(logfile_count) + ".csv";
+    while(std::ifstream(logfile_name)){
+        logfile_count ++;
+        logfile_name = "aiwc_memory_transfers_" + std::to_string(logfile_count) + ".csv";
+    }
+    std::ofstream logfile;
+    logfile.open(logfile_name);
+    assert(logfile);
+    logfile << "metric,kernel,count\n";
+
+    for (auto const& item: unique_kernels_involved_with_host_to_device_copies){
+        logfile << "transfer: host to device," << item << "," << std::count(m_hostToDeviceCopy.begin(), m_hostToDeviceCopy.end(), item) <<  "\n";
+    }
+    for (auto const& item: unique_kernels_involved_with_device_to_host_copies){
+        logfile << "transfer: device to host," << item << "," << std::count(m_deviceToHostCopy.begin(), m_deviceToHostCopy.end(), item) << "\n";
+    }
+    logfile.close();
+
+    // Restore locale
+    cout.imbue(previousLocale);
+}
+
+void WorkloadCharacterisation::hostMemoryLoad(const Memory *memory,size_t address, size_t size){
+    //device to host copy -- synchronization
+    m_deviceToHostCopy.push_back(m_last_kernel_name);
+}
+
+void WorkloadCharacterisation::hostMemoryStore(const Memory *memory, size_t address, size_t size,const uint8_t *storeData){
+    //host to device copy -- synchronization
+    m_hostToDeviceCopy.push_back(m_last_kernel_name);
+    m_numberOfHostToDeviceCopiesBeforeKernelNamed++;
+}
 
 void WorkloadCharacterisation::memoryLoad(const Memory *memory, const WorkItem *workItem,size_t address, size_t size){
     m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
@@ -74,6 +143,21 @@ void WorkloadCharacterisation::instructionExecuted(
     std::string opcode_name = llvm::Instruction::getOpcodeName(opcode);
     (*m_state.computeOps)[opcode_name]++;
 
+    //get all unique labels -- for register use -- and the # of instructions between loads and stores -- as the freedom to reorder
+    m_state.ops_between_load_or_store ++;
+    if (auto inst = llvm::dyn_cast<llvm::LoadInst>(instruction)) {
+        std::string name = inst->getPointerOperand()->getName().data();
+        (*m_state.loadInstructionLabels)[name]++;
+        m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
+        m_state.ops_between_load_or_store = 0;
+    }
+    if (auto inst = llvm::dyn_cast<llvm::StoreInst>(instruction)) {
+        std::string name = inst->getPointerOperand()->getName().data();
+        (*m_state.storeInstructionLabels)[name]++;
+        m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
+        m_state.ops_between_load_or_store = 0;
+    }
+   
     //collect conditional branches and the associated trace to count which ones were taken and which weren't
     if (m_state.previous_instruction_is_branch == true){
         std::string Str;
@@ -135,25 +219,35 @@ void WorkloadCharacterisation::workItemBegin(const WorkItem *workItem)
     m_state.threads_invoked++;
     m_state.instruction_count = 0;
     m_state.workitem_instruction_count = 0;
+    m_state.ops_between_load_or_store = 0;
 }
 
 void WorkloadCharacterisation::workItemComplete(const WorkItem *workItem)
 {
     m_state.instructionsBetweenBarriers->push_back(m_state.instruction_count);
     m_state.instructionsPerWorkitem->push_back(m_state.workitem_instruction_count);
-
-    m_state.instruction_count = 0;
-    m_state.workitem_instruction_count = 0;
 }
 
 void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocation)
 {
+    //update the list of memory copies from host to device; since the only reason to write to the device is before an execution.
+    m_last_kernel_name = kernelInvocation->getKernel()->getName();
+    
+    int end_of_list = m_hostToDeviceCopy.size()-1;
+    for(int i = 0; i < m_numberOfHostToDeviceCopiesBeforeKernelNamed; i++){
+	m_hostToDeviceCopy[end_of_list-i] = m_last_kernel_name;
+    }
+    m_numberOfHostToDeviceCopiesBeforeKernelNamed = 0;
+
     m_memoryOps.clear();
     m_computeOps.clear();
     m_branchOps.clear();
     m_instructionsToBarrier.clear();
     m_instructionWidth.clear();
     m_instructionsPerWorkitem.clear();
+    m_instructionsBetweenLoadOrStore.clear();
+    m_loadInstructionLabels.clear();
+    m_storeInstructionLabels.clear();
     m_threads_invoked = 0;
     m_barriers_hit = 0;
 }
@@ -206,6 +300,20 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "Unique Opcodes required to cover 90\% of Dynamic Instructions: " << major_operations << endl;
     cout << "Total Instruction Count: " << total_instruction_count << endl;
 
+    cout << "+--------------------------------------------------------------------------+" << endl;
+    cout << "|Utilization                                                               |" << endl;
+    cout << "+==========================================================================+" << endl;
+    double freedom_to_reorder = std::accumulate(m_instructionsBetweenLoadOrStore.begin(), m_instructionsBetweenLoadOrStore.end(), 0.0);
+    freedom_to_reorder = freedom_to_reorder / m_instructionsBetweenLoadOrStore.size();
+    cout << "Freedom to Reorder: " << freedom_to_reorder << endl;
+
+    double resource_pressure = 0;
+    for(auto const& item: m_storeInstructionLabels)
+        resource_pressure += item.second; 
+    for(auto const& item: m_loadInstructionLabels)
+        resource_pressure += item.second; 
+    resource_pressure = resource_pressure / m_threads_invoked;
+    cout << "Resource Pressure: " << resource_pressure << endl;
     cout << "+--------------------------------------------------------------------------+" << endl;
     cout << "|Instruction Level Parallelism                                             |" << endl;
     cout << "+==========================================================================+" << endl;
@@ -382,6 +490,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
             return (left.second.size() > right.second.size());
             });
 
+
     cout << "Branch At Line\tCount (hit and miss)" << endl;
     size_t branch_op_count = 0;
     for(auto const& x: sorted_branch_ops){
@@ -467,6 +576,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "metric,count\n";
     logfile << "opcode," << major_operations << "\n";
     logfile << "total instruction count," << total_instruction_count << "\n";
+    logfile << "freedom to reorder," << freedom_to_reorder << "\n";
+    logfile << "resource pressure," << resource_pressure << "\n";
     logfile << "workitems," << m_threads_invoked << "\n";
     logfile << "operand sum," << simd_sum << "\n";
     logfile << "total # of barriers hit," << m_barriers_hit << "\n";
@@ -513,6 +624,23 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     for(const auto& it : m_instructionsToBarrier)
         logfile << it << "\n";
     logfile.close();
+    //load Instruction Labels -- with count -- logfile
+    std::string load_instruction_labels_logfile_name = logfile_name;
+    load_instruction_labels_logfile_name.replace(load_instruction_labels_logfile_name.end()-4,load_instruction_labels_logfile_name.end(),"_load_labels.log");
+    logfile.open(load_instruction_labels_logfile_name, std::ofstream::out | std::ofstream::app);
+    logfile << "label,count\n";
+    for(const auto& it : m_loadInstructionLabels)
+        logfile << it.first << "," << it.second << "\n";
+    logfile.close();
+    //store Instruction Labels -- with count -- logfile
+    std::string store_instruction_labels_logfile_name = logfile_name;
+    store_instruction_labels_logfile_name.replace(store_instruction_labels_logfile_name.end()-4,store_instruction_labels_logfile_name.end(),"_store_labels.log");
+    logfile.open(store_instruction_labels_logfile_name, std::ofstream::out | std::ofstream::app);
+    logfile << "label,count\n";
+    for(const auto& it : m_storeInstructionLabels)
+        logfile << it.first << "," << it.second << "\n";
+    logfile.close();
+
     cout << "The Architecture-Independent Workload Characterisation was written to file: " << logfile_name << endl;
     // Restore locale
     cout.imbue(previousLocale);
@@ -524,7 +652,11 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     m_instructionsToBarrier.clear();
     m_instructionsPerWorkitem.clear();
     m_threads_invoked = 0;
-}
+    m_instructionsBetweenLoadOrStore.clear();
+    m_loadInstructionLabels.clear();
+    m_storeInstructionLabels.clear();
+
+ }
 
 void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
 {
@@ -537,6 +669,9 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
         m_state.instructionsBetweenBarriers = new vector<unsigned>;
         m_state.instructionWidth = new vector<unsigned>;
         m_state.instructionsPerWorkitem = new vector<unsigned>;
+        m_state.instructionsBetweenLoadOrStore = new vector<unsigned>;
+        m_state.loadInstructionLabels = new unordered_map<std::string,size_t>;
+        m_state.storeInstructionLabels = new unordered_map<std::string,size_t>;
     }
 
     m_state.memoryOps->clear();
@@ -545,6 +680,9 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
     m_state.instructionsBetweenBarriers->clear();
     m_state.instructionWidth->clear();
     m_state.instructionsPerWorkitem->clear();
+    m_state.instructionsBetweenLoadOrStore->clear();
+    m_state.loadInstructionLabels->clear();
+    m_state.storeInstructionLabels->clear();
 
     m_state.threads_invoked=0;
     m_state.instruction_count=0;
@@ -592,5 +730,16 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
     // add the instructions executed per workitem scores back to the global setting
     for(auto const& item: (*m_state.instructionsPerWorkitem))
         m_instructionsPerWorkitem.push_back(item);
+
+    // add the instruction reordering (flexability) metrics
+    for(auto const& item: (*m_state.instructionsBetweenLoadOrStore))
+        m_instructionsBetweenLoadOrStore.push_back(item);
+
+    for(auto const& item: (*m_state.loadInstructionLabels))
+        m_loadInstructionLabels[item.first]+=item.second;
+
+    for(auto const& item: (*m_state.storeInstructionLabels))
+        m_storeInstructionLabels[item.first]+=item.second;
+
 }
 
