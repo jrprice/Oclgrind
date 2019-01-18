@@ -233,6 +233,10 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_INST_COUNTS", "1");
     }
+    else if (!strcmp(argv[i], "--aiwc"))
+    {
+      setEnvironment("OCLGRIND_WORKLOAD_CHARACTERISATION", "1");
+    }
     else if (!strcmp(argv[i], "--workload-characterisation"))
     {
       setEnvironment("OCLGRIND_WORKLOAD_CHARACTERISATION", "1");
@@ -426,6 +430,15 @@ static void printUsage()
     << "       oclgrind [--help | --version]" << endl
     << endl
     << "Options:" << endl
+    << "     --aiwc                    "
+             "Perform Architecture Independent Workload Characterization" << endl <<
+       "                               For examples on how these features can be used for diversity " << endl <<
+       "                               analysis and device predictions see:  " << endl <<
+       "                               -> https://github.com/BeauJoh/aiwc-opencl-based-architecture-independent-workload-characterization-artefact " << endl <<
+       "                               and "<< endl <<
+       "                               -> https://github.com/BeauJoh/opencl-predictions-with-aiwc " << endl <<
+       "                               If you have any questions or comments" << endl <<
+       "                               please contact me <beau.johnston@anu.edu.au>" << endl
     << "     --build-options  OPTIONS  "
              "Additional options to pass to the OpenCL compiler" << endl
     << "     --check-api               "
