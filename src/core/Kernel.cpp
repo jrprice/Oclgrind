@@ -50,6 +50,10 @@ Kernel::Kernel(const Program *program,
       break;
     case AddrSpaceLocal:
     {
+      // Check that local memory variable belongs to this kernel
+      if (!itr->getName().startswith(m_name))
+        continue;
+
       // Get size of allocation
       TypedValue allocSize = {
         getTypeSize(itr->getInitializer()->getType()), 1, NULL
