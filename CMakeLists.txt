@@ -22,7 +22,7 @@ if (CMAKE_COMPILER_IS_GNUCC)
 endif()
 
 # Enable rpath on OS X
-set(CMAKE_MACOSX_RPATH 1)
+#set(CMAKE_MACOSX_RPATH 1)
 
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -230,7 +230,7 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/Uninitialized.cpp
   src/plugins/WorkloadCharacterisation.h
   src/plugins/WorkloadCharacterisation.cpp)
-target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
+target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS} -Wl,-rpath,${CLANG_ROOT}/lib
   clangFrontend clangSerialization clangDriver clangCodeGen
   clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
   ${LLVM_LIBS})
