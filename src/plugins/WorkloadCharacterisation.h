@@ -42,7 +42,7 @@ namespace oclgrind
     virtual void workItemClearBarrier(const WorkItem *workItem) override;
 
   private:
-    std::vector<std::pair<size_t,size_t>> m_memoryOps;
+    std::vector<size_t> m_memoryOps;
     std::unordered_map<std::string,size_t> m_computeOps;
     std::unordered_map<unsigned,std::vector<bool>> m_branchOps;
     std::vector<float> m_instructionsToBarrier;
@@ -61,7 +61,7 @@ namespace oclgrind
     struct WorkerState
     {
       std::unordered_map<std::string,size_t> *computeOps;
-      std::vector<std::pair<size_t,size_t>> *memoryOps;
+      std::vector<size_t> *memoryOps;
       bool previous_instruction_is_branch;
       std::string target1, target2;
       unsigned branch_loc;

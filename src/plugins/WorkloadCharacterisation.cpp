@@ -113,25 +113,21 @@ void WorkloadCharacterisation::hostMemoryStore(const Memory *memory, size_t addr
 }
 
 void WorkloadCharacterisation::memoryLoad(const Memory *memory, const WorkItem *workItem,size_t address, size_t size){
-    m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
-                size));//size (in bytes)
+    m_state.memoryOps->push_back((size_t)(memory->getPointer(address)));
 }
 
 void WorkloadCharacterisation::memoryStore(const Memory *memory, const WorkItem *workItem,size_t address, size_t size, const uint8_t *storeData){
-    m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
-                size));//size (in bytes)
+    m_state.memoryOps->push_back((size_t)(memory->getPointer(address)));
 }
 
 void WorkloadCharacterisation::memoryAtomicLoad(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size)
 {
-    m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
-                size));//size (in bytes)
+    m_state.memoryOps->push_back((size_t)(memory->getPointer(address)));
 }
 
 void WorkloadCharacterisation::memoryAtomicStore(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size)
 {
-    m_state.memoryOps->push_back(std::make_pair((size_t)(memory->getPointer(address)),//address
-                size));//size (in bytes)
+    m_state.memoryOps->push_back((size_t)(memory->getPointer(address)));
 }
 
 void WorkloadCharacterisation::instructionExecuted(
@@ -150,8 +146,7 @@ void WorkloadCharacterisation::instructionExecuted(
         (*m_state.loadInstructionLabels)[name]++;
         m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
         m_state.ops_between_load_or_store = 0;
-    }
-    if (auto inst = llvm::dyn_cast<llvm::StoreInst>(instruction)) {
+    } else if (auto inst = llvm::dyn_cast<llvm::StoreInst>(instruction)) {
         std::string name = inst->getPointerOperand()->getName().data();
         (*m_state.storeInstructionLabels)[name]++;
         m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
@@ -390,34 +385,18 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "|Total Memory Footprint -- total number of unique memory addresses accessed|" << endl;
     cout << "+==========================================================================+" << endl;
 
-    std::vector<unsigned> addresses;
-    for(const auto& it : m_memoryOps){
-        addresses.push_back(it.first);
+    unordered_map<unsigned, size_t> count;
+    for(const auto& address : m_memoryOps){
+        count[address]++;
     }
 
-    std::vector<unsigned> sorted_addresses = addresses;
-
-    std::sort(sorted_addresses.begin(),sorted_addresses.end());
-
-    std::vector<unsigned> unique_sorted_addresses = sorted_addresses;
-    std::vector<unsigned>::iterator unique_it;
-
-    unique_it = std::unique(unique_sorted_addresses.begin(),unique_sorted_addresses.end());
-    unique_sorted_addresses.resize(std::distance(unique_sorted_addresses.begin(),unique_it));
-
-    cout << unique_sorted_addresses.size() << endl;
+    cout << count.size() << endl;
 
     cout << "+----------------------------------------------------------------------------------------------+" << endl;
     cout << "|90% Memory Footprint -- Number of unique memory addresses that cover 90\% of memory accesses   |" << endl;
     cout << "+==============================================================================================+" << endl;
 
-    unordered_map<unsigned, size_t> count;
-    for (unsigned i=0; i<addresses.size(); i++)        
-        count[addresses[i]]++;
-
     std::vector<std::pair<unsigned,size_t> > sorted_count(count.begin(),count.end());
-    //for(auto const& umap: count)
-    //    sorted_count.push_back(make_pair(umap.first,umap.second)); 
 
     std::sort(sorted_count.begin(),sorted_count.end(),[](const std::pair<unsigned,size_t> &left, const std::pair<unsigned,size_t> &right){
             return (left.second > right.second);
@@ -461,11 +440,11 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "+==============================================================================================+" << endl;
 
     cout << "LSBs skipped\tEntropy (bits)" << endl;
+    std::vector<float> loc_entropy;
     for(int nskip = 1; nskip < 11; nskip++){
-        float skip_value = pow(2,nskip);
         unordered_map<unsigned, size_t> local_address_count;
-        for (unsigned i=0; i<addresses.size(); i++){
-            int local_addr = int(int(addresses[i]) / skip_value);
+	for(const auto& address : m_memoryOps){
+            unsigned local_addr = address >> nskip;
             local_address_count[local_addr]++;
         } 
 
@@ -475,6 +454,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
             float prob = (float)value * 1.0 / (float)memory_access_count;
             local_entropy = local_entropy - prob * std::log2(prob);
         }
+	loc_entropy.push_back(local_entropy);
         cout << nskip << "\t\t" << local_entropy << endl;
     }
 
@@ -593,24 +573,11 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "granularity," << granularity << "\n";
     logfile << "barriers per instruction," << barriers_per_instruction << "\n";
     logfile << "instructions per operand," << instructions_per_operand << "\n";
-    logfile << "total memory footprint," << unique_sorted_addresses.size() << "\n";
+    logfile << "total memory footprint," << count.size() << "\n";
     logfile << "90\% memory footprint," << unique_memory_addresses  << "\n";
     logfile << "global memory address entropy," << mem_entropy << "\n";
     for(int nskip = 1; nskip < 11; nskip++){
-        float skip_value = pow(2,nskip);
-        unordered_map<unsigned, size_t> local_address_count;
-        for (unsigned i=0; i<addresses.size(); i++){
-            int local_addr = int(int(addresses[i]) / skip_value);
-            local_address_count[local_addr]++;
-        } 
-
-        float local_entropy = 0.0f;
-        for(const auto& it : local_address_count){
-            int value = (int)it.second;
-            float prob = (float)value * 1.0 / (float)memory_access_count;
-            local_entropy = local_entropy - prob * std::log2(prob);
-        }
-        logfile << "local memory address entropy -- " << nskip << " LSBs skipped," << local_entropy << "\n";
+        logfile << "local memory address entropy -- " << nskip << " LSBs skipped," << loc_entropy[nskip-1] << "\n";
     }
     logfile << "total unique branch instructions," << sorted_branch_ops.size() << "\n";
     logfile << "90\% branch instructions," << unique_branch_addresses << "\n";
@@ -663,7 +630,7 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
     // Create worker state if haven't already
     if (!m_state.memoryOps)
     {
-        m_state.memoryOps = new vector<std::pair<size_t,size_t>>;
+        m_state.memoryOps = new vector<size_t>;
         m_state.computeOps = new unordered_map<std::string,size_t>;
         m_state.branchOps = new unordered_map<unsigned,std::vector<bool>>;
         m_state.instructionsBetweenBarriers = new vector<unsigned>;
