@@ -427,13 +427,13 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "+----------------------------------------------------------------------------------------------+" << endl;
     cout << "|Global Memory Address Entropy -- Measure of the randomness of memory addresses                |" << endl;
     cout << "+==============================================================================================+" << endl;
-    float mem_entropy = 0.0f;
+    double mem_entropy = 0.0;
     for(const auto& it : sorted_count){
         int value = (int)it.second;
-        float prob = (float)value * 1.0 / (float)memory_access_count;
+        double prob = (double)value * 1.0 / (double)memory_access_count;
         mem_entropy = mem_entropy - prob * std::log2(prob);
     }
-    cout << mem_entropy << endl;
+    cout << (float)mem_entropy << endl;
 
     cout << "+----------------------------------------------------------------------------------------------+" << endl;
     cout << "|Local Memory Address Entropy -- Measure of the spatial locality of memory addresses           |" << endl;
@@ -448,14 +448,14 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
             local_address_count[local_addr]++;
         } 
 
-        float local_entropy = 0.0f;
+        double local_entropy = 0.0;
         for(const auto& it : local_address_count){
             int value = (int)it.second;
-            float prob = (float)value * 1.0 / (float)memory_access_count;
+            double prob = (double)value * 1.0 / (double)memory_access_count;
             local_entropy = local_entropy - prob * std::log2(prob);
         }
-	loc_entropy.push_back(local_entropy);
-        cout << nskip << "\t\t" << local_entropy << endl;
+	loc_entropy.push_back((float)local_entropy);
+        cout << nskip << "\t\t" << (float)local_entropy << endl;
     }
 
     cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
