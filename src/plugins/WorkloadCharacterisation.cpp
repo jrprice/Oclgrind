@@ -310,10 +310,13 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     resource_pressure = resource_pressure / m_threads_invoked;
     cout << "Resource Pressure: " << resource_pressure << endl;
     cout << "+--------------------------------------------------------------------------+" << endl;
-    cout << "|Instruction Level Parallelism                                             |" << endl;
+    cout << "|Thread-Level Parallelism                                                  |" << endl;
     cout << "+==========================================================================+" << endl;
 
     cout << "# of workitems invoked: " << m_threads_invoked << endl;
+    double granularity = 1.0/static_cast<double>(m_threads_invoked);
+    cout << "Granularity: " << granularity << endl;
+
     cout << "total # of workitem barriers hit: " << m_barriers_hit << endl;
     //cout << "# of barriers hit per thread: " << m_instructionsToBarrier.size()/m_threads_invoked << endl;
     cout << "Min instructions to barrier: " << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << endl;
@@ -333,6 +336,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         median_itb = itb[size / 2];
     }
     cout << "Median instructions to barrier: " << median_itb << endl;
+    double barriers_per_instruction = static_cast<double>(m_barriers_hit+1)/static_cast<double>(total_instruction_count);
+    cout << "Barriers Per Instruction : " << barriers_per_instruction << endl;
 
     cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
     cout << "|Work Distribution -- Measure of work between threads     |" << endl;
@@ -358,7 +363,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "Median instructions executed by a work-item: " << median_ins << endl;
 
     cout << "+--------------------------------------------------------------------------+" << endl;
-    cout << "|Data Level Parallelism                                                    |" << endl;
+    cout << "|Data Parallelism                                                          |" << endl;
     cout << "+==========================================================================+" << endl;
     using pair_type = decltype(m_instructionWidth)::value_type;
     cout << "Min data width: " << std::min_element(m_instructionWidth.begin(),m_instructionWidth.end(), [](const pair_type& a, const pair_type& b) { return a.first < b.first; })->first << endl;
@@ -379,11 +384,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "Mean data width: " << simd_mean << endl;
     cout << "stdev data width: "<< simd_stdev << endl;
     
-    double granularity = 1.0/static_cast<double>(total_instruction_count);
-    double barriers_per_instruction = static_cast<double>(m_barriers_hit+1)/static_cast<double>(total_instruction_count);
     double instructions_per_operand = static_cast<double>(total_instruction_count)/simd_sum;
-    cout << "Granularity: " << granularity << endl;
-    cout << "Barriers Per Instruction : " << barriers_per_instruction << endl;
     cout << "Instructions Per Operand : " << instructions_per_operand << endl;
 
     cout << "+--------------------------------------------------------------------------+" << endl;
