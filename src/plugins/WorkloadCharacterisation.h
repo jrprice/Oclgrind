@@ -46,7 +46,7 @@ namespace oclgrind
     std::unordered_map<std::string,size_t> m_computeOps;
     std::unordered_map<unsigned,std::vector<bool>> m_branchOps;
     std::vector<float> m_instructionsToBarrier;
-    std::vector<size_t> m_instructionWidth;
+    std::unordered_map<unsigned, size_t> m_instructionWidth;
     std::vector<unsigned int> m_instructionsPerWorkitem;
     unsigned m_threads_invoked;
     unsigned m_barriers_hit;
@@ -73,7 +73,7 @@ namespace oclgrind
       unsigned workitem_instruction_count;
       std::vector<unsigned> *instructionsBetweenBarriers;
       std::vector<unsigned> *instructionsPerWorkitem;
-      std::vector<unsigned> *instructionWidth;
+      std::unordered_map<unsigned,size_t> *instructionWidth;
       std::unordered_map<std::string,size_t> *loadInstructionLabels;
       std::unordered_map<std::string,size_t> *storeInstructionLabels;
       std::vector<unsigned> *instructionsBetweenLoadOrStore;

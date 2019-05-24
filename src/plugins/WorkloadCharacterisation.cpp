@@ -193,7 +193,7 @@ void WorkloadCharacterisation::instructionExecuted(
     m_state.workitem_instruction_count++;
 
     //SIMD instruction width metrics use the following
-    m_state.instructionWidth->push_back(result.num);
+    (*m_state.instructionWidth)[result.num]++;
 
     //TODO: add support for Phi, Switch and Select control operations
 }
@@ -360,15 +360,21 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "+--------------------------------------------------------------------------+" << endl;
     cout << "|Data Level Parallelism                                                    |" << endl;
     cout << "+==========================================================================+" << endl;
-    cout << "Min data width: " << *std::min_element(m_instructionWidth.begin(),m_instructionWidth.end()) << endl;
-    cout << "Max data width: " << *std::max_element(m_instructionWidth.begin(),m_instructionWidth.end()) << endl;
+    using pair_type = decltype(m_instructionWidth)::value_type;
+    cout << "Min data width: " << std::min_element(m_instructionWidth.begin(),m_instructionWidth.end(), [](const pair_type& a, const pair_type& b) { return a.first < b.first; })->first << endl;
+    cout << "Max data width: " << std::max_element(m_instructionWidth.begin(),m_instructionWidth.end(), [](const pair_type& a, const pair_type& b) { return a.first < b.first; })->first << endl;
 
-    double simd_sum = std::accumulate(m_instructionWidth.begin(), m_instructionWidth.end(), 0.0);
-    double simd_mean = simd_sum / m_instructionWidth.size();
+    long simd_sum = 0;
+    long simd_num = 0;
+    for (const auto& item : m_instructionWidth) {
+        simd_sum += item.second * item.first;
+        simd_num += item.second;
+    }
+    double simd_mean = simd_sum / (double)simd_num;
     std::vector<double> diff(m_instructionWidth.size());
-    std::transform(m_instructionWidth.begin(), m_instructionWidth.end(), diff.begin(), [simd_mean](double x) { return x - simd_mean; });
-    double simd_sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-    double simd_stdev = std::sqrt(simd_sq_sum / m_instructionWidth.size());
+    std::transform(m_instructionWidth.begin(), m_instructionWidth.end(), diff.begin(), [simd_mean](const pair_type& x) { return (x.first - simd_mean) * (x.first - simd_mean) * x.second; });
+    double simd_sq_sum = std::accumulate(diff.begin(), diff.end(), 0.0);
+    double simd_stdev = std::sqrt(simd_sq_sum / (double)simd_num);
     cout << "Operand sum: " << simd_sum << endl;
     cout << "Mean data width: " << simd_mean << endl;
     cout << "stdev data width: "<< simd_stdev << endl;
@@ -376,7 +382,6 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     double granularity = 1.0/static_cast<double>(total_instruction_count);
     double barriers_per_instruction = static_cast<double>(m_barriers_hit+1)/static_cast<double>(total_instruction_count);
     double instructions_per_operand = static_cast<double>(total_instruction_count)/simd_sum;
-
     cout << "Granularity: " << granularity << endl;
     cout << "Barriers Per Instruction : " << barriers_per_instruction << endl;
     cout << "Instructions Per Operand : " << instructions_per_operand << endl;
@@ -567,7 +572,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "min instructions executed by a work-item," << *std::min_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << "\n";
     logfile << "max instructions executed by a work-item," << *std::max_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << "\n";
     logfile << "median instructions executed by a work-item," << median_ins << "\n";
-    logfile << "max simd width," << *std::max_element(m_instructionWidth.begin(),m_instructionWidth.end()) << "\n";
+    logfile << "max simd width," << std::max_element(m_instructionWidth.begin(),m_instructionWidth.end(), [](const pair_type& a, const pair_type&b) { return a.first < b.first; })->first << "\n";
     logfile << "mean simd width," << simd_mean << "\n";
     logfile << "stdev simd width,"<< simd_stdev << "\n";
     logfile << "granularity," << granularity << "\n";
@@ -634,7 +639,7 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
         m_state.computeOps = new unordered_map<std::string,size_t>;
         m_state.branchOps = new unordered_map<unsigned,std::vector<bool>>;
         m_state.instructionsBetweenBarriers = new vector<unsigned>;
-        m_state.instructionWidth = new vector<unsigned>;
+        m_state.instructionWidth = new unordered_map<unsigned,size_t>;
         m_state.instructionsPerWorkitem = new vector<unsigned>;
         m_state.instructionsBetweenLoadOrStore = new vector<unsigned>;
         m_state.loadInstructionLabels = new unordered_map<std::string,size_t>;
@@ -691,8 +696,8 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
     m_barriers_hit += m_state.barriers_hit;
 
     // add the SIMD scores back to the global setting
-    for(auto const& item: (*m_state.instructionWidth))
-        m_instructionWidth.push_back(item);
+    for (auto const& item: (*m_state.instructionWidth))
+        m_instructionWidth[item.first] += item.second;
 
     // add the instructions executed per workitem scores back to the global setting
     for(auto const& item: (*m_state.instructionsPerWorkitem))
