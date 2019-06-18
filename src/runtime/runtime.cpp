@@ -2081,6 +2081,7 @@ clCreateSampler
   sampler->addressMode = addressing_mode;
   sampler->filterMode = filter_mode;
   sampler->sampler = bitfield;
+  sampler->refCount = 1;
 
   SetError(context, CL_SUCCESS);
   return sampler;
