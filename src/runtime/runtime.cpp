@@ -961,6 +961,10 @@ clReleaseContext
 
   if (--context->refCount == 0)
   {
+    if (context->properties)
+    {
+      free(context->properties);
+    }
     delete context->context;
     delete context;
   }
