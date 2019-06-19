@@ -35,6 +35,7 @@ namespace oclgrind
       {
         type = EMPTY;
       }
+      virtual ~Command() { }
     private:
       Event *event;
       friend class Queue;
@@ -102,7 +103,7 @@ namespace oclgrind
       size_t origin[3], region[3];
       size_t rowPitch, slicePitch;
       size_t pixelSize;
-      unsigned char color[16];
+      unsigned char *color;
       FillImageCommand(size_t b, const size_t o[3], const size_t r[3],
                        size_t rp, size_t sp,
                        size_t ps, const unsigned char *col)
@@ -114,7 +115,12 @@ namespace oclgrind
         rowPitch = rp;
         slicePitch = sp;
         pixelSize = ps;
-        memcpy(color, col, 16);
+        color = new unsigned char[ps];
+        memcpy(color, col, ps);
+      }
+      ~FillImageCommand()
+      {
+        delete[] color;
       }
     };
     struct KernelCommand : Command
