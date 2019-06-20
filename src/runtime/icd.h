@@ -113,6 +113,8 @@
 #define clCreateEventFromGLsyncKHR _clCreateEventFromGLsyncKHR
 #endif // OCLGRIND_ICD
 
+#include "core/common.h"
+
 #include <list>
 #include <map>
 #include <stack>
@@ -209,6 +211,7 @@ struct _cl_kernel
   oclgrind::Kernel *kernel;
   cl_program program;
   std::map<cl_uint, cl_mem> memArgs;
+  std::stack<oclgrind::Image*> imageArgs;
   unsigned int refCount;
 };
 
