@@ -68,6 +68,19 @@ Kernel::Kernel(const Program *program,
     }
   }
 
+  // Check whether the kernel requires uniform work-groups
+  m_requiresUniformWorkGroups = false;
+  for (auto &AS : m_function->getAttributes())
+  {
+    if (AS.hasAttribute("uniform-work-group-size"))
+    {
+      const llvm::Attribute &A = AS.getAttribute("uniform-work-group-size");
+      if (A.getValueAsString().equals("true"))
+        m_requiresUniformWorkGroups = true;
+      break;
+    }
+  }
+
   // Get metadata node containing kernel arg info
   m_metadata = NULL;
   llvm::NamedMDNode *md = module->getNamedMetadata("opencl.kernels");
@@ -399,6 +412,11 @@ void Kernel::getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const
     if (md)
       reqdWorkGroupSize[j] = getMDAsConstInt(md)->getZExtValue();
   }
+}
+
+bool Kernel::requiresUniformWorkGroups() const
+{
+  return m_requiresUniformWorkGroups;
 }
 
 void Kernel::setArgument(unsigned int index, TypedValue value)

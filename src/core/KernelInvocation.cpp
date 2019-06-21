@@ -47,7 +47,7 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   m_numGroups.x = m_globalSize.x/m_localSize.x;
   m_numGroups.y = m_globalSize.y/m_localSize.y;
   m_numGroups.z = m_globalSize.z/m_localSize.z;
-  if (!m_kernel->getProgram()->requiresUniformWorkGroups())
+  if (!m_kernel->requiresUniformWorkGroups())
   {
     m_numGroups.x += m_globalSize.x % m_localSize.x ? 1 : 0;
     m_numGroups.y += m_globalSize.y % m_localSize.y ? 1 : 0;
