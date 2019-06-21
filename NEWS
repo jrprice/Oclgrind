@@ -2,6 +2,12 @@ For more information, please visit the Oclgrind Wiki:
 https://github.com/jrprice/Oclgrind/wiki
 
 
+Oclgrind XX.X
+=============
+- Added support for LLVM 7.0, 8.0 and 9.0
+- Dropped support for LLVM 3.9 and 4.0
+
+
 Oclgrind 18.3
 =============
 Added support for the following OpenCL 2.0 features:

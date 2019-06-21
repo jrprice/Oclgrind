@@ -17,12 +17,8 @@
 #include <dlfcn.h>
 #endif
 
-#if LLVM_VERSION < 40
-#include "llvm/Bitcode/ReaderWriter.h"
-#else
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
-#endif
 #include "llvm/IR/AssemblyAnnotationWriter.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
@@ -278,14 +274,6 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-D__ENDIAN_LITTLE__=1");
 #endif
 
-#if LLVM_VERSION < 40
-  // Define extensions
-  for (unsigned i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
-  {
-    args.push_back("-D");
-    args.push_back(EXTENSIONS[i]);
-  }
-#else
   // Disable all extensions
   std::string cl_ext("-cl-ext=-all");
   // Explicitly enable supported extensions
@@ -294,7 +282,6 @@ bool Program::build(const char *options, list<Header> headers)
     cl_ext += ",+" + std::string(EXTENSIONS[i]);
   }
   args.push_back(cl_ext.c_str());
-#endif
 
   // Disable Clang's optimizations.
   // We will manually run optimization passes and legalize the IR later.
@@ -469,12 +456,8 @@ bool Program::build(const char *options, list<Header> headers)
   compiler.createDiagnostics(diagConsumer, false);
 
   // Create compiler invocation
-#if LLVM_VERSION < 40
-  clang::CompilerInvocation *invocation = new clang::CompilerInvocation;
-#else
   std::shared_ptr<clang::CompilerInvocation> invocation(
       new clang::CompilerInvocation);
-#endif
   clang::CompilerInvocation::CreateFromArgs(*invocation,
                                             &args[0], &args[0] + args.size(),
                                             compiler.getDiagnostics());
@@ -628,11 +611,7 @@ Program* Program::createFromBitcode(const Context *context,
   }
 
   // Parse bitcode into IR module
-#if LLVM_VERSION < 40
-  llvm::ErrorOr<unique_ptr<llvm::Module>> module =
-#else
   llvm::Expected<unique_ptr<llvm::Module>> module =
-#endif
     parseBitcodeFile(buffer->getMemBufferRef(), *context->getLLVMContext());
   if (!module)
   {
@@ -654,11 +633,7 @@ Program* Program::createFromBitcodeFile(const Context *context,
   }
 
   // Parse bitcode into IR module
-#if LLVM_VERSION < 40
-  llvm::ErrorOr<unique_ptr<llvm::Module>> module =
-#else
   llvm::Expected<unique_ptr<llvm::Module>> module =
-#endif
     parseBitcodeFile(buffer->get()->getMemBufferRef(),
                      *context->getLLVMContext());
   if (!module)

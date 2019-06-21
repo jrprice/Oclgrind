@@ -431,7 +431,6 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     delete[] m_values[argument].data;
   }
 
-#if LLVM_VERSION >= 40
   if (getArgumentTypeName(index).str() == "sampler_t")
   {
     // Get an llvm::ConstantInt that represents the sampler value
@@ -448,7 +447,6 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     m_values[argument] = sampler;
   }
   else
-#endif
   {
     m_values[argument] = value.clone();
   }
