@@ -111,6 +111,7 @@ Kernel::Kernel(const Kernel& kernel)
   m_function = kernel.m_function;
   m_name = kernel.m_name;
   m_metadata = kernel.m_metadata;
+  m_requiresUniformWorkGroups = kernel.m_requiresUniformWorkGroups;
 
   for (auto itr = kernel.m_values.begin(); itr != kernel.m_values.end(); itr++)
   {
