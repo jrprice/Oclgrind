@@ -2882,6 +2882,15 @@ clReleaseKernel
 
   if (--kernel->refCount == 0)
   {
+
+    // Release memory allocated for image arguments
+    while (!kernel->imageArgs.empty())
+    {
+      oclgrind::Image* img = kernel->imageArgs.top();
+      kernel->imageArgs.pop();
+      delete img;
+    }
+
     delete kernel->kernel;
 
     clReleaseProgram(kernel->program);
@@ -2962,6 +2971,8 @@ clSetKernelArg
         image->format = ((cl_image*)mem)->format;
         image->desc = ((cl_image*)mem)->desc;
         *(oclgrind::Image**)value.data = image;
+        // Keep a record of the image struct for releasing it later
+        kernel->imageArgs.push(image);
       }
       else
       {

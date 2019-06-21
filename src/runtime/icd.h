@@ -138,6 +138,7 @@ namespace oclgrind
   class Program;
   class Queue;
   struct Event;
+  struct Image;
 }
 
 struct _cl_platform_id
@@ -209,6 +210,7 @@ struct _cl_kernel
   oclgrind::Kernel *kernel;
   cl_program program;
   std::map<cl_uint, cl_mem> memArgs;
+  std::stack<oclgrind::Image*> imageArgs;
   unsigned int refCount;
 };
 
