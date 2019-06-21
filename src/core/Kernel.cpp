@@ -309,47 +309,50 @@ size_t Kernel::getArgumentSize(unsigned int index) const
 string Kernel::getAttributes() const
 {
   ostringstream attributes("");
-  for (unsigned i = 0; i < m_metadata->getNumOperands(); i++)
+  llvm::MDNode *node;
+
+  node = m_function->getMetadata("reqd_work_group_size");
+  if (node)
   {
-    llvm::MDNode *op = llvm::dyn_cast<llvm::MDNode>(m_metadata->getOperand(i));
-    if (op)
-    {
-      llvm::MDNode *val = ((llvm::MDNode*)op);
-      llvm::MDString *str =
-        llvm::dyn_cast<llvm::MDString>(val->getOperand(0).get());
-      string name = str->getString().str();
-
-      if (name == "reqd_work_group_size" ||
-          name == "work_group_size_hint")
-      {
-        attributes << name << "("
-                   <<        getMDAsConstInt(val->getOperand(1))->getZExtValue()
-                   << "," << getMDAsConstInt(val->getOperand(2))->getZExtValue()
-                   << "," << getMDAsConstInt(val->getOperand(3))->getZExtValue()
-                   << ") ";
-      }
-      else if (name == "vec_type_hint")
-      {
-        // Get type hint
-        size_t n = 1;
-        llvm::Metadata *md = val->getOperand(1).get();
-        llvm::ValueAsMetadata *vam = llvm::dyn_cast<llvm::ValueAsMetadata>(md);
-        const llvm::Type *type = vam->getType();
-        if (type->isVectorTy())
-        {
-          n = type->getVectorNumElements();
-          type = type->getVectorElementType();
-        }
-
-        // Generate attribute string
-        attributes << name << "(" << flush;
-        llvm::raw_os_ostream out(attributes);
-        type->print(out);
-        out.flush();
-        attributes << n << ") ";
-      }
-    }
+    attributes << "reqd_work_group_size("
+               <<        getMDAsConstInt(node->getOperand(0))->getZExtValue()
+               << "," << getMDAsConstInt(node->getOperand(1))->getZExtValue()
+               << "," << getMDAsConstInt(node->getOperand(2))->getZExtValue()
+               << ") ";
   }
+
+  node = m_function->getMetadata("work_group_size_hint");
+  if (node)
+  {
+    attributes << "work_group_size_hint("
+               <<        getMDAsConstInt(node->getOperand(0))->getZExtValue()
+               << "," << getMDAsConstInt(node->getOperand(1))->getZExtValue()
+               << "," << getMDAsConstInt(node->getOperand(2))->getZExtValue()
+               << ") ";
+  }
+
+  node = m_function->getMetadata("vec_type_hint");
+  if (node)
+  {
+    // Get type hint
+    size_t n = 1;
+    llvm::Metadata *md = node->getOperand(0).get();
+    llvm::ValueAsMetadata *vam = llvm::dyn_cast<llvm::ValueAsMetadata>(md);
+    const llvm::Type *type = vam->getType();
+    if (type->isVectorTy())
+    {
+      n = type->getVectorNumElements();
+      type = type->getVectorElementType();
+    }
+
+    // Generate attribute string
+    attributes << "vec_type_hint(" << flush;
+    llvm::raw_os_ostream out(attributes);
+    type->print(out);
+    out.flush();
+    attributes << n << ") ";
+  }
+
   return attributes.str();
 }
 
