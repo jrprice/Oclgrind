@@ -113,8 +113,6 @@
 #define clCreateEventFromGLsyncKHR _clCreateEventFromGLsyncKHR
 #endif // OCLGRIND_ICD
 
-#include "core/common.h"
-
 #include <list>
 #include <map>
 #include <stack>
@@ -140,6 +138,7 @@ namespace oclgrind
   class Program;
   class Queue;
   struct Event;
+  struct Image;
 }
 
 struct _cl_platform_id
