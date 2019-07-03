@@ -4027,7 +4027,7 @@ clEnqueueCopyBufferRect
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, dst_buffer);
   }
 
-  // Compute pitches if neccessary
+  // Compute pitches if necessary
   if (src_row_pitch == 0)
   {
     src_row_pitch = region[0];
@@ -4381,7 +4381,7 @@ clEnqueueReadImage
     buffer_origin, host_origin, pixel_region,
     img_row_pitch, img_slice_pitch, row_pitch, slice_pitch,
     ptr, num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_READ_IMAGE;
   }
@@ -4438,7 +4438,7 @@ clEnqueueWriteImage
     buffer_origin, host_origin, pixel_region,
     img_row_pitch, img_slice_pitch, input_row_pitch, input_slice_pitch,
     ptr, num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_WRITE_IMAGE;
   }
@@ -4506,7 +4506,7 @@ clEnqueueCopyImage
     src_pixel_origin, dst_pixel_origin, pixel_region,
     src_row_pitch, src_slice_pitch, dst_row_pitch, dst_slice_pitch,
     num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_COPY_IMAGE;
   }
@@ -4557,7 +4557,7 @@ clEnqueueCopyImageToBuffer
     src_pixel_origin, dst_origin, pixel_region,
     src_row_pitch, src_slice_pitch, 0, 0,
     num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_COPY_IMAGE_TO_BUFFER;
   }
@@ -4608,7 +4608,7 @@ clEnqueueCopyBufferToImage
     src_origin, dst_pixel_origin, pixel_region,
     0, 0, dst_row_pitch, dst_slice_pitch,
     num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_COPY_BUFFER_TO_IMAGE;
   }
