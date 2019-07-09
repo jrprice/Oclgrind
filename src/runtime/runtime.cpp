@@ -3981,6 +3981,28 @@ clEnqueueCopyBuffer
                     "src_offset + cb (" << src_offset << " + " << cb <<
                     ") exceeds buffer size (" << src_buffer->size << " bytes)");
   }
+  // If src and dst buffers are the same and if src_offset comes before
+  // dst_offset and src buffer size goes beyond dst_offset then there is an
+  // overlap
+  if ((src_buffer == dst_buffer) &&
+      (src_offset <= dst_offset) && ((src_offset + cb) > dst_offset))
+  {
+    ReturnErrorInfo(command_queue->context, CL_MEM_COPY_OVERLAP,
+                    "src_buffer == dst_buffer and "
+                    "src_offset + cb (" << src_offset << " + " << cb <<
+                    ") overlaps dst_offset (" << dst_offset << ")");
+  }
+  // If src and dst buffers are the same and if dst_offset comes before
+  // src_offset and dst buffer size goes beyond src_offset then there is an
+  // overlap
+  if ((src_buffer == dst_buffer) &&
+      (dst_offset <= src_offset) && ((dst_offset + cb) > src_offset))
+  {
+    ReturnErrorInfo(command_queue->context, CL_MEM_COPY_OVERLAP,
+                    "src_buffer == dst_buffer and "
+                    "dst_offset + cb (" << dst_offset << " + " << cb <<
+                    ") overlaps src_offset (" << src_offset << ")");
+  }
 
   // Enqueue command
   oclgrind::Queue::CopyCommand *cmd = new oclgrind::Queue::CopyCommand();
