@@ -13,11 +13,15 @@ namespace oclgrind
 {
   class Context;
   class Kernel;
+  class Queue;
+  struct Command;
 
   struct Event
   {
     int state;
     double queueTime, startTime, endTime;
+    Command *command;
+    Queue *queue;
     Event();
   };
 
@@ -29,6 +33,7 @@ namespace oclgrind
 
     CommandType type;
     std::list<Event*> waitList;
+    std::list<Command*> execBefore;
     Command()
     {
       type = EMPTY;
@@ -36,6 +41,7 @@ namespace oclgrind
     virtual ~Command() { }
   private:
     Event *event;
+    Command *previous;
     friend class Queue;
   };
   struct BufferCommand : Command
@@ -189,6 +195,7 @@ namespace oclgrind
     virtual ~Queue();
 
     Event* enqueue(Command *command);
+    void execute(Command *command);
 
     void executeCopyBuffer(CopyCommand *cmd);
     void executeCopyBufferRect(CopyRectCommand *cmd);
@@ -208,6 +215,6 @@ namespace oclgrind
 
   private:
     const Context *m_context;
-    std::queue<Command*> m_queue;
+    std::list<Command*> m_queue;
   };
 }

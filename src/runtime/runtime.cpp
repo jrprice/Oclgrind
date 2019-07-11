@@ -167,6 +167,24 @@ namespace
       context->notify(error.c_str(), context->data, 0, NULL);
     }
   }
+
+  void releaseCommand(oclgrind::Command *command)
+  {
+    if (command)
+    {
+      asyncQueueRelease(command);
+
+      // Release dependent commands
+      while (!command->execBefore.empty())
+      {
+        oclgrind::Command *cmd = command->execBefore.front();
+        command->execBefore.pop_front();
+        releaseCommand(cmd);
+      }
+
+      delete command;
+    }
+  }
 }
 
 #if defined(_WIN32) && !defined(__MINGW32__)
@@ -3273,15 +3291,12 @@ clWaitForEvents
         continue;
       }
 
-      // If it's not a user event, update the queue
+      // If it's not a user event, execute the associated command
       if (event_list[i]->queue)
       {
-        oclgrind::Command *cmd = event_list[i]->queue->queue->update();
-        if (cmd)
-        {
-          asyncQueueRelease(cmd);
-          delete cmd;
-        }
+        oclgrind::Command *cmd = event_list[i]->event->command;
+        event_list[i]->event->queue->execute(cmd);
+        releaseCommand(cmd);
 
         // If it's still not complete, update flag
         if (!isComplete(event_list[i]))
@@ -3610,16 +3625,9 @@ clFinish
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
-  while (!command_queue->queue->isEmpty())
-  {
-    // TODO: Move this update to async thread?
-    oclgrind::Command *cmd = command_queue->queue->update();
-    if (cmd)
-    {
-      asyncQueueRelease(cmd);
-      delete cmd;
-    }
-  }
+  // TODO: Move this update to async thread?
+  oclgrind::Command *cmd = command_queue->queue->update();
+  releaseCommand(cmd);
 
   return CL_SUCCESS;
 }
