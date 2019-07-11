@@ -10,6 +10,7 @@ typedef struct
 } Context;
 
 void checkError(cl_int err, const char *operation);
+void checkOclgrindPlatform(cl_platform_id platform);
 
 Context createContext(const char *source, const char *options);
 void    releaseContext(Context cl);
