@@ -38,7 +38,10 @@ Event* Queue::enqueue(Command *cmd)
 {
   Event *event = new Event();
   cmd->event = event;
-  m_queue.push(cmd);
+  cmd->previous = m_queue.empty() ? NULL : m_queue.back();
+  event->command = cmd;
+  event->queue = this;
+  m_queue.push_back(cmd);
   return event;
 }
 
@@ -193,6 +196,90 @@ bool Queue::isEmpty() const
   return m_queue.empty();
 }
 
+void Queue::execute(Command *command)
+{
+  // If this queue is not out of order, add previous event associated with
+  // previous command in queue as dependency
+  if (command->previous /* && Check if not out of order queue */)
+  {
+    command->waitList.push_back(command->previous->event);
+  }
+
+  // Make sure all events in the wait list are complete before executing
+  // current command
+  while (!command->waitList.empty())
+  {
+    Event *evt = command->waitList.front();
+    command->waitList.pop_front();
+
+    if (evt->state < 0)
+    {
+      command->event->state = evt->state;
+      return;
+    }
+    else if (evt->state != CL_COMPLETE)
+    {
+      evt->queue->execute(evt->command);
+      command->execBefore.push_front(evt->command);
+    }
+  }
+
+  // Dispatch command
+  command->event->startTime = now();
+  command->event->state = CL_RUNNING;
+
+  switch (command->type)
+  {
+  case Command::COPY:
+    executeCopyBuffer((CopyCommand*)command);
+    break;
+  case Command::COPY_RECT:
+    executeCopyBufferRect((CopyRectCommand*)command);
+    break;
+  case Command::EMPTY:
+    break;
+  case Command::FILL_BUFFER:
+    executeFillBuffer((FillBufferCommand*)command);
+    break;
+  case Command::FILL_IMAGE:
+    executeFillImage((FillImageCommand*)command);
+    break;
+  case Command::READ:
+    executeReadBuffer((BufferCommand*)command);
+    break;
+  case Command::READ_RECT:
+    executeReadBufferRect((BufferRectCommand*)command);
+    break;
+  case Command::KERNEL:
+    executeKernel((KernelCommand*)command);
+    break;
+  case Command::MAP:
+    executeMap((MapCommand*)command);
+    break;
+  case Command::NATIVE_KERNEL:
+    executeNativeKernel((NativeKernelCommand*)command);
+    break;
+  case Command::UNMAP:
+    executeUnmap((UnmapCommand*)command);
+    break;
+  case Command::WRITE:
+    executeWriteBuffer((BufferCommand*)command);
+    break;
+  case Command::WRITE_RECT:
+    executeWriteBufferRect((BufferRectCommand*)command);
+    break;
+  default:
+    assert(false && "Unhandled command type in queue.");
+  }
+
+  command->event->endTime = now();
+  command->event->state = CL_COMPLETE;
+
+  // Remove command from its queue
+  m_queue.remove(command);
+
+}
+
 Command* Queue::update()
 {
   if (m_queue.empty())
@@ -200,80 +287,10 @@ Command* Queue::update()
     return NULL;
   }
 
-  // Get next command
-  Command *cmd = m_queue.front();
+  // Get most recent command in queue and execute it, triggering the execution
+  // of all previous commands
+  Command *cmd = m_queue.back();
+  execute(cmd);
 
-  // Check if all events in wait list have completed
-  while (!cmd->waitList.empty())
-  {
-    if (cmd->waitList.front()->state == CL_COMPLETE)
-    {
-      cmd->waitList.pop_front();
-    }
-    else if (cmd->waitList.front()->state < 0)
-    {
-      cmd->event->state = cmd->waitList.front()->state;
-      m_queue.pop();
-      return cmd;
-    }
-    else
-    {
-      return NULL;
-    }
-  }
-
-  cmd->event->startTime = now();
-  cmd->event->state = CL_RUNNING;
-
-  // Dispatch command
-  switch (cmd->type)
-  {
-  case Command::COPY:
-    executeCopyBuffer((CopyCommand*)cmd);
-    break;
-  case Command::COPY_RECT:
-    executeCopyBufferRect((CopyRectCommand*)cmd);
-    break;
-  case Command::EMPTY:
-    break;
-  case Command::FILL_BUFFER:
-    executeFillBuffer((FillBufferCommand*)cmd);
-    break;
-  case Command::FILL_IMAGE:
-    executeFillImage((FillImageCommand*)cmd);
-    break;
-  case Command::READ:
-    executeReadBuffer((BufferCommand*)cmd);
-    break;
-  case Command::READ_RECT:
-    executeReadBufferRect((BufferRectCommand*)cmd);
-    break;
-  case Command::KERNEL:
-    executeKernel((KernelCommand*)cmd);
-    break;
-  case Command::MAP:
-    executeMap((MapCommand*)cmd);
-    break;
-  case Command::NATIVE_KERNEL:
-    executeNativeKernel((NativeKernelCommand*)cmd);
-    break;
-  case Command::UNMAP:
-    executeUnmap((UnmapCommand*)cmd);
-    break;
-  case Command::WRITE:
-    executeWriteBuffer((BufferCommand*)cmd);
-    break;
-  case Command::WRITE_RECT:
-    executeWriteBufferRect((BufferRectCommand*)cmd);
-    break;
-  default:
-    assert(false && "Unhandled command type in queue.");
-  }
-
-  cmd->event->endTime = now();
-  cmd->event->state = CL_COMPLETE;
-
-  // Remove command from queue and delete
-  m_queue.pop();
   return cmd;
 }

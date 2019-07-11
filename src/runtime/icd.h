@@ -137,6 +137,7 @@ namespace oclgrind
   class Kernel;
   class Program;
   class Queue;
+  struct Command;
   struct Event;
   struct Image;
 }
