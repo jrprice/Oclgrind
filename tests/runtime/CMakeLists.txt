@@ -14,6 +14,7 @@ foreach(test
   build_program
   kernel_scope_local_mem_usage
   map_buffer
+  multqueues
   sampler)
 
   add_executable(${test} ${test}.c ${COMMON_SOURCES})
