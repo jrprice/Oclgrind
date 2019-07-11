@@ -631,7 +631,8 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_QUEUE_ON_HOST_PROPERTIES:
     result_size = sizeof(cl_command_queue_properties);
-    result_data.clcmdqprop = CL_QUEUE_PROFILING_ENABLE;
+    result_data.clcmdqprop =
+      CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE;
     break;
   case CL_DEVICE_QUEUE_ON_DEVICE_PROPERTIES:
     result_size = sizeof(cl_command_queue_properties);
@@ -1077,17 +1078,12 @@ clCreateCommandQueue
     SetErrorArg(context, CL_INVALID_DEVICE, device);
     return NULL;
   }
-  if (properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE)
-  {
-    SetErrorInfo(context, CL_INVALID_QUEUE_PROPERTIES,
-                 "Out-of-order command queues not supported");
-    return NULL;
-  }
 
   // Create command-queue object
+  bool out_of_order = properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
   cl_command_queue queue;
   queue = new _cl_command_queue;
-  queue->queue = new oclgrind::Queue(context->context);
+  queue->queue = new oclgrind::Queue(context->context, out_of_order);
   queue->dispatch = m_dispatchTable;
   queue->properties = properties;
   queue->context = context;
@@ -5670,6 +5666,7 @@ clCreateCommandQueueWithProperties
 
   // Parse properties
   cl_command_queue_properties props = 0;
+  bool out_of_order = false;
   unsigned i = 0;
   while (properties && properties[i])
   {
@@ -5678,9 +5675,7 @@ clCreateCommandQueueWithProperties
     case CL_QUEUE_PROPERTIES:
       if (properties[i] & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE)
       {
-        SetErrorInfo(context, CL_INVALID_QUEUE_PROPERTIES,
-                     "Out-of-order command queues not supported");
-        return NULL;
+        out_of_order = true;
       }
       if (properties[i] &
           (CL_QUEUE_ON_DEVICE|CL_QUEUE_ON_DEVICE_DEFAULT))
@@ -5704,7 +5699,7 @@ clCreateCommandQueueWithProperties
   // Create command-queue object
   cl_command_queue queue;
   queue = new _cl_command_queue;
-  queue->queue = new oclgrind::Queue(context->context);
+  queue->queue = new oclgrind::Queue(context->context, out_of_order);
   queue->dispatch = m_dispatchTable;
   queue->properties = props;
   queue->context = context;

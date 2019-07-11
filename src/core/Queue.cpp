@@ -19,8 +19,8 @@
 using namespace oclgrind;
 using namespace std;
 
-Queue::Queue(const Context *context)
-  : m_context(context)
+Queue::Queue(const Context *context, bool out_of_order)
+  : m_context(context), m_out_of_order(out_of_order)
 {
 }
 
@@ -203,7 +203,7 @@ void Queue::execute(Command *command)
 
   // If this queue is not out of order, add previous event associated with
   // previous command in queue as dependency
-  if (it != m_queue.begin() /* && Check if not out of order queue */)
+  if (it != m_queue.begin() && !m_out_of_order)
   {
     command->waitList.push_back((*std::prev(it))->event);
   }
