@@ -190,7 +190,7 @@ namespace oclgrind
   class Queue
   {
   public:
-    Queue(const Context *context);
+    Queue(const Context *context, const bool out_of_order);
     virtual ~Queue();
 
     Event* enqueue(Command *command);
@@ -214,6 +214,7 @@ namespace oclgrind
 
   private:
     const Context *m_context;
+    const bool m_out_of_order;
     std::list<Command*> m_queue;
   };
 }
