@@ -3276,7 +3276,7 @@ clWaitForEvents
       // If it's not a user event, update the queue
       if (event_list[i]->queue)
       {
-        oclgrind::Queue::Command *cmd = event_list[i]->queue->queue->update();
+        oclgrind::Command *cmd = event_list[i]->queue->queue->update();
         if (cmd)
         {
           asyncQueueRelease(cmd);
@@ -3613,7 +3613,7 @@ clFinish
   while (!command_queue->queue->isEmpty())
   {
     // TODO: Move this update to async thread?
-    oclgrind::Queue::Command *cmd = command_queue->queue->update();
+    oclgrind::Command *cmd = command_queue->queue->update();
     if (cmd)
     {
       asyncQueueRelease(cmd);
@@ -3664,8 +3664,8 @@ clEnqueueReadBuffer
   }
 
   // Enqueue command
-  oclgrind::Queue::BufferCommand *cmd =
-    new oclgrind::Queue::BufferCommand(oclgrind::Queue::READ);
+  oclgrind::BufferCommand *cmd =
+    new oclgrind::BufferCommand(oclgrind::Command::READ);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address + offset;
   cmd->size = cb;
@@ -3760,8 +3760,8 @@ clEnqueueReadBufferRect
   }
 
   // Enqueue command
-  oclgrind::Queue::BufferRectCommand *cmd =
-    new oclgrind::Queue::BufferRectCommand(oclgrind::Queue::READ_RECT);
+  oclgrind::BufferRectCommand *cmd =
+    new oclgrind::BufferRectCommand(oclgrind::Command::READ_RECT);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address;
   cmd->buffer_offset[0] = buffer_offset;
@@ -3823,8 +3823,8 @@ clEnqueueWriteBuffer
   }
 
   // Enqueue command
-  oclgrind::Queue::BufferCommand *cmd =
-    new oclgrind::Queue::BufferCommand(oclgrind::Queue::WRITE);
+  oclgrind::BufferCommand *cmd =
+    new oclgrind::BufferCommand(oclgrind::Command::WRITE);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address + offset;
   cmd->size = cb;
@@ -3919,8 +3919,8 @@ clEnqueueWriteBufferRect
   }
 
   // Enqueue command
-  oclgrind::Queue::BufferRectCommand *cmd =
-    new oclgrind::Queue::BufferRectCommand(oclgrind::Queue::WRITE_RECT);
+  oclgrind::BufferRectCommand *cmd =
+    new oclgrind::BufferRectCommand(oclgrind::Command::WRITE_RECT);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address;
   cmd->buffer_offset[0] = buffer_offset;
@@ -4005,7 +4005,7 @@ clEnqueueCopyBuffer
   }
 
   // Enqueue command
-  oclgrind::Queue::CopyCommand *cmd = new oclgrind::Queue::CopyCommand();
+  oclgrind::CopyCommand *cmd = new oclgrind::CopyCommand();
   cmd->dst = dst_buffer->address + dst_offset;
   cmd->src = src_buffer->address + src_offset;
   cmd->size = cb;
@@ -4104,7 +4104,7 @@ clEnqueueCopyBufferRect
   }
 
   // Enqueue command
-  oclgrind::Queue::CopyRectCommand *cmd = new oclgrind::Queue::CopyRectCommand();
+  oclgrind::CopyRectCommand *cmd = new oclgrind::CopyRectCommand();
   cmd->src = src_buffer->address;
   cmd->dst = dst_buffer->address;
   cmd->src_offset[0] = src_offset;
@@ -4173,9 +4173,9 @@ clEnqueueFillBuffer
   }
 
   // Enqueue command
-  oclgrind::Queue::FillBufferCommand *cmd =
-    new oclgrind::Queue::FillBufferCommand((const unsigned char*)pattern,
-                                          pattern_size);
+  oclgrind::FillBufferCommand *cmd =
+    new oclgrind::FillBufferCommand((const unsigned char*)pattern,
+                                     pattern_size);
   cmd->address = buffer->address + offset;
   cmd->size = cb;
   asyncQueueRetain(cmd, buffer);
@@ -4345,10 +4345,10 @@ clEnqueueFillImage
   }
 
   // Enqueue command
-  oclgrind::Queue::FillImageCommand *cmd =
-    new oclgrind::Queue::FillImageCommand(image->address, origin, region,
-                                         row_pitch, slice_pitch,
-                                         pixelSize, color);
+  oclgrind::FillImageCommand *cmd =
+    new oclgrind::FillImageCommand(image->address, origin, region,
+                                   row_pitch, slice_pitch,
+                                   pixelSize, color);
   asyncQueueRetain(cmd, image);
   asyncEnqueue(command_queue, CL_COMMAND_FILL_IMAGE, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4701,7 +4701,7 @@ clEnqueueMapBuffer
   }
 
   // Enqueue command
-  oclgrind::Queue::MapCommand *cmd = new oclgrind::Queue::MapCommand();
+  oclgrind::MapCommand *cmd = new oclgrind::MapCommand();
   cmd->address = buffer->address;
   cmd->offset  = offset;
   cmd->size    = cb;
@@ -4834,7 +4834,7 @@ clEnqueueMapImage
   }
 
   // Enqueue command
-  oclgrind::Queue::MapCommand *cmd = new oclgrind::Queue::MapCommand();
+  oclgrind::MapCommand *cmd = new oclgrind::MapCommand();
   cmd->address = image->address;
   cmd->offset  = offset;
   cmd->size    = size;
@@ -4878,7 +4878,7 @@ clEnqueueUnmapMemObject
   }
 
   // Enqueue command
-  oclgrind::Queue::UnmapCommand *cmd = new oclgrind::Queue::UnmapCommand();
+  oclgrind::UnmapCommand *cmd = new oclgrind::UnmapCommand();
   cmd->address = memobj->address;
   cmd->ptr     = mapped_ptr;
   asyncQueueRetain(cmd, memobj);
@@ -4907,7 +4907,7 @@ clEnqueueMigrateMemObjects
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
+  oclgrind::Command *cmd = new oclgrind::Command();
   asyncEnqueue(command_queue, CL_COMMAND_MIGRATE_MEM_OBJECTS, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
@@ -5023,7 +5023,7 @@ clEnqueueNDRangeKernel
   }
 
   // Set-up offsets and sizes
-  oclgrind::Queue::KernelCommand *cmd = new oclgrind::Queue::KernelCommand();
+  oclgrind::KernelCommand *cmd = new oclgrind::KernelCommand();
   cmd->kernel = new oclgrind::Kernel(*kernel->kernel);
   cmd->work_dim = work_dim;
   cmd->globalSize   = oclgrind::Size3(1, 1, 1);
@@ -5130,8 +5130,8 @@ clEnqueueNativeKernel
   }
 
   // Create command
-  oclgrind::Queue::NativeKernelCommand *cmd =
-    new oclgrind::Queue::NativeKernelCommand(user_func, args, cb_args);
+  oclgrind::NativeKernelCommand *cmd =
+    new oclgrind::NativeKernelCommand(user_func, args, cb_args);
 
   // Retain memory objects
   for (unsigned i = 0; i < num_mem_objects; i++)
@@ -5172,7 +5172,7 @@ clEnqueueMarkerWithWaitList
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
+  oclgrind::Command *cmd = new oclgrind::Command();
   asyncEnqueue(command_queue, CL_COMMAND_MARKER, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
@@ -5195,7 +5195,7 @@ clEnqueueBarrierWithWaitList
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
+  oclgrind::Command *cmd = new oclgrind::Command();
   asyncEnqueue(command_queue, CL_COMMAND_BARRIER, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
@@ -5237,7 +5237,7 @@ clEnqueueWaitForEvents
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
+  oclgrind::Command *cmd = new oclgrind::Command();
   asyncEnqueue(command_queue, CL_COMMAND_BARRIER, cmd,
                num_events, event_list, NULL);
 

@@ -193,7 +193,7 @@ bool Queue::isEmpty() const
   return m_queue.empty();
 }
 
-Queue::Command* Queue::update()
+Command* Queue::update()
 {
   if (m_queue.empty())
   {
@@ -228,42 +228,42 @@ Queue::Command* Queue::update()
   // Dispatch command
   switch (cmd->type)
   {
-  case COPY:
+  case Command::COPY:
     executeCopyBuffer((CopyCommand*)cmd);
     break;
-  case COPY_RECT:
+  case Command::COPY_RECT:
     executeCopyBufferRect((CopyRectCommand*)cmd);
     break;
-  case EMPTY:
+  case Command::EMPTY:
     break;
-  case FILL_BUFFER:
+  case Command::FILL_BUFFER:
     executeFillBuffer((FillBufferCommand*)cmd);
     break;
-  case FILL_IMAGE:
+  case Command::FILL_IMAGE:
     executeFillImage((FillImageCommand*)cmd);
     break;
-  case READ:
+  case Command::READ:
     executeReadBuffer((BufferCommand*)cmd);
     break;
-  case READ_RECT:
+  case Command::READ_RECT:
     executeReadBufferRect((BufferRectCommand*)cmd);
     break;
-  case KERNEL:
+  case Command::KERNEL:
     executeKernel((KernelCommand*)cmd);
     break;
-  case MAP:
+  case Command::MAP:
     executeMap((MapCommand*)cmd);
     break;
-  case NATIVE_KERNEL:
+  case Command::NATIVE_KERNEL:
     executeNativeKernel((NativeKernelCommand*)cmd);
     break;
-  case UNMAP:
+  case Command::UNMAP:
     executeUnmap((UnmapCommand*)cmd);
     break;
-  case WRITE:
+  case Command::WRITE:
     executeWriteBuffer((BufferCommand*)cmd);
     break;
-  case WRITE_RECT:
+  case Command::WRITE_RECT:
     executeWriteBufferRect((BufferRectCommand*)cmd);
     break;
   default:
