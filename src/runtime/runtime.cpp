@@ -3291,7 +3291,7 @@ clWaitForEvents
       if (event_list[i]->queue)
       {
         oclgrind::Command *cmd = event_list[i]->event->command;
-        event_list[i]->event->queue->execute(cmd);
+        event_list[i]->event->queue->execute(cmd, false);
         releaseCommand(cmd);
 
         // If it's still not complete, update flag
