@@ -41,7 +41,6 @@ namespace oclgrind
     virtual ~Command() { }
   private:
     Event *event;
-    Command *previous;
     friend class Queue;
   };
   struct BufferCommand : Command
