@@ -196,14 +196,15 @@ bool Queue::isEmpty() const
   return m_queue.empty();
 }
 
-void Queue::execute(Command *command)
+void Queue::execute(Command *command, bool flush)
 {
   // Find command in queue
   auto it = std::find(m_queue.begin(), m_queue.end(), command);
 
-  // If this queue is not out of order, add previous event associated with
-  // previous command in queue as dependency
-  if (it != m_queue.begin() && !m_out_of_order)
+  // If there is a previous (older) command in the queue AND either the queue
+  // is not out of order OR needs to be flushed, then add event associated with
+  // previous (older) command as a dependency
+  if (it != m_queue.begin() && (!m_out_of_order || flush))
   {
     command->waitList.push_back((*std::prev(it))->event);
   }
@@ -226,7 +227,7 @@ void Queue::execute(Command *command)
       if (evt->command)
       {
         // If it's not a user event, execute the associated command
-        evt->queue->execute(evt->command);
+        evt->queue->execute(evt->command, flush);
         command->execBefore.push_front(evt->command);
       }
       else
@@ -301,9 +302,9 @@ Command* Queue::finish()
   }
 
   // Get most recent command in queue and execute it, triggering the execution
-  // of all previous commands
+  // of all previous commands even if it's an out-of-order queue
   Command *cmd = m_queue.back();
-  execute(cmd);
+  execute(cmd, true);
 
   return cmd;
 }

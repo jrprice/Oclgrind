@@ -194,7 +194,7 @@ namespace oclgrind
     virtual ~Queue();
 
     Event* enqueue(Command *command);
-    void execute(Command *command);
+    void execute(Command *command, bool flush);
 
     void executeCopyBuffer(CopyCommand *cmd);
     void executeCopyBufferRect(CopyRectCommand *cmd);
