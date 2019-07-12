@@ -9,6 +9,7 @@
 #include "common.h"
 
 #include <cassert>
+#include <algorithm>
 
 #include "Context.h"
 #include "KernelInvocation.h"
@@ -38,7 +39,6 @@ Event* Queue::enqueue(Command *cmd)
 {
   Event *event = new Event();
   cmd->event = event;
-  cmd->previous = m_queue.empty() ? NULL : m_queue.back();
   event->command = cmd;
   event->queue = this;
   m_queue.push_back(cmd);
@@ -198,11 +198,14 @@ bool Queue::isEmpty() const
 
 void Queue::execute(Command *command)
 {
+  // Find command in queue
+  auto it = std::find(m_queue.begin(), m_queue.end(), command);
+
   // If this queue is not out of order, add previous event associated with
   // previous command in queue as dependency
-  if (command->previous /* && Check if not out of order queue */)
+  if (it != m_queue.begin() /* && Check if not out of order queue */)
   {
-    command->waitList.push_back(command->previous->event);
+    command->waitList.push_back((*std::prev(it))->event);
   }
 
   // Make sure all events in the wait list are complete before executing
@@ -276,8 +279,7 @@ void Queue::execute(Command *command)
   command->event->state = CL_COMPLETE;
 
   // Remove command from its queue
-  m_queue.remove(command);
-
+  m_queue.erase(it);
 }
 
 Command* Queue::update()
