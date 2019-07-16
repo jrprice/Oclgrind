@@ -4048,6 +4048,10 @@ clEnqueueCopyBufferRect
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, dst_buffer);
   }
+  if (!region || region[0] == 0 || region[1] == 0 || region[2] == 0)
+  {
+    ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, region);
+  }
 
   // Compute pitches if necessary
   if (src_row_pitch == 0)
