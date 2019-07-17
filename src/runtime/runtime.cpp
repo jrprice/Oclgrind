@@ -4868,6 +4868,10 @@ clEnqueueUnmapMemObject
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, memobj);
   }
+  if (!mapped_ptr)
+  {
+    ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, mapped_ptr);
+  }
 
   // Enqueue command
   oclgrind::Queue::UnmapCommand *cmd = new oclgrind::Queue::UnmapCommand();
