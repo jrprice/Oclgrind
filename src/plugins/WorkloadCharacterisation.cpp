@@ -139,6 +139,39 @@ void WorkloadCharacterisation::instructionExecuted(
     std::string opcode_name = llvm::Instruction::getOpcodeName(opcode);
     (*m_state.computeOps)[opcode_name]++;
 
+    //TEST to see if the instruction is using local memory:
+    const llvm::Type *type = instruction->getType();
+    if (type->isPointerTy())
+    {
+	switch(type->getPointerAddressSpace()){
+        case AddrSpaceLocal:
+	{
+		//std::cout << "It's a local (shared)! ";
+                //    // Local pointer kernel arguments and local data variables
+                //    // value->second.data == NULL
+                //    // value->second.size == val size
+                //    //if(llvm::isa<llvm::Argument>(type))
+                //    {
+                //        // Arguments have a private pointer
+                //        //m_deferredInit.push_back(*value);
+		//	//const llvm::Argument* inst = llvm::dyn_cast<const llvm::Argument*>(type->getPointer());
+		//        std::cout << "argument encountered!" << std::endl;
+		//	//inst.print();
+                //    }
+	        //std::cout << std::endl;
+                m_state.shared_memory_access_count ++;
+	}
+        case AddrSpaceGlobal:
+	{
+    	    m_state.global_memory_access_count ++;
+	}
+        case AddrSpacePrivate:
+	{
+    	    m_state.private_memory_access_count ++;
+	}
+    }
+    }
+
     //get all unique labels -- for register use -- and the # of instructions between loads and stores -- as the freedom to reorder
     m_state.ops_between_load_or_store ++;
     if (auto inst = llvm::dyn_cast<llvm::LoadInst>(instruction)) {
@@ -245,6 +278,9 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
     m_storeInstructionLabels.clear();
     m_threads_invoked = 0;
     m_barriers_hit = 0;
+    m_global_memory_access = 0;
+    m_shared_memory_access = 0;
+    m_private_memory_access = 0;
 }
 
 void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocation)
@@ -464,6 +500,17 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         cout << nskip << "\t\t" << (float)local_entropy << endl;
     }
 
+    cout << "+----------------------------------------------------------------------------------+" << endl;
+    cout << "|Memory Diversity -- Usage of Shared and Private memory relative to global memory  |" << endl;
+    cout << "+==================================================================================+" << endl;
+    cout << "Total # of global memory accessed: " <<  m_global_memory_access << endl;
+    cout << "Total # of shared memory accessed: " <<  m_shared_memory_access << endl;
+    cout << "Total # of private memory accessed: " << m_private_memory_access << endl;
+
+    cout << "\% of shared memory accesses (shared/global): " << (((float)m_shared_memory_access/(float)m_global_memory_access)*100) << endl;
+    cout << "\% of private memory accesses (private/global): " << (((float)m_private_memory_access/(float)m_global_memory_access)*100) << endl;
+
+
     cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
     cout << "|Unique Branch Instructions -- Total number of unique branch instructions to cover 90\% of the branches|" << endl;
     cout << "+=======================================================================================================+" << endl;
@@ -585,6 +632,11 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     for(int nskip = 1; nskip < 11; nskip++){
         logfile << "local memory address entropy -- " << nskip << " LSBs skipped," << loc_entropy[nskip-1] << "\n";
     }
+    logfile << "total global memory accessed, " <<  m_global_memory_access << "\n";
+    logfile << "total shared memory accessed, " <<  m_shared_memory_access << "\n";
+    logfile << "total private memory accessed, " << m_private_memory_access << "\n";
+    logfile << "relative shared memory usage, " << (((float)m_shared_memory_access/(float)m_global_memory_access)*100) << "\n";
+    logfile << "relative private memory usage, " << (((float)m_private_memory_access/(float)m_global_memory_access)*100) << "\n";
     logfile << "total unique branch instructions," << sorted_branch_ops.size() << "\n";
     logfile << "90\% branch instructions," << unique_branch_addresses << "\n";
     logfile << "branch entropy (yokota)," << yokota_entropy_per_workload << "\n";
@@ -661,6 +713,11 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup)
     m_state.instruction_count=0;
     m_state.barriers_hit = 0;
 
+    //memory type access count variables
+    m_state.private_memory_access_count = 0;
+    m_state.shared_memory_access_count = 0;
+    m_state.global_memory_access_count = 0;
+
     //branch logic variables
     m_state.previous_instruction_is_branch=false;
     m_state.target1="";
@@ -713,6 +770,11 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup)
 
     for(auto const& item: (*m_state.storeInstructionLabels))
         m_storeInstructionLabels[item.first]+=item.second;
+
+    // merge memory type access count variables
+    m_private_memory_access += m_state.private_memory_access_count;
+    m_shared_memory_access += m_state.shared_memory_access_count;
+    m_global_memory_access += m_state.global_memory_access_count;
 
 }
 
