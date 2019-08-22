@@ -3772,7 +3772,7 @@ clEnqueueReadBufferRect
   cmd->host_offset[2] = host_slice_pitch;
   memcpy(cmd->region, region, 3*sizeof(size_t));
   asyncQueueRetain(cmd, buffer);
-  asyncEnqueue(command_queue, CL_COMMAND_READ_BUFFER, cmd,
+  asyncEnqueue(command_queue, CL_COMMAND_READ_BUFFER_RECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   if (blocking_read)
@@ -3931,7 +3931,7 @@ clEnqueueWriteBufferRect
   cmd->host_offset[2] = host_slice_pitch;
   memcpy(cmd->region, region, 3*sizeof(size_t));
   asyncQueueRetain(cmd, buffer);
-  asyncEnqueue(command_queue, CL_COMMAND_WRITE_BUFFER, cmd,
+  asyncEnqueue(command_queue, CL_COMMAND_WRITE_BUFFER_RECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   if (blocking_write)
@@ -4116,7 +4116,7 @@ clEnqueueCopyBufferRect
   memcpy(cmd->region, region, 3*sizeof(size_t));
   asyncQueueRetain(cmd, src_buffer);
   asyncQueueRetain(cmd, dst_buffer);
-  asyncEnqueue(command_queue, CL_COMMAND_COPY_BUFFER, cmd,
+  asyncEnqueue(command_queue, CL_COMMAND_COPY_BUFFER_RECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
