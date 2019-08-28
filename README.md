@@ -29,6 +29,9 @@ performance of Oclgrind (set `CMAKE_BUILD_TYPE` to `Release` or
 You will need to use a compiler that supports C++11. Python should
 also be available in order to run the test suite.
 
+GNU readline (Debian package libreadline-dev) is required for command
+history in the interactive debugger.
+
 
 Building on Linux and OS X (CMake)
 ----------------------------------
