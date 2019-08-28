@@ -530,19 +530,15 @@ void WorkItem::printExpression(string expr) const
     {
       baseValue = &*global;
 
-#if LLVM_VERSION >= 40
       llvm::SmallVector<llvm::DIGlobalVariableExpression*, 3> GVEs;
       global->getDebugInfo(GVEs);
       if (GVEs.size() == 0)
-#endif
       {
         cout << "global variable debug information not found";
         return;
       }
-#if LLVM_VERSION >= 40
       // TODO: Does it matter which GVE we pick?
       divar = llvm::dyn_cast<llvm::DIGlobalVariable>(GVEs[0]->getRawVariable());
-#endif
     }
   }
 
@@ -1663,11 +1659,7 @@ InterpreterCache::~InterpreterCache()
   for (constExprItr  = m_constExpressions.begin();
        constExprItr != m_constExpressions.end(); constExprItr++)
   {
-#if LLVM_VERSION < 50
-    delete constExprItr->second;
-#else
     constExprItr->second->deleteValue();
-#endif
   }
 }
 

@@ -1217,11 +1217,7 @@ namespace oclgrind
       // Check for sampler version
       if (callInst->getNumArgOperands() > 2)
       {
-#if LLVM_VERSION < 40
-        sampler = UARG(1);
-#else
         sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
-#endif
         coordIndex = 2;
       }
 
@@ -1339,11 +1335,7 @@ namespace oclgrind
       // Check for sampler version
       if (callInst->getNumArgOperands() > 2)
       {
-#if LLVM_VERSION < 40
-        sampler = UARG(1);
-#else
         sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
-#endif
         coordIndex = 2;
       }
 
@@ -1416,11 +1408,7 @@ namespace oclgrind
       // Check for sampler version
       if (callInst->getNumArgOperands() > 2)
       {
-#if LLVM_VERSION < 40
-        sampler = UARG(1);
-#else
         sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
-#endif
         coordIndex = 2;
       }
 
@@ -3582,10 +3570,8 @@ namespace oclgrind
     ADD_BUILTIN("write_imagef", write_imagef, NULL);
     ADD_BUILTIN("write_imagei", write_imagei, NULL);
     ADD_BUILTIN("write_imageui", write_imageui, NULL);
-#if LLVM_VERSION >= 40
     ADD_BUILTIN("__translate_sampler_initializer",
                 translate_sampler_initializer, NULL);
-#endif
 
     // Integer Functions
     ADD_BUILTIN("abs", abs_builtin, NULL);

@@ -204,7 +204,7 @@ bool Simulation::load(const char *filename)
     }
 
     // Ensure work-group size exactly divides NDRange if necessary
-    if (m_program->requiresUniformWorkGroups() &&
+    if (m_kernel->requiresUniformWorkGroups() &&
         (m_ndrange.x % m_wgsize.x ||
          m_ndrange.y % m_wgsize.y ||
          m_ndrange.z % m_wgsize.z))

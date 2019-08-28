@@ -26,10 +26,10 @@
 
 using namespace std;
 
-#define MAX_GLOBAL_MEM_SIZE      (128 * 1048576)
-#define MAX_CONSTANT_BUFFER_SIZE (1048576)
-#define MAX_LOCAL_MEM_SIZE       (32768)
-#define DEFAULT_MAX_WGSIZE       (1024)
+#define DEFAULT_GLOBAL_MEM_SIZE   (128 * 1048576)
+#define DEFAULT_CONSTANT_MEM_SIZE (65536)
+#define DEFAULT_LOCAL_MEM_SIZE    (32768)
+#define DEFAULT_MAX_WGSIZE        (1024)
 
 #define PLATFORM_NAME       "Oclgrind"
 #define PLATFORM_VENDOR     "University of Bristol"
@@ -229,6 +229,15 @@ clIcdGetPlatformIDsKHR
 
     m_device = new _cl_device_id;
     m_device->dispatch = m_dispatchTable;
+    m_device->globalMemSize =
+      oclgrind::getEnvInt("OCLGRIND_GLOBAL_MEM_SIZE",
+                          DEFAULT_GLOBAL_MEM_SIZE, false);
+    m_device->constantMemSize =
+      oclgrind::getEnvInt("OCLGRIND_CONSTANT_MEM_SIZE",
+                          DEFAULT_CONSTANT_MEM_SIZE, false);
+    m_device->localMemSize =
+      oclgrind::getEnvInt("OCLGRIND_LOCAL_MEM_SIZE",
+                          DEFAULT_LOCAL_MEM_SIZE, false);
     m_device->maxWGSize =
       oclgrind::getEnvInt("OCLGRIND_MAX_WGSIZE", DEFAULT_MAX_WGSIZE, false);
   }
@@ -259,6 +268,10 @@ clGetExtensionFunctionAddress
   if (strcmp(funcname, "clIcdGetPlatformIDsKHR") == 0)
   {
     return (void*)clIcdGetPlatformIDsKHR;
+  }
+  else if (strcmp(funcname, "clGetPlatformInfo") == 0)
+  {
+    return (void*)clGetPlatformInfo;
   }
   else
   {
@@ -424,7 +437,8 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_COMPUTE_UNITS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1;
+    result_data.cluint =
+        oclgrind::getEnvInt("OCLGRIND_COMPUTE_UNITS", 1, false);
     break;
   case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:
     result_size = sizeof(cl_uint);
@@ -471,7 +485,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_GLOBAL_MEM_SIZE;
+    result_data.clulong = m_device->globalMemSize;
     break;
   case CL_DEVICE_IMAGE2D_MAX_WIDTH:
   case CL_DEVICE_IMAGE2D_MAX_HEIGHT:
@@ -543,11 +557,11 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_GLOBAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_GLOBAL_MEM_SIZE;
+    result_data.clulong = device->globalMemSize;
     break;
   case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_CONSTANT_BUFFER_SIZE;
+    result_data.clulong = device->constantMemSize;
     break;
   case CL_DEVICE_MAX_CONSTANT_ARGS:
     result_size = sizeof(cl_uint);
@@ -559,7 +573,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_GLOBAL_VARIABLE_PREFERRED_TOTAL_SIZE:
     result_size = sizeof(size_t);
-    result_data.sizet = MAX_GLOBAL_MEM_SIZE;
+    result_data.sizet = device->globalMemSize;
     break;
   case CL_DEVICE_LOCAL_MEM_TYPE:
     result_size = sizeof(cl_device_local_mem_type);
@@ -567,7 +581,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_LOCAL_MEM_SIZE;
+    result_data.clulong = device->localMemSize;
     break;
   case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
     result_size = sizeof(cl_bool);
@@ -947,6 +961,10 @@ clReleaseContext
 
   if (--context->refCount == 0)
   {
+    if (context->properties)
+    {
+      free(context->properties);
+    }
     delete context->context;
     delete context;
   }
@@ -2063,6 +2081,7 @@ clCreateSampler
   sampler->addressMode = addressing_mode;
   sampler->filterMode = filter_mode;
   sampler->sampler = bitfield;
+  sampler->refCount = 1;
 
   SetError(context, CL_SUCCESS);
   return sampler;
@@ -2863,6 +2882,15 @@ clReleaseKernel
 
   if (--kernel->refCount == 0)
   {
+
+    // Release memory allocated for image arguments
+    while (!kernel->imageArgs.empty())
+    {
+      oclgrind::Image* img = kernel->imageArgs.top();
+      kernel->imageArgs.pop();
+      delete img;
+    }
+
     delete kernel->kernel;
 
     clReleaseProgram(kernel->program);
@@ -2943,6 +2971,8 @@ clSetKernelArg
         image->format = ((cl_image*)mem)->format;
         image->desc = ((cl_image*)mem)->desc;
         *(oclgrind::Image**)value.data = image;
+        // Keep a record of the image struct for releasing it later
+        kernel->imageArgs.push(image);
       }
       else
       {
@@ -3742,7 +3772,7 @@ clEnqueueReadBufferRect
   cmd->host_offset[2] = host_slice_pitch;
   memcpy(cmd->region, region, 3*sizeof(size_t));
   asyncQueueRetain(cmd, buffer);
-  asyncEnqueue(command_queue, CL_COMMAND_READ_BUFFER, cmd,
+  asyncEnqueue(command_queue, CL_COMMAND_READ_BUFFER_RECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   if (blocking_read)
@@ -3901,7 +3931,7 @@ clEnqueueWriteBufferRect
   cmd->host_offset[2] = host_slice_pitch;
   memcpy(cmd->region, region, 3*sizeof(size_t));
   asyncQueueRetain(cmd, buffer);
-  asyncEnqueue(command_queue, CL_COMMAND_WRITE_BUFFER, cmd,
+  asyncEnqueue(command_queue, CL_COMMAND_WRITE_BUFFER_RECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   if (blocking_write)
@@ -3951,6 +3981,28 @@ clEnqueueCopyBuffer
                     "src_offset + cb (" << src_offset << " + " << cb <<
                     ") exceeds buffer size (" << src_buffer->size << " bytes)");
   }
+  // If src and dst buffers are the same and if src_offset comes before
+  // dst_offset and src buffer size goes beyond dst_offset then there is an
+  // overlap
+  if ((src_buffer == dst_buffer) &&
+      (src_offset <= dst_offset) && ((src_offset + cb) > dst_offset))
+  {
+    ReturnErrorInfo(command_queue->context, CL_MEM_COPY_OVERLAP,
+                    "src_buffer == dst_buffer and "
+                    "src_offset + cb (" << src_offset << " + " << cb <<
+                    ") overlaps dst_offset (" << dst_offset << ")");
+  }
+  // If src and dst buffers are the same and if dst_offset comes before
+  // src_offset and dst buffer size goes beyond src_offset then there is an
+  // overlap
+  if ((src_buffer == dst_buffer) &&
+      (dst_offset <= src_offset) && ((dst_offset + cb) > src_offset))
+  {
+    ReturnErrorInfo(command_queue->context, CL_MEM_COPY_OVERLAP,
+                    "src_buffer == dst_buffer and "
+                    "dst_offset + cb (" << dst_offset << " + " << cb <<
+                    ") overlaps src_offset (" << src_offset << ")");
+  }
 
   // Enqueue command
   oclgrind::Queue::CopyCommand *cmd = new oclgrind::Queue::CopyCommand();
@@ -3996,8 +4048,12 @@ clEnqueueCopyBufferRect
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, dst_buffer);
   }
+  if (!region || region[0] == 0 || region[1] == 0 || region[2] == 0)
+  {
+    ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, region);
+  }
 
-  // Compute pitches if neccessary
+  // Compute pitches if necessary
   if (src_row_pitch == 0)
   {
     src_row_pitch = region[0];
@@ -4060,7 +4116,7 @@ clEnqueueCopyBufferRect
   memcpy(cmd->region, region, 3*sizeof(size_t));
   asyncQueueRetain(cmd, src_buffer);
   asyncQueueRetain(cmd, dst_buffer);
-  asyncEnqueue(command_queue, CL_COMMAND_COPY_BUFFER, cmd,
+  asyncEnqueue(command_queue, CL_COMMAND_COPY_BUFFER_RECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
@@ -4351,7 +4407,7 @@ clEnqueueReadImage
     buffer_origin, host_origin, pixel_region,
     img_row_pitch, img_slice_pitch, row_pitch, slice_pitch,
     ptr, num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_READ_IMAGE;
   }
@@ -4408,7 +4464,7 @@ clEnqueueWriteImage
     buffer_origin, host_origin, pixel_region,
     img_row_pitch, img_slice_pitch, input_row_pitch, input_slice_pitch,
     ptr, num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_WRITE_IMAGE;
   }
@@ -4476,7 +4532,7 @@ clEnqueueCopyImage
     src_pixel_origin, dst_pixel_origin, pixel_region,
     src_row_pitch, src_slice_pitch, dst_row_pitch, dst_slice_pitch,
     num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_COPY_IMAGE;
   }
@@ -4527,7 +4583,7 @@ clEnqueueCopyImageToBuffer
     src_pixel_origin, dst_origin, pixel_region,
     src_row_pitch, src_slice_pitch, 0, 0,
     num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_COPY_IMAGE_TO_BUFFER;
   }
@@ -4578,7 +4634,7 @@ clEnqueueCopyBufferToImage
     src_origin, dst_pixel_origin, pixel_region,
     0, 0, dst_row_pitch, dst_slice_pitch,
     num_events_in_wait_list, event_wait_list, event);
-  if (event)
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_COPY_BUFFER_TO_IMAGE;
   }
@@ -4816,6 +4872,10 @@ clEnqueueUnmapMemObject
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, memobj);
   }
+  if (!mapped_ptr)
+  {
+    ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, mapped_ptr);
+  }
 
   // Enqueue command
   oclgrind::Queue::UnmapCommand *cmd = new oclgrind::Queue::UnmapCommand();
@@ -4896,7 +4956,7 @@ clEnqueueNDRangeKernel
       ReturnErrorInfo(command_queue->context, CL_INVALID_GLOBAL_WORK_SIZE,
                       "global_work_size[" << i << "] = 0");
     }
-    if (kernel->kernel->getProgram()->requiresUniformWorkGroups() &&
+    if (kernel->kernel->requiresUniformWorkGroups() &&
         local_work_size && global_work_size[i] % local_work_size[i])
     {
       ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_GROUP_SIZE,
@@ -4935,6 +4995,31 @@ clEnqueueNDRangeKernel
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_KERNEL_ARGS,
                     "Not all kernel arguments set");
+  }
+
+  // Check that local memory requirement is within device maximum
+  size_t totalLocal = kernel->kernel->getLocalMemorySize();
+  if (totalLocal > m_device->localMemSize)
+  {
+    ReturnErrorInfo(command_queue->context, CL_OUT_OF_RESOURCES,
+                    "total local memory size (" << totalLocal << ")"
+                    " exceeds device maximum of " << m_device->localMemSize);
+  }
+
+  // Check that constant memory requirement is within device maximum
+  size_t totalConstant = 0;
+  std::map<cl_uint,cl_mem>::iterator arg;
+  for (arg = kernel->memArgs.begin(); arg != kernel->memArgs.end(); arg++)
+  {
+    if (kernel->kernel->getArgumentAddressQualifier(arg->first) ==
+        CL_KERNEL_ARG_ADDRESS_CONSTANT)
+      totalConstant += arg->second->size;
+  }
+  if (totalConstant > m_device->constantMemSize)
+  {
+    ReturnErrorInfo(command_queue->context, CL_OUT_OF_RESOURCES,
+                    "total constant memory size (" << totalConstant << ")"
+                    " exceeds device maximum of " << m_device->constantMemSize);
   }
 
   // Set-up offsets and sizes

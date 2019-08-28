@@ -8,8 +8,8 @@
 
 cmake_minimum_required(VERSION 2.8.12)
 project(Oclgrind)
-set(Oclgrind_VERSION_MAJOR 16)
-set(Oclgrind_VERSION_MINOR 10)
+set(Oclgrind_VERSION_MAJOR 18)
+set(Oclgrind_VERSION_MINOR 3)
 
 include(CheckIncludeFiles)
 include(CheckIncludeFileCXX)
@@ -53,17 +53,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 # Check LLVM version
-if (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.9")
-  message(FATAL_ERROR "LLVM version must be >= 3.9")
-endif()
-
-# Warn about LLVM 4.0 InstCombine/addrspacecast bug
-if ("${LLVM_VERSION_MAJOR}" STREQUAL "4" AND
-    "${LLVM_VERSION_PATCH}" STREQUAL "0")
-   message(WARNING
-   "There is a known bug with LLVM 4.0.0 that will cause "
-   "Oclgrind to fail on some kernels with a message about "
-   "`addrspacecast`. Use LLVM 3.9 or 4.0.1+ if possible.")
+if (${LLVM_PACKAGE_VERSION} VERSION_LESS "5.0")
+  message(FATAL_ERROR "LLVM version must be >= 5.0")
 endif()
 
 # Add flags for LLVM
@@ -73,14 +64,8 @@ link_directories(${LLVM_LIBRARY_DIRS})
 
 # Get LLVM libraries for linking
 llvm_map_components_to_libnames(LLVM_LIBS
-  bitreader bitwriter core coverage instrumentation ipo irreader
+  bitreader bitwriter core coroutines coverage instrumentation ipo irreader
   linker lto mcparser objcarcopts option target)
-
-if (NOT (${LLVM_PACKAGE_VERSION} VERSION_LESS "4.0"))
-  llvm_map_components_to_libnames(LLVM_COROUTINES coroutines)
-  list(APPEND LLVM_LIBS ${LLVM_COROUTINES})
-endif()
-
 
 # Allow user to set path to Clang installation via CLANG_ROOT
 set (CLANG_ROOT " " CACHE PATH "Root of Clang installation")
@@ -230,8 +215,8 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/Uninitialized.cpp
   src/plugins/WorkloadCharacterisation.h
   src/plugins/WorkloadCharacterisation.cpp)
-target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS} -Wl,-rpath,${CLANG_ROOT}/lib
-  clangFrontend clangSerialization clangDriver clangCodeGen
+target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
+  clangCodeGen clangFrontend clangSerialization clangDriver
   clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
   ${LLVM_LIBS})
 

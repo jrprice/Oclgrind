@@ -3,7 +3,7 @@ os:
   - osx
 
 sudo: required
-dist: trusty
+dist: xenial
 osx_image: xcode7.3
 
 language: cpp
@@ -20,7 +20,7 @@ before_install:
   - bash ./.travis-deps.sh
 
 script:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then cmake . -DLLVM_DIR=/usr/lib/llvm-4.0/lib/cmake/llvm ; fi
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then cmake . -DLLVM_DIR=/usr/local/opt/llvm/lib/cmake/llvm ; fi
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then cmake . -DLLVM_DIR=/usr/lib/llvm-8.0/lib/cmake/llvm ; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then cmake . -DLLVM_DIR=$PWD/llvm-7.0/lib/cmake/llvm ; fi
   - make -j 2
   - ctest --output-on-failure

@@ -25,6 +25,7 @@ using namespace std;
 
 struct
 {
+  int id;
   WorkGroup *workGroup;
   WorkItem  *workItem;
 } static THREAD_LOCAL workerState;
@@ -46,7 +47,7 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   m_numGroups.x = m_globalSize.x/m_localSize.x;
   m_numGroups.y = m_globalSize.y/m_localSize.y;
   m_numGroups.z = m_globalSize.z/m_localSize.z;
-  if (!m_kernel->getProgram()->requiresUniformWorkGroups())
+  if (!m_kernel->requiresUniformWorkGroups())
   {
     m_numGroups.x += m_globalSize.x % m_localSize.x ? 1 : 0;
     m_numGroups.y += m_globalSize.y % m_localSize.y ? 1 : 0;
@@ -168,7 +169,7 @@ void KernelInvocation::run()
   vector<thread> threads;
   for (unsigned i = 0; i < m_numWorkers; i++)
   {
-    threads.push_back(thread(&KernelInvocation::runWorker, this));
+    threads.push_back(thread(&KernelInvocation::runWorker, this, i));
   }
 
   // Wait for workers to complete
@@ -178,10 +179,16 @@ void KernelInvocation::run()
   }
 }
 
-void KernelInvocation::runWorker()
+int KernelInvocation::getWorkerID() const
+{
+  return workerState.id;
+}
+
+void KernelInvocation::runWorker(int id)
 {
   workerState.workGroup = NULL;
   workerState.workItem = NULL;
+  workerState.id = id;
   try
   {
     while (true)

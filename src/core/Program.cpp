@@ -17,12 +17,8 @@
 #include <dlfcn.h>
 #endif
 
-#if LLVM_VERSION < 40
-#include "llvm/Bitcode/ReaderWriter.h"
-#else
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
-#endif
 #include "llvm/IR/AssemblyAnnotationWriter.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
@@ -278,14 +274,6 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-D__ENDIAN_LITTLE__=1");
 #endif
 
-#if LLVM_VERSION < 40
-  // Define extensions
-  for (unsigned i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
-  {
-    args.push_back("-D");
-    args.push_back(EXTENSIONS[i]);
-  }
-#else
   // Disable all extensions
   std::string cl_ext("-cl-ext=-all");
   // Explicitly enable supported extensions
@@ -294,7 +282,6 @@ bool Program::build(const char *options, list<Header> headers)
     cl_ext += ",+" + std::string(EXTENSIONS[i]);
   }
   args.push_back(cl_ext.c_str());
-#endif
 
   // Disable Clang's optimizations.
   // We will manually run optimization passes and legalize the IR later.
@@ -302,7 +289,6 @@ bool Program::build(const char *options, list<Header> headers)
 
   bool optimize = true;
   const char *clstd = NULL;
-  m_requiresUniformWorkGroups = false;
 
   // Disable optimizations by default if in interactive mode
   if (checkEnv("OCLGRIND_INTERACTIVE"))
@@ -350,13 +336,6 @@ bool Program::build(const char *options, list<Header> headers)
       if (strcmp(opt, "-cl-no-signed-zeros") == 0)
         continue;
 
-      // Check for -cl-uniform-work-group-size flag
-      if (strcmp(opt, "-cl-uniform-work-group-size") == 0)
-      {
-        m_requiresUniformWorkGroups = true;
-        continue;
-      }
-
       // Check for -cl-std flag
       if (strncmp(opt, "-cl-std=", 8) == 0)
       {
@@ -373,10 +352,6 @@ bool Program::build(const char *options, list<Header> headers)
     clstd = "-cl-std=CL1.2";
   }
   args.push_back(clstd);
-
-  // If compiling for OpenCL 1.X, require uniform work-groups
-  if (strncmp(clstd, "-cl-std=CL1.", 12) == 0)
-    m_requiresUniformWorkGroups = true;
 
   // Pre-compiled header
   char *pchdir = NULL;
@@ -481,12 +456,8 @@ bool Program::build(const char *options, list<Header> headers)
   compiler.createDiagnostics(diagConsumer, false);
 
   // Create compiler invocation
-#if LLVM_VERSION < 40
-  clang::CompilerInvocation *invocation = new clang::CompilerInvocation;
-#else
   std::shared_ptr<clang::CompilerInvocation> invocation(
       new clang::CompilerInvocation);
-#endif
   clang::CompilerInvocation::CreateFromArgs(*invocation,
                                             &args[0], &args[0] + args.size(),
                                             compiler.getDiagnostics());
@@ -596,7 +567,11 @@ bool Program::build(const char *options, list<Header> headers)
 
       // Dump bitcode
       llvm::raw_fd_ostream bc(tempBC, err, llvm::sys::fs::F_None);
+#if LLVM_VERSION < 70
       llvm::WriteBitcodeToFile(m_module.get(), bc);
+#else
+      llvm::WriteBitcodeToFile(*m_module, bc);
+#endif
       bc.close();
     }
 
@@ -636,11 +611,7 @@ Program* Program::createFromBitcode(const Context *context,
   }
 
   // Parse bitcode into IR module
-#if LLVM_VERSION < 40
-  llvm::ErrorOr<unique_ptr<llvm::Module>> module =
-#else
   llvm::Expected<unique_ptr<llvm::Module>> module =
-#endif
     parseBitcodeFile(buffer->getMemBufferRef(), *context->getLLVMContext());
   if (!module)
   {
@@ -662,11 +633,7 @@ Program* Program::createFromBitcodeFile(const Context *context,
   }
 
   // Parse bitcode into IR module
-#if LLVM_VERSION < 40
-  llvm::ErrorOr<unique_ptr<llvm::Module>> module =
-#else
   llvm::Expected<unique_ptr<llvm::Module>> module =
-#endif
     parseBitcodeFile(buffer->get()->getMemBufferRef(),
                      *context->getLLVMContext());
   if (!module)
@@ -688,7 +655,11 @@ Program* Program::createFromPrograms(const Context *context,
   list<const Program*>::iterator itr;
   for (itr = programs.begin(); itr != programs.end(); itr++)
   {
+#if LLVM_VERSION < 70
     unique_ptr<llvm::Module> m = llvm::CloneModule((*itr)->m_module.get());
+#else
+    unique_ptr<llvm::Module> m = llvm::CloneModule(*(*itr)->m_module);
+#endif
     if (linker.linkInModule(std::move(m)))
     {
       return NULL;
@@ -763,7 +734,11 @@ void Program::getBinary(unsigned char *binary) const
 
   std::string str;
   llvm::raw_string_ostream stream(str);
+#if LLVM_VERSION < 70
   llvm::WriteBitcodeToFile(m_module.get(), stream);
+#else
+  llvm::WriteBitcodeToFile(*m_module, stream);
+#endif
   stream.str();
 
   memcpy(binary, str.c_str(), str.length());
@@ -778,7 +753,11 @@ size_t Program::getBinarySize() const
 
   std::string str;
   llvm::raw_string_ostream stream(str);
+#if LLVM_VERSION < 70
   llvm::WriteBitcodeToFile(m_module.get(), stream);
+#else
+  llvm::WriteBitcodeToFile(*m_module, stream);
+#endif
   stream.str();
   return str.length();
 }
@@ -929,11 +908,6 @@ void Program::removeLValueLoads()
   {
     scalarizeAggregateStore(*itr);
   }
-}
-
-bool Program::requiresUniformWorkGroups() const
-{
-  return m_requiresUniformWorkGroups;
 }
 
 void Program::scalarizeAggregateStore(llvm::StoreInst *store)

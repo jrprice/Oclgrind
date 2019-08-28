@@ -50,6 +50,10 @@ Kernel::Kernel(const Program *program,
       break;
     case AddrSpaceLocal:
     {
+      // Check that local memory variable belongs to this kernel
+      if (!itr->getName().startswith(m_name))
+        continue;
+
       // Get size of allocation
       TypedValue allocSize = {
         getTypeSize(itr->getInitializer()->getType()), 1, NULL
@@ -61,6 +65,19 @@ Kernel::Kernel(const Program *program,
     default:
       FATAL_ERROR("Unsupported GlobalVariable address space: %d",
                   type->getPointerAddressSpace());
+    }
+  }
+
+  // Check whether the kernel requires uniform work-groups
+  m_requiresUniformWorkGroups = false;
+  for (auto &AS : m_function->getAttributes())
+  {
+    if (AS.hasAttribute("uniform-work-group-size"))
+    {
+      const llvm::Attribute &A = AS.getAttribute("uniform-work-group-size");
+      if (A.getValueAsString().equals("true"))
+        m_requiresUniformWorkGroups = true;
+      break;
     }
   }
 
@@ -94,6 +111,7 @@ Kernel::Kernel(const Kernel& kernel)
   m_function = kernel.m_function;
   m_name = kernel.m_name;
   m_metadata = kernel.m_metadata;
+  m_requiresUniformWorkGroups = kernel.m_requiresUniformWorkGroups;
 
   for (auto itr = kernel.m_values.begin(); itr != kernel.m_values.end(); itr++)
   {
@@ -305,47 +323,50 @@ size_t Kernel::getArgumentSize(unsigned int index) const
 string Kernel::getAttributes() const
 {
   ostringstream attributes("");
-  for (unsigned i = 0; i < m_metadata->getNumOperands(); i++)
+  llvm::MDNode *node;
+
+  node = m_function->getMetadata("reqd_work_group_size");
+  if (node)
   {
-    llvm::MDNode *op = llvm::dyn_cast<llvm::MDNode>(m_metadata->getOperand(i));
-    if (op)
-    {
-      llvm::MDNode *val = ((llvm::MDNode*)op);
-      llvm::MDString *str =
-        llvm::dyn_cast<llvm::MDString>(val->getOperand(0).get());
-      string name = str->getString().str();
-
-      if (name == "reqd_work_group_size" ||
-          name == "work_group_size_hint")
-      {
-        attributes << name << "("
-                   <<        getMDAsConstInt(val->getOperand(1))->getZExtValue()
-                   << "," << getMDAsConstInt(val->getOperand(2))->getZExtValue()
-                   << "," << getMDAsConstInt(val->getOperand(3))->getZExtValue()
-                   << ") ";
-      }
-      else if (name == "vec_type_hint")
-      {
-        // Get type hint
-        size_t n = 1;
-        llvm::Metadata *md = val->getOperand(1).get();
-        llvm::ValueAsMetadata *vam = llvm::dyn_cast<llvm::ValueAsMetadata>(md);
-        const llvm::Type *type = vam->getType();
-        if (type->isVectorTy())
-        {
-          n = type->getVectorNumElements();
-          type = type->getVectorElementType();
-        }
-
-        // Generate attribute string
-        attributes << name << "(" << flush;
-        llvm::raw_os_ostream out(attributes);
-        type->print(out);
-        out.flush();
-        attributes << n << ") ";
-      }
-    }
+    attributes << "reqd_work_group_size("
+               <<        getMDAsConstInt(node->getOperand(0))->getZExtValue()
+               << "," << getMDAsConstInt(node->getOperand(1))->getZExtValue()
+               << "," << getMDAsConstInt(node->getOperand(2))->getZExtValue()
+               << ") ";
   }
+
+  node = m_function->getMetadata("work_group_size_hint");
+  if (node)
+  {
+    attributes << "work_group_size_hint("
+               <<        getMDAsConstInt(node->getOperand(0))->getZExtValue()
+               << "," << getMDAsConstInt(node->getOperand(1))->getZExtValue()
+               << "," << getMDAsConstInt(node->getOperand(2))->getZExtValue()
+               << ") ";
+  }
+
+  node = m_function->getMetadata("vec_type_hint");
+  if (node)
+  {
+    // Get type hint
+    size_t n = 1;
+    llvm::Metadata *md = node->getOperand(0).get();
+    llvm::ValueAsMetadata *vam = llvm::dyn_cast<llvm::ValueAsMetadata>(md);
+    const llvm::Type *type = vam->getType();
+    if (type->isVectorTy())
+    {
+      n = type->getVectorNumElements();
+      type = type->getVectorElementType();
+    }
+
+    // Generate attribute string
+    attributes << "vec_type_hint(" << flush;
+    llvm::raw_os_ostream out(attributes);
+    type->print(out);
+    out.flush();
+    attributes << n << ") ";
+  }
+
   return attributes.str();
 }
 
@@ -394,6 +415,11 @@ void Kernel::getRequiredWorkGroupSize(size_t reqdWorkGroupSize[3]) const
   }
 }
 
+bool Kernel::requiresUniformWorkGroups() const
+{
+  return m_requiresUniformWorkGroups;
+}
+
 void Kernel::setArgument(unsigned int index, TypedValue value)
 {
   assert(index < m_function->arg_size());
@@ -406,7 +432,6 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     delete[] m_values[argument].data;
   }
 
-#if LLVM_VERSION >= 40
   if (getArgumentTypeName(index).str() == "sampler_t")
   {
     // Get an llvm::ConstantInt that represents the sampler value
@@ -423,7 +448,6 @@ void Kernel::setArgument(unsigned int index, TypedValue value)
     m_values[argument] = sampler;
   }
   else
-#endif
   {
     m_values[argument] = value.clone();
   }

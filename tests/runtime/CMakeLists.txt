@@ -12,6 +12,7 @@ include_directories(../common)
 # Add runtime tests
 foreach(test
   build_program
+  kernel_scope_local_mem_usage
   map_buffer
   sampler)
 

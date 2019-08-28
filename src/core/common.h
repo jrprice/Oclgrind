@@ -147,12 +147,12 @@ namespace oclgrind
   typedef std::map<const llvm::Value*,TypedValue> TypedValueMap;
 
   // Image object
-  typedef struct
+  struct Image
   {
     size_t address;
     cl_image_format format;
     cl_image_desc desc;
-  } Image;
+  };
 
   // Check if an environment variable is set to 1
   bool checkEnv(const char *var);
