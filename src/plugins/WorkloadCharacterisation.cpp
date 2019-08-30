@@ -289,54 +289,52 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     locale previousLocale = cout.getloc();
     locale defaultLocale("");
     cout.imbue(defaultLocale);
-    cout << "Architecture-Independent Workload Characterization of kernel: " << kernelInvocation->getKernel()->getName() << endl;
 
-    cout << "+----------------------------------------------------------------------------+" << endl;
-    cout << "|Compute Opcode Instruction Histogram                                        |" << endl;
-    cout << "+============================================================================+" << endl;
+    cout << endl << "# Architecture-Independent Workload Characterization of kernel: " << kernelInvocation->getKernel()->getName() << endl;
 
-    for(auto const& item: m_computeOps)
-        cout << "instruction: " << item.first << " count: " << item.second << endl;
-
-    cout << "+----------------------------------------------------------------------------+" << endl;
-    cout << "|Compute Opcode Unique Opcodes required to cover 90\% of Dynamic Instructions |" << endl;
-    cout << "+============================================================================+" << endl;
+    cout << endl << "## Compute" << endl << endl;
 
     std::vector<std::pair<std::string,size_t> > sorted_ops;
     for(auto const& item: m_computeOps)
         sorted_ops.push_back(make_pair(item.first,item.second)); 
-
     std::sort(sorted_ops.begin(),sorted_ops.end(),[](const std::pair<std::string,size_t> &left, const std::pair<std::string,size_t> &right){
             return (left.second > right.second);
             });
 
-    size_t operation_count = 0;
 
+    cout << "|" << setw(20) << left << "Opcode" << "|" << setw(12) << right << "count" << "|" << endl;
+    cout << "|--------------------|-----------:|" << endl;
+    for(auto const& item: sorted_ops)
+        cout << "|" << setw(20) << left << item.first << "|" << setw(12) << right << item.second << "|" << endl;
+    cout << endl;
+
+    size_t operation_count = 0;
     for(auto const& item: sorted_ops)
         operation_count += item.second;
-
     size_t significant_operation_count = (unsigned)ceil(operation_count * 0.9);
-
     size_t major_operations = 0;
     size_t total_instruction_count = operation_count;
     operation_count = 0;
 
-    cout << "Unique Op Codes comprising of 90\% of dynamic instructions:" << endl;
+    cout << "unique opcodes required to cover 90\% of dynamic instructions: ";
     while (operation_count < significant_operation_count){
+        if (major_operations > 0) cout << ", ";
         operation_count += sorted_ops[major_operations].second;
-        cout << "\t" << sorted_ops[major_operations].first << endl;
+        cout << sorted_ops[major_operations].first;
         major_operations++;
     }
+    cout << endl << endl;
 
-    cout << "Unique Opcodes required to cover 90\% of Dynamic Instructions: " << major_operations << endl;
+    cout << "num unique opcodes required to cover 90\% of dynamic instructions: " << major_operations << endl << endl;
     cout << "Total Instruction Count: " << total_instruction_count << endl;
 
-    cout << "+--------------------------------------------------------------------------+" << endl;
-    cout << "|Utilization                                                               |" << endl;
-    cout << "+==========================================================================+" << endl;
+    cout << endl << "## Parallelism" << endl;
+
+    cout << endl << "### Utilization" << endl << endl;
+
     double freedom_to_reorder = std::accumulate(m_instructionsBetweenLoadOrStore.begin(), m_instructionsBetweenLoadOrStore.end(), 0.0);
     freedom_to_reorder = freedom_to_reorder / m_instructionsBetweenLoadOrStore.size();
-    cout << "Freedom to Reorder: " << freedom_to_reorder << endl;
+    cout << "Freedom to Reorder: " << freedom_to_reorder << endl << endl;
 
     double resource_pressure = 0;
     for(auto const& item: m_storeInstructionLabels)
@@ -344,19 +342,18 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     for(auto const& item: m_loadInstructionLabels)
         resource_pressure += item.second; 
     resource_pressure = resource_pressure / m_threads_invoked;
-    cout << "Resource Pressure: " << resource_pressure << endl;
-    cout << "+--------------------------------------------------------------------------+" << endl;
-    cout << "|Thread-Level Parallelism                                                  |" << endl;
-    cout << "+==========================================================================+" << endl;
+    cout << "Resource Pressure: " << resource_pressure << endl << endl;
 
-    cout << "# of workitems invoked: " << m_threads_invoked << endl;
+    cout << endl << "### Thread-Level Parallelism" << endl << endl;
+
+    cout << "Work-items: " << m_threads_invoked << endl << endl;
     double granularity = 1.0/static_cast<double>(m_threads_invoked);
-    cout << "Granularity: " << granularity << endl;
+    cout << "Granularity: " << granularity << endl << endl;
 
-    cout << "total # of workitem barriers hit: " << m_barriers_hit << endl;
-    //cout << "# of barriers hit per thread: " << m_instructionsToBarrier.size()/m_threads_invoked << endl;
-    cout << "Min instructions to barrier: " << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << endl;
-    cout << "Max instructions to barrier: " << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << endl;
+    cout << "Total Barriers Hit: " << m_barriers_hit << endl << endl;
+    //cout << "num barriers hit per thread: " << m_instructionsToBarrier.size()/m_threads_invoked << endl;
+    cout << "Min Instructions to Barrier: " << *std::min_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << endl << endl;
+    cout << "Max Instructions to Barrier: " << *std::max_element(m_instructionsToBarrier.begin(),m_instructionsToBarrier.end()) << endl << endl;
 
     double median_itb;
     std::vector<float> itb = m_instructionsToBarrier;
@@ -371,17 +368,14 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     {
         median_itb = itb[size / 2];
     }
-    cout << "Median instructions to barrier: " << median_itb << endl;
+    cout << "Median Instructions to Barrier: " << median_itb << endl << endl;
     double barriers_per_instruction = static_cast<double>(m_barriers_hit+1)/static_cast<double>(total_instruction_count);
-    cout << "Barriers Per Instruction : " << barriers_per_instruction << endl;
+    cout << "Barriers per Instruction: " << barriers_per_instruction << endl << endl;
 
-    cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
-    cout << "|Work Distribution -- Measure of work between threads     |" << endl;
-    cout << "+=======================================================================================================+" << endl;
+    cout << "### Work Distribution" << endl << endl;
     
-    cout << "Min instructions executed by a work-item: " << *std::min_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << endl;
-    cout << "Max instructions executed by a work-item: " << *std::max_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << endl;
-
+    cout << "Min Instructions per Thread: " << *std::min_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << endl << endl;
+    cout << "Max Instructions per Thread: " << *std::max_element(m_instructionsPerWorkitem.begin(),m_instructionsPerWorkitem.end()) << endl << endl;
 
     unsigned int median_ins;
     std::vector<unsigned int> ins = m_instructionsPerWorkitem;
@@ -396,14 +390,13 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     {
         median_ins = ins[size / 2];
     }
-    cout << "Median instructions executed by a work-item: " << median_ins << endl;
+    cout << "Median Instructions per Thread: " << median_ins << endl << endl;
 
-    cout << "+--------------------------------------------------------------------------+" << endl;
-    cout << "|Data Parallelism                                                          |" << endl;
-    cout << "+==========================================================================+" << endl;
+    cout << "### Data Parallelism" << endl << endl;
+
     using pair_type = decltype(m_instructionWidth)::value_type;
-    cout << "Min data width: " << std::min_element(m_instructionWidth.begin(),m_instructionWidth.end(), [](const pair_type& a, const pair_type& b) { return a.first < b.first; })->first << endl;
-    cout << "Max data width: " << std::max_element(m_instructionWidth.begin(),m_instructionWidth.end(), [](const pair_type& a, const pair_type& b) { return a.first < b.first; })->first << endl;
+    cout << "Min SIMD Width: " << std::min_element(m_instructionWidth.begin(),m_instructionWidth.end(), [](const pair_type& a, const pair_type& b) { return a.first < b.first; })->first << endl << endl;
+    cout << "Max SIMD Width: " << std::max_element(m_instructionWidth.begin(),m_instructionWidth.end(), [](const pair_type& a, const pair_type& b) { return a.first < b.first; })->first << endl << endl;
 
     long simd_sum = 0;
     long simd_num = 0;
@@ -416,30 +409,22 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     std::transform(m_instructionWidth.begin(), m_instructionWidth.end(), diff.begin(), [simd_mean](const pair_type& x) { return (x.first - simd_mean) * (x.first - simd_mean) * x.second; });
     double simd_sq_sum = std::accumulate(diff.begin(), diff.end(), 0.0);
     double simd_stdev = std::sqrt(simd_sq_sum / (double)simd_num);
-    cout << "Operand sum: " << simd_sum << endl;
-    cout << "Mean data width: " << simd_mean << endl;
-    cout << "stdev data width: "<< simd_stdev << endl;
+    cout << "Mean SIMD Width: " << simd_mean << endl << endl;
+    cout << "SD SIMD Width: "<< simd_stdev << endl << endl;
     
     double instructions_per_operand = static_cast<double>(total_instruction_count)/simd_sum;
-    cout << "Instructions Per Operand : " << instructions_per_operand << endl;
+    cout << "Instructions per Operand: " << instructions_per_operand << endl << endl;
 
-    cout << "+--------------------------------------------------------------------------+" << endl;
-    cout << "|Total Memory Footprint -- total number of unique memory addresses accessed|" << endl;
-    cout << "+==========================================================================+" << endl;
+    cout << "## Memory" << endl << endl;
+
+    cout << "### Memory Footprint" << endl << endl;
 
     unordered_map<unsigned, size_t> count;
     for(const auto& address : m_memoryOps){
         count[address]++;
     }
 
-    cout << count.size() << endl;
-
-    cout << "+----------------------------------------------------------------------------------------------+" << endl;
-    cout << "|90% Memory Footprint -- Number of unique memory addresses that cover 90\% of memory accesses   |" << endl;
-    cout << "+==============================================================================================+" << endl;
-
     std::vector<std::pair<unsigned,size_t> > sorted_count(count.begin(),count.end());
-
     std::sort(sorted_count.begin(),sorted_count.end(),[](const std::pair<unsigned,size_t> &left, const std::pair<unsigned,size_t> &right){
             return (left.second > right.second);
             });
@@ -450,9 +435,10 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         //cout << "address: "<< e.first << " accessed: " << e.second << " times!" << endl;
     }
 
-    cout << "total number of memory accesses = " << memory_access_count << endl;
+    cout << "num memory accesses: " << memory_access_count << endl << endl;
+    cout << "Total Memory Footprint -- num unique memory addresses accessed: " << count.size() << endl << endl;
     size_t significant_memory_access_count = (unsigned)ceil(memory_access_count * 0.9);
-    cout << "90\% of memory accesses:" << significant_memory_access_count << endl;
+    cout << "90\% of memory accesses: " << significant_memory_access_count << endl << endl;
 
     size_t unique_memory_addresses = 0;
     size_t access_count = 0;
@@ -460,28 +446,26 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         access_count += sorted_count[unique_memory_addresses].second;
         unique_memory_addresses++;
     }
-    cout << "Number of unique memory addresses that cover 90\% of memory accesses: " << unique_memory_addresses << endl;
+    cout << "90% Memory Footprint -- num unique memory addresses that cover 90\% of memory accesses: " << unique_memory_addresses << endl << endl;
     //cout << "the top 10:" << endl;
     //for (int i = 0; i < 10; i++){
     //    cout << "address: " << sorted_count[i].first << " contributed: " << sorted_count[i].second << " accesses!" << endl;
     //}
 
-    cout << "+----------------------------------------------------------------------------------------------+" << endl;
-    cout << "|Global Memory Address Entropy -- Measure of the randomness of memory addresses                |" << endl;
-    cout << "+==============================================================================================+" << endl;
+    cout << "### Memory Entropy" << endl << endl;
+
     double mem_entropy = 0.0;
     for(const auto& it : sorted_count){
         int value = (int)it.second;
         double prob = (double)value * 1.0 / (double)memory_access_count;
         mem_entropy = mem_entropy - prob * std::log2(prob);
     }
-    cout << (float)mem_entropy << endl;
+    cout << "Global Memory Address Entropy -- measure of the randomness of memory addresses: " << (float)mem_entropy << endl << endl;
 
-    cout << "+----------------------------------------------------------------------------------------------+" << endl;
-    cout << "|Local Memory Address Entropy -- Measure of the spatial locality of memory addresses           |" << endl;
-    cout << "+==============================================================================================+" << endl;
+    cout << "Local Memory Address Entropy -- measure of the spatial locality of memory addresses" << endl << endl;
 
-    cout << "LSBs skipped\tEntropy (bits)" << endl;
+    cout << "|" << setw(12) << right << "LSBs skipped" << "|" << setw(8) << right << "Entropy" << "|" << endl;
+    cout << "|-----------:|-------:|" << endl;
     std::vector<float> loc_entropy;
     for(int nskip = 1; nskip < 11; nskip++){
         unordered_map<unsigned, size_t> local_address_count;
@@ -497,23 +481,21 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
             local_entropy = local_entropy - prob * std::log2(prob);
         }
 	loc_entropy.push_back((float)local_entropy);
-        cout << nskip << "\t\t" << (float)local_entropy << endl;
+        cout << "|" << setw(12) << right << nskip << "|" << fixed << setw(8) << setprecision(4) << right << (float)local_entropy << "|" << endl;
     }
 
-    cout << "+----------------------------------------------------------------------------------+" << endl;
-    cout << "|Memory Diversity -- Usage of Shared and Private memory relative to global memory  |" << endl;
-    cout << "+==================================================================================+" << endl;
-    cout << "Total # of global memory accessed: " <<  m_global_memory_access << endl;
-    cout << "Total # of shared memory accessed: " <<  m_shared_memory_access << endl;
-    cout << "Total # of private memory accessed: " << m_private_memory_access << endl;
+    cout << endl << "### Memory Diversity -- Usage of Shared and Private memory relative to global memory" << endl << endl;
 
-    cout << "\% of shared memory accesses (shared/global): " << (((float)m_shared_memory_access/(float)m_global_memory_access)*100) << endl;
-    cout << "\% of private memory accesses (private/global): " << (((float)m_private_memory_access/(float)m_global_memory_access)*100) << endl;
+    cout << "num global memory accesses: " <<  m_global_memory_access << endl << endl;
+    cout << "num shared memory accesses: " <<  m_shared_memory_access << endl << endl;
+    cout << "num private memory accesses: " << m_private_memory_access << endl << endl;
 
+    cout << "\% shared memory accesses (shared/global): " << (((float)m_shared_memory_access/(float)m_global_memory_access)*100) << endl << endl;
+    cout << "\% private memory accesses (private/global): " << (((float)m_private_memory_access/(float)m_global_memory_access)*100) << endl << endl;
 
-    cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
-    cout << "|Unique Branch Instructions -- Total number of unique branch instructions to cover 90\% of the branches|" << endl;
-    cout << "+=======================================================================================================+" << endl;
+    cout << "## Control" << endl << endl;
+
+    cout << "Unique Branch Instructions -- Total number of unique branch instructions to cover 90\% of the branches" << endl << endl;
 
     std::vector<std::pair<unsigned,std::vector<bool>> > sorted_branch_ops;
     for(auto const& umap: m_branchOps)
@@ -524,12 +506,14 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
             });
 
 
-    cout << "Branch At Line\tCount (hit and miss)" << endl;
+    cout << "|" << setw(14) << left << "Branch At Line" << "|" << setw(23) << right << "Count (hit and miss)" << "|" << endl;
+    cout << "|--------------|----------------------:|" << endl;
     size_t branch_op_count = 0;
     for(auto const& x: sorted_branch_ops){
         branch_op_count += x.second.size();
-        cout << x.first << "\t\t" << x.second.size() << endl;
+        cout << "|" << setw(14) << left << x.first << "|" << setw(23) << right << x.second.size() << "|" << endl;
     }
+    cout << endl;
 
     size_t significant_branch_op_count = (unsigned)ceil(branch_op_count * 0.9);
 
@@ -541,9 +525,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     }
     cout << "Number of unique branches that cover 90\% of all branch instructions: " << unique_branch_addresses << endl;
 
-    cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
-    cout << "|Branch Entropy -- Measure of the randomness of branch behaviour, representing branch predicability     |" << endl;
-    cout << "+=======================================================================================================+" << endl;
+    cout << endl << "### Branch Entropy -- measure of the randomness of branch behaviour, representing branch predictability" << endl << endl;
 
     //generate a history pattern
     //(arbitarily selected to a history of m=16 branches?)
@@ -592,10 +574,10 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     if(isnan(average_entropy)){
         average_entropy = 0.0;
     }
-    cout << "Using a branch history of " << m << endl;
-    cout << "Yokota Branch Entropy: " << yokota_entropy << endl;
-    cout << "Yokota Branch Entropy Per Workload: " << yokota_entropy_per_workload << endl;
-    cout << "Average Linear Branch Entropy: " << average_entropy << endl;
+    cout << "Using a branch history of " << m << endl << endl;
+    cout << "Yokota Branch Entropy: " << yokota_entropy << endl << endl;
+    cout << "Yokota Branch Entropy per Workload: " << yokota_entropy_per_workload << endl << endl;
+    cout << "Average Linear Branch Entropy: " << average_entropy << endl << endl;
 
     int logfile_count = 0;
     std::string logfile_name = "aiwc_" + kernelInvocation->getKernel()->getName() + "_" + std::to_string(logfile_count) + ".csv";
@@ -666,7 +648,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         logfile << it.first << "," << it.second << "\n";
     logfile.close();
 
-    cout << "The Architecture-Independent Workload Characterisation was written to file: " << logfile_name << endl;
+    cout << endl << "The Architecture-Independent Workload Characterisation was written to file: " << logfile_name << endl;
     // Restore locale
     cout.imbue(previousLocale);
 
