@@ -369,7 +369,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
         median_itb = itb[size / 2];
     }
     cout << "Median Instructions to Barrier: " << median_itb << endl << endl;
-    double barriers_per_instruction = static_cast<double>(m_barriers_hit+1)/static_cast<double>(total_instruction_count);
+    double barriers_per_instruction = static_cast<double>(m_barriers_hit+m_threads_invoked)/static_cast<double>(total_instruction_count);
     cout << "Barriers per Instruction: " << barriers_per_instruction << endl << endl;
 
     cout << "### Work Distribution" << endl << endl;
@@ -490,8 +490,10 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     cout << "num shared memory accesses: " <<  m_shared_memory_access << endl << endl;
     cout << "num private memory accesses: " << m_private_memory_access << endl << endl;
 
-    cout << "\% shared memory accesses (shared/global): " << (((float)m_shared_memory_access/(float)m_global_memory_access)*100) << endl << endl;
-    cout << "\% private memory accesses (private/global): " << (((float)m_private_memory_access/(float)m_global_memory_access)*100) << endl << endl;
+    unsigned m_total_memory_access = m_global_memory_access + m_shared_memory_access + m_private_memory_access;
+
+    cout << "\% shared memory accesses (shared/total): " << (((float)m_shared_memory_access/(float)m_total_memory_access)*100) << endl << endl;
+    cout << "\% private memory accesses (private/total): " << (((float)m_private_memory_access/(float)m_total_memory_access)*100) << endl << endl;
 
     cout << "## Control" << endl << endl;
 
