@@ -3419,6 +3419,8 @@ clCreateUserEvent
   event->type = CL_COMMAND_USER;
   event->event = new oclgrind::Event();
   event->event->state = CL_SUBMITTED;
+  event->event->command = NULL;
+  event->event->queue = NULL;
   event->refCount = 1;
 
   SetError(context, CL_SUCCESS);
