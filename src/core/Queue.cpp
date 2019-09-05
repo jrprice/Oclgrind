@@ -218,12 +218,23 @@ void Queue::execute(Command *command)
     if (evt->state < 0)
     {
       command->event->state = evt->state;
+      m_queue.erase(it);
       return;
     }
     else if (evt->state != CL_COMPLETE)
     {
-      evt->queue->execute(evt->command);
-      command->execBefore.push_front(evt->command);
+      if (evt->command)
+      {
+        // If it's not a user event, execute the associated command
+        evt->queue->execute(evt->command);
+        command->execBefore.push_front(evt->command);
+      }
+      else
+      {
+        // If it's a user event then place it back at the of the wait list, and
+        // check it later
+        command->waitList.push_back(evt);
+      }
     }
   }
 
