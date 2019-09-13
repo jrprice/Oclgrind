@@ -45,7 +45,7 @@ namespace oclgrind
     std::vector<size_t> m_memoryOps;
     std::unordered_map<std::string,size_t> m_computeOps;
     std::unordered_map<unsigned,std::vector<bool>> m_branchOps;
-    std::vector<float> m_instructionsToBarrier;
+    std::vector<unsigned int> m_instructionsToBarrier;
     std::unordered_map<unsigned, size_t> m_instructionWidth;
     std::vector<unsigned int> m_instructionsPerWorkitem;
     unsigned m_threads_invoked;

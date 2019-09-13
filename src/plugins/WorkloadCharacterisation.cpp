@@ -284,10 +284,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
        << "## Compute" << endl
        << endl;
 
-  std::vector<std::pair<std::string, size_t>> sorted_ops;
-  for (auto const &item : m_computeOps)
-    sorted_ops.push_back(make_pair(item.first, item.second));
-  std::sort(sorted_ops.begin(), sorted_ops.end(), [](const std::pair<std::string, size_t> &left, const std::pair<std::string, size_t> &right) {
+  std::vector<std::pair<std::string, size_t>> sorted_ops(m_computeOps.size());
+  std::partial_sort_copy(m_computeOps.begin(), m_computeOps.end(), sorted_ops.begin(), sorted_ops.end(), [](const std::pair<std::string, size_t> &left, const std::pair<std::string, size_t> &right) {
     return (left.second > right.second);
   });
 
@@ -340,8 +338,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   for (auto const &item : m_loadInstructionLabels)
     resource_pressure += item.second;
   resource_pressure = resource_pressure / m_threads_invoked;
-  cout << "Resource Pressure: " << resource_pressure << endl
-       << endl;
+  cout << "Resource Pressure: " << resource_pressure << endl;
 
   cout << endl
        << "### Thread-Level Parallelism" << endl
@@ -356,22 +353,20 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "Total Barriers Hit: " << m_barriers_hit << endl
        << endl;
   //cout << "num barriers hit per thread: " << m_instructionsToBarrier.size()/m_threads_invoked << endl;
-  cout << "Min Instructions to Barrier: " << *std::min_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end()) << endl
-       << endl;
-  cout << "Max Instructions to Barrier: " << *std::max_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end()) << endl
-       << endl;
+  unsigned int itb_min = *std::min_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end());
+  unsigned int itb_max = *std::max_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end());
 
-  double median_itb;
-  std::vector<float> itb = m_instructionsToBarrier;
+  double itb_median;
+  std::vector<unsigned int> itb = m_instructionsToBarrier;
   sort(itb.begin(), itb.end());
 
   size_t size = itb.size();
   if (size % 2 == 0) {
-    median_itb = (itb[size / 2 - 1] + itb[size / 2]) / 2;
+    itb_median = (itb[size / 2 - 1] + itb[size / 2]) / 2;
   } else {
-    median_itb = itb[size / 2];
+    itb_median = itb[size / 2];
   }
-  cout << "Median Instructions to Barrier: " << median_itb << endl
+  cout << "Instructions to Barrier (min/max/median): " << itb_min << "/" << itb_max << "/" << itb_median << endl
        << endl;
   double barriers_per_instruction = static_cast<double>(m_barriers_hit + m_threads_invoked) / static_cast<double>(total_instruction_count);
   cout << "Barriers per Instruction: " << barriers_per_instruction << endl
@@ -380,32 +375,29 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "### Work Distribution" << endl
        << endl;
 
-  cout << "Min Instructions per Thread: " << *std::min_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end()) << endl
-       << endl;
-  cout << "Max Instructions per Thread: " << *std::max_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end()) << endl
-       << endl;
+  unsigned int ipt_min = *std::min_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end());
+  unsigned int ipt_max = *std::max_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end());
 
-  unsigned int median_ins;
-  std::vector<unsigned int> ins = m_instructionsPerWorkitem;
-  sort(ins.begin(), ins.end());
+  unsigned int ipt_median;
+  std::vector<unsigned int> ipt = m_instructionsPerWorkitem;
+  sort(ipt.begin(), ipt.end());
 
-  size = ins.size();
+  size = ipt.size();
   if (size % 2 == 0) {
-    median_ins = (ins[size / 2 - 1] + ins[size / 2]) / 2;
+    ipt_median = (ipt[size / 2 - 1] + ipt[size / 2]) / 2;
   } else {
-    median_ins = ins[size / 2];
+    ipt_median = ipt[size / 2];
   }
-  cout << "Median Instructions per Thread: " << median_ins << endl
+  cout << "Instructions per Thread (min/max/median): " << ipt_min << "/" << ipt_max << "/" << ipt_median << endl
        << endl;
 
   cout << "### Data Parallelism" << endl
        << endl;
 
   using pair_type = decltype(m_instructionWidth)::value_type;
-  cout << "Min SIMD Width: " << std::min_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first << endl
-       << endl;
-  cout << "Max SIMD Width: " << std::max_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first << endl
-       << endl;
+
+  unsigned simd_min = std::min_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first;
+  unsigned simd_max = std::max_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first;
 
   long simd_sum = 0;
   long simd_num = 0;
@@ -418,9 +410,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   std::transform(m_instructionWidth.begin(), m_instructionWidth.end(), diff.begin(), [simd_mean](const pair_type &x) { return (x.first - simd_mean) * (x.first - simd_mean) * x.second; });
   double simd_sq_sum = std::accumulate(diff.begin(), diff.end(), 0.0);
   double simd_stdev = std::sqrt(simd_sq_sum / (double)simd_num);
-  cout << "Mean SIMD Width: " << simd_mean << endl
-       << endl;
-  cout << "SD SIMD Width: " << simd_stdev << endl
+  cout << "SIMD Width (min/max/mean/stdev): " << simd_min << "/" << simd_max << "/" << simd_mean << "/" << simd_stdev << endl
        << endl;
 
   double instructions_per_operand = static_cast<double>(total_instruction_count) / simd_sum;
@@ -433,13 +423,18 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "### Memory Footprint" << endl
        << endl;
 
-  unordered_map<unsigned, size_t> count;
+  // count accesses to memory addresses with different numbers of retained
+  // significant bits
+  std::vector<std::unordered_map<size_t, unsigned>> local_address_count(11);
   for (const auto &address : m_memoryOps) {
-    count[address]++;
+    for (int nskip = 0; nskip <= 10; nskip++) {
+      size_t local_addr = address >> nskip;
+      local_address_count[nskip][local_addr]++;
+    }
   }
 
-  std::vector<std::pair<unsigned, size_t>> sorted_count(count.begin(), count.end());
-  std::sort(sorted_count.begin(), sorted_count.end(), [](const std::pair<unsigned, size_t> &left, const std::pair<unsigned, size_t> &right) {
+  std::vector<std::pair<unsigned, size_t>> sorted_count(local_address_count[0].size());
+  std::partial_sort_copy(local_address_count[0].begin(), local_address_count[0].end(), sorted_count.begin(), sorted_count.end(), [](const std::pair<unsigned, size_t> &left, const std::pair<unsigned, size_t> &right) {
     return (left.second > right.second);
   });
 
@@ -451,7 +446,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 
   cout << "num memory accesses: " << memory_access_count << endl
        << endl;
-  cout << "Total Memory Footprint -- num unique memory addresses accessed: " << count.size() << endl
+  cout << "Total Memory Footprint -- num unique memory addresses accessed: " << local_address_count[0].size() << endl
        << endl;
   size_t significant_memory_access_count = (unsigned)ceil(memory_access_count * 0.9);
   cout << "90\% of memory accesses: " << significant_memory_access_count << endl
@@ -491,16 +486,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "|-----------:|-------:|" << endl;
   std::vector<float> loc_entropy;
   for (int nskip = 1; nskip < 11; nskip++) {
-    unordered_map<unsigned, size_t> local_address_count;
-    for (const auto &address : m_memoryOps) {
-      unsigned local_addr = address >> nskip;
-      local_address_count[local_addr]++;
-    }
-
     double local_entropy = 0.0;
-    for (const auto &it : local_address_count) {
-      int value = (int)it.second;
-      double prob = (double)value * 1.0 / (double)memory_access_count;
+    for (const auto &it : local_address_count[nskip]) {
+      double prob = (double)(it.second) * 1.0 / (double)memory_access_count;
       local_entropy = local_entropy - prob * std::log2(prob);
     }
     loc_entropy.push_back((float)local_entropy);
@@ -531,11 +519,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "Unique Branch Instructions -- Total number of unique branch instructions to cover 90\% of the branches" << endl
        << endl;
 
-  std::vector<std::pair<unsigned, std::vector<bool>>> sorted_branch_ops;
-  for (auto const &umap : m_branchOps)
-    sorted_branch_ops.push_back(make_pair(umap.first, umap.second));
-
-  std::sort(sorted_branch_ops.begin(), sorted_branch_ops.end(), [](const std::pair<unsigned, std::vector<bool>> &left, const std::pair<unsigned, std::vector<bool>> &right) {
+  std::vector<std::pair<unsigned, std::vector<bool>>> sorted_branch_ops(m_branchOps.size());
+  std::partial_sort_copy(m_branchOps.begin(), m_branchOps.end(), sorted_branch_ops.begin(), sorted_branch_ops.end(), [](const std::pair<unsigned, std::vector<bool>> &left, const std::pair<unsigned, std::vector<bool>> &right) {
     return (left.second.size() > right.second.size());
   });
 
@@ -637,19 +622,19 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   logfile << "workitems," << m_threads_invoked << "\n";
   logfile << "operand sum," << simd_sum << "\n";
   logfile << "total # of barriers hit," << m_barriers_hit << "\n";
-  logfile << "min instructions to barrier," << *std::min_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end()) << "\n";
-  logfile << "max instructions to barrier," << *std::max_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end()) << "\n";
-  logfile << "median instructions to barrier," << median_itb << "\n";
-  logfile << "min instructions executed by a work-item," << *std::min_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end()) << "\n";
-  logfile << "max instructions executed by a work-item," << *std::max_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end()) << "\n";
-  logfile << "median instructions executed by a work-item," << median_ins << "\n";
+  logfile << "min instructions to barrier," << itb_min << "\n";
+  logfile << "max instructions to barrier," << itb_max << "\n";
+  logfile << "median instructions to barrier," << itb_median << "\n";
+  logfile << "min instructions executed by a work-item," << ipt_min << "\n";
+  logfile << "max instructions executed by a work-item," << ipt_max << "\n";
+  logfile << "median instructions executed by a work-item," << ipt_median << "\n";
   logfile << "max simd width," << std::max_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first << "\n";
   logfile << "mean simd width," << simd_mean << "\n";
   logfile << "stdev simd width," << simd_stdev << "\n";
   logfile << "granularity," << granularity << "\n";
   logfile << "barriers per instruction," << barriers_per_instruction << "\n";
   logfile << "instructions per operand," << instructions_per_operand << "\n";
-  logfile << "total memory footprint," << count.size() << "\n";
+  logfile << "total memory footprint," << local_address_count[0].size() << "\n";
   logfile << "90\% memory footprint," << unique_memory_addresses << "\n";
   logfile << "global memory address entropy," << mem_entropy << "\n";
   for (int nskip = 1; nskip < 11; nskip++) {
