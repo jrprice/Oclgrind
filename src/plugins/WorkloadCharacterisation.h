@@ -58,8 +58,8 @@ namespace oclgrind
     std::unordered_map<std::string,size_t> m_loadInstructionLabels;
     std::unordered_map<std::string,size_t> m_storeInstructionLabels;
     unsigned m_global_memory_access;
-    unsigned m_shared_memory_access;
-    unsigned m_private_memory_access;
+    unsigned m_constant_memory_access;
+    unsigned m_local_memory_access;
 
     struct WorkerState
     {
@@ -74,9 +74,9 @@ namespace oclgrind
       unsigned instruction_count;
       unsigned ops_between_load_or_store;
       unsigned workitem_instruction_count;
-      unsigned private_memory_access_count;
-      unsigned shared_memory_access_count;
       unsigned global_memory_access_count;
+      unsigned constant_memory_access_count;
+      unsigned local_memory_access_count;
       std::vector<unsigned> *instructionsBetweenBarriers;
       std::vector<unsigned> *instructionsPerWorkitem;
       std::unordered_map<unsigned,size_t> *instructionWidth;

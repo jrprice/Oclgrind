@@ -112,19 +112,27 @@ void WorkloadCharacterisation::hostMemoryStore(const Memory *memory, size_t addr
 }
 
 void WorkloadCharacterisation::memoryLoad(const Memory *memory, const WorkItem *workItem, size_t address, size_t size) {
-  m_state.memoryOps->push_back((size_t)(memory->getPointer(address)));
+  if (memory->getAddressSpace() != AddrSpacePrivate) {
+    m_state.memoryOps->push_back(address);
+  }
 }
 
 void WorkloadCharacterisation::memoryStore(const Memory *memory, const WorkItem *workItem, size_t address, size_t size, const uint8_t *storeData) {
-  m_state.memoryOps->push_back((size_t)(memory->getPointer(address)));
+  if (memory->getAddressSpace() != AddrSpacePrivate) {
+    m_state.memoryOps->push_back(address);
+  }
 }
 
 void WorkloadCharacterisation::memoryAtomicLoad(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size) {
-  m_state.memoryOps->push_back((size_t)(memory->getPointer(address)));
+  if (memory->getAddressSpace() != 0) {
+    m_state.memoryOps->push_back(address);
+  }
 }
 
 void WorkloadCharacterisation::memoryAtomicStore(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size) {
-  m_state.memoryOps->push_back((size_t)(memory->getPointer(address)));
+  if (memory->getAddressSpace() != 0) {
+    m_state.memoryOps->push_back(address);
+  }
 }
 
 void WorkloadCharacterisation::instructionExecuted(
@@ -135,31 +143,37 @@ void WorkloadCharacterisation::instructionExecuted(
   std::string opcode_name = llvm::Instruction::getOpcodeName(opcode);
   (*m_state.computeOps)[opcode_name]++;
 
+  //cout << ">> Instruction " << instruction->getOpcodeName() << " type " << instruction->getType() << endl;
   //TEST to see if the instruction is using local memory:
-  const llvm::Type *type = instruction->getType();
-  if (type->isPointerTy()) {
-    switch (type->getPointerAddressSpace()) {
+  bool isMemoryInst = false;
+  unsigned addressSpace;
+  if (instruction->getOpcode() == llvm::Instruction::Load) {
+    isMemoryInst = true;
+    const llvm::StoreInst *storeInst = (const llvm::StoreInst *)instruction;
+    addressSpace = storeInst->getPointerAddressSpace();
+  } else if (instruction->getOpcode() == llvm::Instruction::Store) {
+    isMemoryInst = true;
+    const llvm::LoadInst *loadInst = (const llvm::LoadInst *)instruction;
+    addressSpace = loadInst->getPointerAddressSpace();
+  }
+  if (isMemoryInst) {
+    //cout << ">> Instruction " << instruction->getOpcodeName() << " address space " << addressSpace << endl;
+    switch (addressSpace) {
     case AddrSpaceLocal: {
-      //std::cout << "It's a local (shared)! ";
-      //    // Local pointer kernel arguments and local data variables
-      //    // value->second.data == NULL
-      //    // value->second.size == val size
-      //    //if(llvm::isa<llvm::Argument>(type))
-      //    {
-      //        // Arguments have a private pointer
-      //        //m_deferredInit.push_back(*value);
-      //	//const llvm::Argument* inst = llvm::dyn_cast<const llvm::Argument*>(type->getPointer());
-      //        std::cout << "argument encountered!" << std::endl;
-      //	//inst.print();
-      //    }
-      //std::cout << std::endl;
-      m_state.shared_memory_access_count++;
+      m_state.local_memory_access_count++;
+      break;
     }
     case AddrSpaceGlobal: {
       m_state.global_memory_access_count++;
+      break;
     }
-    case AddrSpacePrivate: {
-      m_state.private_memory_access_count++;
+    case AddrSpaceConstant: {
+      m_state.constant_memory_access_count++;
+      break;
+    }
+    case AddrSpacePrivate:
+    default: {
+      // we don't count these
     }
     }
   }
@@ -267,8 +281,8 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
   m_threads_invoked = 0;
   m_barriers_hit = 0;
   m_global_memory_access = 0;
-  m_shared_memory_access = 0;
-  m_private_memory_access = 0;
+  m_local_memory_access = 0;
+  m_constant_memory_access = 0;
 }
 
 void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocation) {
@@ -329,7 +343,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 
   double freedom_to_reorder = std::accumulate(m_instructionsBetweenLoadOrStore.begin(), m_instructionsBetweenLoadOrStore.end(), 0.0);
   freedom_to_reorder = freedom_to_reorder / m_instructionsBetweenLoadOrStore.size();
-  cout << "Freedom to Reorder: " << freedom_to_reorder << endl
+  cout << "Freedom to Reorder: " << setprecision(2) << freedom_to_reorder << endl
        << endl;
 
   double resource_pressure = 0;
@@ -338,7 +352,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   for (auto const &item : m_loadInstructionLabels)
     resource_pressure += item.second;
   resource_pressure = resource_pressure / m_threads_invoked;
-  cout << "Resource Pressure: " << resource_pressure << endl;
+  cout << "Resource Pressure: " << setprecision(2) << resource_pressure << endl;
 
   cout << endl
        << "### Thread-Level Parallelism" << endl
@@ -496,21 +510,21 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   }
 
   cout << endl
-       << "### Memory Diversity -- Usage of Shared and Private memory relative to global memory" << endl
+       << "### Memory Diversity -- Usage of local and constant memory relative to global memory" << endl
        << endl;
 
   cout << "num global memory accesses: " << m_global_memory_access << endl
        << endl;
-  cout << "num shared memory accesses: " << m_shared_memory_access << endl
+  cout << "num local memory accesses: " << m_local_memory_access << endl
        << endl;
-  cout << "num private memory accesses: " << m_private_memory_access << endl
+  cout << "num constant memory accesses: " << m_constant_memory_access << endl
        << endl;
 
-  unsigned m_total_memory_access = m_global_memory_access + m_shared_memory_access + m_private_memory_access;
+  unsigned m_total_memory_access = m_global_memory_access + m_local_memory_access + m_constant_memory_access;
 
-  cout << "\% shared memory accesses (shared/total): " << (((float)m_shared_memory_access / (float)m_total_memory_access) * 100) << endl
+  cout << "\% local memory accesses (local/total): " << setprecision(2) << (((float)m_local_memory_access / (float)m_total_memory_access) * 100) << endl
        << endl;
-  cout << "\% private memory accesses (private/total): " << (((float)m_private_memory_access / (float)m_total_memory_access) * 100) << endl
+  cout << "\% constant memory accesses (constant/total): " << setprecision(2) << (((float)m_constant_memory_access / (float)m_total_memory_access) * 100) << endl
        << endl;
 
   cout << "## Control" << endl
@@ -641,10 +655,10 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     logfile << "local memory address entropy -- " << nskip << " LSBs skipped," << loc_entropy[nskip - 1] << "\n";
   }
   logfile << "total global memory accessed, " << m_global_memory_access << "\n";
-  logfile << "total shared memory accessed, " << m_shared_memory_access << "\n";
-  logfile << "total private memory accessed, " << m_private_memory_access << "\n";
-  logfile << "relative shared memory usage, " << (((float)m_shared_memory_access / (float)m_global_memory_access) * 100) << "\n";
-  logfile << "relative private memory usage, " << (((float)m_private_memory_access / (float)m_global_memory_access) * 100) << "\n";
+  logfile << "total local memory accessed, " << m_local_memory_access << "\n";
+  logfile << "total constant memory accessed, " << m_constant_memory_access << "\n";
+  logfile << "relative local memory usage, " << (((float)m_local_memory_access / (float)m_global_memory_access) * 100) << "\n";
+  logfile << "relative constant memory usage, " << (((float)m_constant_memory_access / (float)m_global_memory_access) * 100) << "\n";
   logfile << "total unique branch instructions," << sorted_branch_ops.size() << "\n";
   logfile << "90\% branch instructions," << unique_branch_addresses << "\n";
   logfile << "branch entropy (yokota)," << yokota_entropy_per_workload << "\n";
@@ -720,8 +734,8 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup) {
   m_state.barriers_hit = 0;
 
   //memory type access count variables
-  m_state.private_memory_access_count = 0;
-  m_state.shared_memory_access_count = 0;
+  m_state.constant_memory_access_count = 0;
+  m_state.local_memory_access_count = 0;
   m_state.global_memory_access_count = 0;
 
   //branch logic variables
@@ -776,8 +790,8 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup) {
     m_storeInstructionLabels[item.first] += item.second;
 
   // merge memory type access count variables
-  m_private_memory_access += m_state.private_memory_access_count;
-  m_shared_memory_access += m_state.shared_memory_access_count;
+  m_constant_memory_access += m_state.constant_memory_access_count;
+  m_local_memory_access += m_state.local_memory_access_count;
   m_global_memory_access += m_state.global_memory_access_count;
 }
 
