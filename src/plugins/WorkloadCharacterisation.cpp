@@ -113,25 +113,25 @@ void WorkloadCharacterisation::hostMemoryStore(const Memory *memory, size_t addr
 
 void WorkloadCharacterisation::memoryLoad(const Memory *memory, const WorkItem *workItem, size_t address, size_t size) {
   if (memory->getAddressSpace() != AddrSpacePrivate) {
-    m_state.memoryOps->push_back(address);
+    (*m_state.memoryOps)[address]++;
   }
 }
 
 void WorkloadCharacterisation::memoryStore(const Memory *memory, const WorkItem *workItem, size_t address, size_t size, const uint8_t *storeData) {
   if (memory->getAddressSpace() != AddrSpacePrivate) {
-    m_state.memoryOps->push_back(address);
+    (*m_state.memoryOps)[address]++;
   }
 }
 
 void WorkloadCharacterisation::memoryAtomicLoad(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size) {
   if (memory->getAddressSpace() != 0) {
-    m_state.memoryOps->push_back(address);
+    (*m_state.memoryOps)[address]++;
   }
 }
 
 void WorkloadCharacterisation::memoryAtomicStore(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size) {
   if (memory->getAddressSpace() != 0) {
-    m_state.memoryOps->push_back(address);
+    (*m_state.memoryOps)[address]++;
   }
 }
 
@@ -271,7 +271,8 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
 
   m_memoryOps.clear();
   m_computeOps.clear();
-  m_branchOps.clear();
+  m_branchPatterns.clear();
+  m_branchCounts.clear();
   m_instructionsToBarrier.clear();
   m_instructionWidth.clear();
   m_instructionsPerWorkitem.clear();
@@ -439,16 +440,17 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 
   // count accesses to memory addresses with different numbers of retained
   // significant bits
-  std::vector<std::unordered_map<size_t, unsigned>> local_address_count(11);
-  for (const auto &address : m_memoryOps) {
-    for (int nskip = 0; nskip <= 10; nskip++) {
-      size_t local_addr = address >> nskip;
-      local_address_count[nskip][local_addr]++;
+  std::vector<std::unordered_map<size_t, unsigned long>> local_address_count(11);
+  local_address_count[0] = m_memoryOps;
+  for (const auto &m : m_memoryOps) {
+    for (int nskip = 1; nskip <= 10; nskip++) {
+      size_t local_addr = m.first >> nskip;
+      local_address_count[nskip][local_addr] += m.second;
     }
   }
 
-  std::vector<std::pair<unsigned, size_t>> sorted_count(local_address_count[0].size());
-  std::partial_sort_copy(local_address_count[0].begin(), local_address_count[0].end(), sorted_count.begin(), sorted_count.end(), [](const std::pair<unsigned, size_t> &left, const std::pair<unsigned, size_t> &right) {
+  std::vector<std::pair<size_t, unsigned long>> sorted_count(local_address_count[0].size());
+  std::partial_sort_copy(local_address_count[0].begin(), local_address_count[0].end(), sorted_count.begin(), sorted_count.end(), [](const std::pair<size_t, unsigned long> &left, const std::pair<size_t, unsigned long> &right) {
     return (left.second > right.second);
   });
 
@@ -462,7 +464,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
        << endl;
   cout << "Total Memory Footprint -- num unique memory addresses accessed: " << local_address_count[0].size() << endl
        << endl;
-  size_t significant_memory_access_count = (unsigned)ceil(memory_access_count * 0.9);
+  size_t significant_memory_access_count = (size_t)ceil(memory_access_count * 0.9);
   cout << "90\% of memory accesses: " << significant_memory_access_count << endl
        << endl;
 
@@ -520,7 +522,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "num constant memory accesses: " << m_constant_memory_access << endl
        << endl;
 
-  unsigned m_total_memory_access = m_global_memory_access + m_local_memory_access + m_constant_memory_access;
+  unsigned long m_total_memory_access = m_global_memory_access + m_local_memory_access + m_constant_memory_access;
 
   cout << "\% local memory accesses (local/total): " << setprecision(2) << (((float)m_local_memory_access / (float)m_total_memory_access) * 100) << endl
        << endl;
@@ -533,9 +535,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "Unique Branch Instructions -- Total number of unique branch instructions to cover 90\% of the branches" << endl
        << endl;
 
-  std::vector<std::pair<unsigned, std::vector<bool>>> sorted_branch_ops(m_branchOps.size());
-  std::partial_sort_copy(m_branchOps.begin(), m_branchOps.end(), sorted_branch_ops.begin(), sorted_branch_ops.end(), [](const std::pair<unsigned, std::vector<bool>> &left, const std::pair<unsigned, std::vector<bool>> &right) {
-    return (left.second.size() > right.second.size());
+  std::vector<std::pair<unsigned, unsigned long>> sorted_branch_ops(m_branchCounts.size());
+  std::partial_sort_copy(m_branchCounts.begin(), m_branchCounts.end(), sorted_branch_ops.begin(), sorted_branch_ops.end(), [](const std::pair<unsigned, unsigned long> &left, const std::pair<unsigned, unsigned long> &right) {
+    return (left.second > right.second);
   });
 
   cout << "|" << setw(14) << left << "Branch At Line"
@@ -544,17 +546,17 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "|--------------|----------------------:|" << endl;
   size_t branch_op_count = 0;
   for (auto const &x : sorted_branch_ops) {
-    branch_op_count += x.second.size();
-    cout << "|" << setw(14) << left << x.first << "|" << setw(23) << right << x.second.size() << "|" << endl;
+    branch_op_count += x.second;
+    cout << "|" << setw(14) << left << x.first << "|" << setw(23) << right << x.second << "|" << endl;
   }
   cout << endl;
 
-  size_t significant_branch_op_count = (unsigned)ceil(branch_op_count * 0.9);
+  size_t significant_branch_op_count = (size_t)ceil(branch_op_count * 0.9);
 
   size_t unique_branch_addresses = 0;
   size_t branch_count = 0;
   while (branch_count < significant_branch_op_count) {
-    branch_count += sorted_branch_ops[unique_branch_addresses].second.size();
+    branch_count += sorted_branch_ops[unique_branch_addresses].second;
     unique_branch_addresses++;
   }
   cout << "Number of unique branches that cover 90\% of all branch instructions: " << unique_branch_addresses << endl;
@@ -571,39 +573,30 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   float yokota_entropy_per_workload = 0.0f;
   unsigned N = 0;
 
-  for (auto const &branch : m_branchOps) {
-    //if we have fewer branches than the history window, skip it.
-    if (branch.second.size() < m)
-      continue;
-
-    //generate the set of history patterns
-    std::unordered_map<std::string, unsigned> H;
-    for (unsigned i = 0; i < branch.second.size() - (m - 1); i++) {
-      std::string current_pattern = "";
-      for (unsigned j = 0; j < m; j++) {
-        bool b = branch.second[i + j];
-        current_pattern += b ? '1' : '0';
-      }
-      H[current_pattern]++;
-    }
-
-    for (auto const &h : H) {
-      std::string pattern = h.first;
-      unsigned number_of_occurances = h.second;
+  for (auto const &branch : m_branchPatterns) {
+    for (auto const &h : branch.second) {
+      uint16_t pattern = h.first;
+      unsigned long number_of_occurrences = h.second;
       //for each history pattern compute the probability of the taken branch
-      unsigned taken = std::count(pattern.begin(), pattern.end(), '1');
-      unsigned not_taken = std::count(pattern.begin(), pattern.end(), '0');
+      unsigned taken = 0;
+      uint16_t p = pattern;
+      // count taken branches using Kernighan's algorithm
+      while (p) {
+        p &= p - 1;
+        taken++;
+      }
+      unsigned not_taken = m - taken;
       float probability_of_taken = (float)taken / (float)(not_taken + taken);
 
       //compute Yokota branch entropy
       if (probability_of_taken != 0) {
-        yokota_entropy -= number_of_occurances * probability_of_taken * std::log2(probability_of_taken);
+        yokota_entropy -= number_of_occurrences * probability_of_taken * std::log2(probability_of_taken);
         yokota_entropy_per_workload -= probability_of_taken * std::log2(probability_of_taken);
       }
       //compute linear branch entropy
       float linear_branch_entropy = 2 * std::min(probability_of_taken, 1 - probability_of_taken);
-      average_entropy += number_of_occurances * linear_branch_entropy;
-      N += number_of_occurances;
+      average_entropy += number_of_occurrences * linear_branch_entropy;
+      N += number_of_occurrences;
     }
   }
   average_entropy = average_entropy / N;
@@ -673,7 +666,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   // Reset kernel counts, ready to start anew
   m_memoryOps.clear();
   m_computeOps.clear();
-  m_branchOps.clear();
+  m_branchPatterns.clear();
+  m_branchCounts.clear();
   m_instructionsToBarrier.clear();
   m_instructionsPerWorkitem.clear();
   m_threads_invoked = 0;
@@ -685,7 +679,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup) {
   // Create worker state if haven't already
   if (!m_state.memoryOps) {
-    m_state.memoryOps = new vector<size_t>;
+    m_state.memoryOps = new unordered_map<size_t, unsigned long>;
     m_state.computeOps = new unordered_map<std::string, size_t>;
     m_state.branchOps = new unordered_map<unsigned, std::vector<bool>>;
     m_state.instructionsBetweenBarriers = new vector<unsigned>;
@@ -731,13 +725,31 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup) {
     m_computeOps[item.first] += item.second;
 
   // merge memory operations into global list
-  m_memoryOps.insert(m_memoryOps.end(), m_state.memoryOps->begin(), m_state.memoryOps->end());
-  m_state.memoryOps->clear();
+  for (auto const &item : (*m_state.memoryOps))
+    m_memoryOps[item.first] += item.second;
 
-  // merge control operations into global unordered map
-  for (auto const &item : (*m_state.branchOps))
-    for (auto const &branch_taken : item.second)
-      m_branchOps[item.first].push_back(branch_taken);
+  // merge control operations into global unordered maps
+  const unsigned m = 16;
+  for (auto const &branch : (*m_state.branchOps)) {
+    m_branchCounts[branch.first] += branch.second.size();
+
+    // compute branch patterns
+    //if we have fewer branches than the history window, skip it.
+    if (branch.second.size() < m)
+      continue;
+
+    // generate the set of history patterns - one bit per branch encounter
+    std::unordered_map<uint16_t, unsigned long> H;
+    uint16_t current_pattern = 0;
+    for (unsigned i = 0; i < branch.second.size(); i++) {
+      bool b = branch.second[i];
+      current_pattern = (current_pattern << 1) | (b ? 1 : 0);
+      if (i >= m - 1) {
+        // we now have m bits of pattern to compare
+        m_branchPatterns[branch.first][current_pattern]++;
+      }
+    }
+  }
 
   // add the current work-group item / thread counter to the global variable
   m_threads_invoked += m_state.threads_invoked;

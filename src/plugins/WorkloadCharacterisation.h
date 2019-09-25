@@ -42,9 +42,10 @@ namespace oclgrind
     virtual void workItemClearBarrier(const WorkItem *workItem) override;
 
   private:
-    std::vector<size_t> m_memoryOps;
+    std::unordered_map<size_t, unsigned long> m_memoryOps;
     std::unordered_map<std::string,size_t> m_computeOps;
-    std::unordered_map<unsigned,std::vector<bool>> m_branchOps;
+    std::unordered_map<unsigned,std::unordered_map<uint16_t, unsigned long>> m_branchPatterns;
+    std::unordered_map<unsigned, unsigned long> m_branchCounts;
     std::vector<unsigned int> m_instructionsToBarrier;
     std::unordered_map<unsigned, size_t> m_instructionWidth;
     std::vector<unsigned int> m_instructionsPerWorkitem;
@@ -57,14 +58,14 @@ namespace oclgrind
     std::vector<unsigned> m_instructionsBetweenLoadOrStore;
     std::unordered_map<std::string,size_t> m_loadInstructionLabels;
     std::unordered_map<std::string,size_t> m_storeInstructionLabels;
-    unsigned m_global_memory_access;
-    unsigned m_constant_memory_access;
-    unsigned m_local_memory_access;
+    unsigned long m_global_memory_access;
+    unsigned long m_constant_memory_access;
+    unsigned long m_local_memory_access;
 
     struct WorkerState
     {
       std::unordered_map<std::string,size_t> *computeOps;
-      std::vector<size_t> *memoryOps;
+      std::unordered_map<size_t, unsigned long> *memoryOps;
       bool previous_instruction_is_branch;
       std::string target1, target2;
       unsigned branch_loc;
@@ -74,9 +75,9 @@ namespace oclgrind
       unsigned instruction_count;
       unsigned ops_between_load_or_store;
       unsigned workitem_instruction_count;
-      unsigned global_memory_access_count;
-      unsigned constant_memory_access_count;
-      unsigned local_memory_access_count;
+      unsigned long global_memory_access_count;
+      unsigned long constant_memory_access_count;
+      unsigned long local_memory_access_count;
       std::vector<unsigned> *instructionsBetweenBarriers;
       std::vector<unsigned> *instructionsPerWorkitem;
       std::unordered_map<unsigned,size_t> *instructionWidth;
