@@ -143,21 +143,27 @@ void WorkloadCharacterisation::instructionExecuted(
   std::string opcode_name = llvm::Instruction::getOpcodeName(opcode);
   (*m_state.computeOps)[opcode_name]++;
 
-  //cout << ">> Instruction " << instruction->getOpcodeName() << " type " << instruction->getType() << endl;
-  //TEST to see if the instruction is using local memory:
   bool isMemoryInst = false;
   unsigned addressSpace;
-  if (instruction->getOpcode() == llvm::Instruction::Load) {
+
+  //get all unique labels -- for register use -- and the # of instructions between loads and stores -- as the freedom to reorder
+  m_state.ops_between_load_or_store++;
+  if (auto inst = llvm::dyn_cast<llvm::LoadInst>(instruction)) {
     isMemoryInst = true;
-    const llvm::StoreInst *storeInst = (const llvm::StoreInst *)instruction;
-    addressSpace = storeInst->getPointerAddressSpace();
-  } else if (instruction->getOpcode() == llvm::Instruction::Store) {
+    addressSpace = inst->getPointerAddressSpace();
+    std::string name = inst->getPointerOperand()->getName().data();
+    (*m_state.loadInstructionLabels)[name]++;
+    m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
+    m_state.ops_between_load_or_store = 0;
+  } else if (auto inst = llvm::dyn_cast<llvm::StoreInst>(instruction)) {
     isMemoryInst = true;
-    const llvm::LoadInst *loadInst = (const llvm::LoadInst *)instruction;
-    addressSpace = loadInst->getPointerAddressSpace();
+    addressSpace = inst->getPointerAddressSpace();
+    std::string name = inst->getPointerOperand()->getName().data();
+    (*m_state.storeInstructionLabels)[name]++;
+    m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
+    m_state.ops_between_load_or_store = 0;
   }
   if (isMemoryInst) {
-    //cout << ">> Instruction " << instruction->getOpcodeName() << " address space " << addressSpace << endl;
     switch (addressSpace) {
     case AddrSpaceLocal: {
       m_state.local_memory_access_count++;
@@ -176,20 +182,6 @@ void WorkloadCharacterisation::instructionExecuted(
       // we don't count these
     }
     }
-  }
-
-  //get all unique labels -- for register use -- and the # of instructions between loads and stores -- as the freedom to reorder
-  m_state.ops_between_load_or_store++;
-  if (auto inst = llvm::dyn_cast<llvm::LoadInst>(instruction)) {
-    std::string name = inst->getPointerOperand()->getName().data();
-    (*m_state.loadInstructionLabels)[name]++;
-    m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
-    m_state.ops_between_load_or_store = 0;
-  } else if (auto inst = llvm::dyn_cast<llvm::StoreInst>(instruction)) {
-    std::string name = inst->getPointerOperand()->getName().data();
-    (*m_state.storeInstructionLabels)[name]++;
-    m_state.instructionsBetweenLoadOrStore->push_back(m_state.ops_between_load_or_store);
-    m_state.ops_between_load_or_store = 0;
   }
 
   //collect conditional branches and the associated trace to count which ones were taken and which weren't
