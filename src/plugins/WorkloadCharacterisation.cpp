@@ -7,6 +7,12 @@
 // source code.
 
 #include "core/common.h"
+#include "core/Kernel.h"
+#include "core/KernelInvocation.h"
+#include "core/Memory.h"
+#include "core/WorkGroup.h"
+#include "core/WorkItem.h"
+#include "WorkloadCharacterisation.h"
 
 #include <algorithm>
 #include <csignal>
@@ -15,7 +21,6 @@
 #include <math.h>
 #include <numeric>
 #include <sstream>
-#include <vector>
 
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/Function.h"
@@ -23,14 +28,6 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Type.h"
 #include "llvm/Support/raw_ostream.h"
-
-#include "WorkloadCharacterisation.h"
-
-#include "core/Kernel.h"
-#include "core/KernelInvocation.h"
-#include "core/Memory.h"
-#include "core/WorkGroup.h"
-#include "core/WorkItem.h"
 
 using namespace oclgrind;
 using namespace std;
@@ -307,7 +304,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   size_t operation_count = 0;
   for (auto const &item : sorted_ops)
     operation_count += item.second;
-  size_t significant_operation_count = (unsigned)ceil(operation_count * 0.9);
+  size_t significant_operation_count = (size_t)ceil(operation_count * 0.9);
   size_t major_operations = 0;
   size_t total_instruction_count = operation_count;
   operation_count = 0;
@@ -360,11 +357,11 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "Total Barriers Hit: " << m_barriers_hit << endl
        << endl;
   //cout << "num barriers hit per thread: " << m_instructionsToBarrier.size()/m_threads_invoked << endl;
-  unsigned int itb_min = *std::min_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end());
-  unsigned int itb_max = *std::max_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end());
+  uint32_t itb_min = *std::min_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end());
+  uint32_t itb_max = *std::max_element(m_instructionsToBarrier.begin(), m_instructionsToBarrier.end());
 
   double itb_median;
-  std::vector<unsigned int> itb = m_instructionsToBarrier;
+  std::vector<uint32_t> itb = m_instructionsToBarrier;
   sort(itb.begin(), itb.end());
 
   size_t size = itb.size();
@@ -382,11 +379,11 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "### Work Distribution" << endl
        << endl;
 
-  unsigned int ipt_min = *std::min_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end());
-  unsigned int ipt_max = *std::max_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end());
+  uint32_t ipt_min = *std::min_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end());
+  uint32_t ipt_max = *std::max_element(m_instructionsPerWorkitem.begin(), m_instructionsPerWorkitem.end());
 
-  unsigned int ipt_median;
-  std::vector<unsigned int> ipt = m_instructionsPerWorkitem;
+  uint32_t ipt_median;
+  std::vector<uint32_t> ipt = m_instructionsPerWorkitem;
   sort(ipt.begin(), ipt.end());
 
   size = ipt.size();
@@ -403,11 +400,11 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 
   using pair_type = decltype(m_instructionWidth)::value_type;
 
-  unsigned simd_min = std::min_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first;
-  unsigned simd_max = std::max_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first;
+  uint16_t simd_min = std::min_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first;
+  uint16_t simd_max = std::max_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first;
 
-  long simd_sum = 0;
-  long simd_num = 0;
+  uint32_t simd_sum = 0;
+  uint32_t simd_num = 0;
   for (const auto &item : m_instructionWidth) {
     simd_sum += item.second * item.first;
     simd_num += item.second;
@@ -432,7 +429,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 
   // count accesses to memory addresses with different numbers of retained
   // significant bits
-  std::vector<std::unordered_map<size_t, unsigned long>> local_address_count(11);
+  std::vector<std::unordered_map<size_t, uint32_t>> local_address_count(11);
   local_address_count[0] = m_memoryOps;
   for (const auto &m : m_memoryOps) {
     for (int nskip = 1; nskip <= 10; nskip++) {
@@ -441,8 +438,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     }
   }
 
-  std::vector<std::pair<size_t, unsigned long>> sorted_count(local_address_count[0].size());
-  std::partial_sort_copy(local_address_count[0].begin(), local_address_count[0].end(), sorted_count.begin(), sorted_count.end(), [](const std::pair<size_t, unsigned long> &left, const std::pair<size_t, unsigned long> &right) {
+  std::vector<std::pair<size_t, uint32_t>> sorted_count(local_address_count[0].size());
+  std::partial_sort_copy(local_address_count[0].begin(), local_address_count[0].end(), sorted_count.begin(), sorted_count.end(), [](const std::pair<size_t, uint32_t> &left, const std::pair<size_t, uint32_t> &right) {
     return (left.second > right.second);
   });
 
@@ -478,7 +475,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 
   double mem_entropy = 0.0;
   for (const auto &it : sorted_count) {
-    int value = (int)it.second;
+    uint32_t value = it.second;
     double prob = (double)value * 1.0 / (double)memory_access_count;
     mem_entropy = mem_entropy - prob * std::log2(prob);
   }
@@ -514,7 +511,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "num constant memory accesses: " << m_constant_memory_access << endl
        << endl;
 
-  unsigned long m_total_memory_access = m_global_memory_access + m_local_memory_access + m_constant_memory_access;
+  uint32_t m_total_memory_access = m_global_memory_access + m_local_memory_access + m_constant_memory_access;
 
   cout << "\% local memory accesses (local/total): " << setprecision(2) << (((float)m_local_memory_access / (float)m_total_memory_access) * 100) << endl
        << endl;
@@ -527,8 +524,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "Unique Branch Instructions -- Total number of unique branch instructions to cover 90\% of the branches" << endl
        << endl;
 
-  std::vector<std::pair<unsigned, unsigned long>> sorted_branch_ops(m_branchCounts.size());
-  std::partial_sort_copy(m_branchCounts.begin(), m_branchCounts.end(), sorted_branch_ops.begin(), sorted_branch_ops.end(), [](const std::pair<unsigned, unsigned long> &left, const std::pair<unsigned, unsigned long> &right) {
+  std::vector<std::pair<size_t, uint32_t>> sorted_branch_ops(m_branchCounts.size());
+  std::partial_sort_copy(m_branchCounts.begin(), m_branchCounts.end(), sorted_branch_ops.begin(), sorted_branch_ops.end(), [](const std::pair<size_t, uint32_t> &left, const std::pair<size_t, uint32_t> &right) {
     return (left.second > right.second);
   });
 
@@ -568,7 +565,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   for (auto const &branch : m_branchPatterns) {
     for (auto const &h : branch.second) {
       uint16_t pattern = h.first;
-      unsigned long number_of_occurrences = h.second;
+      uint32_t number_of_occurrences = h.second;
       //for each history pattern compute the probability of the taken branch
       unsigned taken = 0;
       uint16_t p = pattern;
@@ -671,13 +668,13 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup) {
   // Create worker state if haven't already
   if (!m_state.memoryOps) {
-    m_state.memoryOps = new unordered_map<size_t, unsigned long>;
+    m_state.memoryOps = new unordered_map<size_t, uint32_t>;
     m_state.computeOps = new unordered_map<std::string, size_t>;
-    m_state.branchOps = new unordered_map<unsigned, std::vector<bool>>;
-    m_state.instructionsBetweenBarriers = new vector<unsigned>;
-    m_state.instructionWidth = new unordered_map<unsigned, size_t>;
-    m_state.instructionsPerWorkitem = new vector<unsigned>;
-    m_state.instructionsBetweenLoadOrStore = new vector<unsigned>;
+    m_state.branchOps = new unordered_map<size_t, std::vector<bool>>;
+    m_state.instructionsBetweenBarriers = new vector<uint32_t>;
+    m_state.instructionWidth = new unordered_map<uint16_t, size_t>;
+    m_state.instructionsPerWorkitem = new vector<uint32_t>;
+    m_state.instructionsBetweenLoadOrStore = new vector<uint32_t>;
     m_state.loadInstructionLabels = new unordered_map<std::string, size_t>;
     m_state.storeInstructionLabels = new unordered_map<std::string, size_t>;
   }
@@ -731,7 +728,7 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup) {
       continue;
 
     // generate the set of history patterns - one bit per branch encounter
-    std::unordered_map<uint16_t, unsigned long> H;
+    std::unordered_map<uint16_t, uint32_t> H;
     uint16_t current_pattern = 0;
     for (unsigned i = 0; i < branch.second.size(); i++) {
       bool b = branch.second[i];
