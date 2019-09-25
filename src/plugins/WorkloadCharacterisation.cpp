@@ -654,38 +654,15 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   for (int nskip = 1; nskip < 11; nskip++) {
     logfile << "local memory address entropy -- " << nskip << " LSBs skipped," << loc_entropy[nskip - 1] << "\n";
   }
-  logfile << "total global memory accessed, " << m_global_memory_access << "\n";
-  logfile << "total local memory accessed, " << m_local_memory_access << "\n";
-  logfile << "total constant memory accessed, " << m_constant_memory_access << "\n";
-  logfile << "relative local memory usage, " << (((float)m_local_memory_access / (float)m_global_memory_access) * 100) << "\n";
-  logfile << "relative constant memory usage, " << (((float)m_constant_memory_access / (float)m_global_memory_access) * 100) << "\n";
+  logfile << "total global memory accessed," << m_global_memory_access << "\n";
+  logfile << "total local memory accessed," << m_local_memory_access << "\n";
+  logfile << "total constant memory accessed," << m_constant_memory_access << "\n";
+  logfile << "relative local memory usage," << (((float)m_local_memory_access / (float)m_total_memory_access) * 100) << "\n";
+  logfile << "relative constant memory usage," << (((float)m_constant_memory_access / (float)m_total_memory_access) * 100) << "\n";
   logfile << "total unique branch instructions," << sorted_branch_ops.size() << "\n";
   logfile << "90\% branch instructions," << unique_branch_addresses << "\n";
   logfile << "branch entropy (yokota)," << yokota_entropy_per_workload << "\n";
   logfile << "branch entropy (average linear)," << average_entropy << "\n";
-  logfile.close();
-  //ITP -- SIMT logfile
-  std::string itb_logfile_name = logfile_name;
-  itb_logfile_name.replace(itb_logfile_name.end() - 4, itb_logfile_name.end(), "_itb.log");
-  logfile.open(itb_logfile_name, std::ofstream::out | std::ofstream::app);
-  for (const auto &it : m_instructionsToBarrier)
-    logfile << it << "\n";
-  logfile.close();
-  //load Instruction Labels -- with count -- logfile
-  std::string load_instruction_labels_logfile_name = logfile_name;
-  load_instruction_labels_logfile_name.replace(load_instruction_labels_logfile_name.end() - 4, load_instruction_labels_logfile_name.end(), "_load_labels.log");
-  logfile.open(load_instruction_labels_logfile_name, std::ofstream::out | std::ofstream::app);
-  logfile << "label,count\n";
-  for (const auto &it : m_loadInstructionLabels)
-    logfile << it.first << "," << it.second << "\n";
-  logfile.close();
-  //store Instruction Labels -- with count -- logfile
-  std::string store_instruction_labels_logfile_name = logfile_name;
-  store_instruction_labels_logfile_name.replace(store_instruction_labels_logfile_name.end() - 4, store_instruction_labels_logfile_name.end(), "_store_labels.log");
-  logfile.open(store_instruction_labels_logfile_name, std::ofstream::out | std::ofstream::app);
-  logfile << "label,count\n";
-  for (const auto &it : m_storeInstructionLabels)
-    logfile << it.first << "," << it.second << "\n";
   logfile.close();
 
   cout << endl
