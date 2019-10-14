@@ -523,7 +523,7 @@ bool Uninitialized::handleBuiltinFunction(const WorkItem *workItem, string name,
             }
             else
             {
-                size_t srcOffset = mask.getUInt(i) * shadow.size;
+                size_t srcOffset = (mask.getUInt(i) % shadow.size) * shadow.size;
                 memcpy(newShadow.data + i*newShadow.size, shadow.data + srcOffset, newShadow.size);
             }
         }
@@ -549,7 +549,7 @@ bool Uninitialized::handleBuiltinFunction(const WorkItem *workItem, string name,
             }
 
             uint64_t src = 0;
-            uint64_t index = mask.getUInt(i);
+            uint64_t index = mask.getUInt(i) % (2 * m);
 
             if(index >= m)
             {
