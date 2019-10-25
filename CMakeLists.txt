@@ -215,7 +215,8 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/Uninitialized.cpp)
 target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
   clangCodeGen clangFrontend clangSerialization clangDriver
-  clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
+  clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
+  clangLex clangBasic
   ${LLVM_LIBS})
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
