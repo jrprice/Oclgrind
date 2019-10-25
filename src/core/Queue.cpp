@@ -293,7 +293,7 @@ void Queue::execute(Command *command)
   m_queue.erase(it);
 }
 
-Command* Queue::update()
+Command* Queue::finish()
 {
   if (m_queue.empty())
   {

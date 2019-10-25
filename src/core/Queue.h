@@ -210,7 +210,7 @@ namespace oclgrind
     void executeWriteBufferRect(BufferRectCommand *cmd);
 
     bool isEmpty() const;
-    Command* update();
+    Command* finish();
 
   private:
     const Context *m_context;

@@ -3627,8 +3627,8 @@ clFinish
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
-  // TODO: Move this update to async thread?
-  oclgrind::Command *cmd = command_queue->queue->update();
+  // TODO: Move this finish to async thread?
+  oclgrind::Command *cmd = command_queue->queue->finish();
   releaseCommand(cmd);
 
   return CL_SUCCESS;
