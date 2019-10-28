@@ -8,8 +8,8 @@
 
 cmake_minimum_required(VERSION 2.8.12)
 project(Oclgrind)
-set(Oclgrind_VERSION_MAJOR 18)
-set(Oclgrind_VERSION_MINOR 3)
+set(Oclgrind_VERSION_MAJOR 19)
+set(Oclgrind_VERSION_MINOR 10)
 
 include(CheckIncludeFiles)
 include(CheckIncludeFileCXX)

@@ -2,10 +2,13 @@ For more information, please visit the Oclgrind Wiki:
 https://github.com/jrprice/Oclgrind/wiki
 
 
-Oclgrind XX.X
-=============
+Oclgrind 19.10
+==============
+- Added support for executing commands across multiple command queues
+- Added support for out-of-order command queues
 - Added support for LLVM 7.0, 8.0 and 9.0
 - Dropped support for LLVM 3.9 and 4.0
+- Various minor bug fixes
 
 
 Oclgrind 18.3
