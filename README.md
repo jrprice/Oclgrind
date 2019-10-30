@@ -170,7 +170,7 @@ A summary of each collected AIWC metrics is provided below:
 |------------------------------:|---------------------------------:|--------------------------------------------------------------------------:|
 |Compute			| Opcode 		  	   | total # of unique opcodes required to cover 90% of dynamic instructions   |
 |				| Total Instruction Count 	   | total # of instructions executed					       |
-|------------------------------:|---------------------------------:|--------------------------------------------------------------------------:|
+|-------------------------------|----------------------------------|---------------------------------------------------------------------------|
 |Parallelism			| Work-items 		  	   | total # of work-items or threads executed				       |
 |				| Total Barriers Hit 	  	   | total # of barrier instructions					       |
 |				| Min ITB 		  	   | minimum # of instructions executed until a barrier			       |
@@ -182,7 +182,7 @@ A summary of each collected AIWC metrics is provided below:
 |				| Max SIMD Width 	  	   | maximum # of data items operated on during an instruction		       |
 |				| Mean SIMD Width 	  	   | mean # of data items operated on during an instruction		       |
 |				| SD SIMD Width 	  	   | standard deviation across # of data items affected			       |
-|------------------------------:|---------------------------------:|--------------------------------------------------------------------------:|
+|-------------------------------|----------------------------------|---------------------------------------------------------------------------|
 |Memory				| Total Memory Footprint  	   | total # of unique memory addresses accessed			       |
 |				| 90% Memory Footprint 	  	   | # of unique memory addresses that cover 90% of memory accesses	       |
 |				| Unique Reads 		  	   | total # of unique memory addresses read				       |
@@ -194,7 +194,7 @@ A summary of each collected AIWC metrics is provided below:
 |				| Rewrite Ratio 		   | indication of memory reuse for writes (unique writes/total writes)        |
 |				| Global Memory Address Entropy    | measure of the randomness of memory addresses                             |
 |				| Local Memory Address Entropy     | measure of the spatial locality of memory addresses                       |
-|------------------------------:|---------------------------------:|--------------------------------------------------------------------------:|
+|-------------------------------|----------------------------------|---------------------------------------------------------------------------|
 |Control			| Total Unique Branch Instructions | total # of unique branch instructions                                     |
 |                               | 90% Branch Instructions          | # of unique branch instructions that cover 90% of branch instructions     |
 |                               | Yokota Branch Entropy            | branch history entropy using Shannon's information entropy                |
@@ -209,6 +209,7 @@ and
   https://github.com/BeauJoh/opencl-predictions-with-aiwc
 
 If you have any questions or comments please contact the developers via email:
+
   Beau Johnston `<beau.johnston@anu.edu.au>` or Josh Milthorpe `<josh.milthorpe@anu.edu.au>`
 
 
