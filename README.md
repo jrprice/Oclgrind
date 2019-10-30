@@ -166,39 +166,39 @@ independent of any particular device.
 
 A summary of each collected AIWC metrics is provided below:
 
-|Type	                        | Metric		  	   | Description							       |
-|------------------------------:|---------------------------------:|--------------------------------------------------------------------------:|
-|Compute			| Opcode 		  	   | total # of unique opcodes required to cover 90% of dynamic instructions   |
-|				| Total Instruction Count 	   | total # of instructions executed					       |
-[//]: # (|----------------------|----------------------------------|---------------------------------------------------------------------------|)
-|Parallelism			| Work-items 		  	   | total # of work-items or threads executed				       |
-|				| Total Barriers Hit 	  	   | total # of barrier instructions					       |
-|				| Min ITB 		  	   | minimum # of instructions executed until a barrier			       |
-|				| Max ITB 		  	   | maximum # of instructions executed until a barrier			       |
-|				| Median ITB 		  	   | median # of instructions executed until a barrier			       |
-|				| Min IPT 		  	   | minimum # of instructions executed per thread			       |
-|				| Max IPT 		  	   | maximum # of instructions executed per thread			       |
-|				| Median IPT 		  	   | median # of instructions executed per thread			       |
-|				| Max SIMD Width 	  	   | maximum # of data items operated on during an instruction		       |
-|				| Mean SIMD Width 	  	   | mean # of data items operated on during an instruction		       |
-|				| SD SIMD Width 	  	   | standard deviation across # of data items affected			       |
-[//]: # (|----------------------|----------------------------------|---------------------------------------------------------------------------|)
-|Memory				| Total Memory Footprint  	   | total # of unique memory addresses accessed			       |
-|				| 90% Memory Footprint 	  	   | # of unique memory addresses that cover 90% of memory accesses	       |
-|				| Unique Reads 		  	   | total # of unique memory addresses read				       |
-|				| Unique Writes 	  	   | total # of unique memory addresses written				       |
-|				| Unique Read/Write Ratio 	   | indication of workload being (unique reads / unique writes)               |
-|				| Total Reads 			   | total # of memory addresses read                                          |
-|				| Total Writes 			   | total # of memory addresses written				       |
-|				| Reread Ratio 			   | indication of memory reuse for reads (unique reads/total reads)           |
-|				| Rewrite Ratio 		   | indication of memory reuse for writes (unique writes/total writes)        |
-|				| Global Memory Address Entropy    | measure of the randomness of memory addresses                             |
-|				| Local Memory Address Entropy     | measure of the spatial locality of memory addresses                       |
-[//]: # (|----------------------|----------------------------------|---------------------------------------------------------------------------|)
-|Control			| Total Unique Branch Instructions | total # of unique branch instructions                                     |
-|                               | 90% Branch Instructions          | # of unique branch instructions that cover 90% of branch instructions     |
-|                               | Yokota Branch Entropy            | branch history entropy using Shannon's information entropy                |
-|                               | Average Linear Branch Entropy    | branch history entropy score using the average linear branch entropy      |
+|Type        | Metric		  	        | Description                                                               |
+|:----------:|:---------------------------------|--------------------------------------------------------------------------:|
+|Compute     | Opcode 		  	        | total # of unique opcodes required to cover 90% of dynamic instructions   |
+|            | Total Instruction Count 	        | total # of instructions executed                                          |
+|------------|----------------------------------|---------------------------------------------------------------------------|
+|Parallelism | Work-items                       | total # of work-items or threads executed                                 |
+|            | Total Barriers Hit               | total # of barrier instructions					    |
+|            | Min ITB                          | minimum # of instructions executed until a barrier                        |
+|            | Max ITB 		  	        | maximum # of instructions executed until a barrier			    |
+|            | Median ITB                       | median # of instructions executed until a barrier			    |
+|            | Min IPT                          | minimum # of instructions executed per thread			            |
+|            | Max IPT 		  	        | maximum # of instructions executed per thread			            |
+|            | Median IPT                       | median # of instructions executed per thread			            |
+|            | Max SIMD Width 	  	        | maximum # of data items operated on during an instruction		    |
+|            | Mean SIMD Width 	  	        | mean # of data items operated on during an instruction		    |
+|            | SD SIMD Width 	  	        | standard deviation across # of data items affected			    |
+|------------|----------------------------------|---------------------------------------------------------------------------|
+|Memory      | Total Memory Footprint           | total # of unique memory addresses accessed			            |
+|            | 90% Memory Footprint             | # of unique memory addresses that cover 90% of memory accesses	    |
+|            | Unique Reads                     | total # of unique memory addresses read				    |
+|            | Unique Writes                    | total # of unique memory addresses written				    |
+|            | Unique Read/Write Ratio          | indication of workload being (unique reads / unique writes)               |
+|            | Total Reads                      | total # of memory addresses read                                          |
+|            | Total Writes                     | total # of memory addresses written				            |
+|            | Reread Ratio                     | indication of memory reuse for reads (unique reads/total reads)           |
+|            | Rewrite Ratio                    | indication of memory reuse for writes (unique writes/total writes)        |
+|            | Global Memory Address Entropy    | measure of the randomness of memory addresses                             |
+|            | Local Memory Address Entropy     | measure of the spatial locality of memory addresses                       |
+|------------|----------------------------------|---------------------------------------------------------------------------|
+|Control     | Total Unique Branch Instructions | total # of unique branch instructions                                     |
+|            | 90% Branch Instructions          | # of unique branch instructions that cover 90% of branch instructions     |
+|            | Yokota Branch Entropy            | branch history entropy using Shannon's information entropy                |
+|            | Average Linear Branch Entropy    | branch history entropy score using the average linear branch entropy      |
 
 For examples on how these features can be used for diversity analysis and device predictions see:
 
