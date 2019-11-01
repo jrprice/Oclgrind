@@ -1,5 +1,5 @@
 // Queue.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
@@ -9,6 +9,7 @@
 #include "common.h"
 
 #include <cassert>
+#include <algorithm>
 
 #include "Context.h"
 #include "KernelInvocation.h"
@@ -18,8 +19,8 @@
 using namespace oclgrind;
 using namespace std;
 
-Queue::Queue(const Context *context)
-  : m_context(context)
+Queue::Queue(const Context *context, bool out_of_order)
+  : m_context(context), m_out_of_order(out_of_order)
 {
 }
 
@@ -38,7 +39,9 @@ Event* Queue::enqueue(Command *cmd)
 {
   Event *event = new Event();
   cmd->event = event;
-  m_queue.push(cmd);
+  event->command = cmd;
+  event->queue = this;
+  m_queue.push_back(cmd);
   return event;
 }
 
@@ -193,87 +196,115 @@ bool Queue::isEmpty() const
   return m_queue.empty();
 }
 
-Queue::Command* Queue::update()
+void Queue::execute(Command *command, bool flush)
+{
+  // Find command in queue
+  auto it = std::find(m_queue.begin(), m_queue.end(), command);
+
+  // If there is a previous (older) command in the queue AND either the queue
+  // is not out of order OR needs to be flushed, then add event associated with
+  // previous (older) command as a dependency
+  if (it != m_queue.begin() && (!m_out_of_order || flush))
+  {
+    command->waitList.push_back((*std::prev(it))->event);
+  }
+
+  // Make sure all events in the wait list are complete before executing
+  // current command
+  while (!command->waitList.empty())
+  {
+    Event *evt = command->waitList.front();
+    command->waitList.pop_front();
+
+    if (evt->state < 0)
+    {
+      command->event->state = evt->state;
+      m_queue.erase(it);
+      return;
+    }
+    else if (evt->state != CL_COMPLETE)
+    {
+      if (evt->command)
+      {
+        // If it's not a user event, execute the associated command
+        evt->queue->execute(evt->command, flush);
+        command->execBefore.push_front(evt->command);
+      }
+      else
+      {
+        // If it's a user event then place it back at the of the wait list, and
+        // check it later
+        command->waitList.push_back(evt);
+      }
+    }
+  }
+
+  // Dispatch command
+  command->event->startTime = now();
+  command->event->state = CL_RUNNING;
+
+  switch (command->type)
+  {
+  case Command::COPY:
+    executeCopyBuffer((CopyCommand*)command);
+    break;
+  case Command::COPY_RECT:
+    executeCopyBufferRect((CopyRectCommand*)command);
+    break;
+  case Command::EMPTY:
+    break;
+  case Command::FILL_BUFFER:
+    executeFillBuffer((FillBufferCommand*)command);
+    break;
+  case Command::FILL_IMAGE:
+    executeFillImage((FillImageCommand*)command);
+    break;
+  case Command::READ:
+    executeReadBuffer((BufferCommand*)command);
+    break;
+  case Command::READ_RECT:
+    executeReadBufferRect((BufferRectCommand*)command);
+    break;
+  case Command::KERNEL:
+    executeKernel((KernelCommand*)command);
+    break;
+  case Command::MAP:
+    executeMap((MapCommand*)command);
+    break;
+  case Command::NATIVE_KERNEL:
+    executeNativeKernel((NativeKernelCommand*)command);
+    break;
+  case Command::UNMAP:
+    executeUnmap((UnmapCommand*)command);
+    break;
+  case Command::WRITE:
+    executeWriteBuffer((BufferCommand*)command);
+    break;
+  case Command::WRITE_RECT:
+    executeWriteBufferRect((BufferRectCommand*)command);
+    break;
+  default:
+    assert(false && "Unhandled command type in queue.");
+  }
+
+  command->event->endTime = now();
+  command->event->state = CL_COMPLETE;
+
+  // Remove command from its queue
+  m_queue.erase(it);
+}
+
+Command* Queue::finish()
 {
   if (m_queue.empty())
   {
     return NULL;
   }
 
-  // Get next command
-  Command *cmd = m_queue.front();
+  // Get most recent command in queue and execute it, triggering the execution
+  // of all previous commands even if it's an out-of-order queue
+  Command *cmd = m_queue.back();
+  execute(cmd, true);
 
-  // Check if all events in wait list have completed
-  while (!cmd->waitList.empty())
-  {
-    if (cmd->waitList.front()->state == CL_COMPLETE)
-    {
-      cmd->waitList.pop_front();
-    }
-    else if (cmd->waitList.front()->state < 0)
-    {
-      cmd->event->state = cmd->waitList.front()->state;
-      m_queue.pop();
-      return cmd;
-    }
-    else
-    {
-      return NULL;
-    }
-  }
-
-  cmd->event->startTime = now();
-  cmd->event->state = CL_RUNNING;
-
-  // Dispatch command
-  switch (cmd->type)
-  {
-  case COPY:
-    executeCopyBuffer((CopyCommand*)cmd);
-    break;
-  case COPY_RECT:
-    executeCopyBufferRect((CopyRectCommand*)cmd);
-    break;
-  case EMPTY:
-    break;
-  case FILL_BUFFER:
-    executeFillBuffer((FillBufferCommand*)cmd);
-    break;
-  case FILL_IMAGE:
-    executeFillImage((FillImageCommand*)cmd);
-    break;
-  case READ:
-    executeReadBuffer((BufferCommand*)cmd);
-    break;
-  case READ_RECT:
-    executeReadBufferRect((BufferRectCommand*)cmd);
-    break;
-  case KERNEL:
-    executeKernel((KernelCommand*)cmd);
-    break;
-  case MAP:
-    executeMap((MapCommand*)cmd);
-    break;
-  case NATIVE_KERNEL:
-    executeNativeKernel((NativeKernelCommand*)cmd);
-    break;
-  case UNMAP:
-    executeUnmap((UnmapCommand*)cmd);
-    break;
-  case WRITE:
-    executeWriteBuffer((BufferCommand*)cmd);
-    break;
-  case WRITE_RECT:
-    executeWriteBufferRect((BufferRectCommand*)cmd);
-    break;
-  default:
-    assert(false && "Unhandled command type in queue.");
-  }
-
-  cmd->event->endTime = now();
-  cmd->event->state = CL_COMPLETE;
-
-  // Remove command from queue and delete
-  m_queue.pop();
   return cmd;
 }

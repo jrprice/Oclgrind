@@ -1,5 +1,5 @@
 # CMakeLists.txt (Oclgrind)
-# Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+# Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 # University of Bristol. All rights reserved.
 #
 # This program is provided under a three-clause BSD license. For full
@@ -8,8 +8,8 @@
 
 cmake_minimum_required(VERSION 2.8.12)
 project(Oclgrind)
-set(Oclgrind_VERSION_MAJOR 18)
-set(Oclgrind_VERSION_MINOR 3)
+set(Oclgrind_VERSION_MAJOR 19)
+set(Oclgrind_VERSION_MINOR 10)
 
 include(CheckIncludeFiles)
 include(CheckIncludeFileCXX)
@@ -217,7 +217,8 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/WorkloadCharacterisation.cpp)
 target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
   clangCodeGen clangFrontend clangSerialization clangDriver
-  clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
+  clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
+  clangLex clangBasic
   ${LLVM_LIBS})
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")

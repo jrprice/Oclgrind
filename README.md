@@ -155,7 +155,3 @@ If you encounter any issues or have any questions, please use the
 GitHub issues page:
 
   https://github.com/jrprice/Oclgrind/issues
-
-You can also contact the primary developer via email:
-
-  James Price `<j.price@bristol.ac.uk>`

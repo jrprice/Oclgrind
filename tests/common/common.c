@@ -12,6 +12,19 @@ void checkError(cl_int err, const char *operation)
   }
 }
 
+// Check platform is Oclgrind
+void checkOclgrindPlatform(cl_platform_id platform)
+{
+  char name[256];
+  cl_int err = clGetPlatformInfo(platform, CL_PLATFORM_NAME, 256, name, NULL);
+  checkError(err, "getting platform name");
+  if (strcmp(name, "Oclgrind"))
+  {
+    fprintf(stderr, "Unable to find Oclgrind platform\n");
+    exit(1);
+  }
+}
+
 Context createContext(const char *source, const char *options)
 {
   Context cl;
@@ -20,15 +33,7 @@ Context createContext(const char *source, const char *options)
   err = clGetPlatformIDs(1, &cl.platform, NULL);
   checkError(err, "getting platform");
 
-  // Check platform is Oclgrind
-  char name[256];
-  err = clGetPlatformInfo(cl.platform, CL_PLATFORM_NAME, 256, name, NULL);
-  checkError(err, "getting platform name");
-  if (strcmp(name, "Oclgrind"))
-  {
-    fprintf(stderr, "Unable to find Oclgrind platform\n");
-    exit(1);
-  }
+  checkOclgrindPlatform(cl.platform);
 
   err = clGetDeviceIDs(cl.platform, CL_DEVICE_TYPE_ALL, 1, &cl.device, NULL);
   checkError(err, "getting device");

@@ -1,5 +1,5 @@
 // WorkItemBuiltins.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
@@ -2597,7 +2597,7 @@ namespace oclgrind
     {
       for (unsigned i = 0; i < result.num; i++)
       {
-        result.setUInt(UARGV(0, UARGV(1, i)), i);
+        result.setUInt(UARGV(0, UARGV(1, i) % result.num), i);
       }
     }
 
@@ -2612,7 +2612,7 @@ namespace oclgrind
         }
 
         uint64_t src = 0;
-        uint64_t index = UARGV(2, i);
+        uint64_t index = UARGV(2, i) % (2 * m);
         if (index >= m)
         {
           index -= m;

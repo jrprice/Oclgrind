@@ -1,5 +1,5 @@
 // async_queue.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
@@ -20,14 +20,14 @@ using namespace oclgrind;
 using namespace std;
 
 // Maps to keep track of retained objects
-static map< Queue::Command*, list<cl_mem> > memObjectMap;
-static map< Queue::Command*, cl_kernel > kernelMap;
-static map< Queue::Command*, cl_event > eventMap;
-static map< Queue::Command*, list<cl_event> > waitListMap;
+static map< Command*, list<cl_mem> > memObjectMap;
+static map< Command*, cl_kernel > kernelMap;
+static map< Command*, cl_event > eventMap;
+static map< Command*, list<cl_event> > waitListMap;
 
 void asyncEnqueue(cl_command_queue queue,
                   cl_command_type type,
-                  Queue::Command *cmd,
+                  Command *cmd,
                   cl_uint numEvents,
                   const cl_event *waitList,
                   cl_event *eventOut)
@@ -63,14 +63,14 @@ void asyncEnqueue(cl_command_queue queue,
   }
 }
 
-void asyncQueueRetain(Queue::Command *cmd, cl_mem mem)
+void asyncQueueRetain(Command *cmd, cl_mem mem)
 {
   // Retain object and add to map
   clRetainMemObject(mem);
   memObjectMap[cmd].push_back(mem);
 }
 
-void asyncQueueRetain(Queue::Command *cmd, cl_kernel kernel)
+void asyncQueueRetain(Command *cmd, cl_kernel kernel)
 {
   assert(kernelMap.find(cmd) == kernelMap.end());
 
@@ -86,7 +86,7 @@ void asyncQueueRetain(Queue::Command *cmd, cl_kernel kernel)
   }
 }
 
-void asyncQueueRelease(Queue::Command *cmd)
+void asyncQueueRelease(Command *cmd)
 {
   // Release memory objects
   if (memObjectMap.find(cmd) != memObjectMap.end())
@@ -101,12 +101,12 @@ void asyncQueueRelease(Queue::Command *cmd)
   }
 
   // Release kernel
-  if (cmd->type == Queue::KERNEL)
+  if (cmd->type == Command::KERNEL)
   {
     assert(kernelMap.find(cmd) != kernelMap.end());
     clReleaseKernel(kernelMap[cmd]);
     kernelMap.erase(cmd);
-    delete ((Queue::KernelCommand*)cmd)->kernel;
+    delete ((KernelCommand*)cmd)->kernel;
   }
 
   // Remove event from map
