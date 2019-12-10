@@ -343,7 +343,7 @@ vector<double> parallelSpatialLocality(vector < vector < WorkloadCharacterisatio
   unordered_map <size_t, uint32_t> histogram;
   vector<vector<double>> entropies = vector<vector<double>>(maxLength);
 
-  for (size_t i = 0; i < maxLength; i++) {
+  for (size_t i = 0; i < maxLength; i++) { // for each timestep
     histogram.clear();
     for (size_t j = 0; j < hist.size(); j++) {
       if (i >= hist[j].size())
@@ -357,9 +357,9 @@ vector<double> parallelSpatialLocality(vector < vector < WorkloadCharacterisatio
 
   vector<double> psl = vector<double>(11, 0.0);
   for (uint32_t i = 0; i < 11; i++) {
-    for (size_t j = 0; j < entropies[i].size(); j++) 
+    for (size_t j = 0; j < entropies.size(); j++) 
       psl[i] += entropies[j][i];
-    psl[i] = psl[i] * 1.0/ ((double)entropies[i].size() + 1);
+    psl[i] = psl[i] * 1.0/ ((double)entropies.size() + 1);
   }
   return psl;
 }
