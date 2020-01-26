@@ -250,6 +250,18 @@ void WorkloadCharacterisation::workItemBarrier(const WorkItem *workItem) {
   m_state.instruction_count = 0;
 }
 
+vector<double> parallelSpatialLocality(vector < vector < WorkloadCharacterisation::ledgerElement> > hist);
+
+void WorkloadCharacterisation::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags) {
+  vector<double> psl = parallelSpatialLocality(m_state.ledger);
+  size_t maxLength = 0;
+  for (size_t i = 0; i < m_state.ledger.size(); i++) {
+    maxLength = m_state.ledger[i].size() > maxLength ? m_state.ledger[i].size() : maxLength;
+    m_state.ledger[i].clear();
+  }
+  m_state.psl_per_barrier->push_back(std::make_pair(psl, maxLength));
+}
+
 void WorkloadCharacterisation::workItemClearBarrier(const WorkItem *workItem) {
   m_state.instruction_count = 0;
 }
@@ -459,6 +471,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   } else {
     itb_median = itb[size / 2];
   }
+
   cout << "Instructions to Barrier (min/max/median): " << itb_min << "/" << itb_max << "/" << itb_median << endl
        << endl;
   double barriers_per_instruction = static_cast<double>(m_barriers_hit + m_threads_invoked) / static_cast<double>(total_instruction_count);
@@ -783,8 +796,8 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   for (int nskip = 1; nskip < 11; nskip++) {
     logfile << "local memory address entropy -- " << nskip << " LSBs skipped," << loc_entropy[nskip - 1] << "\n";
   }
-  for (int nskip = 1; nskip < 11; nskip++) {
-    logfile << "parallel spatial locality -- " << nskip << " LSBs skipped," << avg_psl[nskip - 1] << "\n";
+  for (int nskip = 0; nskip < 11; nskip++) {
+    logfile << "parallel spatial locality -- " << nskip << " LSBs skipped," << avg_psl[nskip] << "\n";
   }
   logfile << "total global memory accessed," << m_global_memory_access << "\n";
   logfile << "total local memory accessed," << m_local_memory_access << "\n";
@@ -834,6 +847,7 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup) {
     m_state.storeInstructionLabels = new unordered_map<std::string, size_t>;
     m_state.ledger = vector<vector<WorkloadCharacterisation::ledgerElement>>
       (m_local_num.x * m_local_num.y * m_local_num.z, vector<ledgerElement>());
+    m_state.psl_per_barrier = new vector<pair<vector<double>,uint64_t>>;
   }
 
   //m_state.memoryOps->clear();
@@ -938,12 +952,30 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup) {
   m_constant_memory_access += m_state.constant_memory_access_count;
   m_local_memory_access += m_state.local_memory_access_count;
   m_global_memory_access += m_state.global_memory_access_count;
+
   vector<double> psl = parallelSpatialLocality(m_state.ledger);
-  // cout << endl
-  //      << "Parallel Spatial Locality of Group " << workGroup->getGroupIndex() << endl;
-  // for (size_t i = 0; i < psl.size(); i++) {
-  //   cout << psl[i] << " " << endl;
-  // }
-  m_psl_per_group.push_back(psl);  
+  size_t maxLength = 0;
+  for (size_t i = 0; i < m_state.ledger.size(); i++) {
+    maxLength = m_state.ledger[i].size() > maxLength ? m_state.ledger[i].size() : maxLength;
+    m_state.ledger[i].clear();
+  }
+  
+  m_state.psl_per_barrier->push_back(std::make_pair(psl, maxLength));
+
+  maxLength = 0;
+  vector<double> weighted_avg_psl = vector<double>(11, 0.0);
+  for (const auto &elem : *m_state.psl_per_barrier) {
+    maxLength += elem.second;
+    for (size_t nskip = 0; nskip < 11; nskip++) {
+      weighted_avg_psl[nskip] += elem.first[nskip] * elem.second;
+    }
+  }
+
+  if (maxLength != 0) {
+    for (size_t nskip = 0; nskip < 11; nskip++) {
+      weighted_avg_psl[nskip] = weighted_avg_psl[nskip] / static_cast<float>(maxLength + 1);
+    }   
+  }
+  m_psl_per_group.push_back(weighted_avg_psl);  
 }
 

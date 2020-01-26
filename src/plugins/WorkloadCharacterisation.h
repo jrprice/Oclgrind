@@ -37,6 +37,7 @@ public:
   virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
   virtual void workGroupBegin(const WorkGroup *workGroup) override;
   virtual void workGroupComplete(const WorkGroup *workGroup) override;
+  virtual void workGroupBarrier(const WorkGroup *workGroup, uint32_t flags) override;
   virtual void workItemBegin(const WorkItem *workItem) override;
   virtual void workItemComplete(const WorkItem *workItem) override;
   virtual void workItemBarrier(const WorkItem *workItem) override;
@@ -96,6 +97,7 @@ private:
     std::unordered_map<std::string, size_t> *loadInstructionLabels;
     std::unordered_map<std::string, size_t> *storeInstructionLabels;
     std::vector<uint32_t> *instructionsBetweenLoadOrStore;
+    std::vector<std::pair<std::vector<double>, uint64_t>> *psl_per_barrier;
     uint64_t timestep;
     // uint32_t work_item_no;
     // uint32_t work_group_no;
