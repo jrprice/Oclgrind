@@ -30,7 +30,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 using namespace oclgrind;
-using namespace std;
+using namespace std;  
 
 #define COUNTED_LOAD_BASE (llvm::Instruction::OtherOpsEnd + 4)
 #define COUNTED_STORE_BASE (COUNTED_LOAD_BASE + 8)
@@ -108,27 +108,45 @@ void WorkloadCharacterisation::hostMemoryStore(const Memory *memory, size_t addr
   m_numberOfHostToDeviceCopiesBeforeKernelNamed++;
 }
 
+void WorkloadCharacterisation::threadMemoryLedger(size_t address, uint32_t timestep, Size3 localID) {
+  WorkloadCharacterisation::ledgerElement le;
+  le.address = address;
+  le.timestep = timestep;
+  (m_state.ledger)//[groupID.x * m_group_num.x + groupID.y * m_group_num.y 
+        // + groupID.z * m_group_num.z]
+        [localID.x * m_local_num.y * m_local_num.z + localID.y * m_local_num.z 
+         + localID.z].push_back(le);
+}
+
 void WorkloadCharacterisation::memoryLoad(const Memory *memory, const WorkItem *workItem, size_t address, size_t size) {
   if (memory->getAddressSpace() != AddrSpacePrivate) {
-    (*m_state.memoryOps)[address]++;
+    //(*m_state.memoryOps)[pair(address, true)]++;
+    (*m_state.loadOps)[address]++;
+    threadMemoryLedger(address, 0, workItem->getLocalID()); 
   }
 }
 
 void WorkloadCharacterisation::memoryStore(const Memory *memory, const WorkItem *workItem, size_t address, size_t size, const uint8_t *storeData) {
   if (memory->getAddressSpace() != AddrSpacePrivate) {
-    (*m_state.memoryOps)[address]++;
+    //(*m_state.memoryOps)[pair(address, false)]++;
+    (*m_state.storeOps)[address]++;
+    threadMemoryLedger(address, 0, workItem->getLocalID()); 
   }
 }
 
 void WorkloadCharacterisation::memoryAtomicLoad(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size) {
   if (memory->getAddressSpace() != 0) {
-    (*m_state.memoryOps)[address]++;
+    //(*m_state.memoryOps)[pair(address, true)]++;
+    (*m_state.loadOps)[address]++;
+    threadMemoryLedger(address, 0, workItem->getLocalID());
   }
 }
 
 void WorkloadCharacterisation::memoryAtomicStore(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size) {
   if (memory->getAddressSpace() != 0) {
-    (*m_state.memoryOps)[address]++;
+    //(*m_state.memoryOps)[pair(address, false)]++;
+    (*m_state.storeOps)[address]++;
+    threadMemoryLedger(address, 0, workItem->getLocalID());
   }
 }
 
@@ -232,6 +250,18 @@ void WorkloadCharacterisation::workItemBarrier(const WorkItem *workItem) {
   m_state.instruction_count = 0;
 }
 
+vector<double> parallelSpatialLocality(vector < vector < WorkloadCharacterisation::ledgerElement> > hist);
+
+void WorkloadCharacterisation::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags) {
+  vector<double> psl = parallelSpatialLocality(m_state.ledger);
+  size_t maxLength = 0;
+  for (size_t i = 0; i < m_state.ledger.size(); i++) {
+    maxLength = m_state.ledger[i].size() > maxLength ? m_state.ledger[i].size() : maxLength;
+    m_state.ledger[i].clear();
+  }
+  m_state.psl_per_barrier->push_back(std::make_pair(psl, maxLength));
+}
+
 void WorkloadCharacterisation::workItemClearBarrier(const WorkItem *workItem) {
   m_state.instruction_count = 0;
 }
@@ -241,6 +271,10 @@ void WorkloadCharacterisation::workItemBegin(const WorkItem *workItem) {
   m_state.instruction_count = 0;
   m_state.workitem_instruction_count = 0;
   m_state.ops_between_load_or_store = 0;
+  //Size_3 local_ID = workItem->getLocalID;
+  //m_state.work_item_no = localID.x * m_local_num.y * m_local_num.z + localID.y * m_local_num.z 
+  //       + localID.z;
+  //m_state.work_group_no = 0;
 }
 
 void WorkloadCharacterisation::workItemComplete(const WorkItem *workItem) {
@@ -258,7 +292,9 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
   }
   m_numberOfHostToDeviceCopiesBeforeKernelNamed = 0;
 
-  m_memoryOps.clear();
+  //m_memoryOps.clear();
+  m_storeOps.clear();
+  m_loadOps.clear();
   m_computeOps.clear();
   m_branchPatterns.clear();
   m_branchCounts.clear();
@@ -273,6 +309,71 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
   m_global_memory_access = 0;
   m_local_memory_access = 0;
   m_constant_memory_access = 0;
+
+  m_group_num = kernelInvocation->getNumGroups();
+  m_local_num = kernelInvocation->getLocalSize();
+  m_psl_per_group = vector<vector<double>>();
+}
+
+
+vector<double> entropy(unordered_map<size_t, uint32_t> histogram) {
+  std::vector<std::unordered_map<size_t, uint32_t>> local_address_count(11, unordered_map<size_t, uint32_t>());
+  local_address_count[0] = histogram;
+  uint64_t total_access_count = 0;
+  vector<double> loc_entropy = vector<double>(11);
+
+  for (const auto &m : histogram) {
+    for (int nskip = 1; nskip <= 10; nskip++) {
+      size_t local_addr = m.first >> nskip;
+      local_address_count[nskip][local_addr] += m.second;
+    }
+    total_access_count += m.second;
+  }
+
+  if (total_access_count == 0) {
+    loc_entropy = vector<double>(11, 0.0);
+    return loc_entropy;
+  }
+
+  for (int nskip = 0; nskip < 11; nskip++) {
+    double local_entropy = 0.0;
+    for (const auto &it : local_address_count[nskip]) {
+      double prob = (double)(it.second) * 1.0 / (double)(total_access_count+1);
+      local_entropy = local_entropy - prob * std::log2(prob);
+    }
+    loc_entropy[nskip] = (float)local_entropy;
+  }
+
+  return loc_entropy;
+}
+
+vector<double> parallelSpatialLocality(vector < vector < WorkloadCharacterisation::ledgerElement> > hist) {
+  size_t maxLength = 0;
+  for (size_t i = 0; i < hist.size(); i++)
+    maxLength = hist[i].size() > maxLength ? hist[i].size() : maxLength;
+  
+  unordered_map <size_t, uint32_t> histogram;
+  vector<vector<double>> entropies = vector<vector<double>>(maxLength);
+
+  for (size_t i = 0; i < maxLength; i++) { // for each timestep
+    histogram.clear();
+    for (size_t j = 0; j < hist.size(); j++) {
+      if (i >= hist[j].size())
+        continue;
+      WorkloadCharacterisation::ledgerElement current = hist[j][i];
+      histogram[current.address] = histogram[current.address] + 1;
+    }
+
+    entropies[i] = entropy(histogram);
+  }
+
+  vector<double> psl = vector<double>(11, 0.0);
+  for (uint32_t i = 0; i < 11; i++) {
+    for (size_t j = 0; j < entropies.size(); j++) 
+      psl[i] += entropies[j][i];
+    psl[i] = psl[i] * 1.0/ ((double)entropies.size() + 1);
+  }
+  return psl;
 }
 
 void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocation) {
@@ -370,6 +471,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   } else {
     itb_median = itb[size / 2];
   }
+
   cout << "Instructions to Barrier (min/max/median): " << itb_min << "/" << itb_max << "/" << itb_median << endl
        << endl;
   double barriers_per_instruction = static_cast<double>(m_barriers_hit + m_threads_invoked) / static_cast<double>(total_instruction_count);
@@ -403,7 +505,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   uint16_t simd_min = std::min_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first;
   uint16_t simd_max = std::max_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first;
 
-  uint32_t simd_sum = 0;
+  uint32_t simd_sum = 0;  
   uint32_t simd_num = 0;
   for (const auto &item : m_instructionWidth) {
     simd_sum += item.second * item.first;
@@ -430,12 +532,29 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   // count accesses to memory addresses with different numbers of retained
   // significant bits
   std::vector<std::unordered_map<size_t, uint32_t>> local_address_count(11);
-  local_address_count[0] = m_memoryOps;
-  for (const auto &m : m_memoryOps) {
-    for (int nskip = 1; nskip <= 10; nskip++) {
+  // for (const auto &m : m_memoryOps) {
+  //   for (int nskip = 0; nskip <= 10; nskip++) {
+  //     size_t local_addr = m.first >> nskip;
+  //     local_address_count[nskip][local_addr] += m.second;
+  //   }
+  // }
+  size_t load_count = 0;
+  size_t store_count = 0;
+
+  for (const auto &m : m_storeOps) {
+    for (int nskip = 0; nskip <= 10; nskip++) {
       size_t local_addr = m.first >> nskip;
       local_address_count[nskip][local_addr] += m.second;
     }
+    store_count += m.second;
+  }
+
+  for (const auto &m : m_loadOps) {
+    for (int nskip = 0; nskip <= 10; nskip++) {
+      size_t local_addr = m.first >> nskip;
+      local_address_count[nskip][local_addr] += m.second;
+    }
+    load_count += m.second;
   }
 
   std::vector<std::pair<size_t, uint32_t>> sorted_count(local_address_count[0].size());
@@ -451,8 +570,17 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 
   cout << "num memory accesses: " << memory_access_count << endl
        << endl;
-  cout << "Total Memory Footprint -- num unique memory addresses accessed: " << local_address_count[0].size() << endl
-       << endl;
+  cout << "Total Memory Footprint -- num unique memory addresses accessed: " << local_address_count[0].size() << endl;
+  cout << "                          num unique memory addresses read:     " << m_storeOps.size() << endl;
+  cout << "                          num unique memory addresses written:  " << m_loadOps.size()  << endl;
+  cout << "                          unique read/write ratio:              " 
+       << setprecision(4) << (float) (((double)m_loadOps.size()) / ((double)m_storeOps.size()))  << endl;
+  cout << "                          total reads:                          " << load_count    << endl;
+  cout << "                          total writes:                         " << store_count    << endl;
+  cout << "                          re-reads:                             " << setprecision(4)
+       << (float)((double)load_count / (double)m_loadOps.size()) << endl;
+  cout << "                          re-writes:                            " << setprecision(4)
+       << (float)((double)store_count / (double)m_storeOps.size()) << endl << endl;
   size_t significant_memory_access_count = (size_t)ceil(memory_access_count * 0.9);
   cout << "90\% of memory accesses: " << significant_memory_access_count << endl
        << endl;
@@ -498,6 +626,28 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     }
     loc_entropy.push_back((float)local_entropy);
     cout << "|" << setw(12) << right << nskip << "|" << fixed << setw(8) << setprecision(4) << right << (float)local_entropy << "|" << endl;
+  }
+
+  cout << endl
+       << "### Parallel Spatial Locality" << endl
+       << endl;
+  
+
+  cout << "|" << setw(12) << right << "LSBs skipped"
+       << "|" << setw(25) << right << "Parallel Spatial Locality"
+       << "|" << endl;
+  cout << "|-----------:|------------------------:|" << endl;
+
+  vector<double> avg_psl = vector<double>();
+
+  for (size_t i = 0; i < m_psl_per_group[0].size(); i++) {
+    double avg_psl_i = 0.0;
+    for (size_t j = 0; j < m_psl_per_group.size(); j++){
+      avg_psl_i += m_psl_per_group[j][i];
+    }
+    avg_psl_i = avg_psl_i / double(m_psl_per_group.size());
+    avg_psl.push_back(avg_psl_i);
+    cout << "|" << setw(12) << right << i << "|" << fixed << setw(25) << setprecision(4) << right << (float)avg_psl_i << "|" << endl;
   }
 
   cout << endl
@@ -631,10 +781,23 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   logfile << "barriers per instruction," << barriers_per_instruction << "\n";
   logfile << "instructions per operand," << instructions_per_operand << "\n";
   logfile << "total memory footprint," << local_address_count[0].size() << "\n";
+  logfile << "num unique memory addresses accessed," << local_address_count[0].size() << "\n";
+  logfile << "num unique memory addresses read," << m_storeOps.size() << "\n";
+  logfile << "num unique memory addresses written," << m_loadOps.size()  << "\n";
+  logfile << "unique read/write ratio," 
+       << setprecision(4) << (float) (((double)m_loadOps.size()) / ((double)m_storeOps.size()))  << "\n";
+  logfile << "total reads," << load_count    << "\n";
+  logfile << "total writes," << store_count    << "\n";
+  logfile << "re-reads," << setprecision(4) << (float)((double)load_count / (double)m_loadOps.size()) << "\n";
+  logfile << "re-writes," << setprecision(4) << (float)((double)store_count / (double)m_storeOps.size()) << "\n";
+
   logfile << "90\% memory footprint," << unique_memory_addresses << "\n";
   logfile << "global memory address entropy," << mem_entropy << "\n";
   for (int nskip = 1; nskip < 11; nskip++) {
     logfile << "local memory address entropy -- " << nskip << " LSBs skipped," << loc_entropy[nskip - 1] << "\n";
+  }
+  for (int nskip = 0; nskip < 11; nskip++) {
+    logfile << "parallel spatial locality -- " << nskip << " LSBs skipped," << avg_psl[nskip] << "\n";
   }
   logfile << "total global memory accessed," << m_global_memory_access << "\n";
   logfile << "total local memory accessed," << m_local_memory_access << "\n";
@@ -653,7 +816,9 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout.imbue(previousLocale);
 
   // Reset kernel counts, ready to start anew
-  m_memoryOps.clear();
+  //m_memoryOps.clear();
+  m_loadOps.clear();
+  m_storeOps.clear();
   m_computeOps.clear();
   m_branchPatterns.clear();
   m_branchCounts.clear();
@@ -667,8 +832,11 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
 
 void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup) {
   // Create worker state if haven't already
-  if (!m_state.memoryOps) {
-    m_state.memoryOps = new unordered_map<size_t, uint32_t>;
+  //if (!m_state.memoryOps) {
+  if (!m_state.storeOps) {
+    //m_state.memoryOps = new unordered_map<pair<size_t, bool>, uint32_t>;
+    m_state.storeOps = new unordered_map<size_t, uint32_t>;
+    m_state.loadOps = new unordered_map<size_t, uint32_t>;
     m_state.computeOps = new unordered_map<std::string, size_t>;
     m_state.branchOps = new unordered_map<size_t, std::vector<bool>>;
     m_state.instructionsBetweenBarriers = new vector<uint32_t>;
@@ -677,9 +845,14 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup) {
     m_state.instructionsBetweenLoadOrStore = new vector<uint32_t>;
     m_state.loadInstructionLabels = new unordered_map<std::string, size_t>;
     m_state.storeInstructionLabels = new unordered_map<std::string, size_t>;
+    m_state.ledger = vector<vector<WorkloadCharacterisation::ledgerElement>>
+      (m_local_num.x * m_local_num.y * m_local_num.z, vector<ledgerElement>());
+    m_state.psl_per_barrier = new vector<pair<vector<double>,uint64_t>>;
   }
 
-  m_state.memoryOps->clear();
+  //m_state.memoryOps->clear();
+  m_state.storeOps->clear();
+  m_state.loadOps->clear();
   m_state.computeOps->clear();
   m_state.branchOps->clear();
   m_state.instructionsBetweenBarriers->clear();
@@ -703,19 +876,27 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup) {
   m_state.target1 = "";
   m_state.target2 = "";
   m_state.branch_loc = 0;
+
+  for (size_t i = 0; i < (m_state.ledger).size(); i++)
+    (m_state.ledger)[i].clear();
 }
 
 void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup) {
 
   lock_guard<mutex> lock(m_mtx);
-
   // merge operation counts back into global unordered map
   for (auto const &item : (*m_state.computeOps))
     m_computeOps[item.first] += item.second;
 
   // merge memory operations into global list
-  for (auto const &item : (*m_state.memoryOps))
-    m_memoryOps[item.first] += item.second;
+  // for (auto const &item : (*m_state.memoryOps))
+  //   m_memoryOps[item.first] += item.second;
+
+  for (auto const &item : (*m_state.storeOps))
+    m_storeOps[item.first] += item.second;
+
+  for (auto const &item : (*m_state.loadOps))
+    m_loadOps[item.first] += item.second;
 
   // merge control operations into global unordered maps
   const unsigned m = 16;
@@ -771,5 +952,30 @@ void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup) {
   m_constant_memory_access += m_state.constant_memory_access_count;
   m_local_memory_access += m_state.local_memory_access_count;
   m_global_memory_access += m_state.global_memory_access_count;
+
+  vector<double> psl = parallelSpatialLocality(m_state.ledger);
+  size_t maxLength = 0;
+  for (size_t i = 0; i < m_state.ledger.size(); i++) {
+    maxLength = m_state.ledger[i].size() > maxLength ? m_state.ledger[i].size() : maxLength;
+    m_state.ledger[i].clear();
+  }
+  
+  m_state.psl_per_barrier->push_back(std::make_pair(psl, maxLength));
+
+  maxLength = 0;
+  vector<double> weighted_avg_psl = vector<double>(11, 0.0);
+  for (const auto &elem : *m_state.psl_per_barrier) {
+    maxLength += elem.second;
+    for (size_t nskip = 0; nskip < 11; nskip++) {
+      weighted_avg_psl[nskip] += elem.first[nskip] * elem.second;
+    }
+  }
+
+  if (maxLength != 0) {
+    for (size_t nskip = 0; nskip < 11; nskip++) {
+      weighted_avg_psl[nskip] = weighted_avg_psl[nskip] / static_cast<float>(maxLength + 1);
+    }   
+  }
+  m_psl_per_group.push_back(weighted_avg_psl);  
 }
 

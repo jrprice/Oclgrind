@@ -1,5 +1,5 @@
 // RaceDetector.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
@@ -375,7 +375,7 @@ void RaceDetector::registerAccess(const Memory *memory,
     index = STATE(workGroup).wiLocal.size() - 1;
   }
 
-  AccessMap& accesess = (addrSpace == AddrSpaceGlobal) ?
+  AccessMap& accesses = (addrSpace == AddrSpaceGlobal) ?
     STATE(workGroup).wiGlobal[index] :
     STATE(workGroup).wiLocal[index];
 
@@ -384,7 +384,7 @@ void RaceDetector::registerAccess(const Memory *memory,
     if (storeData)
       access.setStoreData(storeData[i]);
 
-    insert(accesess[address+i], access);
+    insert(accesses[address+i], access);
   }
 }
 

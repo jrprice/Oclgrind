@@ -23,6 +23,7 @@ public:
   WorkloadCharacterisation(const Context *context);
   ~WorkloadCharacterisation();
 
+  virtual void threadMemoryLedger(size_t address, uint32_t timestep, Size3 localID);
   virtual void hostMemoryLoad(const Memory *memory, size_t address, size_t size) override;
   virtual void hostMemoryStore(const Memory *memory, size_t address, size_t size, const uint8_t *storeData) override;
   virtual void instructionExecuted(const WorkItem *workItem,
@@ -36,13 +37,20 @@ public:
   virtual void kernelEnd(const KernelInvocation *kernelInvocation) override;
   virtual void workGroupBegin(const WorkGroup *workGroup) override;
   virtual void workGroupComplete(const WorkGroup *workGroup) override;
+  virtual void workGroupBarrier(const WorkGroup *workGroup, uint32_t flags) override;
   virtual void workItemBegin(const WorkItem *workItem) override;
   virtual void workItemComplete(const WorkItem *workItem) override;
   virtual void workItemBarrier(const WorkItem *workItem) override;
   virtual void workItemClearBarrier(const WorkItem *workItem) override;
-
+  
+  struct ledgerElement {
+    size_t address;
+    uint32_t timestep;
+  };
 private:
-  std::unordered_map<size_t, uint32_t> m_memoryOps;
+  // std::unordered_map<std::pair<size_t, bool>, uint32_t> m_memoryOps;
+  std::unordered_map<size_t, uint32_t> m_storeOps;
+  std::unordered_map<size_t, uint32_t> m_loadOps;
   std::unordered_map<std::string, size_t> m_computeOps;
   std::unordered_map<size_t, std::unordered_map<uint16_t, uint32_t>> m_branchPatterns;
   std::unordered_map<size_t, uint32_t> m_branchCounts;
@@ -61,10 +69,16 @@ private:
   uint32_t m_global_memory_access;
   uint32_t m_constant_memory_access;
   uint32_t m_local_memory_access;
+  Size3 m_group_num;
+  Size3 m_local_num;
+  std::vector<std::vector<double>> m_psl_per_group;
 
   struct WorkerState {
     std::unordered_map<std::string, size_t> *computeOps;
-    std::unordered_map<size_t, uint32_t> *memoryOps;
+    //std::unordered_map<std::pair<size_t, bool>, uint32_t> *memoryOps;
+    std::unordered_map<size_t, uint32_t> *storeOps;
+    std::unordered_map<size_t, uint32_t> *loadOps;
+    // true -> load; false -> store.
     bool previous_instruction_is_branch;
     std::string target1, target2;
     uint32_t branch_loc;
@@ -83,6 +97,11 @@ private:
     std::unordered_map<std::string, size_t> *loadInstructionLabels;
     std::unordered_map<std::string, size_t> *storeInstructionLabels;
     std::vector<uint32_t> *instructionsBetweenLoadOrStore;
+    std::vector<std::pair<std::vector<double>, uint64_t>> *psl_per_barrier;
+    uint64_t timestep;
+    // uint32_t work_item_no;
+    // uint32_t work_group_no;
+    std::vector<std::vector<ledgerElement>> ledger;
   };
   static THREAD_LOCAL WorkerState m_state;
 
