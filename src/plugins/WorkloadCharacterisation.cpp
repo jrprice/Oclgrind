@@ -646,7 +646,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
     for (size_t j = 0; j < m_psl_per_group.size(); j++){
       avg_psl_i += m_psl_per_group[j][i];
     }
-    avg_psl_i = (avg_psl_i / double(m_psl_per_group.size())) / std::log2(double(items_per_group));
+    avg_psl_i = (avg_psl_i / double(m_psl_per_group.size())) / std::log2(double(items_per_group + 1));
     avg_psl.push_back(avg_psl_i);
     avg_psl_sum += avg_psl_i;
     cout << "|" << setw(12) << right << i << "|" << fixed << setw(25) << setprecision(4) << right << (float)avg_psl_i << "|" << endl;
