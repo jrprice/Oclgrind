@@ -634,21 +634,27 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   
 
   cout << "|" << setw(12) << right << "LSBs skipped"
-       << "|" << setw(25) << right << "Parallel Spatial Locality"
+       << "|" << setw(25) << right << "Normed Parallel Spatial Locality"
        << "|" << endl;
   cout << "|-----------:|------------------------:|" << endl;
 
   vector<double> avg_psl = vector<double>();
-
+  double avg_psl_sum = 0.0;
+  uint32_t items_per_group = (m_local_num[0] * m_local_num[1] * m_local_num[2]);
   for (size_t i = 0; i < m_psl_per_group[0].size(); i++) {
     double avg_psl_i = 0.0;
     for (size_t j = 0; j < m_psl_per_group.size(); j++){
       avg_psl_i += m_psl_per_group[j][i];
     }
-    avg_psl_i = avg_psl_i / double(m_psl_per_group.size());
+    avg_psl_i = (avg_psl_i / double(m_psl_per_group.size())) / std::log2(double(items_per_group));
     avg_psl.push_back(avg_psl_i);
+    avg_psl_sum += avg_psl_i;
     cout << "|" << setw(12) << right << i << "|" << fixed << setw(25) << setprecision(4) << right << (float)avg_psl_i << "|" << endl;
   }
+
+  cout << endl
+       << "Normed Locality Sum: " << avg_psl_sum
+       << endl;
 
   cout << endl
        << "### Memory Diversity -- Usage of local and constant memory relative to global memory" << endl
@@ -760,54 +766,57 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   std::ofstream logfile;
   logfile.open(logfile_name);
   assert(logfile);
-  logfile << "metric,count\n";
-  logfile << "opcode," << major_operations << "\n";
-  logfile << "total instruction count," << total_instruction_count << "\n";
+  logfile << "metric,category,count\n";
+  logfile << "Opcode,Compute," << major_operations << "\n";
+  logfile << "Total Instruction Count,Parallelism," << total_instruction_count << "\n";
   logfile << "freedom to reorder," << freedom_to_reorder << "\n";
   logfile << "resource pressure," << resource_pressure << "\n";
-  logfile << "workitems," << m_threads_invoked << "\n";
+  logfile << "Work-items,Parallelism," << m_threads_invoked << "\n";
+  logfile << "Work-groups,Parallelism," << m_group_num[0] * m_group_num[1] * m_group_num[2] << "\n";
+  logfile << "Work-items per Work-group,Parallelism," << m_local_num[0] * m_local_num[1] * m_local_num[2] << "\n";
   logfile << "operand sum," << simd_sum << "\n";
-  logfile << "total # of barriers hit," << m_barriers_hit << "\n";
-  logfile << "min instructions to barrier," << itb_min << "\n";
-  logfile << "max instructions to barrier," << itb_max << "\n";
-  logfile << "median instructions to barrier," << itb_median << "\n";
-  logfile << "min instructions executed by a work-item," << ipt_min << "\n";
-  logfile << "max instructions executed by a work-item," << ipt_max << "\n";
-  logfile << "median instructions executed by a work-item," << ipt_median << "\n";
-  logfile << "max simd width," << std::max_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first << "\n";
-  logfile << "mean simd width," << simd_mean << "\n";
-  logfile << "stdev simd width," << simd_stdev << "\n";
+  logfile << "Total Barriers Hit,Parallelism," << m_barriers_hit << "\n";
+  logfile << "Min ITB,Parallelism," << itb_min << "\n";
+  logfile << "Max ITB,Parallelism," << itb_max << "\n";
+  logfile << "Median ITB,Parallelism," << itb_median << "\n";
+  logfile << "min IPT,Parallelism," << ipt_min << "\n";
+  logfile << "max IPT,Parallelism," << ipt_max << "\n";
+  logfile << "median IPT,Parallelism," << ipt_median << "\n";
+  logfile << "max SIMD Width,Parallelism," << std::max_element(m_instructionWidth.begin(), m_instructionWidth.end(), [](const pair_type &a, const pair_type &b) { return a.first < b.first; })->first << "\n";
+  logfile << "mean SIMD Width,Parallelism," << simd_mean << "\n";
+  logfile << "SD SIMD Width,Parallelism," << simd_stdev << "\n";
   logfile << "granularity," << granularity << "\n";
   logfile << "barriers per instruction," << barriers_per_instruction << "\n";
   logfile << "instructions per operand," << instructions_per_operand << "\n";
-  logfile << "total memory footprint," << local_address_count[0].size() << "\n";
-  logfile << "num unique memory addresses accessed," << local_address_count[0].size() << "\n";
-  logfile << "num unique memory addresses read," << m_storeOps.size() << "\n";
-  logfile << "num unique memory addresses written," << m_loadOps.size()  << "\n";
-  logfile << "unique read/write ratio," 
+  logfile << "Total Memory Footprint,Memory," << local_address_count[0].size() << "\n";
+  logfile << "Unique Memory Accesses,Memory," << local_address_count[0].size() << "\n";
+  logfile << "Unique Reads,Memory," << m_storeOps.size() << "\n";
+  logfile << "Unique Writes,Memory," << m_loadOps.size()  << "\n";
+  logfile << "Unique Read/Write Ratio,Memory," 
        << setprecision(4) << (float) (((double)m_loadOps.size()) / ((double)m_storeOps.size()))  << "\n";
-  logfile << "total reads," << load_count    << "\n";
-  logfile << "total writes," << store_count    << "\n";
-  logfile << "re-reads," << setprecision(4) << (float)((double)load_count / (double)m_loadOps.size()) << "\n";
-  logfile << "re-writes," << setprecision(4) << (float)((double)store_count / (double)m_storeOps.size()) << "\n";
+  logfile << "Total Reads,Memory," << load_count    << "\n";
+  logfile << "Total Writes,Memory," << store_count    << "\n";
+  logfile << "Rereads,Memory," << setprecision(4) << (float)((double)load_count / (double)m_loadOps.size()) << "\n";
+  logfile << "Rewrites,Memory," << setprecision(4) << (float)((double)store_count / (double)m_storeOps.size()) << "\n";
 
-  logfile << "90\% memory footprint," << unique_memory_addresses << "\n";
-  logfile << "global memory address entropy," << mem_entropy << "\n";
+  logfile << "90\% Memory Footprint,Memory," << unique_memory_addresses << "\n";
+  logfile << "Global Memory Address Entropy,Memory," << mem_entropy << "\n";
   for (int nskip = 1; nskip < 11; nskip++) {
-    logfile << "local memory address entropy -- " << nskip << " LSBs skipped," << loc_entropy[nskip - 1] << "\n";
+    logfile << "LMAE -- Skipped " << nskip << " LSBs,Memory," << loc_entropy[nskip - 1] << "\n";
   }
   for (int nskip = 0; nskip < 11; nskip++) {
-    logfile << "parallel spatial locality -- " << nskip << " LSBs skipped," << avg_psl[nskip] << "\n";
+    logfile << "Normed PSL -- Skipped " << nskip << " LSBs,Memory," << avg_psl[nskip] << "\n";
   }
-  logfile << "total global memory accessed," << m_global_memory_access << "\n";
-  logfile << "total local memory accessed," << m_local_memory_access << "\n";
-  logfile << "total constant memory accessed," << m_constant_memory_access << "\n";
-  logfile << "relative local memory usage," << (((float)m_local_memory_access / (float)m_total_memory_access) * 100) << "\n";
-  logfile << "relative constant memory usage," << (((float)m_constant_memory_access / (float)m_total_memory_access) * 100) << "\n";
-  logfile << "total unique branch instructions," << sorted_branch_ops.size() << "\n";
-  logfile << "90\% branch instructions," << unique_branch_addresses << "\n";
-  logfile << "branch entropy (yokota)," << yokota_entropy_per_workload << "\n";
-  logfile << "branch entropy (average linear)," << average_entropy << "\n";
+  logfile << "Normed PSL Sum,Memory," << avg_psl_sum << "\n";
+  logfile << "Total Global Memory Accessed,Memory," << m_global_memory_access << "\n";
+  logfile << "Total Local Memory Accessed,Memory," << m_local_memory_access << "\n";
+  logfile << "Total Constant Memory Accessed,Memory," << m_constant_memory_access << "\n";
+  logfile << "Relative Local Memory Usage,Memory," << (((float)m_local_memory_access / (float)m_total_memory_access) * 100) << "\n";
+  logfile << "Relative Constant Memory Usage,Memory," << (((float)m_constant_memory_access / (float)m_total_memory_access) * 100) << "\n";
+  logfile << "Total Unique Branch Instructions,Control," << sorted_branch_ops.size() << "\n";
+  logfile << "90\% Branch Instructions,Control," << unique_branch_addresses << "\n";
+  logfile << "Yokota Branch Entropy,Memory," << yokota_entropy_per_workload << "\n";
+  logfile << "Average Linear Branch Entropy,Memory," << average_entropy << "\n";
   logfile.close();
 
   cout << endl
