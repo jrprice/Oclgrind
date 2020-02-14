@@ -124,12 +124,6 @@ void WorkloadCharacterisation::memoryLoad(const Memory *memory, const WorkItem *
     (*m_state.loadOps)[address]++;
     threadMemoryLedger(address, 0, workItem->getLocalID()); 
   }
-  const auto localID = workItem->getLocalID();
-  const auto globalID = workItem->getWorkGroup()->getGroupID();
-  if (memory->getAddressSpace() != AddrSpacePrivate)
-    printf("(%d, %d, %d):(%d, %d, %d) element accesses %d address at t=%d \n", globalID.x, globalID.y, globalID.z, localID.x, localID.y, localID.z, address, (m_state.ledger)
-          [localID.x * m_local_num.y * m_local_num.z + localID.y * m_local_num.z 
-          + localID.z].size());
 }
 
 void WorkloadCharacterisation::memoryStore(const Memory *memory, const WorkItem *workItem, size_t address, size_t size, const uint8_t *storeData) {
@@ -138,13 +132,8 @@ void WorkloadCharacterisation::memoryStore(const Memory *memory, const WorkItem 
     (*m_state.storeOps)[address]++;
     threadMemoryLedger(address, 0, workItem->getLocalID()); 
   }
-  const auto localID = workItem->getLocalID();
-  const auto globalID = workItem->getWorkGroup()->getGroupID();
-  if (memory->getAddressSpace() != AddrSpacePrivate)
-    printf("(%d, %d, %d):(%d, %d, %d) element accesses %d address at t=%d \n", globalID.x, globalID.y, globalID.z, localID.x, localID.y, localID.z, address, (m_state.ledger)
-          [localID.x * m_local_num.y * m_local_num.z + localID.y * m_local_num.z 
-          + localID.z].size());
 }
+
 void WorkloadCharacterisation::memoryAtomicLoad(const Memory *memory, const WorkItem *workItem, AtomicOp op, size_t address, size_t size) {
   if (memory->getAddressSpace() != 0) {
     //(*m_state.memoryOps)[pair(address, true)]++;
