@@ -22,7 +22,7 @@ if (CMAKE_COMPILER_IS_GNUCC)
 endif()
 
 # Enable rpath on OS X
-#set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_MACOSX_RPATH 1)
 
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -62,10 +62,17 @@ add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
-# Get LLVM libraries for linking
-llvm_map_components_to_libnames(LLVM_LIBS
-  bitreader bitwriter core coroutines coverage instrumentation ipo irreader
-  linker lto mcparser objcarcopts option target)
+#to build against a shared version of LLVM:
+exec_program("${CLANG_ROOT}/bin/llvm-config --libfiles"
+	     WORKING_DIRECTORY ${CLANG_ROOT}/bin/llvm-config
+	     OUTPUT_VARIABLE LLVM_LIBS)
+separate_arguments(LLVM_LIBS)
+add_compile_definitions(LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING=1)
+
+#to build a version based on the static version of LLVM:
+#llvm_map_components_to_libnames(LLVM_LIBS
+#  bitreader bitwriter core coroutines coverage instrumentation ipo irreader
+#  linker lto mcparser objcarcopts option target)
 
 # Allow user to set path to Clang installation via CLANG_ROOT
 set (CLANG_ROOT " " CACHE PATH "Root of Clang installation")
@@ -215,11 +222,12 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/Uninitialized.cpp
   src/plugins/WorkloadCharacterisation.h
   src/plugins/WorkloadCharacterisation.cpp)
-target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
+#${LLVM_LIBRARY_DIRS}
+target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS} -Wl,-rpath=${CLANG_ROOT}/lib 
   clangCodeGen clangFrontend clangSerialization clangDriver
   clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
   clangLex clangBasic
-  ${LLVM_LIBS})
+  "${LLVM_LIBS}")
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
