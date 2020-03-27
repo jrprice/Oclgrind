@@ -223,6 +223,7 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/WorkloadCharacterisation.h
   src/plugins/WorkloadCharacterisation.cpp)
 #${LLVM_LIBRARY_DIRS}
+set_target_properties(oclgrind PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS} -Wl,-rpath=${CLANG_ROOT}/lib 
   clangCodeGen clangFrontend clangSerialization clangDriver
   clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
@@ -247,7 +248,8 @@ endif()
 
 add_library(oclgrind-rt-icd SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
 set_target_properties(oclgrind-rt-icd PROPERTIES COMPILE_FLAGS -DOCLGRIND_ICD)
-target_link_libraries(oclgrind-rt-icd ${CMAKE_DL_LIBS} oclgrind)
+set_target_properties(oclgrind-rt-icd PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
+target_link_libraries(oclgrind-rt-icd ${CMAKE_DL_LIBS} ${CORE_EXTRA_LIBS} oclgrind)
 
 # Add runtime exports on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
@@ -255,6 +257,7 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 endif()
 
 add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
+set_target_properties(oclgrind-rt PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
 target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
 if (UNIX AND NOT APPLE)
@@ -262,6 +265,10 @@ if (UNIX AND NOT APPLE)
   set_target_properties(oclgrind-rt PROPERTIES
                         NO_SONAME ON
                         LINK_FLAGS "-Wl,-soname,libOpenCL.so")
+  set_target_properties(oclgrind-rt-icd PROPERTIES
+                        NO_SONAME ON
+                        LINK_FLAGS "-Wl,-soname,libOpenCL.so.1")
+
 endif()
 
 add_executable(oclgrind-exe src/runtime/oclgrind.cpp)
