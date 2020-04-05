@@ -757,11 +757,18 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   cout << "Average Linear Branch Entropy: " << average_entropy << endl
        << endl;
 
-  int logfile_count = 0;
-  std::string logfile_name = "aiwc_" + kernelInvocation->getKernel()->getName() + "_" + std::to_string(logfile_count) + ".csv";
-  while (std::ifstream(logfile_name)) {
-    logfile_count++;
+  std::string logfile_name;
+
+  const char *result_path = getenv("OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH");
+  if (strlen(result_path) != 0){
+    logfile_name = std::string(result_path);
+  }else{
+    int logfile_count = 0;
     logfile_name = "aiwc_" + kernelInvocation->getKernel()->getName() + "_" + std::to_string(logfile_count) + ".csv";
+    while (std::ifstream(logfile_name)) {
+      logfile_count++;
+      logfile_name = "aiwc_" + kernelInvocation->getKernel()->getName() + "_" + std::to_string(logfile_count) + ".csv";
+    }
   }
   std::ofstream logfile;
   logfile.open(logfile_name);
