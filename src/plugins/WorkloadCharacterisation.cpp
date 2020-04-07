@@ -760,7 +760,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   std::string logfile_name;
 
   const char *result_path = getenv("OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH");
-  if (strlen(result_path) != 0){
+  if (result_path != NULL){
     logfile_name = std::string(result_path);
   }else{
     int logfile_count = 0;
