@@ -781,7 +781,7 @@ void WorkloadCharacterisation::kernelEnd(const KernelInvocation *kernelInvocatio
   logfile << "Work-items,Parallelism," << m_threads_invoked << "\n";
   logfile << "Work-groups,Parallelism," << m_group_num[0] * m_group_num[1] * m_group_num[2] << "\n";
   logfile << "Work-items per Work-group,Parallelism," << m_local_num[0] * m_local_num[1] * m_local_num[2] << "\n";
-  logfile << "Operand Sum,Compute," << simd_sum << "\n";
+  logfile << "SIMD Operand Sum,Parallelism," << simd_sum << "\n";
   logfile << "Total Barriers Hit,Parallelism," << m_barriers_hit << "\n";
   logfile << "Min ITB,Parallelism," << itb_min << "\n";
   logfile << "Max ITB,Parallelism," << itb_max << "\n";
