@@ -174,6 +174,11 @@ void WorkItem::dispatch(const llvm::Instruction *instruction,
   case llvm::Instruction::FMul:
     fmul(instruction, result);
     break;
+#if LLVM_VERSION >= 80
+  case llvm::Instruction::FNeg:
+    fneg(instruction, result);
+    break;
+#endif
   case llvm::Instruction::FPExt:
     fpext(instruction, result);
     break;
@@ -1053,6 +1058,17 @@ INSTRUCTION(fmul)
     result.setFloat(opA.getFloat(i) * opB.getFloat(i), i);
   }
 }
+
+#if LLVM_VERSION >= 80
+INSTRUCTION(fneg)
+{
+  TypedValue op = getOperand(instruction->getOperand(0));
+  for (unsigned i = 0; i < result.num; i++)
+  {
+    result.setFloat(-op.getFloat(i), i);
+  }
+}
+#endif
 
 INSTRUCTION(fpext)
 {
