@@ -6,7 +6,7 @@
 # license terms please see the LICENSE file distributed with this
 # source code.
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.1)
 project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 19)
 set(Oclgrind_VERSION_MINOR 10)
@@ -21,11 +21,14 @@ if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 endif()
 
+# Require C++14 (hard requirement for LLVM >10)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Enable rpath on OS X
 set(CMAKE_MACOSX_RPATH 1)
 
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-strict-aliasing")
@@ -63,9 +66,27 @@ include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
 # Get LLVM libraries for linking
-llvm_map_components_to_libnames(LLVM_LIBS
-  bitreader bitwriter core coroutines coverage instrumentation ipo irreader
-  linker lto mcparser objcarcopts option target)
+list(FIND LLVM_AVAILABLE_LIBS LLVM _LLVM_SHARED_INDEX)
+if (${_LLVM_SHARED_INDEX} GREATER -1)
+  set(LLVM_LIBS LLVM)
+else()
+  if (${LLVM_PACKAGE_VERSION} VERSION_LESS "10.0")
+    set(LLVM_EXTRA_LIBS )
+  else()
+    llvm_map_components_to_libnames(LLVM_EXTRA_LIBS frontendopenmp)
+  endif()
+
+  llvm_map_components_to_libnames(LLVM_LIBS
+    bitreader bitwriter core coroutines coverage instrumentation ipo irreader
+    linker lto mcparser objcarcopts option target)
+  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_EXTRA_LIBS})
+endif()
+
+# https://bugs.llvm.org/show_bug.cgi?id=44870
+list(FIND LLVM_AVAILABLE_LIBS Polly _POLLY_INDEX)
+if (${_POLLY_INDEX} GREATER -1)
+  list(APPEND LLVM_LIBS Polly)
+endif()
 
 # Allow user to set path to Clang installation via CLANG_ROOT
 set (CLANG_ROOT " " CACHE PATH "Root of Clang installation")
@@ -97,8 +118,22 @@ find_library(CLANG_LIB "clangFrontend"
              PATHS "${CLANG_ROOT}/lib" "${LLVM_LIBRARY_DIRS}"
              NO_DEFAULT_PATH)
 find_library(CLANG_LIB "clangFrontend")
+set(CLANG_LIBS
+  clangCodeGen clangFrontend clangSerialization clangDriver
+  clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
+  clangLex clangBasic)
+
 if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")
-  message(FATAL_ERROR "Clang libraries not found (set CLANG_ROOT)")
+  # https://releases.llvm.org/10.0.0/tools/clang/docs/ReleaseNotes.html#build-system-changes
+  find_library(CLANG_LIB "clang-cpp"
+               PATHS "${CLANG_ROOT}/lib" "${LLVM_LIBRARY_DIRS}"
+               NO_DEFAULT_PATH)
+  find_library(CLANG_LIB "clang-cpp")
+  set(CLANG_LIBS "clang-cpp")
+
+  if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")
+    message(FATAL_ERROR "Clang libraries not found (set CLANG_ROOT)")
+  endif()
 endif()
 
 # Get path to Clang's opencl-c.h header
@@ -213,11 +248,9 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/RaceDetector.cpp
   src/plugins/Uninitialized.h
   src/plugins/Uninitialized.cpp)
-target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS}
-  clangCodeGen clangFrontend clangSerialization clangDriver
-  clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
-  clangLex clangBasic
-  ${LLVM_LIBS})
+target_link_libraries(oclgrind
+  PRIVATE ${CORE_EXTRA_LIBS} ${CLANG_LIBS}
+  PUBLIC ${LLVM_LIBS})
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)

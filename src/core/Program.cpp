@@ -459,7 +459,11 @@ bool Program::build(const char *options, list<Header> headers)
   std::shared_ptr<clang::CompilerInvocation> invocation(
       new clang::CompilerInvocation);
   clang::CompilerInvocation::CreateFromArgs(*invocation,
+#if LLVM_VERSION < 100
                                             &args[0], &args[0] + args.size(),
+#else
+                                            args,
+#endif
                                             compiler.getDiagnostics());
   compiler.setInvocation(invocation);
 
@@ -956,7 +960,11 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
     // Create direct scalar store
     llvm::StoreInst *scalarStore = new llvm::StoreInst(
       value, scalarPtr, store->isVolatile(),
+#if LLVM_VERSION < 100
       getTypeAlignment(value->getType()));
+#else
+      llvm::MaybeAlign(getTypeAlignment(value->getType())));
+#endif
     scalarStore->setDebugLoc(store->getDebugLoc());
     scalarStore->insertAfter(scalarPtr);
 
@@ -968,7 +976,11 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       // Replace value in store with the input to the insertelement instruction
       llvm::StoreInst *_store = new llvm::StoreInst(
         vector, store->getPointerOperand(),
+#if LLVM_VERSION < 100
         store->isVolatile(), store->getAlignment());
+#else
+        store->isVolatile(), llvm::MaybeAlign(store->getAlignment()));
+#endif
       _store->setDebugLoc(store->getDebugLoc());
       _store->insertAfter(store);
 
@@ -1099,7 +1111,11 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 
         llvm::StoreInst *scalarStore = new llvm::StoreInst(
           src, scalarPtr, store->isVolatile(),
+#if LLVM_VERSION < 100
           getTypeAlignment(src->getType()));
+#else
+          llvm::MaybeAlign(getTypeAlignment(src->getType())));
+#endif
         scalarStore->setDebugLoc(store->getDebugLoc());
         scalarStore->insertAfter(scalarPtr);
       }
@@ -1129,7 +1145,11 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 
         llvm::StoreInst *scalarStore = new llvm::StoreInst(
           extract, scalarPtr, store->isVolatile(),
+#if LLVM_VERSION < 100
           getTypeAlignment(extract->getType()));
+#else
+          llvm::MaybeAlign(getTypeAlignment(extract->getType())));
+#endif
         scalarStore->setDebugLoc(store->getDebugLoc());
         scalarStore->insertAfter(extract);
       }
