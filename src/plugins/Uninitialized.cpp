@@ -1274,6 +1274,13 @@ void Uninitialized::instructionExecuted(const WorkItem *workItem,
             VectorOr(workItem, instruction);
             break;
         }
+#if LLVM_VERSION >= 80
+        case llvm::Instruction::FNeg:
+        {
+            VectorOr(workItem, instruction);
+            break;
+        }
+#endif
         case llvm::Instruction::FPExt:
         {
             SimpleOr(workItem, instruction);
