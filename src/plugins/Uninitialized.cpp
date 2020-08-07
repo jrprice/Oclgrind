@@ -6,6 +6,7 @@
 // license terms please see the LICENSE file distributed with this
 // source code.
 
+#include "config.h"
 #include "core/common.h"
 
 #include "core/Context.h"
