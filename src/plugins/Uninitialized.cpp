@@ -6,6 +6,7 @@
 // license terms please see the LICENSE file distributed with this
 // source code.
 
+#include "config.h"
 #include "core/common.h"
 
 #include "core/Context.h"
@@ -1274,6 +1275,13 @@ void Uninitialized::instructionExecuted(const WorkItem *workItem,
             VectorOr(workItem, instruction);
             break;
         }
+#if LLVM_VERSION >= 80
+        case llvm::Instruction::FNeg:
+        {
+            VectorOr(workItem, instruction);
+            break;
+        }
+#endif
         case llvm::Instruction::FPExt:
         {
             SimpleOr(workItem, instruction);
