@@ -56,8 +56,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 # Check LLVM version
-if (${LLVM_PACKAGE_VERSION} VERSION_LESS "5.0")
-  message(FATAL_ERROR "LLVM version must be >= 5.0")
+if (${LLVM_PACKAGE_VERSION} VERSION_LESS "11.0")
+  message(FATAL_ERROR "LLVM version must be >= 11.0")
 endif()
 
 # Add flags for LLVM
@@ -70,16 +70,9 @@ list(FIND LLVM_AVAILABLE_LIBS LLVM _LLVM_SHARED_INDEX)
 if (${_LLVM_SHARED_INDEX} GREATER -1)
   set(LLVM_LIBS LLVM)
 else()
-  if (${LLVM_PACKAGE_VERSION} VERSION_LESS "10.0")
-    set(LLVM_EXTRA_LIBS )
-  else()
-    llvm_map_components_to_libnames(LLVM_EXTRA_LIBS frontendopenmp)
-  endif()
-
   llvm_map_components_to_libnames(LLVM_LIBS
-    bitreader bitwriter core coroutines coverage instrumentation ipo irreader
-    linker lto mcparser objcarcopts option target)
-  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_EXTRA_LIBS})
+    bitreader bitwriter core coroutines coverage frontendopenmp instrumentation
+    ipo irreader linker lto mcparser objcarcopts option target)
 endif()
 
 # https://bugs.llvm.org/show_bug.cgi?id=44870

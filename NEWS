@@ -2,6 +2,12 @@ For more information, please visit the Oclgrind Wiki:
 https://github.com/jrprice/Oclgrind/wiki
 
 
+Oclgrind Next
+==============
+- Added support for LLVM 11
+- Dropped support for older versions of LLVM
+
+
 Oclgrind 19.10
 ==============
 - Added support for executing commands across multiple command queues

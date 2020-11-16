@@ -174,11 +174,9 @@ void WorkItem::dispatch(const llvm::Instruction *instruction,
   case llvm::Instruction::FMul:
     fmul(instruction, result);
     break;
-#if LLVM_VERSION >= 80
   case llvm::Instruction::FNeg:
     fneg(instruction, result);
     break;
-#endif
   case llvm::Instruction::FPExt:
     fpext(instruction, result);
     break;
@@ -520,7 +518,7 @@ void WorkItem::printExpression(string expr) const
   }
 
   // Check global variables
-  string globalName = m_position->currBlock->getParent()->getName();
+  string globalName = m_position->currBlock->getParent()->getName().str();
   globalName += ".";
   globalName += basename;
   const llvm::Module *module =
@@ -870,7 +868,7 @@ INSTRUCTION(call)
   if (!callInst->getCalledFunction())
   {
     // Resolve indirect function pointer
-    const llvm::Value *func = callInst->getCalledValue();
+    const llvm::Value *func = callInst->getCalledOperand();
     const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
     function = (const llvm::Function*)funcPtr;
   }
@@ -1059,7 +1057,6 @@ INSTRUCTION(fmul)
   }
 }
 
-#if LLVM_VERSION >= 80
 INSTRUCTION(fneg)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
@@ -1068,7 +1065,6 @@ INSTRUCTION(fneg)
     result.setFloat(-op.getFloat(i), i);
   }
 }
-#endif
 
 INSTRUCTION(fpext)
 {
@@ -1436,20 +1432,19 @@ INSTRUCTION(shuffle)
 
   const llvm::Value *v1 = shuffle->getOperand(0);
   const llvm::Value *v2 = shuffle->getOperand(1);
-  TypedValue mask = getOperand(shuffle->getMask());
 
-  unsigned num = v1->getType()->getVectorNumElements();
+  unsigned num =
+    llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements();
   for (unsigned i = 0; i < result.num; i++)
   {
-    if (shuffle->getMask()->getAggregateElement(i)->getValueID()
-          == llvm::Value::UndefValueVal)
+    const llvm::Value *src = v1;
+    int index = shuffle->getMaskValue(i);
+    if (index == llvm::UndefMaskElem)
     {
       // Don't care / undef
       continue;
     }
 
-    const llvm::Value *src = v1;
-    unsigned int index = mask.getUInt(i);
     if (index >= num)
     {
       index -= num;
@@ -1637,7 +1632,7 @@ InterpreterCache::InterpreterCache(llvm::Function *kernel)
       {
         const llvm::CallInst *call = ((const llvm::CallInst*)&*I);
         llvm::Function *callee =
-          (llvm::Function*)call->getCalledValue()->stripPointerCasts();
+          (llvm::Function*)call->getCalledFunction()->stripPointerCasts();
         if (callee->isDeclaration())
         {
           // Resolve builtin function calls

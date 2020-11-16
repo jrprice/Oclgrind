@@ -544,9 +544,11 @@ bool Uninitialized::handleBuiltinFunction(const WorkItem *workItem, string name,
         {
             uint64_t m = 1;
 
-            if(CI->getArgOperand(0)->getType()->isVectorTy())
+            const llvm::Type *arg0Type = CI->getArgOperand(0)->getType();
+            if(arg0Type->isVectorTy())
             {
-                m = CI->getArgOperand(0)->getType()->getVectorNumElements();
+                auto vecType = llvm::cast<llvm::FixedVectorType>(arg0Type);
+                m = vecType->getNumElements();
             }
 
             uint64_t src = 0;
@@ -576,12 +578,13 @@ bool Uninitialized::handleBuiltinFunction(const WorkItem *workItem, string name,
     else if(name == "any")
     {
         const llvm::Value *argOp = CI->getArgOperand(0);
+        const llvm::Type *argType = argOp->getType();
         TypedValue shadow = shadowContext.getValue(workItem, argOp);
 
         unsigned num = 1;
-        if(argOp->getType()->isVectorTy())
+        if(argType->isVectorTy())
         {
-            num = argOp->getType()->getVectorNumElements();
+            num = llvm::cast<llvm::FixedVectorType>(argType)->getNumElements();
         }
 
         for(unsigned i = 0; i < num; ++i)
@@ -1112,7 +1115,7 @@ void Uninitialized::instructionExecuted(const WorkItem *workItem,
             if (!function)
             {
                 // Resolve indirect function pointer
-                const llvm::Value *func = callInst->getCalledValue();
+                const llvm::Value *func = callInst->getCalledOperand();
                 const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
                 function = (const llvm::Function*)funcPtr;
             }
@@ -1275,13 +1278,11 @@ void Uninitialized::instructionExecuted(const WorkItem *workItem,
             VectorOr(workItem, instruction);
             break;
         }
-#if LLVM_VERSION >= 80
         case llvm::Instruction::FNeg:
         {
             VectorOr(workItem, instruction);
             break;
         }
-#endif
         case llvm::Instruction::FPExt:
         {
             SimpleOr(workItem, instruction);
@@ -1596,15 +1597,14 @@ void Uninitialized::instructionExecuted(const WorkItem *workItem,
             const llvm::ShuffleVectorInst *shuffleInst = (const llvm::ShuffleVectorInst*)instruction;
             const llvm::Value *v1 = shuffleInst->getOperand(0);
             const llvm::Value *v2 = shuffleInst->getOperand(1);
-            TypedValue mask = workItem->getOperand(shuffleInst->getMask());
-            TypedValue maskShadow = shadowContext.getValue(workItem, shuffleInst->getMask());
             TypedValue newShadow = ShadowContext::getCleanValue(result);
             TypedValue pv = ShadowContext::getPoisonedValue(newShadow.size);
 
-            unsigned num = v1->getType()->getVectorNumElements();
+            unsigned num = llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements();
             for(unsigned i = 0; i < newShadow.num; i++)
             {
-                if(shuffleInst->getMask()->getAggregateElement(i)->getValueID() == llvm::Value::UndefValueVal || !ShadowContext::isCleanValue(maskShadow, i))
+                int index = shuffleInst->getMaskValue(i);
+                if(index == llvm::Value::UndefValueVal)
                 {
                     // Undef value are poisoned
                     memcpy(newShadow.data + i*newShadow.size, pv.data, newShadow.size);
@@ -1612,7 +1612,6 @@ void Uninitialized::instructionExecuted(const WorkItem *workItem,
                 }
 
                 const llvm::Value *src = v1;
-                unsigned int index = mask.getUInt(i);
                 if(index >= num)
                 {
                     index -= num;

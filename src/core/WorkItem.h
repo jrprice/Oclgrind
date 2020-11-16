@@ -137,9 +137,7 @@ namespace oclgrind
     INSTRUCTION(fcmp);
     INSTRUCTION(fdiv);
     INSTRUCTION(fmul);
-#if LLVM_VERSION >= 80
     INSTRUCTION(fneg);
-#endif
     INSTRUCTION(fpext);
     INSTRUCTION(fptosi);
     INSTRUCTION(fptoui);

@@ -263,7 +263,6 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-fno-builtin");
   args.push_back("-fgnu89-inline");
   args.push_back("-debug-info-kind=standalone");
-  args.push_back("-dwarf-column-info");
   args.push_back("-triple");
   if (sizeof(size_t) == 4)
     args.push_back("spir-unknown-unknown");
@@ -458,12 +457,7 @@ bool Program::build(const char *options, list<Header> headers)
   // Create compiler invocation
   std::shared_ptr<clang::CompilerInvocation> invocation(
       new clang::CompilerInvocation);
-  clang::CompilerInvocation::CreateFromArgs(*invocation,
-#if LLVM_VERSION < 100
-                                            &args[0], &args[0] + args.size(),
-#else
-                                            args,
-#endif
+  clang::CompilerInvocation::CreateFromArgs(*invocation, args,
                                             compiler.getDiagnostics());
   compiler.setInvocation(invocation);
 
@@ -571,11 +565,7 @@ bool Program::build(const char *options, list<Header> headers)
 
       // Dump bitcode
       llvm::raw_fd_ostream bc(tempBC, err, llvm::sys::fs::F_None);
-#if LLVM_VERSION < 70
-      llvm::WriteBitcodeToFile(m_module.get(), bc);
-#else
       llvm::WriteBitcodeToFile(*m_module, bc);
-#endif
       bc.close();
     }
 
@@ -659,11 +649,7 @@ Program* Program::createFromPrograms(const Context *context,
   list<const Program*>::iterator itr;
   for (itr = programs.begin(); itr != programs.end(); itr++)
   {
-#if LLVM_VERSION < 70
-    unique_ptr<llvm::Module> m = llvm::CloneModule((*itr)->m_module.get());
-#else
     unique_ptr<llvm::Module> m = llvm::CloneModule(*(*itr)->m_module);
-#endif
     if (linker.linkInModule(std::move(m)))
     {
       return NULL;
@@ -738,11 +724,7 @@ void Program::getBinary(unsigned char *binary) const
 
   std::string str;
   llvm::raw_string_ostream stream(str);
-#if LLVM_VERSION < 70
-  llvm::WriteBitcodeToFile(m_module.get(), stream);
-#else
   llvm::WriteBitcodeToFile(*m_module, stream);
-#endif
   stream.str();
 
   memcpy(binary, str.c_str(), str.length());
@@ -757,11 +739,7 @@ size_t Program::getBinarySize() const
 
   std::string str;
   llvm::raw_string_ostream stream(str);
-#if LLVM_VERSION < 70
-  llvm::WriteBitcodeToFile(m_module.get(), stream);
-#else
   llvm::WriteBitcodeToFile(*m_module, stream);
-#endif
   stream.str();
   return str.length();
 }
@@ -805,7 +783,7 @@ list<string> Program::getKernelNames() const
   {
     if (F->getCallingConv() == llvm::CallingConv::SPIR_KERNEL)
     {
-      names.push_back(F->getName());
+      names.push_back(F->getName().str());
     }
   }
   return names;
@@ -960,11 +938,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
     // Create direct scalar store
     llvm::StoreInst *scalarStore = new llvm::StoreInst(
       value, scalarPtr, store->isVolatile(),
-#if LLVM_VERSION < 100
-      getTypeAlignment(value->getType()));
-#else
-      llvm::MaybeAlign(getTypeAlignment(value->getType())));
-#endif
+      llvm::Align(getTypeAlignment(value->getType())));
     scalarStore->setDebugLoc(store->getDebugLoc());
     scalarStore->insertAfter(scalarPtr);
 
@@ -976,11 +950,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       // Replace value in store with the input to the insertelement instruction
       llvm::StoreInst *_store = new llvm::StoreInst(
         vector, store->getPointerOperand(),
-#if LLVM_VERSION < 100
-        store->isVolatile(), store->getAlignment());
-#else
-        store->isVolatile(), llvm::MaybeAlign(store->getAlignment()));
-#endif
+        store->isVolatile(), llvm::Align(store->getAlignment()));
       _store->setDebugLoc(store->getDebugLoc());
       _store->insertAfter(store);
 
@@ -997,8 +967,9 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
   {
     llvm::Value *v1      = shuffle->getOperand(0);
     llvm::Value *v2      = shuffle->getOperand(1);
-    llvm::Constant *mask = shuffle->getMask();
-    unsigned maskSize    = mask->getType()->getVectorNumElements();
+    unsigned maskSize    = shuffle->getShuffleMask().size();
+    unsigned v1num =
+      llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements();
 
     // Check if shuffle sources came from a load with same address as the store
     llvm::LoadInst *load;
@@ -1022,8 +993,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 
       // Check if source is the store destination
       bool sourceIsDest =
-        ((unsigned)idx < v1->getType()->getVectorNumElements() ?
-          v1SourceIsDest : v2SourceIsDest);
+        ((unsigned)idx < v1num ? v1SourceIsDest : v2SourceIsDest);
 
       // If destination is used in non-identity position, leave shuffle as is
       if (sourceIsDest && (unsigned)idx != i)
@@ -1094,8 +1064,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       scalarPtr->insertAfter(store);
 
       // Get source vector and index
-      unsigned idx   = shuffle->getMaskValue(index);
-      unsigned v1num = v1->getType()->getVectorNumElements();
+      unsigned idx = shuffle->getMaskValue(index);
       llvm::Value *src = v1;
       if (idx >= v1num)
       {
@@ -1111,11 +1080,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 
         llvm::StoreInst *scalarStore = new llvm::StoreInst(
           src, scalarPtr, store->isVolatile(),
-#if LLVM_VERSION < 100
-          getTypeAlignment(src->getType()));
-#else
-          llvm::MaybeAlign(getTypeAlignment(src->getType())));
-#endif
+          llvm::Align(getTypeAlignment(src->getType())));
         scalarStore->setDebugLoc(store->getDebugLoc());
         scalarStore->insertAfter(scalarPtr);
       }
@@ -1126,7 +1091,8 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         {
           llvm::Value *v1 = shfl->getOperand(0);
           llvm::Value *v2 = shfl->getOperand(1);
-          unsigned v1num  = v1->getType()->getVectorNumElements();
+          unsigned v1num  =
+            llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements();
 
           // Get source vector and index
           idx = shfl->getMaskValue(idx);
@@ -1145,11 +1111,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 
         llvm::StoreInst *scalarStore = new llvm::StoreInst(
           extract, scalarPtr, store->isVolatile(),
-#if LLVM_VERSION < 100
-          getTypeAlignment(extract->getType()));
-#else
-          llvm::MaybeAlign(getTypeAlignment(extract->getType())));
-#endif
+          llvm::Align(getTypeAlignment(extract->getType())));
         scalarStore->setDebugLoc(store->getDebugLoc());
         scalarStore->insertAfter(extract);
       }
@@ -1174,7 +1136,7 @@ void Program::stripDebugIntrinsics()
       {
         llvm::CallInst *call = (llvm::CallInst*)&*I;
         llvm::Function *function =
-          (llvm::Function*)call->getCalledValue()->stripPointerCasts();
+          (llvm::Function*)call->getCalledFunction()->stripPointerCasts();
         if (function->getName().startswith("llvm.dbg"))
         {
           intrinsics.insert(&*I);

@@ -26,12 +26,7 @@ then
     sudo apt-get install -y libedit-dev
 elif [ "$TRAVIS_OS_NAME" == "osx" ]
 then
-    if [ "$LLVM_VERSION" = "10" ]
-    then
-        URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}.0.0"
-    else
-        URL="http://releases.llvm.org/${LLVM_VERSION}.0.0"
-    fi
+    URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}.0.0"
     ARCHIVE="clang+llvm-${LLVM_VERSION}.0.0-x86_64-apple-darwin.tar.xz"
 
     mkdir -p llvm-${LLVM_VERSION}
