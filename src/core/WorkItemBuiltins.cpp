@@ -2598,7 +2598,7 @@ namespace oclgrind
     {
       for (unsigned i = 0; i < result.num; i++)
       {
-        result.setUInt(UARGV(0, UARGV(1, i) % result.num), i);
+        result.setUInt(UARGV(0, UARGV(1, i) % ARG_VLEN(0)), i);
       }
     }
 
