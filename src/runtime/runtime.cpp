@@ -2420,15 +2420,17 @@ clBuildProgram
   }
 
   // Build program
-  if (!program->program->build(options))
-  {
-    ReturnError(program->context, CL_BUILD_PROGRAM_FAILURE);
-  }
+  bool success = program->program->build(options);
 
   // Fire callback
   if (pfn_notify)
   {
     pfn_notify(program, user_data);
+  }
+
+  if (!success)
+  {
+    ReturnError(program->context, CL_BUILD_PROGRAM_FAILURE);
   }
 
   return CL_SUCCESS;
