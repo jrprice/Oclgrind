@@ -3756,8 +3756,8 @@ namespace oclgrind
     ADD_BUILTIN("llvm.dbg.declare", llvm_dbg_declare, NULL);
     ADD_BUILTIN("llvm.dbg.value", llvm_dbg_value, NULL);
     ADD_PREFIX_BUILTIN("llvm.fabs.f", f1arg, F1ARG(fabs));
-    ADD_BUILTIN("llvm.lifetime.start", llvm_lifetime_start, NULL);
-    ADD_BUILTIN("llvm.lifetime.end", llvm_lifetime_end, NULL);
+    ADD_PREFIX_BUILTIN("llvm.lifetime.start", llvm_lifetime_start, NULL);
+    ADD_PREFIX_BUILTIN("llvm.lifetime.end", llvm_lifetime_end, NULL);
     ADD_PREFIX_BUILTIN("llvm.memcpy", llvm_memcpy, NULL);
     ADD_PREFIX_BUILTIN("llvm.memmove", llvm_memcpy, NULL);
     ADD_PREFIX_BUILTIN("llvm.memset", llvm_memset, NULL);
