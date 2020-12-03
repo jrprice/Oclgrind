@@ -1,9 +1,6 @@
 AIWC - Built on Oclgrind
 ========================
 
-AIWC
-----
-
 The Architecture Independent Workload Characterization (AIWC -- pronounced | \ 'air-wik) tool is a plugin for the Oclgrind OpenCL simulator that gathers metrics of OpenCL programs that can be used to understand and predict program performance on an arbitrary given hardware architecture.
 
 ## Building & Installing
