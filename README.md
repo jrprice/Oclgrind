@@ -113,11 +113,6 @@ Further characterisation of parallelism is presented in the work-items and total
 Some of the other metrics are highly dependent on workload scale, so work-items may be used to normalize between different scales.
 For example, total memory footprint can be divided by work-items to give the total memory footprint per work-item, which indicates the memory required per processing element.
 
-Finally, unique verses absolute reads and writes can indicate shared and local memory reuse between work-items within a work-group, and globally, which shows the predictability of a workload.
-To present these characteristics the unique reads, unique writes, unique read/write ratio, total reads, total writes, reread ratio, rewrite ratio metrics are proposed.
-The unique read/write ratio shows that the workload is balanced, read intensive or write intensive.
-They are computed by storing read and write memory accesses separately and are later combined, to compute the global memory address entropy and local memory address entropy scores.
-
 On Relative Local Memory Usage (RLMU): This measures the proportion of all memory accesses from the symbolic execution of the kernel that occurred to memory allocated as `__local`.
 On GPUs, this memory address space is mapped to fast on-chip shared memory.
 Relative local memory usage is an example of a metric that is useful to measure performance-critical access patterns on some architectures such as GPUs, and not others, such as CPUs.
@@ -136,6 +131,11 @@ In parallel programs, to accurately measure spatial locality of accesses, we mus
 PSL thus calculates the locality of accesses in each time step of the program's execution; The steeper reductions of `n`-bits-dropped in parallel spatial locality scores will be observed in programs that often access nearby memory addresses within the same timestamp.
 Such programs will perform better on GPUs, as they will make better use of both global memory access coalescing and shared memory bank structures.
 To a lesser extent, the proposed metric reflects performance-critical memory access patterns on CPUs, as pulling a single cache line from global memory into last-level cache may improve memory access times for all CPU cores.
+
+Finally, unique verses absolute reads and writes can indicate shared and local memory reuse between work-items within a work-group, and globally, which shows the predictability of a workload.
+To present these characteristics the unique reads, unique writes, unique read/write ratio, total reads, total writes, reread ratio, rewrite ratio metrics are proposed.
+The unique read/write ratio shows that the workload is balanced, read intensive or write intensive.
+They are computed by storing read and write memory accesses separately and are later combined, to compute the global memory address entropy and local memory address entropy scores.
 
 ## AIWC Examples
 
