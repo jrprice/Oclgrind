@@ -148,7 +148,7 @@ The following are examples of projects that have heavily used AIWC to perform an
 
 If you use AIWC, please cite [Oclgrind](https://github.com/jrprice/Oclgrind) and the most appropriate of the following papers:
 
-* [Characterizing and Predicting Scientific Workloads for Heterogeneous Computing Systems](https://ieeexplore.ieee.org/abstract/document/863938://openresearch-repository.anu.edu.au/handle/1885/162792)
+* [Characterizing and Predicting Scientific Workloads for Heterogeneous Computing Systems](https://openresearch-repository.anu.edu.au/handle/1885/162792)
 * [AIWC: OpenCL-Based Architecture-Independent Workload Characterization](https://ieeexplore.ieee.org/abstract/document/8639381)
 * [OpenCL Performance Prediction using Architecture-Independent Features](https://ieeexplore.ieee.org/abstract/document/8514400)
 * [Characterizing Optimizations to Memory Access Patterns using Architecture-Independent Program Features](https://dl.acm.org/doi/abs/10.1145/3388333.3388656)
