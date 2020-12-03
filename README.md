@@ -7,8 +7,8 @@ The Architecture Independent Workload Characterization (AIWC -- pronounced | \ '
 
 Set the following environment variables as desired
 
-    export OCLGRIND_SRC=/oclgrind-source
     export OCLGRIND=/oclgrind
+    export OCLGRIND_SRC=/oclgrind-source
     export OCLGRIND_BIN=/oclgrind/bin/oclgrind
 
 The rest can be built with the following commands (tested on Ubuntu 18.04)
@@ -22,7 +22,7 @@ The rest can be built with the following commands (tested on Ubuntu 18.04)
     cmake $OCLGRIND_SRC -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLLVM_DIR=/llvm-9.0.1/lib/cmake/llvm -DCLANG_ROOT=/llvm-9.0.1 -DCMAKE_INSTALL_PREFIX=$OCLGRIND -DBUILD_SHARED_LIBS=On
     make
     make install
-    mkdir -p /etc/OpenCL/vendors && echo /oclgrind/lib/liboclgrind-rt-icd.so > /etc/OpenCL/vendors/oclgrind.icd
+    mkdir -p /etc/OpenCL/vendors && echo $OCLGRIND/lib/liboclgrind-rt-icd.so > /etc/OpenCL/vendors/oclgrind.icd
 
 ## Usage
 
