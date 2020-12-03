@@ -1,5 +1,5 @@
-AIWC---a plugin for Oclgrind
-============================
+AIWC - built on Oclgrind
+========================
 
 Oclgrind
 --------
@@ -175,8 +175,7 @@ The following are the metrics collected by the AIWC tool ordered by type.
 
 Type                            | Metric                            | Description
 :------------------------------ | :-------------------------------: | -------------------------------------------------------------------------:
-Compute                         | Opcode                            | total # of unique opcodes required to cover 90% of dynamic instructions
-                                | Total Instruction Count           | total # of instructions executed
+Compute                         | Opcode      <br>   Total Instruction Count   | total # of unique opcodes required to cover 90% of dynamic instructions <br> total # of instructions executed
 Parallelism                     | Work-items                        | total # of work-items or threads executed
                                 | Total Barriers Hit                | total # of barrier instructions
                                 | Min ITB                           | minimum # of instructions executed until a barrier
