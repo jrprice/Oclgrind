@@ -36,8 +36,8 @@ These files can be found in the working directory with the naming convention `ai
 
 Alternatively, Oclgrind can be used as a regular OpenCL device but AIWC flags can be used with the following environment variables:
 
-* OCLGRIND_WORKLOAD_CHARACTERISATION, as an int/boolean to enable AIWC as the plugin used within Oclgrind, and,
-* OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH, is a string used to denote the path where the AIWC metrics should be logged (as a csv).
+* `OCLGRIND_WORKLOAD_CHARACTERISATION`, as an int/boolean to enable AIWC as the plugin used within Oclgrind, and,
+* `OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH`, is a string used to denote the path where the AIWC metrics should be logged (as a csv).
 
 For example:
 
