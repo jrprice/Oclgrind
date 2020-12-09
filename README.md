@@ -34,6 +34,15 @@ An example of its usage on the OpenCL kmeans application is shown below:
 The collected metrics are logged as text in the command line interface during execution and also in a csv file, stored separately for each kernel and invocation.
 These files can be found in the working directory with the naming convention `aiwc_α_β.csv`, where `α` is the kernel name and `β` is the invocation count.
 
+Alternatively, Oclgrind can be used as a regular OpenCL device but AIWC flags can be used with the following environment variables:
+
+* OCLGRIND_WORKLOAD_CHARACTERISATION, as an int/boolean to enable AIWC as the plugin used within Oclgrind, and,
+* OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH, is a string used to denote the path where the AIWC metrics should be logged (as a csv).
+
+For example:
+
+    OCLGRIND_WORKLOAD_CHARACTERISATION=1 OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH=~/aiwc_metrics ./kmeans <args>
+
 ## Metrics
 
 Metrics reported by AIWC should reflect important memory access patterns, control flow operations and available parallelism inherent to achieving efficiency across architectures.
