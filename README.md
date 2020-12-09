@@ -41,7 +41,7 @@ Alternatively, Oclgrind can be used as a regular OpenCL device but AIWC flags ca
 
 For example:
 
-    OCLGRIND_WORKLOAD_CHARACTERISATION=1 OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH=~/aiwc_metrics ./kmeans <args>
+    OCLGRIND_WORKLOAD_CHARACTERISATION=1 OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH=~/aiwc_metrics.csv ./kmeans <args>
 
 ## Metrics
 
