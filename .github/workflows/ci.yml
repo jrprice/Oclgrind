@@ -1,0 +1,54 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} llvm-${{ matrix.llvm }} ${{ matrix.compiler }} ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    env:
+      LLVM_VERSION: ${{ matrix.llvm }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, macos-11.0]
+        compiler: [gcc, clang]
+        build_type: [Release, Debug]
+        llvm: [11]
+        exclude:
+          - os: macos-11.0
+            compiler: gcc
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: bash .github/workflows/install-deps.sh
+      - name: Set LLVM_DIR
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" =~ ubuntu-.* ]]; then
+            echo LLVM_DIR=/usr/lib/llvm-${{ matrix.llvm }}/lib/cmake/llvm >>$GITHUB_ENV
+          elif [[ "${{ matrix.os }}" =~ macos-.* ]]; then
+            echo LLVM_DIR=$PWD/llvm-${LLVM_VERSION}/lib/cmake/llvm >>$GITHUB_ENV
+          fi
+      - name: Set compiler
+        shell: bash
+        run: |
+          if [ "${{ matrix.compiler }}" == "gcc" ]; then
+            echo CC=gcc >>$GITHUB_ENV
+            echo CXX=g++ >>$GITHUB_ENV
+          elif [ "${{ matrix.compiler }}" == "clang" ]; then
+            echo CC=clang >>$GITHUB_ENV
+            echo CXX=clang++ >>$GITHUB_ENV
+          fi
+      - name: Create build dir
+        run: cmake -E make_directory build
+      - name: CMake
+        run: >
+          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                   -DLLVM_DIR="$LLVM_DIR"
+        working-directory: build
+      - name: Build
+        run: cmake --build . --config ${{ matrix.build_type }}
+        working-directory: build
+      - name: Test
+        run: ctest -C ${{ matrix.build_type }} --output-on-failure
+        working-directory: build

@@ -1,16 +1,11 @@
 #!/bin/bash
 
-if [ "$TRAVIS_OS_NAME" == "linux" ]
-then
+if [ "`uname`" == "Linux" ]; then
     # Add repositories
-    sudo add-apt-repository -y \
-        "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-${LLVM_VERSION} main"
     wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+    sudo add-apt-repository -y \
+        "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-${LLVM_VERSION} main"
     sudo apt-get update -qq
-
-    # Remove existing LLVM
-    sudo apt-get remove llvm
-    sudo apt-get autoremove
 
     # Install Clang + LLVM
     sudo apt-get install -y \
@@ -24,8 +19,7 @@ then
 
     # Other dependencies
     sudo apt-get install -y libedit-dev
-elif [ "$TRAVIS_OS_NAME" == "osx" ]
-then
+elif [ "`uname`" == "Darwin" ]; then
     URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}.0.0"
     ARCHIVE="clang+llvm-${LLVM_VERSION}.0.0-x86_64-apple-darwin.tar.xz"
 
