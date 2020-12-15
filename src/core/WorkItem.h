@@ -170,6 +170,7 @@ namespace oclgrind
     INSTRUCTION(uitofp);
     INSTRUCTION(urem);
     INSTRUCTION(zext);
+    INSTRUCTION(freeze);
 #undef INSTRUCTION
 
   private:
