@@ -281,6 +281,9 @@ void WorkItem::dispatch(const llvm::Instruction *instruction,
   case llvm::Instruction::ZExt:
     zext(instruction, result);
     break;
+  case llvm::Instruction::Freeze:
+    freeze(instruction, result);
+    break;
   default:
     FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
   }
@@ -1578,6 +1581,11 @@ INSTRUCTION(zext)
   {
     result.setUInt(operand.getUInt(i), i);
   }
+}
+
+INSTRUCTION(freeze) {
+  TypedValue operand = getOperand(instruction->getOperand(0));
+  memcpy(result.data, operand.data, result.size * result.num);
 }
 
 #undef INSTRUCTION
