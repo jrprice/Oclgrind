@@ -36,7 +36,6 @@ using namespace std;
 #define PLATFORM_VERSION "OpenCL 3.0 (Oclgrind " PACKAGE_VERSION ")"
 #define PLATFORM_PROFILE "FULL_PROFILE"
 #define PLATFORM_SUFFIX "oclg"
-#define PLATFORM_EXTENSIONS "cl_khr_icd"
 
 #define DEVICE_NAME "Oclgrind Simulator"
 #define DEVICE_VENDOR "University of Bristol"
@@ -45,19 +44,8 @@ using namespace std;
 #define DEVICE_LANG_VERSION "OpenCL C 3.0 (Oclgrind " PACKAGE_VERSION ")"
 #define DRIVER_VERSION "Oclgrind " PACKAGE_VERSION
 #define DEVICE_PROFILE "FULL_PROFILE"
+#define DEVICE_CTS_VERSION ""
 #define DEVICE_SPIR_VERSIONS "1.2"
-#define DEVICE_EXTENSIONS                                                      \
-  "         \
-  cl_khr_spir                          \
-  cl_khr_3d_image_writes               \
-  cl_khr_global_int32_base_atomics     \
-  cl_khr_global_int32_extended_atomics \
-  cl_khr_local_int32_base_atomics      \
-  cl_khr_local_int32_extended_atomics  \
-  cl_khr_int64_base_atomics            \
-  cl_khr_int64_extended_atomics        \
-  cl_khr_byte_addressable_store        \
-  cl_khr_fp64"
 #define DEVICE_TYPE                                                            \
   (CL_DEVICE_TYPE_CPU | CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR |      \
    CL_DEVICE_TYPE_DEFAULT)
@@ -295,34 +283,55 @@ CL_API_ENTRY cl_int CL_API_CALL clGetPlatformInfo(
   cl_platform_id platform, cl_platform_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  // Select platform info string
-  const char* result = NULL;
+  static constexpr char extensions[] = "cl_khr_icd";
+  static constexpr cl_version numeric_version = CL_MAKE_VERSION(3, 0, 0);
+  static constexpr cl_name_version extension_versions[] = {
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_icd"},
+  };
+
+  size_t result_size = 0;
+  const void* result = NULL;
+
+  // Select platform info
   switch (param_name)
   {
   case CL_PLATFORM_PROFILE:
     result = PLATFORM_PROFILE;
+    result_size = strlen(static_cast<const char*>(result)) + 1;
     break;
   case CL_PLATFORM_VERSION:
     result = PLATFORM_VERSION;
+    result_size = strlen(static_cast<const char*>(result)) + 1;
     break;
   case CL_PLATFORM_NAME:
     result = PLATFORM_NAME;
+    result_size = strlen(static_cast<const char*>(result)) + 1;
     break;
   case CL_PLATFORM_VENDOR:
     result = PLATFORM_VENDOR;
+    result_size = strlen(static_cast<const char*>(result)) + 1;
     break;
   case CL_PLATFORM_EXTENSIONS:
-    result = PLATFORM_EXTENSIONS;
+    result = extensions;
+    result_size = strlen(static_cast<const char*>(result)) + 1;
     break;
   case CL_PLATFORM_ICD_SUFFIX_KHR:
     result = PLATFORM_SUFFIX;
+    result_size = strlen(static_cast<const char*>(result)) + 1;
+    break;
+  case CL_PLATFORM_NUMERIC_VERSION:
+    result_size = sizeof(numeric_version);
+    result = &numeric_version;
+    break;
+  case CL_PLATFORM_EXTENSIONS_WITH_VERSION:
+    result_size = sizeof(extension_versions);
+    result = extension_versions;
     break;
   default:
     ReturnErrorArg(NULL, CL_INVALID_VALUE, param_name);
   }
 
   // Compute size of result
-  size_t result_size = strlen(result) + 1;
   if (param_value_size_ret)
   {
     *param_value_size_ret = result_size;
@@ -401,12 +410,53 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     cl_device_exec_capabilities cldevexeccap;
     cl_command_queue_properties clcmdqprop;
     cl_platform_id clplatid;
+    cl_version clversion;
     cl_device_partition_property cldevpartprop;
     cl_device_affinity_domain cldevaffdom;
     cl_device_svm_capabilities svm;
+    cl_device_atomic_capabilities atomiccaps;
+    cl_device_device_enqueue_capabilities devenqcaps;
   } result_data;
-  // The result is actually a string that needs copying
-  const char* str = 0;
+  // The result is data in memory that needs copying
+  const void* data = 0;
+
+  static constexpr char extensions[] = " cl_khr_spir"
+                                       " cl_khr_3d_image_writes"
+                                       " cl_khr_global_int32_base_atomics"
+                                       " cl_khr_global_int32_extended_atomics"
+                                       " cl_khr_local_int32_base_atomics"
+                                       " cl_khr_local_int32_extended_atomics"
+                                       " cl_khr_int64_base_atomics"
+                                       " cl_khr_int64_extended_atomics"
+                                       " cl_khr_byte_addressable_store"
+                                       " cl_khr_fp64";
+
+  static constexpr cl_name_version extension_versions[] = {
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_spir"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_3d_image_writes"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_global_int32_base_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_global_int32_extended_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_local_int32_base_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_local_int32_extended_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_int64_base_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_int64_extended_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_byte_addressable_store"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_fp64"},
+  };
+
+  static constexpr cl_name_version opencl_c_all_versions[] = {
+    {CL_MAKE_VERSION(1, 0, 0), "OpenCL C 1.0"},
+    {CL_MAKE_VERSION(1, 1, 0), "OpenCL C 1.1"},
+    {CL_MAKE_VERSION(1, 2, 0), "OpenCL C 1.2"},
+    {CL_MAKE_VERSION(3, 0, 0), "OpenCL C 3.0"},
+  };
+
+  static constexpr cl_name_version il_versions[] = {};
+
+  static constexpr cl_name_version built_in_kernel_versions[] = {};
+
+  // TODO: Populate this
+  static constexpr cl_name_version opencl_c_features[] = {};
 
   switch (param_name)
   {
@@ -503,15 +553,15 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     break;
   case CL_DEVICE_MAX_PIPE_ARGS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 16;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_PIPE_MAX_ACTIVE_RESERVATIONS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_PIPE_MAX_PACKET_SIZE:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1024;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
     result_size = sizeof(cl_uint);
@@ -601,48 +651,47 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     break;
   case CL_DEVICE_QUEUE_ON_DEVICE_PROPERTIES:
     result_size = sizeof(cl_command_queue_properties);
-    result_data.clcmdqprop =
-      CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE;
+    result_data.clcmdqprop = 0;
     break;
   case CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 16 * 1024;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 256 * 1024;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_MAX_ON_DEVICE_QUEUES:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_MAX_ON_DEVICE_EVENTS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1024;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_NAME:
     result_size = sizeof(DEVICE_NAME);
-    str = DEVICE_NAME;
+    data = DEVICE_NAME;
     break;
   case CL_DEVICE_VENDOR:
     result_size = sizeof(DEVICE_VENDOR);
-    str = DEVICE_VENDOR;
+    data = DEVICE_VENDOR;
     break;
   case CL_DRIVER_VERSION:
     result_size = sizeof(DRIVER_VERSION);
-    str = DRIVER_VERSION;
+    data = DRIVER_VERSION;
     break;
   case CL_DEVICE_PROFILE:
     result_size = sizeof(DEVICE_PROFILE);
-    str = DEVICE_PROFILE;
+    data = DEVICE_PROFILE;
     break;
   case CL_DEVICE_VERSION:
     result_size = sizeof(DEVICE_VERSION);
-    str = DEVICE_VERSION;
+    data = DEVICE_VERSION;
     break;
   case CL_DEVICE_EXTENSIONS:
-    result_size = sizeof(DEVICE_EXTENSIONS);
-    str = DEVICE_EXTENSIONS;
+    result_size = sizeof(extensions);
+    data = extensions;
     break;
   case CL_DEVICE_PLATFORM:
     result_size = sizeof(cl_platform_id);
@@ -677,7 +726,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     break;
   case CL_DEVICE_OPENCL_C_VERSION:
     result_size = sizeof(DEVICE_LANG_VERSION);
-    str = DEVICE_LANG_VERSION;
+    data = DEVICE_LANG_VERSION;
     break;
   case CL_DEVICE_LINKER_AVAILABLE:
     result_size = sizeof(cl_bool);
@@ -685,7 +734,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     break;
   case CL_DEVICE_BUILT_IN_KERNELS:
     result_size = 1;
-    str = "";
+    data = "";
     break;
   case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
     result_size = sizeof(size_t);
@@ -726,7 +775,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     break;
   case CL_DEVICE_SVM_CAPABILITIES:
     result_size = sizeof(cl_device_svm_capabilities);
-    result_data.svm = CL_DEVICE_SVM_COARSE_GRAIN_BUFFER;
+    result_data.svm = 0;
     break;
   case CL_DEVICE_PREFERRED_PLATFORM_ATOMIC_ALIGNMENT:
     result_size = sizeof(cl_uint);
@@ -740,9 +789,84 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     result_size = sizeof(cl_uint);
     result_data.cluint = 0;
     break;
+  case CL_DEVICE_MAX_NUM_SUB_GROUPS:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 0;
+    break;
+  case CL_DEVICE_SUB_GROUP_INDEPENDENT_FORWARD_PROGRESS:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
   case CL_DEVICE_SPIR_VERSIONS:
     result_size = sizeof(DEVICE_SPIR_VERSIONS);
-    str = DEVICE_SPIR_VERSIONS;
+    data = DEVICE_SPIR_VERSIONS;
+    break;
+  case CL_DEVICE_NUMERIC_VERSION:
+    result_size = sizeof(cl_version);
+    result_data.cluint = CL_MAKE_VERSION(3, 0, 0);
+    break;
+  case CL_DEVICE_EXTENSIONS_WITH_VERSION:
+    result_size = sizeof(extension_versions);
+    data = extension_versions;
+    break;
+  case CL_DEVICE_IL_VERSION:
+    result_size = 1;
+    data = "";
+    break;
+  case CL_DEVICE_ILS_WITH_VERSION:
+    result_size = sizeof(il_versions);
+    data = il_versions;
+    break;
+  case CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION:
+    result_size = sizeof(built_in_kernel_versions);
+    data = built_in_kernel_versions;
+    break;
+  case CL_DEVICE_ATOMIC_MEMORY_CAPABILITIES:
+    result_size = sizeof(cl_device_atomic_capabilities);
+    result_data.atomiccaps =
+      CL_DEVICE_ATOMIC_ORDER_RELAXED | CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP;
+    break;
+  case CL_DEVICE_ATOMIC_FENCE_CAPABILITIES:
+    result_size = sizeof(cl_device_atomic_capabilities);
+    result_data.atomiccaps = CL_DEVICE_ATOMIC_ORDER_RELAXED |
+                             CL_DEVICE_ATOMIC_ORDER_ACQ_REL |
+                             CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP;
+    break;
+  case CL_DEVICE_NON_UNIFORM_WORK_GROUP_SUPPORT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_TRUE;
+    break;
+  case CL_DEVICE_OPENCL_C_ALL_VERSIONS:
+    result_size = sizeof(opencl_c_all_versions);
+    data = opencl_c_all_versions;
+    break;
+  case CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
+    result_size = sizeof(size_t);
+    result_data.sizet = 1;
+    break;
+  case CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
+  case CL_DEVICE_GENERIC_ADDRESS_SPACE_SUPPORT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
+  case CL_DEVICE_OPENCL_C_FEATURES:
+    result_size = sizeof(opencl_c_features);
+    data = opencl_c_features;
+    break;
+  case CL_DEVICE_DEVICE_ENQUEUE_CAPABILITIES:
+    result_size = sizeof(cl_device_device_enqueue_capabilities);
+    result_data.devenqcaps = 0;
+    break;
+  case CL_DEVICE_PIPE_SUPPORT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
+  case CL_DEVICE_LATEST_CONFORMANCE_VERSION_PASSED:
+    result_size = sizeof(DEVICE_CTS_VERSION);
+    data = DEVICE_CTS_VERSION;
     break;
   default:
     ReturnErrorArg(NULL, CL_INVALID_VALUE, param_name);
@@ -757,8 +881,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     }
     else
     {
-      if (str)
-        memcpy(param_value, str, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
       else
         memcpy(param_value, &result_data, result_size);
     }
