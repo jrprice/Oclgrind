@@ -9,7 +9,9 @@
 #ifndef __common_h_
 #define __common_h_
 
+#define CL_TARGET_OPENCL_VERSION 300
 #include "CL/cl.h"
+
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>

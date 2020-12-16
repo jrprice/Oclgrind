@@ -5194,6 +5194,108 @@ CL_API_ENTRY cl_int CL_API_CALL clSetKernelExecInfo(
                   "Unimplemented OpenCL 2.0 API");
 }
 
+CL_API_ENTRY cl_kernel CL_API_CALL clCloneKernel(
+  cl_kernel source_kernel, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_1
+{
+  SetErrorInfo(source_kernel->program->context, CL_INVALID_OPERATION,
+               "Unimplemented OpenCL 2.1 API");
+  return nullptr;
+}
+
+CL_API_ENTRY cl_program CL_API_CALL
+clCreateProgramWithIL(cl_context context, const void* il, size_t length,
+                      cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_1
+{
+  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.1 API");
+  return nullptr;
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMMigrateMem(
+  cl_command_queue command_queue, cl_uint num_svm_pointers,
+  const void** svm_pointers, const size_t* sizes, cl_mem_migration_flags flags,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_2_1
+{
+  ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clGetDeviceAndHostTimer(cl_device_id device, cl_ulong* device_timestamp,
+                        cl_ulong* host_timestamp) CL_API_SUFFIX__VERSION_2_1
+{
+  ReturnErrorInfo(nullptr, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clGetHostTimer(
+  cl_device_id device, cl_ulong* host_timestamp) CL_API_SUFFIX__VERSION_2_1
+{
+  ReturnErrorInfo(nullptr, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clGetKernelSubGroupInfo(
+  cl_kernel kernel, cl_device_id device, cl_kernel_sub_group_info param_name,
+  size_t input_value_size, const void* input_value, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_2_1
+{
+  ReturnErrorInfo(kernel->program->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clSetDefaultDeviceCommandQueue(
+  cl_context context, cl_device_id device,
+  cl_command_queue command_queue) CL_API_SUFFIX__VERSION_2_1
+{
+  ReturnErrorInfo(context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY CL_EXT_PREFIX__VERSION_2_2_DEPRECATED cl_int CL_API_CALL
+clSetProgramReleaseCallback(
+  cl_program program,
+  void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data),
+  void* user_data) CL_EXT_SUFFIX__VERSION_2_2_DEPRECATED
+{
+  ReturnErrorInfo(program->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.2 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clSetProgramSpecializationConstant(
+  cl_program program, cl_uint spec_id, size_t spec_size,
+  const void* spec_value) CL_API_SUFFIX__VERSION_2_2
+{
+  ReturnErrorInfo(program->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.2 API");
+}
+
+CL_API_ENTRY cl_mem CL_API_CALL clCreateBufferWithProperties(
+  cl_context context, const cl_mem_properties* properties, cl_mem_flags flags,
+  size_t size, void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
+{
+  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 3.0 API");
+  return nullptr;
+}
+
+CL_API_ENTRY cl_mem CL_API_CALL clCreateImageWithProperties(
+  cl_context context, const cl_mem_properties* properties, cl_mem_flags flags,
+  const cl_image_format* image_format, const cl_image_desc* image_desc,
+  void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
+{
+  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 3.0 API");
+  return nullptr;
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clSetContextDestructorCallback(
+  cl_context context,
+  void(CL_CALLBACK* pfn_notify)(cl_context context, void* user_data),
+  void* user_data) CL_API_SUFFIX__VERSION_3_0
+{
+  ReturnErrorInfo(context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 3.0 API");
+}
+
 ////////////////////
 // Dispatch Table //
 ////////////////////
@@ -5377,6 +5479,24 @@ void* m_dispatchTable[] = {
 
   // cl_khr_sub_groups
   DISPATCH_TABLE_ENTRY(NULL),
+
+  // OpenCL 2.1
+  DISPATCH_TABLE_ENTRY(clCloneKernel),
+  DISPATCH_TABLE_ENTRY(clCreateProgramWithIL),
+  DISPATCH_TABLE_ENTRY(clEnqueueSVMMigrateMem),
+  DISPATCH_TABLE_ENTRY(clGetDeviceAndHostTimer),
+  DISPATCH_TABLE_ENTRY(clGetHostTimer),
+  DISPATCH_TABLE_ENTRY(clGetKernelSubGroupInfo),
+  DISPATCH_TABLE_ENTRY(clSetDefaultDeviceCommandQueue),
+
+  // OpenCL 2.2
+  DISPATCH_TABLE_ENTRY(clSetProgramReleaseCallback),
+  DISPATCH_TABLE_ENTRY(clSetProgramSpecializationConstant),
+
+  // OpenCL 3.0
+  DISPATCH_TABLE_ENTRY(clCreateBufferWithProperties),
+  DISPATCH_TABLE_ENTRY(clCreateImageWithProperties),
+  DISPATCH_TABLE_ENTRY(clSetContextDestructorCallback),
 };
 
 #if defined(_WIN32) && !defined(OCLGRIND_ICD)
