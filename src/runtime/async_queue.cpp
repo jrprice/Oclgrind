@@ -20,17 +20,14 @@ using namespace oclgrind;
 using namespace std;
 
 // Maps to keep track of retained objects
-static map< Command*, list<cl_mem> > memObjectMap;
-static map< Command*, cl_kernel > kernelMap;
-static map< Command*, cl_event > eventMap;
-static map< Command*, list<cl_event> > waitListMap;
+static map<Command*, list<cl_mem>> memObjectMap;
+static map<Command*, cl_kernel> kernelMap;
+static map<Command*, cl_event> eventMap;
+static map<Command*, list<cl_event>> waitListMap;
 
-void asyncEnqueue(cl_command_queue queue,
-                  cl_command_type type,
-                  Command *cmd,
-                  cl_uint numEvents,
-                  const cl_event *waitList,
-                  cl_event *eventOut)
+void asyncEnqueue(cl_command_queue queue, cl_command_type type, Command* cmd,
+                  cl_uint numEvents, const cl_event* waitList,
+                  cl_event* eventOut)
 {
   // Add event wait list to command
   for (unsigned i = 0; i < numEvents; i++)
@@ -41,7 +38,7 @@ void asyncEnqueue(cl_command_queue queue,
   }
 
   // Enqueue command
-  Event *event = queue->queue->enqueue(cmd);
+  Event* event = queue->queue->enqueue(cmd);
 
   // Create event objects
   cl_event _event = new _cl_event;
@@ -63,14 +60,14 @@ void asyncEnqueue(cl_command_queue queue,
   }
 }
 
-void asyncQueueRetain(Command *cmd, cl_mem mem)
+void asyncQueueRetain(Command* cmd, cl_mem mem)
 {
   // Retain object and add to map
   clRetainMemObject(mem);
   memObjectMap[cmd].push_back(mem);
 }
 
-void asyncQueueRetain(Command *cmd, cl_kernel kernel)
+void asyncQueueRetain(Command* cmd, cl_kernel kernel)
 {
   assert(kernelMap.find(cmd) == kernelMap.end());
 
@@ -79,14 +76,14 @@ void asyncQueueRetain(Command *cmd, cl_kernel kernel)
   kernelMap[cmd] = kernel;
 
   // Retain memory objects arguments
-  map<cl_uint,cl_mem>::const_iterator itr;
+  map<cl_uint, cl_mem>::const_iterator itr;
   for (itr = kernel->memArgs.begin(); itr != kernel->memArgs.end(); itr++)
   {
     asyncQueueRetain(cmd, itr->second);
   }
 }
 
-void asyncQueueRelease(Command *cmd)
+void asyncQueueRelease(Command* cmd)
 {
   // Release memory objects
   if (memObjectMap.find(cmd) != memObjectMap.end())
@@ -114,10 +111,9 @@ void asyncQueueRelease(Command *cmd)
   eventMap.erase(cmd);
 
   // Perform callbacks
-  list< pair<void (CL_CALLBACK *)(cl_event, cl_int, void *),
-             void*> >::iterator callItr;
-  for (callItr = event->callbacks.begin();
-       callItr != event->callbacks.end();
+  list<pair<void(CL_CALLBACK*)(cl_event, cl_int, void*), void*>>::iterator
+    callItr;
+  for (callItr = event->callbacks.begin(); callItr != event->callbacks.end();
        callItr++)
   {
     callItr->first(event, event->event->state, callItr->second);
@@ -125,8 +121,7 @@ void asyncQueueRelease(Command *cmd)
 
   // Release events
   list<cl_event>::iterator waitItr;
-  for (waitItr = waitListMap[cmd].begin();
-       waitItr != waitListMap[cmd].end();
+  for (waitItr = waitListMap[cmd].begin(); waitItr != waitListMap[cmd].end();
        waitItr++)
   {
     clReleaseEvent(*waitItr);

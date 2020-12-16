@@ -8,43 +8,41 @@
 #define TOL 1e-8
 #define MAX_ERRORS 8
 
-const char *KERNEL_SOURCE =
-"kernel void vecadd(global float *a, \n"
-"                   global float *b, \n"
-"                   global float *c) \n"
-"{                                   \n"
-"  int i = get_global_id(0);         \n"
-"  c[i] = a[i] + b[i];               \n"
-"}                                   \n"
-;
+const char* KERNEL_SOURCE = "kernel void vecadd(global float *a, \n"
+                            "                   global float *b, \n"
+                            "                   global float *c) \n"
+                            "{                                   \n"
+                            "  int i = get_global_id(0);         \n"
+                            "  c[i] = a[i] + b[i];               \n"
+                            "}                                   \n";
 
-unsigned checkResults(size_t N, float *a, float *b, float *results);
+unsigned checkResults(size_t N, float* a, float* b, float* results);
 
 // Run everything as normal
-unsigned run1(Context cl, cl_kernel kernel,
-              cl_mem d_a, cl_mem d_b, cl_mem d_c, size_t N)
+unsigned run1(Context cl, cl_kernel kernel, cl_mem d_a, cl_mem d_b, cl_mem d_c,
+              size_t N)
 {
   cl_int err;
   float *h_a, *h_b, *h_c;
-  size_t dataSize = N*sizeof(cl_float);
+  size_t dataSize = N * sizeof(cl_float);
 
   // Initialise data
   srand(0);
-  h_a = clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE,
-                           CL_MAP_WRITE_INVALIDATE_REGION,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_a =
+    clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION,
+                       0, dataSize, 0, NULL, NULL, &err);
   checkError(err, "mapping d_a buffer");
-  h_b = clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE,
-                           CL_MAP_WRITE_INVALIDATE_REGION,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_b =
+    clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION,
+                       0, dataSize, 0, NULL, NULL, &err);
   checkError(err, "mapping d_b buffer");
-  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize,
-                           0, NULL, NULL, &err);
+  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize, 0,
+                           NULL, NULL, &err);
   checkError(err, "mapping d_c buffer");
   for (unsigned i = 0; i < N; i++)
   {
-    h_a[i] = rand()/(float)RAND_MAX;
-    h_b[i] = rand()/(float)RAND_MAX;
+    h_a[i] = rand() / (float)RAND_MAX;
+    h_b[i] = rand() / (float)RAND_MAX;
     h_c[i] = 0;
   }
 
@@ -55,17 +53,17 @@ unsigned run1(Context cl, cl_kernel kernel,
   err = clEnqueueUnmapMemObject(cl.queue, d_c, h_c, 0, NULL, NULL);
   checkError(err, "unmapping d_c");
 
-  err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
+  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
   err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_b);
   err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_c);
   checkError(err, "setting kernel args");
 
-  err = clEnqueueNDRangeKernel(cl.queue, kernel,
-                               1, NULL, &N, NULL, 0, NULL, NULL);
+  err =
+    clEnqueueNDRangeKernel(cl.queue, kernel, 1, NULL, &N, NULL, 0, NULL, NULL);
   checkError(err, "enqueuing kernel");
 
-  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize,
-                           0, NULL, NULL, &err);
+  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize, 0,
+                           NULL, NULL, &err);
   checkError(err, "mapping d_c buffer");
 
   err = clFinish(cl.queue);
@@ -81,47 +79,47 @@ unsigned run1(Context cl, cl_kernel kernel,
 
 // Don't unmap input buffers before running kernel
 // Should result in "Invalid read from buffer mapped for writing" error
-unsigned run2(Context cl, cl_kernel kernel,
-              cl_mem d_a, cl_mem d_b, cl_mem d_c, size_t N)
+unsigned run2(Context cl, cl_kernel kernel, cl_mem d_a, cl_mem d_b, cl_mem d_c,
+              size_t N)
 {
   cl_int err;
   float *h_a, *h_b, *h_c;
-  size_t dataSize = N*sizeof(cl_float);
+  size_t dataSize = N * sizeof(cl_float);
 
   // Initialise data
   srand(0);
-  h_a = clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE,
-                           CL_MAP_WRITE_INVALIDATE_REGION,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_a =
+    clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION,
+                       0, dataSize, 0, NULL, NULL, &err);
   checkError(err, "mapping d_a buffer");
-  h_b = clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE,
-                           CL_MAP_WRITE_INVALIDATE_REGION,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_b =
+    clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION,
+                       0, dataSize, 0, NULL, NULL, &err);
   checkError(err, "mapping d_b buffer");
-  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize,
-                           0, NULL, NULL, &err);
+  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize, 0,
+                           NULL, NULL, &err);
   checkError(err, "mapping d_c buffer");
   for (unsigned i = 0; i < N; i++)
   {
-    h_a[i] = rand()/(float)RAND_MAX;
-    h_b[i] = rand()/(float)RAND_MAX;
+    h_a[i] = rand() / (float)RAND_MAX;
+    h_b[i] = rand() / (float)RAND_MAX;
     h_c[i] = 0;
   }
 
   err = clEnqueueUnmapMemObject(cl.queue, d_c, h_c, 0, NULL, NULL);
   checkError(err, "unmapping d_c");
 
-  err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
+  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
   err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_b);
   err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_c);
   checkError(err, "setting kernel args");
 
-  err = clEnqueueNDRangeKernel(cl.queue, kernel,
-                               1, NULL, &N, NULL, 0, NULL, NULL);
+  err =
+    clEnqueueNDRangeKernel(cl.queue, kernel, 1, NULL, &N, NULL, 0, NULL, NULL);
   checkError(err, "enqueuing kernel");
 
-  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize,
-                           0, NULL, NULL, &err);
+  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize, 0,
+                           NULL, NULL, &err);
   checkError(err, "mapping d_c buffer");
 
   err = clFinish(cl.queue);
@@ -141,30 +139,30 @@ unsigned run2(Context cl, cl_kernel kernel,
 
 // Don't unmap output buffer before running kernel
 // Should result in "Invalid write to mapped buffer" error
-unsigned run3(Context cl, cl_kernel kernel,
-              cl_mem d_a, cl_mem d_b, cl_mem d_c, size_t N)
+unsigned run3(Context cl, cl_kernel kernel, cl_mem d_a, cl_mem d_b, cl_mem d_c,
+              size_t N)
 {
   cl_int err;
   float *h_a, *h_b, *h_c;
-  size_t dataSize = N*sizeof(cl_float);
+  size_t dataSize = N * sizeof(cl_float);
 
   // Initialise data
   srand(0);
-  h_a = clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE,
-                           CL_MAP_WRITE_INVALIDATE_REGION,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_a =
+    clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION,
+                       0, dataSize, 0, NULL, NULL, &err);
   checkError(err, "mapping d_a buffer");
-  h_b = clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE,
-                           CL_MAP_WRITE_INVALIDATE_REGION,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_b =
+    clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION,
+                       0, dataSize, 0, NULL, NULL, &err);
   checkError(err, "mapping d_b buffer");
-  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize,
-                           0, NULL, NULL, &err);
+  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize, 0,
+                           NULL, NULL, &err);
   checkError(err, "mapping d_c buffer");
   for (unsigned i = 0; i < N; i++)
   {
-    h_a[i] = rand()/(float)RAND_MAX;
-    h_b[i] = rand()/(float)RAND_MAX;
+    h_a[i] = rand() / (float)RAND_MAX;
+    h_b[i] = rand() / (float)RAND_MAX;
     h_c[i] = 0;
   }
 
@@ -173,13 +171,13 @@ unsigned run3(Context cl, cl_kernel kernel,
   err = clEnqueueUnmapMemObject(cl.queue, d_b, h_b, 0, NULL, NULL);
   checkError(err, "unmapping d_b");
 
-  err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
+  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
   err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_b);
   err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_c);
   checkError(err, "setting kernel args");
 
-  err = clEnqueueNDRangeKernel(cl.queue, kernel,
-                               1, NULL, &N, NULL, 0, NULL, NULL);
+  err =
+    clEnqueueNDRangeKernel(cl.queue, kernel, 1, NULL, &N, NULL, 0, NULL, NULL);
   checkError(err, "enqueuing kernel");
 
   err = clFinish(cl.queue);
@@ -195,40 +193,38 @@ unsigned run3(Context cl, cl_kernel kernel,
 
 // Re-map input buffers for reading
 // Should not result in any error
-unsigned run4(Context cl, cl_kernel kernel,
-              cl_mem d_a, cl_mem d_b, cl_mem d_c, size_t N)
+unsigned run4(Context cl, cl_kernel kernel, cl_mem d_a, cl_mem d_b, cl_mem d_c,
+              size_t N)
 {
   cl_int err;
   float *h_a, *h_b, *h_c;
-  size_t dataSize = N*sizeof(cl_float);
+  size_t dataSize = N * sizeof(cl_float);
 
   // Initialise data
   srand(0);
-  h_a = clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE,
-                           CL_MAP_WRITE_INVALIDATE_REGION,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_a =
+    clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION,
+                       0, dataSize, 0, NULL, NULL, &err);
   checkError(err, "mapping d_a buffer");
-  h_b = clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE,
-                           CL_MAP_WRITE_INVALIDATE_REGION,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_b =
+    clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION,
+                       0, dataSize, 0, NULL, NULL, &err);
   checkError(err, "mapping d_b buffer");
-  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize,
-                           0, NULL, NULL, &err);
+  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize, 0,
+                           NULL, NULL, &err);
   checkError(err, "mapping d_c buffer");
   for (unsigned i = 0; i < N; i++)
   {
-    h_a[i] = rand()/(float)RAND_MAX;
-    h_b[i] = rand()/(float)RAND_MAX;
+    h_a[i] = rand() / (float)RAND_MAX;
+    h_b[i] = rand() / (float)RAND_MAX;
     h_c[i] = 0;
   }
 
-  h_a = clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE,
-                           CL_MAP_READ,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_a = clEnqueueMapBuffer(cl.queue, d_a, CL_TRUE, CL_MAP_READ, 0, dataSize, 0,
+                           NULL, NULL, &err);
   checkError(err, "mapping d_a buffer");
-  h_b = clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE,
-                           CL_MAP_READ,
-                           0, dataSize, 0, NULL, NULL, &err);
+  h_b = clEnqueueMapBuffer(cl.queue, d_b, CL_TRUE, CL_MAP_READ, 0, dataSize, 0,
+                           NULL, NULL, &err);
   checkError(err, "mapping d_b buffer");
 
   err = clEnqueueUnmapMemObject(cl.queue, d_a, h_a, 0, NULL, NULL);
@@ -238,17 +234,17 @@ unsigned run4(Context cl, cl_kernel kernel,
   err = clEnqueueUnmapMemObject(cl.queue, d_c, h_c, 0, NULL, NULL);
   checkError(err, "unmapping d_c");
 
-  err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
+  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
   err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_b);
   err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_c);
   checkError(err, "setting kernel args");
 
-  err = clEnqueueNDRangeKernel(cl.queue, kernel,
-                               1, NULL, &N, NULL, 0, NULL, NULL);
+  err =
+    clEnqueueNDRangeKernel(cl.queue, kernel, 1, NULL, &N, NULL, 0, NULL, NULL);
   checkError(err, "enqueuing kernel");
 
-  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize,
-                           0, NULL, NULL, &err);
+  h_c = clEnqueueMapBuffer(cl.queue, d_c, CL_FALSE, CL_MAP_READ, 0, dataSize, 0,
+                           NULL, NULL, &err);
   checkError(err, "mapping d_c buffer");
 
   err = clFinish(cl.queue);
@@ -262,7 +258,7 @@ unsigned run4(Context cl, cl_kernel kernel,
   return errors;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   cl_int err;
   cl_kernel kernel;
@@ -279,7 +275,7 @@ int main(int argc, char *argv[])
   kernel = clCreateKernel(cl.program, "vecadd", &err);
   checkError(err, "creating kernel");
 
-  size_t dataSize = N*sizeof(cl_float);
+  size_t dataSize = N * sizeof(cl_float);
 
   d_a = clCreateBuffer(cl.context, CL_MEM_READ_ONLY, dataSize, NULL, &err);
   checkError(err, "creating d_a buffer");
@@ -304,7 +300,7 @@ int main(int argc, char *argv[])
   return (errors != 0);
 }
 
-unsigned checkResults(size_t N, float *a, float *b, float *results)
+unsigned checkResults(size_t N, float* a, float* b, float* results)
 {
   // Check results
   unsigned errors = 0;

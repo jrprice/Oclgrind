@@ -2,34 +2,32 @@
 
 #include <stdio.h>
 
-const char *KERNEL_SOURCE =
-"kernel void kernel1(global int *data)     \n"
-"{                                         \n"
-"  local int scratch[10];                  \n"
-"  size_t lid = get_local_id(0);           \n"
-"  scratch[lid] = data[lid];               \n"
-"  barrier(CLK_LOCAL_MEM_FENCE);           \n"
-"  int sum = 0;                            \n"
-"  for (int i = 0; i < 10; i++)            \n"
-"    sum += scratch[i];                    \n"
-"  data[0] = sum;                          \n"
-"}                                         \n"
-"                                          \n"
-"kernel void kernel2(global int *data)     \n"
-"{                                         \n"
-"  local int scratch[20];                  \n"
-"  size_t lid = get_local_id(0);           \n"
-"  scratch[lid] = data[lid];               \n"
-"  barrier(CLK_LOCAL_MEM_FENCE);           \n"
-"  int sum = 0;                            \n"
-"  for (int i = 0; i < 20; i++)            \n"
-"    sum += scratch[i];                    \n"
-"  data[0] = sum;                          \n"
-"}                                         \n"
-"                                          \n"
-;
+const char* KERNEL_SOURCE = "kernel void kernel1(global int *data)     \n"
+                            "{                                         \n"
+                            "  local int scratch[10];                  \n"
+                            "  size_t lid = get_local_id(0);           \n"
+                            "  scratch[lid] = data[lid];               \n"
+                            "  barrier(CLK_LOCAL_MEM_FENCE);           \n"
+                            "  int sum = 0;                            \n"
+                            "  for (int i = 0; i < 10; i++)            \n"
+                            "    sum += scratch[i];                    \n"
+                            "  data[0] = sum;                          \n"
+                            "}                                         \n"
+                            "                                          \n"
+                            "kernel void kernel2(global int *data)     \n"
+                            "{                                         \n"
+                            "  local int scratch[20];                  \n"
+                            "  size_t lid = get_local_id(0);           \n"
+                            "  scratch[lid] = data[lid];               \n"
+                            "  barrier(CLK_LOCAL_MEM_FENCE);           \n"
+                            "  int sum = 0;                            \n"
+                            "  for (int i = 0; i < 20; i++)            \n"
+                            "    sum += scratch[i];                    \n"
+                            "  data[0] = sum;                          \n"
+                            "}                                         \n"
+                            "                                          \n";
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   cl_int err;
   cl_kernel kernel1, kernel2;

@@ -19,13 +19,13 @@ using namespace oclgrind;
 using namespace std;
 
 static bool outputGlobalMemory = false;
-static const char *simfile = NULL;
+static const char* simfile = NULL;
 
-static bool parseArguments(int argc, char *argv[]);
+static bool parseArguments(int argc, char* argv[]);
 static void printUsage();
-static void setEnvironment(const char *name, const char *value);
+static void setEnvironment(const char* name, const char* value);
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   // Parse arguments
   if (!parseArguments(argc, argv))
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
   simulation.run(outputGlobalMemory);
 }
 
-static bool parseArguments(int argc, char *argv[])
+static bool parseArguments(int argc, char* argv[])
 {
   for (int i = 1; i < argc; i++)
   {
@@ -230,62 +230,83 @@ static bool parseArguments(int argc, char *argv[])
 
 static void printUsage()
 {
-  cout
-    << "Usage: oclgrind-kernel [OPTIONS] simfile" << endl
-    << "       oclgrind-kernel [--help | --version]" << endl
-    << endl
-    << "Options:" << endl
-    << "  --build-options     OPTIONS  "
-          "Additional options to pass to the OpenCL compiler" << endl
-    << "  --compute-units     UNITS    "
-          "Change the number of compute units reported" << endl
-    << "  --constant-mem-size BYTES    "
-          "Change the constant memory size of the device" << endl
-    << "  --data-races                 "
-          "Enable data-race detection" << endl
-    << "  --disable-pch                "
-          "Don't use precompiled headers" << endl
-    << "  --dump-spir                  "
-          "Dump SPIR to /tmp/oclgrind_*.{ll,bc}" << endl
-    << "  --global-mem [-g]            "
-          "Output global memory at exit" << endl
-    << "  --global-mem-size   BYTES    "
-          "Change the global memory size of the device" << endl
-    << "  --help [-h]                  "
-          "Display usage information" << endl
-    << "  --inst-counts                "
-          "Output histograms of instructions executed" << endl
-    << "  --interactive [-i]           "
-          "Enable interactive mode" << endl
-    << "  --local-mem-size    BYTES    "
-          "Change the local memory size of the device" << endl
-    << "  --log               LOGFILE  "
-          "Redirect log/error messages to a file" << endl
-    << "  --max-errors        NUM      "
-          "Limit the number of error/warning messages" << endl
-    << "  --max-wgsize        WGSIZE   "
-          "Change the maximum work-group size of the device" << endl
-    << "  --num-threads       NUM      "
-          "Set the number of worker threads to use" << endl
-    << "  --pch-dir           DIR      "
-          "Override directory containing precompiled headers" << endl
-    << "  --plugins           PLUGINS  "
-          "Load colon separated list of plugin libraries" << endl
-    << "  --quick [-q]                 "
-          "Only run first and last work-group" << endl
-    << "  --uniform-writes             "
-          "Don't suppress uniform write-write data-races" << endl
-    << "  --uninitialized              "
-          "Report usage of uninitialized values" << endl
-    << "  --version [-q]               "
-          "Display version information" << endl
-    << endl
-    << "For more information, please visit the Oclgrind wiki page:" << endl
-    << "-> https://github.com/jrprice/Oclgrind/wiki" << endl
-    << endl;
+  cout << "Usage: oclgrind-kernel [OPTIONS] simfile" << endl
+       << "       oclgrind-kernel [--help | --version]" << endl
+       << endl
+       << "Options:" << endl
+       << "  --build-options     OPTIONS  "
+          "Additional options to pass to the OpenCL compiler"
+       << endl
+       << "  --compute-units     UNITS    "
+          "Change the number of compute units reported"
+       << endl
+       << "  --constant-mem-size BYTES    "
+          "Change the constant memory size of the device"
+       << endl
+       << "  --data-races                 "
+          "Enable data-race detection"
+       << endl
+       << "  --disable-pch                "
+          "Don't use precompiled headers"
+       << endl
+       << "  --dump-spir                  "
+          "Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
+       << endl
+       << "  --global-mem [-g]            "
+          "Output global memory at exit"
+       << endl
+       << "  --global-mem-size   BYTES    "
+          "Change the global memory size of the device"
+       << endl
+       << "  --help [-h]                  "
+          "Display usage information"
+       << endl
+       << "  --inst-counts                "
+          "Output histograms of instructions executed"
+       << endl
+       << "  --interactive [-i]           "
+          "Enable interactive mode"
+       << endl
+       << "  --local-mem-size    BYTES    "
+          "Change the local memory size of the device"
+       << endl
+       << "  --log               LOGFILE  "
+          "Redirect log/error messages to a file"
+       << endl
+       << "  --max-errors        NUM      "
+          "Limit the number of error/warning messages"
+       << endl
+       << "  --max-wgsize        WGSIZE   "
+          "Change the maximum work-group size of the device"
+       << endl
+       << "  --num-threads       NUM      "
+          "Set the number of worker threads to use"
+       << endl
+       << "  --pch-dir           DIR      "
+          "Override directory containing precompiled headers"
+       << endl
+       << "  --plugins           PLUGINS  "
+          "Load colon separated list of plugin libraries"
+       << endl
+       << "  --quick [-q]                 "
+          "Only run first and last work-group"
+       << endl
+       << "  --uniform-writes             "
+          "Don't suppress uniform write-write data-races"
+       << endl
+       << "  --uninitialized              "
+          "Report usage of uninitialized values"
+       << endl
+       << "  --version [-q]               "
+          "Display version information"
+       << endl
+       << endl
+       << "For more information, please visit the Oclgrind wiki page:" << endl
+       << "-> https://github.com/jrprice/Oclgrind/wiki" << endl
+       << endl;
 }
 
-static void setEnvironment(const char *name, const char *value)
+static void setEnvironment(const char* name, const char* value)
 {
 #if defined(_WIN32) && !defined(__MINGW32__)
   _putenv_s(name, value);

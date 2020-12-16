@@ -24,15 +24,15 @@ using namespace std;
 #define PARSING(parsing) m_parsing = parsing;
 
 // Convert an integer to char/uchar, checking if the value is valid
-#define INT_TO_CHAR(intval, result) \
-  result = intval;                  \
-  if (result != intval)             \
-  {                                 \
-    throw "Invalid char value";     \
+#define INT_TO_CHAR(intval, result)                                            \
+  result = intval;                                                             \
+  if (result != intval)                                                        \
+  {                                                                            \
+    throw "Invalid char value";                                                \
   }
 
 // Utility to read a typed value from a stream
-template<typename T> T readValue(istream& stream);
+template <typename T> T readValue(istream& stream);
 
 Simulation::Simulation()
 {
@@ -48,18 +48,17 @@ Simulation::~Simulation()
   delete m_context;
 }
 
-template<typename T>
-void Simulation::dumpArgument(DumpArg& arg)
+template <typename T> void Simulation::dumpArgument(DumpArg& arg)
 {
   size_t num = arg.size / sizeof(T);
-  T *data = new T[num];
+  T* data = new T[num];
   m_context->getGlobalMemory()->load((uint8_t*)data, arg.address, arg.size);
 
   for (size_t i = 0; i < num; i++)
   {
     cout << "  " << arg.name << "[" << i << "] = ";
     if (arg.hex)
-      cout << "0x" << setfill('0') << setw(sizeof(T)*2) << hex;
+      cout << "0x" << setfill('0') << setw(sizeof(T) * 2) << hex;
     if (sizeof(T) == 1)
       cout << (int)data[i];
     else
@@ -72,8 +71,7 @@ void Simulation::dumpArgument(DumpArg& arg)
   delete[] data;
 }
 
-template<typename T>
-void Simulation::get(T& result)
+template <typename T> void Simulation::get(T& result)
 {
   do
   {
@@ -112,14 +110,13 @@ void Simulation::get(T& result)
     // Update line buffer
     m_lineBuffer.clear();
     m_lineBuffer.str(line);
-  }
-  while (m_simfile.good());
+  } while (m_simfile.good());
 
   // Couldn't read data from file, throw exception
   throw m_simfile.eof() ? ifstream::eofbit : ifstream::failbit;
 }
 
-bool Simulation::load(const char *filename)
+bool Simulation::load(const char* filename)
 {
   // Open simulator file
   m_lineNumber = 0;
@@ -159,7 +156,7 @@ bool Simulation::load(const char *filename)
     }
 
     // Check for LLVM bitcode magic numbers
-    char magic[2] = {0,0};
+    char magic[2] = {0, 0};
     progFile.read(magic, 2);
     if (magic[0] == 0x42 && magic[1] == 0x43)
     {
@@ -180,8 +177,8 @@ bool Simulation::load(const char *filename)
       progFile.seekg(0, ios_base::beg);
 
       // Load source
-      char *data = new char[sz + 1];
-      progFile.read(data, sz+1);
+      char* data = new char[sz + 1];
+      progFile.read(data, sz + 1);
       progFile.close();
       data[sz] = '\0';
       m_program = new Program(m_context, data);
@@ -205,8 +202,7 @@ bool Simulation::load(const char *filename)
 
     // Ensure work-group size exactly divides NDRange if necessary
     if (m_kernel->requiresUniformWorkGroups() &&
-        (m_ndrange.x % m_wgsize.x ||
-         m_ndrange.y % m_wgsize.y ||
+        (m_ndrange.x % m_wgsize.x || m_ndrange.y % m_wgsize.y ||
          m_ndrange.z % m_wgsize.z))
     {
       cerr << "Work group size must divide NDRange exactly." << endl;
@@ -229,10 +225,10 @@ bool Simulation::load(const char *filename)
       return false;
     }
   }
-  catch (const char *err)
+  catch (const char* err)
   {
-    cerr << "Line " << m_lineNumber << ": " << err
-         << " (" << m_parsing << ")" << endl;
+    cerr << "Line " << m_lineNumber << ": " << err << " (" << m_parsing << ")"
+         << endl;
     return false;
   }
   catch (ifstream::iostate e)
@@ -244,8 +240,8 @@ bool Simulation::load(const char *filename)
     }
     else if (e == ifstream::failbit)
     {
-      cerr << "Line " << m_lineNumber
-           << ": Failed to parse " << m_parsing << endl;
+      cerr << "Line " << m_lineNumber << ": Failed to parse " << m_parsing
+           << endl;
       return false;
     }
     else
@@ -321,19 +317,20 @@ void Simulation::parseArgument(size_t index)
       break;
     }
 
-#define MATCH_TYPE(str, value, sz)                  \
-  else if (token == str)                            \
-  {                                                 \
-    if (type != TYPE_NONE)                          \
-    {                                               \
-      throw "Argument type defined multiple times"; \
-    }                                               \
-    type = value;                                   \
-    typeSize = sz;                                  \
+#define MATCH_TYPE(str, value, sz)                                             \
+  else if (token == str)                                                       \
+  {                                                                            \
+    if (type != TYPE_NONE)                                                     \
+    {                                                                          \
+      throw "Argument type defined multiple times";                            \
+    }                                                                          \
+    type = value;                                                              \
+    typeSize = sz;                                                             \
   }
 
     // Parse token
-    if (false);
+    if (false)
+      ;
     MATCH_TYPE("char", TYPE_CHAR, 1)
     MATCH_TYPE("uchar", TYPE_UCHAR, 1)
     MATCH_TYPE("short", TYPE_SHORT, 2)
@@ -453,15 +450,16 @@ void Simulation::parseArgument(size_t index)
 
   if (type == TYPE_NONE)
   {
-#define MATCH_TYPE_PREFIX(str, value, sz)       \
-  else if (argType.startswith(str))             \
-  {                                             \
-    type = value;                               \
-    typeSize = sz;                              \
+#define MATCH_TYPE_PREFIX(str, value, sz)                                      \
+  else if (argType.startswith(str))                                            \
+  {                                                                            \
+    type = value;                                                              \
+    typeSize = sz;                                                             \
   }
 
     // Set default type using kernel introspection
-    if (false);
+    if (false)
+      ;
     MATCH_TYPE_PREFIX("char", TYPE_CHAR, 1)
     MATCH_TYPE_PREFIX("uchar", TYPE_UCHAR, 1)
     MATCH_TYPE_PREFIX("short", TYPE_SHORT, 2)
@@ -497,9 +495,12 @@ void Simulation::parseArgument(size_t index)
 
   // Ensure only one initializer given
   unsigned numInitializers = 0;
-  if (noinit) numInitializers++;
-  if (!fill.empty()) numInitializers++;
-  if (!range.empty()) numInitializers++;
+  if (noinit)
+    numInitializers++;
+  if (!fill.empty())
+    numInitializers++;
+  if (!range.empty())
+    numInitializers++;
   if (numInitializers > 1)
   {
     throw "Multiple initializers present";
@@ -522,17 +523,19 @@ void Simulation::parseArgument(size_t index)
   else
   {
     // Parse argument data
-    unsigned char *data = new unsigned char[size];
-    if (noinit){}
+    unsigned char* data = new unsigned char[size];
+    if (noinit)
+    {
+    }
     else if (!fill.empty())
     {
       istringstream fillStream(fill);
       fillStream.copyfmt(m_lineBuffer);
 
-  #define FILL_TYPE(type, T)                \
-    case type:                              \
-      parseFill<T>(data, size, fillStream); \
-      break;
+#define FILL_TYPE(type, T)                                                     \
+  case type:                                                                   \
+    parseFill<T>(data, size, fillStream);                                      \
+    break;
 
       switch (type)
       {
@@ -546,8 +549,8 @@ void Simulation::parseArgument(size_t index)
         FILL_TYPE(TYPE_ULONG, uint64_t);
         FILL_TYPE(TYPE_FLOAT, float);
         FILL_TYPE(TYPE_DOUBLE, double);
-        default:
-          throw "Invalid argument data type";
+      default:
+        throw "Invalid argument data type";
       }
     }
     else if (!range.empty())
@@ -555,10 +558,10 @@ void Simulation::parseArgument(size_t index)
       istringstream rangeStream(range);
       rangeStream.copyfmt(m_lineBuffer);
 
-  #define RANGE_TYPE(type, T)                 \
-    case type:                                \
-      parseRange<T>(data, size, rangeStream); \
-      break;
+#define RANGE_TYPE(type, T)                                                    \
+  case type:                                                                   \
+    parseRange<T>(data, size, rangeStream);                                    \
+    break;
 
       switch (type)
       {
@@ -572,16 +575,16 @@ void Simulation::parseArgument(size_t index)
         RANGE_TYPE(TYPE_ULONG, uint64_t);
         RANGE_TYPE(TYPE_FLOAT, float);
         RANGE_TYPE(TYPE_DOUBLE, double);
-        default:
-          throw "Invalid argument data type";
+      default:
+        throw "Invalid argument data type";
       }
     }
     else if (addrSpace != CL_KERNEL_ARG_ADDRESS_LOCAL)
     {
-  #define PARSE_TYPE(type, T)           \
-    case type:                          \
-      parseArgumentData<T>(data, size); \
-      break;
+#define PARSE_TYPE(type, T)                                                    \
+  case type:                                                                   \
+    parseArgumentData<T>(data, size);                                          \
+    break;
 
       switch (type)
       {
@@ -595,8 +598,8 @@ void Simulation::parseArgument(size_t index)
         PARSE_TYPE(TYPE_ULONG, uint64_t);
         PARSE_TYPE(TYPE_FLOAT, float);
         PARSE_TYPE(TYPE_DOUBLE, double);
-        default:
-          throw "Invalid argument data type";
+      default:
+        throw "Invalid argument data type";
       }
     }
 
@@ -607,7 +610,7 @@ void Simulation::parseArgument(size_t index)
     else
     {
       // Allocate buffer and store content
-      Memory *globalMemory = m_context->getGlobalMemory();
+      Memory* globalMemory = m_context->getGlobalMemory();
       size_t address = globalMemory->allocateBuffer(size, flags);
       if (!address)
         throw "Failed to allocate global memory";
@@ -619,14 +622,7 @@ void Simulation::parseArgument(size_t index)
 
       if (dump)
       {
-        DumpArg dump =
-        {
-          address,
-          size,
-          type,
-          name,
-          hex
-        };
+        DumpArg dump = {address, size, type, name, hex};
         m_dumpArguments.push_back(dump);
       }
     }
@@ -643,8 +639,8 @@ void Simulation::parseArgument(size_t index)
   m_lineBuffer.flags(previousFormat);
 }
 
-template<typename T>
-void Simulation::parseArgumentData(unsigned char *result, size_t size)
+template <typename T>
+void Simulation::parseArgumentData(unsigned char* result, size_t size)
 {
   vector<T> data;
   for (int i = 0; i < size / sizeof(T); i++)
@@ -665,12 +661,12 @@ void Simulation::parseArgumentData(unsigned char *result, size_t size)
   memcpy(result, &data[0], size);
 }
 
-template<typename T>
-void Simulation::parseFill(unsigned char *result, size_t size,
+template <typename T>
+void Simulation::parseFill(unsigned char* result, size_t size,
                            istringstream& fill)
 {
   T value = readValue<T>(fill);
-  for (int i = 0; i < size/sizeof(T); i++)
+  for (int i = 0; i < size / sizeof(T); i++)
   {
     ((T*)result)[i] = value;
   }
@@ -681,8 +677,8 @@ void Simulation::parseFill(unsigned char *result, size_t size,
   }
 }
 
-template<typename T>
-void Simulation::parseRange(unsigned char *result, size_t size,
+template <typename T>
+void Simulation::parseRange(unsigned char* result, size_t size,
                             istringstream& range)
 {
   // Parse range format
@@ -707,7 +703,7 @@ void Simulation::parseRange(unsigned char *result, size_t size,
 
   // Ensure range is value
   double num = (values[2] - values[0] + values[1]) / (double)values[1];
-  if (ceil(num) != num || num*sizeof(T) != size)
+  if (ceil(num) != num || num * sizeof(T) != size)
   {
     throw "Range doesn't produce correct buffer size";
   }
@@ -735,12 +731,11 @@ void Simulation::run(bool dumpGlobalMemory)
   for (itr = m_dumpArguments.begin(); itr != m_dumpArguments.end(); itr++)
   {
     cout << endl
-         << "Argument '" << itr->name << "': "
-         << itr->size << " bytes" << endl;
+         << "Argument '" << itr->name << "': " << itr->size << " bytes" << endl;
 
-#define DUMP_TYPE(type, T) \
-  case type:               \
-    dumpArgument<T>(*itr); \
+#define DUMP_TYPE(type, T)                                                     \
+  case type:                                                                   \
+    dumpArgument<T>(*itr);                                                     \
     break;
 
     switch (itr->type)
@@ -755,8 +750,8 @@ void Simulation::run(bool dumpGlobalMemory)
       DUMP_TYPE(TYPE_ULONG, uint64_t);
       DUMP_TYPE(TYPE_FLOAT, float);
       DUMP_TYPE(TYPE_DOUBLE, double);
-      default:
-        throw "Invalid argument data type";
+    default:
+      throw "Invalid argument data type";
     }
   }
 
@@ -768,8 +763,7 @@ void Simulation::run(bool dumpGlobalMemory)
   }
 }
 
-template<typename T>
-T readValue(istream& stream)
+template <typename T> T readValue(istream& stream)
 {
   T value;
   if (sizeof(T) == 1)

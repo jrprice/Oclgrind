@@ -10,20 +10,20 @@
 
 namespace oclgrind
 {
-  enum HalfRoundMode
-  {
-    // Towards negative infinity
-    Half_RTN,
-    // Towards zero
-    Half_RTZ,
-    // Towards positive infinity
-    Half_RTP,
-    // Towards nearest even
-    Half_RTE
-  };
+enum HalfRoundMode
+{
+  // Towards negative infinity
+  Half_RTN,
+  // Towards zero
+  Half_RTZ,
+  // Towards positive infinity
+  Half_RTP,
+  // Towards nearest even
+  Half_RTE
+};
 
-  float halfToFloat(uint16_t half);
+float halfToFloat(uint16_t half);
 
-  uint16_t floatToHalf(float sp, HalfRoundMode round = Half_RTZ);
-  uint16_t doubleToHalf(double dp, HalfRoundMode round = Half_RTZ);
-}
+uint16_t floatToHalf(float sp, HalfRoundMode round = Half_RTZ);
+uint16_t doubleToHalf(double dp, HalfRoundMode round = Half_RTZ);
+} // namespace oclgrind

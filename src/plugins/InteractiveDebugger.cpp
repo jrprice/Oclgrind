@@ -22,8 +22,8 @@
 #endif
 
 #if HAVE_READLINE
-#include <readline/readline.h>
 #include <readline/history.h>
+#include <readline/readline.h>
 #endif
 
 #include "llvm/IR/DebugInfo.h"
@@ -55,38 +55,38 @@ void handleSignal(int s)
 }
 #endif
 
-InteractiveDebugger::InteractiveDebugger(const Context *context)
-  : Plugin(context)
+InteractiveDebugger::InteractiveDebugger(const Context* context)
+    : Plugin(context)
 {
-  m_running          = true;
-  m_forceBreak       = false;
-  m_nextBreakpoint   = 1;
-  m_program          = NULL;
+  m_running = true;
+  m_forceBreak = false;
+  m_nextBreakpoint = 1;
+  m_program = NULL;
   m_kernelInvocation = NULL;
 
   // Set-up commands
-#define ADD_CMD(name, sname, func)  \
-  m_commands[name] = &InteractiveDebugger::func; \
+#define ADD_CMD(name, sname, func)                                             \
+  m_commands[name] = &InteractiveDebugger::func;                               \
   m_commands[sname] = &InteractiveDebugger::func;
-  ADD_CMD("backtrace",    "bt", backtrace);
-  ADD_CMD("break",        "b",  brk);
-  ADD_CMD("continue",     "c",  cont);
-  ADD_CMD("delete",       "d",  del);
-  ADD_CMD("gmem",         "gm", mem);
-  ADD_CMD("help",         "h",  help);
-  ADD_CMD("info",         "i",  info);
-  ADD_CMD("list",         "l",  list);
-  ADD_CMD("lmem",         "lm", mem);
-  ADD_CMD("next",         "n",  next);
-  ADD_CMD("pmem",         "pm", mem);
-  ADD_CMD("print",        "p",  print);
-  ADD_CMD("quit",         "q",  quit);
-  ADD_CMD("step",         "s",  step);
-  ADD_CMD("workitem",     "wi", workitem);
+  ADD_CMD("backtrace", "bt", backtrace);
+  ADD_CMD("break", "b", brk);
+  ADD_CMD("continue", "c", cont);
+  ADD_CMD("delete", "d", del);
+  ADD_CMD("gmem", "gm", mem);
+  ADD_CMD("help", "h", help);
+  ADD_CMD("info", "i", info);
+  ADD_CMD("list", "l", list);
+  ADD_CMD("lmem", "lm", mem);
+  ADD_CMD("next", "n", next);
+  ADD_CMD("pmem", "pm", mem);
+  ADD_CMD("print", "p", print);
+  ADD_CMD("quit", "q", quit);
+  ADD_CMD("step", "s", step);
+  ADD_CMD("workitem", "wi", workitem);
 }
 
 void InteractiveDebugger::instructionExecuted(
-  const WorkItem *workItem, const llvm::Instruction *instruction,
+  const WorkItem* workItem, const llvm::Instruction* instruction,
   const TypedValue& result)
 {
   if (!shouldShowPrompt(workItem))
@@ -98,7 +98,7 @@ void InteractiveDebugger::instructionExecuted(
 #endif
 
   m_forceBreak = false;
-  sigintBreak  = false;
+  sigintBreak = false;
 
   // Print function if changed
   if (m_previousDepth != workItem->getCallStack().size() &&
@@ -111,8 +111,8 @@ void InteractiveDebugger::instructionExecuted(
   printCurrentLine();
 
   m_listPosition = 0;
-  m_continue     = false;
-  m_next         = false;
+  m_continue = false;
+  m_next = false;
 
   bool interactive = isatty(STDIN_FILENO);
   while (true)
@@ -120,10 +120,10 @@ void InteractiveDebugger::instructionExecuted(
     // Prompt for command
     bool eof = false;
     string cmd;
-  #if HAVE_READLINE
+#if HAVE_READLINE
     if (interactive)
     {
-      char *line = readline("(oclgrind) ");
+      char* line = readline("(oclgrind) ");
       if (line)
       {
         cmd = line;
@@ -135,7 +135,7 @@ void InteractiveDebugger::instructionExecuted(
       }
     }
     else
-  #endif
+#endif
     {
       if (interactive)
         cout << "(oclgrind) " << flush;
@@ -155,9 +155,8 @@ void InteractiveDebugger::instructionExecuted(
     // Split command into tokens
     vector<string> tokens;
     istringstream iss(cmd);
-    copy(istream_iterator<string>(iss),
-         istream_iterator<string>(),
-         back_inserter< vector<string> >(tokens));
+    copy(istream_iterator<string>(iss), istream_iterator<string>(),
+         back_inserter<vector<string>>(tokens));
 
     // Skip empty lines
     if (tokens.size() == 0)
@@ -165,13 +164,13 @@ void InteractiveDebugger::instructionExecuted(
       continue;
     }
 
-  #if HAVE_READLINE
+#if HAVE_READLINE
     if (interactive)
       add_history(cmd.c_str());
-  #endif
+#endif
 
     // Find command in map and execute
-    map<string,Command>::iterator itr = m_commands.find(tokens[0]);
+    map<string, Command>::iterator itr = m_commands.find(tokens[0]);
     if (itr != m_commands.end())
     {
       if ((this->*itr->second)(tokens))
@@ -189,20 +188,20 @@ bool InteractiveDebugger::isThreadSafe() const
   return false;
 }
 
-void InteractiveDebugger::kernelBegin(const KernelInvocation *kernelInvocation)
+void InteractiveDebugger::kernelBegin(const KernelInvocation* kernelInvocation)
 {
-  m_continue      = false;
+  m_continue = false;
   m_lastBreakLine = 0;
-  m_listPosition  = 0;
-  m_next          = false;
+  m_listPosition = 0;
+  m_next = false;
   m_previousDepth = 0;
-  m_previousLine  = 0;
+  m_previousLine = 0;
 
   m_kernelInvocation = kernelInvocation;
   m_program = kernelInvocation->getKernel()->getProgram();
 }
 
-void InteractiveDebugger::kernelEnd(const KernelInvocation *kernelInvocation)
+void InteractiveDebugger::kernelEnd(const KernelInvocation* kernelInvocation)
 {
   m_kernelInvocation = NULL;
 
@@ -212,7 +211,7 @@ void InteractiveDebugger::kernelEnd(const KernelInvocation *kernelInvocation)
 #endif
 }
 
-void InteractiveDebugger::log(MessageType type, const char *message)
+void InteractiveDebugger::log(MessageType type, const char* message)
 {
   if (type == ERROR)
     m_forceBreak = true;
@@ -224,7 +223,7 @@ void InteractiveDebugger::log(MessageType type, const char *message)
 
 size_t InteractiveDebugger::getCurrentLineNumber() const
 {
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  const WorkItem* workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem || workItem->getState() == WorkItem::FINISHED)
   {
     return 0;
@@ -233,10 +232,10 @@ size_t InteractiveDebugger::getCurrentLineNumber() const
   return getLineNumber(workItem->getCurrentInstruction());
 }
 
-size_t InteractiveDebugger::getLineNumber(
-  const llvm::Instruction *instruction) const
+size_t
+InteractiveDebugger::getLineNumber(const llvm::Instruction* instruction) const
 {
-  llvm::MDNode *md = instruction->getMetadata("dbg");
+  llvm::MDNode* md = instruction->getMetadata("dbg");
   if (md)
   {
     return ((llvm::DILocation*)md)->getLine();
@@ -255,7 +254,8 @@ bool InteractiveDebugger::hasHitBreakpoint()
     if (getCurrentLineNumber() != m_lastBreakLine)
       m_lastBreakLine = 0;
     else
-      return false;;
+      return false;
+    ;
   }
 
   // Check if we're at a breakpoint
@@ -266,11 +266,9 @@ bool InteractiveDebugger::hasHitBreakpoint()
   {
     if (itr->second == line)
     {
-      cout << "Breakpoint " << itr->first
-           << " hit at line " << itr->second
+      cout << "Breakpoint " << itr->first << " hit at line " << itr->second
            << " by work-item "
-           << m_kernelInvocation->getCurrentWorkItem()->getGlobalID()
-           << endl;
+           << m_kernelInvocation->getCurrentWorkItem()->getGlobalID() << endl;
       m_lastBreakLine = line;
       m_listPosition = 0;
       return true;
@@ -281,7 +279,7 @@ bool InteractiveDebugger::hasHitBreakpoint()
 
 void InteractiveDebugger::printCurrentLine() const
 {
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  const WorkItem* workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem || workItem->getState() == WorkItem::FINISHED)
   {
     return;
@@ -301,16 +299,15 @@ void InteractiveDebugger::printCurrentLine() const
 }
 
 void InteractiveDebugger::printFunction(
-  const llvm::Instruction *instruction) const
+  const llvm::Instruction* instruction) const
 {
   // Get function
-  const llvm::Function *function = instruction->getParent()->getParent();
+  const llvm::Function* function = instruction->getParent()->getParent();
   cout << function->getName().str() << "(";
 
   // Print arguments
   llvm::Function::const_arg_iterator argItr;
-  for (argItr = function->arg_begin();
-       argItr != function->arg_end(); argItr++)
+  for (argItr = function->arg_begin(); argItr != function->arg_end(); argItr++)
   {
     if (argItr != function->arg_begin())
     {
@@ -325,7 +322,7 @@ void InteractiveDebugger::printFunction(
 
 void InteractiveDebugger::printSourceLine(size_t lineNum) const
 {
-  const char *line = m_program->getSourceLine(lineNum);
+  const char* line = m_program->getSourceLine(lineNum);
   if (line)
   {
     cout << dec << lineNum << "\t" << line << endl;
@@ -336,7 +333,7 @@ void InteractiveDebugger::printSourceLine(size_t lineNum) const
   }
 }
 
-bool InteractiveDebugger::shouldShowPrompt(const WorkItem *workItem)
+bool InteractiveDebugger::shouldShowPrompt(const WorkItem* workItem)
 {
   if (!m_running)
     return false;
@@ -373,7 +370,7 @@ bool InteractiveDebugger::shouldShowPrompt(const WorkItem *workItem)
 
 bool InteractiveDebugger::backtrace(vector<string> args)
 {
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  const WorkItem* workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem || workItem->getState() == WorkItem::FINISHED)
   {
     return false;
@@ -382,13 +379,13 @@ bool InteractiveDebugger::backtrace(vector<string> args)
   stack<const llvm::Instruction*> callStack = workItem->getCallStack();
 
   // Print current instruction
-  cout << "#" << callStack.size() <<  " ";
+  cout << "#" << callStack.size() << " ";
   printFunction(workItem->getCurrentInstruction());
 
   // Print call stack
   while (!callStack.empty())
   {
-    cout << "#" << (callStack.size()-1) <<  " ";
+    cout << "#" << (callStack.size() - 1) << " ";
     printFunction(callStack.top());
     callStack.pop();
   }
@@ -410,7 +407,7 @@ bool InteractiveDebugger::brk(vector<string> args)
     // Parse argument as a target line number
     istringstream ss(args[1]);
     ss >> lineNum;
-    if (!ss.eof() || !lineNum || lineNum > m_program->getNumSourceLines()+1)
+    if (!ss.eof() || !lineNum || lineNum > m_program->getNumSourceLines() + 1)
     {
       cout << "Invalid line number." << endl;
       return false;
@@ -535,8 +532,7 @@ bool InteractiveDebugger::help(vector<string> args)
   {
     cout << "Display information about current debugging context." << endl
          << "With no arguments, displays general information." << endl
-         << "'info break' lists breakpoints."
-         << endl;
+         << "'info break' lists breakpoints." << endl;
   }
   else if (args[1] == "list" || args[1] == "l")
   {
@@ -549,12 +545,15 @@ bool InteractiveDebugger::help(vector<string> args)
          << endl;
   }
   else if (args[1] == "gmem" || args[1] == "lmem" || args[1] == "pmem" ||
-           args[1] == "gm"   || args[1] == "lm"   || args[1] == "pm")
+           args[1] == "gm" || args[1] == "lm" || args[1] == "pm")
   {
     cout << "Examine contents of ";
-    if (args[1] == "gmem") cout << "global";
-    if (args[1] == "lmem") cout << "local";
-    if (args[1] == "pmem") cout << "private";
+    if (args[1] == "gmem")
+      cout << "global";
+    if (args[1] == "lmem")
+      cout << "local";
+    if (args[1] == "pmem")
+      cout << "private";
     cout << " memory." << endl
          << "With no arguments, dumps entire contents of memory." << endl
          << "'" << args[1] << " address [size]'" << endl
@@ -616,19 +615,17 @@ bool InteractiveDebugger::info(vector<string> args)
   }
 
   // Kernel invocation information
-  cout
-    << dec
-    << "Running kernel '" << m_kernelInvocation->getKernel()->getName() << "'"
-    << endl
-    << "-> Global work size:   " << m_kernelInvocation->getGlobalSize()
-    << endl
-    << "-> Global work offset: " << m_kernelInvocation->getGlobalOffset()
-    << endl
-    << "-> Local work size:    " << m_kernelInvocation->getLocalSize()
-    << endl;
+  cout << dec << "Running kernel '"
+       << m_kernelInvocation->getKernel()->getName() << "'" << endl
+       << "-> Global work size:   " << m_kernelInvocation->getGlobalSize()
+       << endl
+       << "-> Global work offset: " << m_kernelInvocation->getGlobalOffset()
+       << endl
+       << "-> Local work size:    " << m_kernelInvocation->getLocalSize()
+       << endl;
 
   // Current work-item
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  const WorkItem* workItem = m_kernelInvocation->getCurrentWorkItem();
   if (workItem)
   {
     cout << endl << "Current work-item: " << workItem->getGlobalID() << endl;
@@ -653,7 +650,7 @@ bool InteractiveDebugger::info(vector<string> args)
 
 bool InteractiveDebugger::list(vector<string> args)
 {
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  const WorkItem* workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem)
   {
     cout << "All work-items finished." << endl;
@@ -684,7 +681,7 @@ bool InteractiveDebugger::list(vector<string> args)
         cout << "Invalid line number." << endl;
         return false;
       }
-      start = start > LIST_LENGTH/2 ? start - LIST_LENGTH/2 : 1;
+      start = start > LIST_LENGTH / 2 ? start - LIST_LENGTH / 2 : 1;
     }
   }
 
@@ -693,8 +690,8 @@ bool InteractiveDebugger::list(vector<string> args)
     if (forwards)
     {
       // Starting position is the previous list position + LIST_LENGTH
-      start = m_listPosition ?
-        m_listPosition + LIST_LENGTH : getCurrentLineNumber() + 1;
+      start = m_listPosition ? m_listPosition + LIST_LENGTH
+                             : getCurrentLineNumber() + 1;
       if (start >= m_program->getNumSourceLines() + 1)
       {
         m_listPosition = m_program->getNumSourceLines() + 1;
@@ -727,7 +724,7 @@ bool InteractiveDebugger::list(vector<string> args)
 bool InteractiveDebugger::mem(vector<string> args)
 {
   // Get target memory object
-  Memory *memory = NULL;
+  Memory* memory = NULL;
   if (args[0][0] == 'g')
   {
     memory = m_context->getGlobalMemory();
@@ -757,7 +754,7 @@ bool InteractiveDebugger::mem(vector<string> args)
   size_t address;
   stringstream ss(args[1]);
   ss >> hex >> address;
-  if (!ss.eof() || address%4 != 0)
+  if (!ss.eof() || address % 4 != 0)
   {
     cout << "Invalid address." << endl;
     return false;
@@ -784,13 +781,13 @@ bool InteractiveDebugger::mem(vector<string> args)
   }
 
   // Output data
-  unsigned char *data = (unsigned char*)memory->getPointer(address);
+  unsigned char* data = (unsigned char*)memory->getPointer(address);
   for (unsigned i = 0; i < size; i++)
   {
-    if (i%4 == 0)
+    if (i % 4 == 0)
     {
-      cout << endl << hex << uppercase
-           << setw(16) << setfill(' ') << right
+      cout << endl
+           << hex << uppercase << setw(16) << setfill(' ') << right
            << (address + i) << ":";
     }
     cout << " " << hex << uppercase << setw(2) << setfill('0') << (int)data[i];
@@ -802,7 +799,7 @@ bool InteractiveDebugger::mem(vector<string> args)
 
 bool InteractiveDebugger::next(vector<string> args)
 {
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  const WorkItem* workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem)
   {
     cout << "All work-items finished." << endl;
@@ -836,7 +833,7 @@ bool InteractiveDebugger::print(vector<string> args)
     return false;
   }
 
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  const WorkItem* workItem = m_kernelInvocation->getCurrentWorkItem();
   for (unsigned i = 1; i < args.size(); i++)
   {
     cout << args[i] << " = ";
@@ -867,7 +864,7 @@ bool InteractiveDebugger::quit(vector<string> args)
 
 bool InteractiveDebugger::step(vector<string> args)
 {
-  const WorkItem *workItem = m_kernelInvocation->getCurrentWorkItem();
+  const WorkItem* workItem = m_kernelInvocation->getCurrentWorkItem();
   if (!workItem)
   {
     cout << "All work-items finished." << endl;
@@ -895,13 +892,13 @@ bool InteractiveDebugger::step(vector<string> args)
 bool InteractiveDebugger::workitem(vector<string> args)
 {
   // TODO: Take offsets into account?
-  Size3 gid(0,0,0);
+  Size3 gid(0, 0, 0);
   for (unsigned i = 1; i < args.size(); i++)
   {
     // Parse argument as a target line number
     istringstream ss(args[i]);
-    ss >> gid[i-1];
-    if (!ss.eof() || gid[i-1] >= m_kernelInvocation->getGlobalSize()[i-1])
+    ss >> gid[i - 1];
+    if (!ss.eof() || gid[i - 1] >= m_kernelInvocation->getGlobalSize()[i - 1])
     {
       cout << "Invalid global ID." << endl;
       return false;
@@ -918,9 +915,8 @@ bool InteractiveDebugger::workitem(vector<string> args)
   }
 
   // Print new WI id
-  cout << "Switched to work-item: (" << gid[0] << ","
-                                     << gid[1] << ","
-                                     << gid[2] << ")" << endl;
+  cout << "Switched to work-item: (" << gid[0] << "," << gid[1] << "," << gid[2]
+       << ")" << endl;
   if (m_kernelInvocation->getCurrentWorkItem()->getState() ==
       WorkItem::FINISHED)
   {

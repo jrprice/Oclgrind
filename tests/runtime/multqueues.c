@@ -1,25 +1,28 @@
 #include "common.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define MQ_BUFSIZE 128
 
-typedef enum { MQ_WAIT_FOR_EVENTS, MQ_FINISH } WaitType;
+typedef enum
+{
+  MQ_WAIT_FOR_EVENTS,
+  MQ_FINISH
+} WaitType;
 
-void write_read_test(cl_context ctx, cl_device_id dev,
-                     cl_command_queue cq1, cl_command_queue cq2,
-                     WaitType wait_type, char *test_name)
+void write_read_test(cl_context ctx, cl_device_id dev, cl_command_queue cq1,
+                     cl_command_queue cq2, WaitType wait_type, char* test_name)
 {
   // Variables
   cl_int err;
-  cl_float *buf_host1A = (cl_float*)malloc(MQ_BUFSIZE * sizeof(cl_float));
-  cl_float *buf_host1B = (cl_float*)calloc(MQ_BUFSIZE, sizeof(cl_float));
+  cl_float* buf_host1A = (cl_float*)malloc(MQ_BUFSIZE * sizeof(cl_float));
+  cl_float* buf_host1B = (cl_float*)calloc(MQ_BUFSIZE, sizeof(cl_float));
   cl_mem buf_dev1 = NULL;
-  cl_int *buf_host2A = (cl_int*)malloc(MQ_BUFSIZE * sizeof(cl_int));
-  cl_int *buf_host2B = (cl_int*)calloc(MQ_BUFSIZE, sizeof(cl_int));
+  cl_int* buf_host2A = (cl_int*)malloc(MQ_BUFSIZE * sizeof(cl_int));
+  cl_int* buf_host2B = (cl_int*)calloc(MQ_BUFSIZE, sizeof(cl_int));
   cl_mem buf_dev2 = NULL;
-  cl_event ew[2] = { NULL, NULL }, er[2] = { NULL, NULL };
+  cl_event ew[2] = {NULL, NULL}, er[2] = {NULL, NULL};
   cl_uint i;
 
   // Fill host buffers with random data
@@ -33,36 +36,36 @@ void write_read_test(cl_context ctx, cl_device_id dev,
   buf_dev1 = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
                             MQ_BUFSIZE * sizeof(cl_float), NULL, &err);
   checkError(err, "creating device buffer 1");
-  buf_dev2 = clCreateBuffer(ctx, CL_MEM_READ_WRITE,
-                            MQ_BUFSIZE * sizeof(cl_int), NULL, &err);
+  buf_dev2 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, MQ_BUFSIZE * sizeof(cl_int),
+                            NULL, &err);
   checkError(err, "creating device buffer 2");
 
   // Write something to device buffer 1 using command queue 1,
   // generate event ew[0]
   err = clEnqueueWriteBuffer(cq1, buf_dev1, CL_FALSE, 0,
-                             MQ_BUFSIZE * sizeof(cl_float), buf_host1A,
-                             0, NULL, &ew[0]);
+                             MQ_BUFSIZE * sizeof(cl_float), buf_host1A, 0, NULL,
+                             &ew[0]);
   checkError(err, "writing to buffer 1");
 
   // Write something to device buffer 2 using command queue 2,
   // generate event ew[1]
   err = clEnqueueWriteBuffer(cq2, buf_dev2, CL_FALSE, 0,
-                             MQ_BUFSIZE * sizeof(cl_int), buf_host2A,
-                             0, NULL, &ew[1]);
+                             MQ_BUFSIZE * sizeof(cl_int), buf_host2A, 0, NULL,
+                             &ew[1]);
   checkError(err, "writing to buffer 2");
 
   // Read from device buffer 1 using command queue 2, make it depend
   // on event ew[0] and generate event er[0]
   err = clEnqueueReadBuffer(cq2, buf_dev1, CL_FALSE, 0,
-                            MQ_BUFSIZE * sizeof(cl_float), buf_host1B,
-                            1, &ew[0], &er[0]);
+                            MQ_BUFSIZE * sizeof(cl_float), buf_host1B, 1,
+                            &ew[0], &er[0]);
   checkError(err, "reading from buffer 1");
 
   // Read from device buffer 2 using command queue 1, make it depend
   // on event ew[1] and generate event er[1]
-  err = clEnqueueReadBuffer(cq1, buf_dev2, CL_FALSE, 0,
-                            MQ_BUFSIZE * sizeof(cl_int), buf_host2B,
-                            1, &ew[1], &er[1]);
+  err =
+    clEnqueueReadBuffer(cq1, buf_dev2, CL_FALSE, 0, MQ_BUFSIZE * sizeof(cl_int),
+                        buf_host2B, 1, &ew[1], &er[1]);
   checkError(err, "reading from buffer 1");
 
   // Wait on host thread for work to finish
@@ -113,7 +116,7 @@ void write_read_test(cl_context ctx, cl_device_id dev,
   free(buf_host2B);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   ///////////
   // Setup //
@@ -173,8 +176,8 @@ int main(int argc, char *argv[])
   ////////////////////////////////////////////
 
   // Create an out-of-order command queue
-  oocq = clCreateCommandQueue(ctx, dev,
-                              CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
+  oocq = clCreateCommandQueue(ctx, dev, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+                              &err);
   checkError(err, "creating out-of-order command queue");
 
   // Test 2.1: Perform test with out-of-order command queue and explicitly

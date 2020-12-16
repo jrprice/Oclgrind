@@ -93,7 +93,8 @@
 #define clEnqueueNDRangeKernel _clEnqueueNDRangeKernel
 #define clEnqueueTask _clEnqueueTask
 #define clEnqueueNativeKernel _clEnqueueNativeKernel
-#define clGetExtensionFunctionAddressForPlatform _clGetExtensionFunctionAddressForPlatform
+#define clGetExtensionFunctionAddressForPlatform                               \
+  _clGetExtensionFunctionAddressForPlatform
 #define clEnqueueMarkerWithWaitList _clEnqueueMarkerWithWaitList
 #define clEnqueueBarrierWithWaitList _clEnqueueBarrierWithWaitList
 #define clSetPrintfCallback _clSetPrintfCallback
@@ -126,30 +127,30 @@
 #include "CL/cl_gl.h"
 #include "CL/cl_gl_ext.h"
 #if defined(_WIN32) && !defined(__MINGW32__)
-#include "CL/cl_d3d11.h"
 #include "CL/cl_d3d10.h"
+#include "CL/cl_d3d11.h"
 #include "CL/cl_dx9_media_sharing.h"
 #endif
 
 namespace oclgrind
 {
-  class Context;
-  class Kernel;
-  class Program;
-  class Queue;
-  struct Command;
-  struct Event;
-  struct Image;
-}
+class Context;
+class Kernel;
+class Program;
+class Queue;
+struct Command;
+struct Event;
+struct Image;
+} // namespace oclgrind
 
 struct _cl_platform_id
 {
-  void *dispatch;
+  void* dispatch;
 };
 
 struct _cl_device_id
 {
-  void **dispatch;
+  void** dispatch;
   size_t globalMemSize;
   size_t constantMemSize;
   size_t localMemSize;
@@ -158,27 +159,27 @@ struct _cl_device_id
 
 struct _cl_context
 {
-  void *dispatch;
-  oclgrind::Context *context;
-  void (CL_CALLBACK *notify)(const char *, const void *, size_t, void *);
-  void *data;
-  cl_context_properties *properties;
+  void* dispatch;
+  oclgrind::Context* context;
+  void(CL_CALLBACK* notify)(const char*, const void*, size_t, void*);
+  void* data;
+  cl_context_properties* properties;
   size_t szProperties;
   unsigned int refCount;
 };
 
 struct _cl_command_queue
 {
-  void *dispatch;
+  void* dispatch;
   cl_command_queue_properties properties;
   cl_context context;
-  oclgrind::Queue *queue;
+  oclgrind::Queue* queue;
   unsigned int refCount;
 };
 
 struct _cl_mem
 {
-  void *dispatch;
+  void* dispatch;
   cl_context context;
   cl_mem parent;
   size_t address;
@@ -186,8 +187,8 @@ struct _cl_mem
   size_t offset;
   cl_mem_flags flags;
   bool isImage;
-  void *hostPtr;
-  std::stack< std::pair<void (CL_CALLBACK*)(cl_mem, void *), void*> > callbacks;
+  void* hostPtr;
+  std::stack<std::pair<void(CL_CALLBACK*)(cl_mem, void*), void*>> callbacks;
   unsigned int refCount;
 };
 
@@ -199,16 +200,16 @@ struct cl_image : _cl_mem
 
 struct _cl_program
 {
-  void *dispatch;
-  oclgrind::Program *program;
+  void* dispatch;
+  oclgrind::Program* program;
   cl_context context;
   unsigned int refCount;
 };
 
 struct _cl_kernel
 {
-  void *dispatch;
-  oclgrind::Kernel *kernel;
+  void* dispatch;
+  oclgrind::Kernel* kernel;
   cl_program program;
   std::map<cl_uint, cl_mem> memArgs;
   std::stack<oclgrind::Image*> imageArgs;
@@ -217,18 +218,19 @@ struct _cl_kernel
 
 struct _cl_event
 {
-  void *dispatch;
+  void* dispatch;
   cl_context context;
   cl_command_queue queue;
   cl_command_type type;
-  oclgrind::Event *event;
-  std::list< std::pair<void (CL_CALLBACK*)(cl_event, cl_int, void*), void*> > callbacks;
+  oclgrind::Event* event;
+  std::list<std::pair<void(CL_CALLBACK*)(cl_event, cl_int, void*), void*>>
+    callbacks;
   unsigned int refCount;
 };
 
 struct _cl_sampler
 {
-  void *dispatch;
+  void* dispatch;
   cl_context context;
   cl_bool normCoords;
   cl_addressing_mode addressMode;
@@ -237,6 +239,6 @@ struct _cl_sampler
   unsigned int refCount;
 };
 
-extern void *m_dispatchTable[256];
+extern void* m_dispatchTable[256];
 
 #endif // _ICD_H_

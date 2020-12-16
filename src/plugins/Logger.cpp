@@ -22,12 +22,11 @@ unsigned Logger::m_numErrors = 0;
 
 static mutex logMutex;
 
-Logger::Logger(const Context *context)
- : Plugin(context)
+Logger::Logger(const Context* context) : Plugin(context)
 {
   m_log = &cerr;
 
-  const char *logfile = getenv("OCLGRIND_LOG");
+  const char* logfile = getenv("OCLGRIND_LOG");
   if (logfile)
   {
     m_log = new ofstream(logfile);
@@ -50,7 +49,7 @@ Logger::~Logger()
   }
 }
 
-void Logger::log(MessageType type, const char *message)
+void Logger::log(MessageType type, const char* message)
 {
   lock_guard<mutex> lock(logMutex);
 
@@ -59,9 +58,10 @@ void Logger::log(MessageType type, const char *message)
   {
     if (m_numErrors == m_maxErrors)
     {
-      *m_log << endl << "Oclgrind: "
-             << m_numErrors << " errors generated - suppressing further errors"
-             << endl << endl;
+      *m_log << endl
+             << "Oclgrind: " << m_numErrors
+             << " errors generated - suppressing further errors" << endl
+             << endl;
     }
     if (m_numErrors++ >= m_maxErrors)
       return;

@@ -24,16 +24,16 @@ using namespace std;
 // Multiple mutexes to mitigate risk of unnecessary synchronisation in atomics
 #define NUM_ATOMIC_MUTEXES 64 // Must be power of two
 mutex atomicMutex[NUM_ATOMIC_MUTEXES];
-#define ATOMIC_MUTEX(offset) \
-  atomicMutex[(((offset)>>2) & (NUM_ATOMIC_MUTEXES-1))]
+#define ATOMIC_MUTEX(offset)                                                   \
+  atomicMutex[(((offset) >> 2) & (NUM_ATOMIC_MUTEXES - 1))]
 
-Memory::Memory(unsigned addrSpace, unsigned bufferBits, const Context *context)
+Memory::Memory(unsigned addrSpace, unsigned bufferBits, const Context* context)
 {
   m_context = context;
   m_addressSpace = addrSpace;
 
   m_numBitsBuffer = bufferBits;
-  m_numBitsAddress = ((sizeof(size_t)<<3) - m_numBitsBuffer);
+  m_numBitsAddress = ((sizeof(size_t) << 3) - m_numBitsBuffer);
   m_maxNumBuffers = ((size_t)1 << m_numBitsBuffer) - 1; // 0 reserved for NULL
   m_maxBufferSize = ((size_t)1 << m_numBitsAddress);
 
@@ -46,7 +46,7 @@ Memory::~Memory()
 }
 
 size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags,
-                              const uint8_t *initData)
+                              const uint8_t* initData)
 {
   // Check requested size doesn't exceed maximum
   if (size > m_maxBufferSize)
@@ -62,10 +62,10 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags,
   }
 
   // Create buffer
-  Buffer *buffer = new Buffer;
-  buffer->size   = size;
-  buffer->flags  = flags;
-  buffer->data   = new unsigned char[size];
+  Buffer* buffer = new Buffer;
+  buffer->size = size;
+  buffer->flags = flags;
+  buffer->data = new unsigned char[size];
 
   if (b >= m_memory.size())
   {
@@ -96,8 +96,7 @@ template int64_t Memory::atomic(AtomicOp op, size_t address, int64_t value);
 template uint32_t Memory::atomic(AtomicOp op, size_t address, uint32_t value);
 template int32_t Memory::atomic(AtomicOp op, size_t address, int32_t value);
 
-template<typename T>
-T Memory::atomic(AtomicOp op, size_t address, T value)
+template <typename T> T Memory::atomic(AtomicOp op, size_t address, T value)
 {
   m_context->notifyMemoryAtomicLoad(this, op, address, sizeof(T));
   m_context->notifyMemoryAtomicStore(this, op, address, sizeof(T));
@@ -110,14 +109,14 @@ T Memory::atomic(AtomicOp op, size_t address, T value)
 
   // Get buffer
   size_t offset = extractOffset(address);
-  Buffer *buffer = m_memory[extractBuffer(address)];
-  T *ptr = (T*)(buffer->data + offset);
+  Buffer* buffer = m_memory[extractBuffer(address)];
+  T* ptr = (T*)(buffer->data + offset);
 
   if (m_addressSpace == AddrSpaceGlobal)
     ATOMIC_MUTEX(offset).lock();
 
   T old = *ptr;
-  switch(op)
+  switch (op)
   {
   case AtomicAdd:
     *ptr = old + value;
@@ -160,11 +159,12 @@ T Memory::atomic(AtomicOp op, size_t address, T value)
   return old;
 }
 
-template uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp, uint32_t value);
-template uint64_t Memory::atomicCmpxchg(size_t address, uint64_t cmp, uint64_t value);
+template uint32_t Memory::atomicCmpxchg(size_t address, uint32_t cmp,
+                                        uint32_t value);
+template uint64_t Memory::atomicCmpxchg(size_t address, uint64_t cmp,
+                                        uint64_t value);
 
-template<typename T>
-T Memory::atomicCmpxchg(size_t address, T cmp, T value)
+template <typename T> T Memory::atomicCmpxchg(size_t address, T cmp, T value)
 {
   m_context->notifyMemoryAtomicLoad(this, AtomicCmpXchg, address, sizeof(T));
 
@@ -176,8 +176,8 @@ T Memory::atomicCmpxchg(size_t address, T cmp, T value)
 
   // Get buffer
   size_t offset = extractOffset(address);
-  Buffer *buffer = m_memory[extractBuffer(address)];
-  T *ptr = (T *)(buffer->data + offset);
+  Buffer* buffer = m_memory[extractBuffer(address)];
+  T* ptr = (T*)(buffer->data + offset);
 
   if (m_addressSpace == AddrSpaceGlobal)
     ATOMIC_MUTEX(offset).lock();
@@ -206,11 +206,11 @@ void Memory::clear()
     {
       if (!((*itr)->flags & CL_MEM_USE_HOST_PTR))
       {
-        delete[] (*itr)->data;
+        delete[](*itr)->data;
       }
       delete *itr;
 
-      size_t address = (itr-m_memory.begin())<<m_numBitsAddress;
+      size_t address = (itr - m_memory.begin()) << m_numBitsAddress;
       m_context->notifyMemoryDeallocated(this, address);
     }
   }
@@ -220,7 +220,7 @@ void Memory::clear()
   m_totalAllocated = 0;
 }
 
-size_t Memory::createHostBuffer(size_t size, void *ptr, cl_mem_flags flags)
+size_t Memory::createHostBuffer(size_t size, void* ptr, cl_mem_flags flags)
 {
   // Check requested size doesn't exceed maximum
   if (size > m_maxBufferSize)
@@ -236,10 +236,10 @@ size_t Memory::createHostBuffer(size_t size, void *ptr, cl_mem_flags flags)
   }
 
   // Create buffer
-  Buffer *buffer = new Buffer;
-  buffer->size   = size;
-  buffer->flags  = flags;
-  buffer->data   = (unsigned char*)ptr;
+  Buffer* buffer = new Buffer;
+  buffer->size = size;
+  buffer->flags = flags;
+  buffer->data = (unsigned char*)ptr;
 
   if (b >= m_memory.size())
   {
@@ -269,8 +269,7 @@ bool Memory::copy(size_t dst, size_t src, size_t size)
     return false;
   }
   size_t src_offset = extractOffset(src);
-  Buffer *src_buffer = m_memory.at(extractBuffer(src));
-
+  Buffer* src_buffer = m_memory.at(extractBuffer(src));
 
   m_context->notifyMemoryStore(this, dst, size, src_buffer->data + src_offset);
 
@@ -280,13 +279,10 @@ bool Memory::copy(size_t dst, size_t src, size_t size)
     return false;
   }
   size_t dst_offset = extractOffset(dst);
-  Buffer *dst_buffer = m_memory.at(extractBuffer(dst));
-
+  Buffer* dst_buffer = m_memory.at(extractBuffer(dst));
 
   // Copy data
-  memcpy(dst_buffer->data + dst_offset,
-         src_buffer->data + src_offset,
-         size);
+  memcpy(dst_buffer->data + dst_offset, src_buffer->data + src_offset, size);
 
   return true;
 }
@@ -321,11 +317,11 @@ void Memory::dump() const
 
     for (unsigned i = 0; i < m_memory[b]->size; i++)
     {
-      if (i%4 == 0)
+      if (i % 4 == 0)
       {
-        cout << endl << hex << uppercase
-             << setw(16) << setfill(' ') << right
-             << ((((size_t)b)<<m_numBitsAddress) | i) << ":";
+        cout << endl
+             << hex << uppercase << setw(16) << setfill(' ') << right
+             << ((((size_t)b) << m_numBitsAddress) | i) << ":";
       }
       cout << " " << hex << uppercase << setw(2) << setfill('0')
            << (int)m_memory[b]->data[i];
@@ -401,17 +397,15 @@ bool Memory::isAddressValid(size_t address, size_t size) const
 {
   size_t buffer = extractBuffer(address);
   size_t offset = extractOffset(address);
-  if (buffer == 0 ||
-      buffer >= m_memory.size() ||
-      !m_memory[buffer] ||
-      offset+size > m_memory[buffer]->size)
+  if (buffer == 0 || buffer >= m_memory.size() || !m_memory[buffer] ||
+      offset + size > m_memory[buffer]->size)
   {
     return false;
   }
   return true;
 }
 
-bool Memory::load(unsigned char *dest, size_t address, size_t size) const
+bool Memory::load(unsigned char* dest, size_t address, size_t size) const
 {
   m_context->notifyMemoryLoad(this, address, size);
 
@@ -423,7 +417,7 @@ bool Memory::load(unsigned char *dest, size_t address, size_t size) const
 
   // Get buffer
   size_t offset = extractOffset(address);
-  Buffer *src = m_memory[extractBuffer(address)];
+  Buffer* src = m_memory[extractBuffer(address)];
 
   // Load data
   memcpy(dest, src->data + offset, size);
@@ -444,7 +438,7 @@ void* Memory::mapBuffer(size_t address, size_t offset, size_t size)
   return m_memory[buffer]->data + offset + extractOffset(address);
 }
 
-bool Memory::store(const unsigned char *source, size_t address, size_t size)
+bool Memory::store(const unsigned char* source, size_t address, size_t size)
 {
   m_context->notifyMemoryStore(this, address, size, source);
 
@@ -456,7 +450,7 @@ bool Memory::store(const unsigned char *source, size_t address, size_t size)
 
   // Get buffer
   size_t offset = extractOffset(address);
-  Buffer *dst = m_memory[extractBuffer(address)];
+  Buffer* dst = m_memory[extractBuffer(address)];
 
   // Store data
   memcpy(dst->data + offset, source, size);

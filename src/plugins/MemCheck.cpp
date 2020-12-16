@@ -20,17 +20,14 @@
 using namespace oclgrind;
 using namespace std;
 
-MemCheck::MemCheck(const Context *context)
- : Plugin(context)
-{
-}
+MemCheck::MemCheck(const Context* context) : Plugin(context) {}
 
-void MemCheck::instructionExecuted(const WorkItem *workItem,
-                                   const llvm::Instruction *instruction,
+void MemCheck::instructionExecuted(const WorkItem* workItem,
+                                   const llvm::Instruction* instruction,
                                    const TypedValue& result)
 {
   // Check static array bounds if load or store is executed
-  const llvm::Value *PtrOp = nullptr;
+  const llvm::Value* PtrOp = nullptr;
 
   if (auto LI = llvm::dyn_cast<llvm::LoadInst>(instruction))
   {
@@ -55,63 +52,57 @@ void MemCheck::instructionExecuted(const WorkItem *workItem,
   }
 }
 
-void MemCheck::memoryAtomicLoad(const Memory *memory,
-                                const WorkItem *workItem,
+void MemCheck::memoryAtomicLoad(const Memory* memory, const WorkItem* workItem,
                                 AtomicOp op, size_t address, size_t size)
 {
   checkLoad(memory, address, size);
 }
 
-void MemCheck::memoryAtomicStore(const Memory *memory,
-                                 const WorkItem *workItem,
+void MemCheck::memoryAtomicStore(const Memory* memory, const WorkItem* workItem,
                                  AtomicOp op, size_t address, size_t size)
 {
   checkStore(memory, address, size);
 }
 
-void MemCheck::memoryLoad(const Memory *memory, const WorkItem *workItem,
+void MemCheck::memoryLoad(const Memory* memory, const WorkItem* workItem,
                           size_t address, size_t size)
 {
   checkLoad(memory, address, size);
 }
 
-void MemCheck::memoryLoad(const Memory *memory, const WorkGroup *workGroup,
+void MemCheck::memoryLoad(const Memory* memory, const WorkGroup* workGroup,
                           size_t address, size_t size)
 {
   checkLoad(memory, address, size);
 }
 
-void MemCheck::memoryMap(const Memory *memory, size_t address,
-                         size_t offset, size_t size, cl_map_flags flags)
+void MemCheck::memoryMap(const Memory* memory, size_t address, size_t offset,
+                         size_t size, cl_map_flags flags)
 {
-  MapRegion map =
-  {
-    address, offset, size, memory->getPointer(address + offset),
-    (flags == CL_MAP_READ ? MapRegion::READ : MapRegion::WRITE)
-  };
+  MapRegion map = {address, offset, size, memory->getPointer(address + offset),
+                   (flags == CL_MAP_READ ? MapRegion::READ : MapRegion::WRITE)};
   m_mapRegions.push_back(map);
 }
 
-void MemCheck::memoryStore(const Memory *memory, const WorkItem *workItem,
+void MemCheck::memoryStore(const Memory* memory, const WorkItem* workItem,
                            size_t address, size_t size,
-                           const uint8_t *storeData)
+                           const uint8_t* storeData)
 {
   checkStore(memory, address, size);
 }
 
-void MemCheck::memoryStore(const Memory *memory, const WorkGroup *workGroup,
+void MemCheck::memoryStore(const Memory* memory, const WorkGroup* workGroup,
                            size_t address, size_t size,
-                           const uint8_t *storeData)
+                           const uint8_t* storeData)
 {
   checkStore(memory, address, size);
 }
 
-void MemCheck::memoryUnmap(const Memory *memory, size_t address,
-                           const void *ptr)
+void MemCheck::memoryUnmap(const Memory* memory, size_t address,
+                           const void* ptr)
 {
-  for (auto region = m_mapRegions.begin();
-            region != m_mapRegions.end();
-            region++)
+  for (auto region = m_mapRegions.begin(); region != m_mapRegions.end();
+       region++)
   {
     if (region->ptr == ptr)
     {
@@ -121,11 +112,11 @@ void MemCheck::memoryUnmap(const Memory *memory, size_t address,
   }
 }
 
-void MemCheck::checkArrayAccess(const WorkItem *workItem,
-                                const llvm::GetElementPtrInst *GEPI) const
+void MemCheck::checkArrayAccess(const WorkItem* workItem,
+                                const llvm::GetElementPtrInst* GEPI) const
 {
   // Iterate through GEPI indices
-  const llvm::Type *ptrType = GEPI->getPointerOperandType();
+  const llvm::Type* ptrType = GEPI->getPointerOperandType();
 
   for (auto opIndex = GEPI->idx_begin(); opIndex != GEPI->idx_end(); opIndex++)
   {
@@ -139,9 +130,8 @@ void MemCheck::checkArrayAccess(const WorkItem *workItem,
       if ((uint64_t)index >= size)
       {
         ostringstream info;
-        info << "Index ("
-             << index << ") exceeds static array size ("
-             << size << ")";
+        info << "Index (" << index << ") exceeds static array size (" << size
+             << ")";
         m_context->logError(info.str().c_str());
       }
 
@@ -162,8 +152,8 @@ void MemCheck::checkArrayAccess(const WorkItem *workItem,
   }
 }
 
-void MemCheck::checkLoad(const Memory *memory,
-                         size_t address, size_t size) const
+void MemCheck::checkLoad(const Memory* memory, size_t address,
+                         size_t size) const
 {
   if (!memory->isAddressValid(address, size))
   {
@@ -175,13 +165,14 @@ void MemCheck::checkLoad(const Memory *memory,
   {
     m_context->logError("Invalid read from write-only buffer");
   }
-  
-  if (memory->getAddressSpace() == AddrSpaceLocal || memory->getAddressSpace() == AddrSpacePrivate) return;
+
+  if (memory->getAddressSpace() == AddrSpaceLocal ||
+      memory->getAddressSpace() == AddrSpacePrivate)
+    return;
 
   // Check if memory location is currently mapped for writing
-  for (auto region = m_mapRegions.begin();
-            region != m_mapRegions.end();
-            region++)
+  for (auto region = m_mapRegions.begin(); region != m_mapRegions.end();
+       region++)
   {
     if (region->type == MapRegion::WRITE &&
         address < region->address + region->size &&
@@ -192,8 +183,8 @@ void MemCheck::checkLoad(const Memory *memory,
   }
 }
 
-void MemCheck::checkStore(const Memory *memory,
-                          size_t address, size_t size) const
+void MemCheck::checkStore(const Memory* memory, size_t address,
+                          size_t size) const
 {
   if (!memory->isAddressValid(address, size))
   {
@@ -206,12 +197,13 @@ void MemCheck::checkStore(const Memory *memory,
     m_context->logError("Invalid write to read-only buffer");
   }
 
-  if (memory->getAddressSpace() == AddrSpaceLocal || memory->getAddressSpace() == AddrSpacePrivate) return;
+  if (memory->getAddressSpace() == AddrSpaceLocal ||
+      memory->getAddressSpace() == AddrSpacePrivate)
+    return;
 
   // Check if memory location is currently mapped
-  for (auto region = m_mapRegions.begin();
-            region != m_mapRegions.end();
-            region++)
+  for (auto region = m_mapRegions.begin(); region != m_mapRegions.end();
+       region++)
   {
     if (address < region->address + region->size &&
         address + size >= region->address)
@@ -221,16 +213,14 @@ void MemCheck::checkStore(const Memory *memory,
   }
 }
 
-void MemCheck::logInvalidAccess(bool read, unsigned addrSpace,
-                                size_t address, size_t size) const
+void MemCheck::logInvalidAccess(bool read, unsigned addrSpace, size_t address,
+                                size_t size) const
 {
   Context::Message msg(ERROR, m_context);
-  msg << "Invalid " << (read ? "read" : "write")
-      << " of size " << size
-      << " at " << getAddressSpaceName(addrSpace)
-      << " memory address 0x" << hex << address << endl
-      << msg.INDENT
-      << "Kernel: " << msg.CURRENT_KERNEL << endl
+  msg << "Invalid " << (read ? "read" : "write") << " of size " << size
+      << " at " << getAddressSpaceName(addrSpace) << " memory address 0x" << hex
+      << address << endl
+      << msg.INDENT << "Kernel: " << msg.CURRENT_KERNEL << endl
       << "Entity: " << msg.CURRENT_ENTITY << endl
       << msg.CURRENT_LOCATION << endl;
   msg.send();

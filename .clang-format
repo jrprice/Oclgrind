@@ -1,2 +1,7 @@
 Language: Cpp
 BasedOnStyle: LLVM
+
+AllowShortFunctionsOnASingleLine: Empty
+BreakBeforeBraces: Allman
+ContinuationIndentWidth: 2
+PointerAlignment: Left

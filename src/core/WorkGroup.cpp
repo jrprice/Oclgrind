@@ -22,32 +22,31 @@
 using namespace oclgrind;
 using namespace std;
 
-WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation, Size3 wgid)
-  : WorkGroup(kernelInvocation, wgid, kernelInvocation->getLocalSize())
+WorkGroup::WorkGroup(const KernelInvocation* kernelInvocation, Size3 wgid)
+    : WorkGroup(kernelInvocation, wgid, kernelInvocation->getLocalSize())
 {
 }
 
-WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation,
-                     Size3 wgid, Size3 size)
- : m_context(kernelInvocation->getContext())
+WorkGroup::WorkGroup(const KernelInvocation* kernelInvocation, Size3 wgid,
+                     Size3 size)
+    : m_context(kernelInvocation->getContext())
 {
-  m_groupID   = wgid;
+  m_groupID = wgid;
   m_groupSize = size;
 
-  m_groupIndex = (m_groupID.x +
-                 (m_groupID.y +
-                  m_groupID.z*(kernelInvocation->getNumGroups().y) *
-                  kernelInvocation->getNumGroups().x));
+  m_groupIndex =
+    (m_groupID.x +
+     (m_groupID.y + m_groupID.z * (kernelInvocation->getNumGroups().y) *
+                      kernelInvocation->getNumGroups().x));
 
   // Allocate local memory
-  m_localMemory = new Memory(AddrSpaceLocal, sizeof(size_t)==8 ? 16 : 8,
-                             m_context);
-  const Kernel *kernel = kernelInvocation->getKernel();
-  for (auto value = kernel->values_begin();
-            value != kernel->values_end();
-            value++)
+  m_localMemory =
+    new Memory(AddrSpaceLocal, sizeof(size_t) == 8 ? 16 : 8, m_context);
+  const Kernel* kernel = kernelInvocation->getKernel();
+  for (auto value = kernel->values_begin(); value != kernel->values_end();
+       value++)
   {
-    const llvm::Type *type = value->first->getType();
+    const llvm::Type* type = value->first->getType();
     if (type->isPointerTy() && type->getPointerAddressSpace() == AddrSpaceLocal)
     {
       size_t ptr = m_localMemory->allocateBuffer(value->second.size);
@@ -62,8 +61,8 @@ WorkGroup::WorkGroup(const KernelInvocation *kernelInvocation,
     {
       for (size_t i = 0; i < m_groupSize.x; i++)
       {
-        WorkItem *workItem = new WorkItem(kernelInvocation, this,
-                                          Size3(i, j, k));
+        WorkItem* workItem =
+          new WorkItem(kernelInvocation, this, Size3(i, j, k));
         m_workItems.push_back(workItem);
         m_running.insert(workItem);
       }
@@ -85,34 +84,19 @@ WorkGroup::~WorkGroup()
   delete m_localMemory;
 }
 
-size_t WorkGroup::async_copy(
-  const WorkItem *workItem,
-  const llvm::Instruction *instruction,
-  AsyncCopyType type,
-  size_t dest,
-  size_t src,
-  size_t size,
-  size_t num,
-  size_t srcStride,
-  size_t destStride,
-  size_t event)
+size_t WorkGroup::async_copy(const WorkItem* workItem,
+                             const llvm::Instruction* instruction,
+                             AsyncCopyType type, size_t dest, size_t src,
+                             size_t size, size_t num, size_t srcStride,
+                             size_t destStride, size_t event)
 {
-  AsyncCopy copy =
-  {
-    instruction,
-    type,
-    dest,
-    src,
-    size,
-    num,
-    srcStride,
-    destStride,
+  AsyncCopy copy = {instruction, type, dest,      src,
+                    size,        num,  srcStride, destStride,
 
-    event
-  };
+                    event};
 
   // Check if copy has already been registered by another work-item
-  list< pair<AsyncCopy,set<const WorkItem*> > >::iterator itr;
+  list<pair<AsyncCopy, set<const WorkItem*>>>::iterator itr;
   for (itr = m_asyncCopies.begin(); itr != m_asyncCopies.end(); itr++)
   {
     if (itr->second.count(workItem))
@@ -121,20 +105,17 @@ size_t WorkGroup::async_copy(
     }
 
     // Check for divergence
-    if ((itr->first.instruction->getDebugLoc()
-         != copy.instruction->getDebugLoc()) ||
-        (itr->first.type != copy.type) ||
-        (itr->first.dest != copy.dest) ||
-        (itr->first.src != copy.src) ||
-        (itr->first.size != copy.size) ||
+    if ((itr->first.instruction->getDebugLoc() !=
+         copy.instruction->getDebugLoc()) ||
+        (itr->first.type != copy.type) || (itr->first.dest != copy.dest) ||
+        (itr->first.src != copy.src) || (itr->first.size != copy.size) ||
         (itr->first.num != copy.num) ||
         (itr->first.srcStride != copy.srcStride) ||
         (itr->first.destStride != copy.destStride))
     {
       Context::Message msg(ERROR, m_context);
       msg << "Work-group divergence detected (async copy)" << endl
-          << msg.INDENT
-          << "Kernel:     " << msg.CURRENT_KERNEL << endl
+          << msg.INDENT << "Kernel:     " << msg.CURRENT_KERNEL << endl
           << "Work-group: " << msg.CURRENT_WORK_GROUP << endl
           << endl
           << "Work-item:  " << msg.CURRENT_ENTITY << endl
@@ -188,8 +169,7 @@ void WorkGroup::clearBarrier()
   {
     Context::Message msg(ERROR, m_context);
     msg << "Work-group divergence detected (barrier)" << endl
-        << msg.INDENT
-        << "Kernel:     " << msg.CURRENT_KERNEL << endl
+        << msg.INDENT << "Kernel:     " << msg.CURRENT_KERNEL << endl
         << "Work-group: " << msg.CURRENT_WORK_GROUP << endl
         << "Only " << dec << m_barrier->workItems.size() << " out of "
         << m_workItems.size() << " work-items executed barrier" << endl
@@ -199,8 +179,7 @@ void WorkGroup::clearBarrier()
 
   // Move work-items to running state
   set<WorkItem*>::iterator itr;
-  for (itr = m_barrier->workItems.begin();
-       itr != m_barrier->workItems.end();
+  for (itr = m_barrier->workItems.begin(); itr != m_barrier->workItems.end();
        itr++)
   {
     (*itr)->clearBarrier();
@@ -232,7 +211,7 @@ void WorkGroup::clearBarrier()
 
       size_t src = itr->src;
       size_t dest = itr->dest;
-      unsigned char *buffer = new unsigned char[itr->size];
+      unsigned char* buffer = new unsigned char[itr->size];
       for (unsigned i = 0; i < itr->num; i++)
       {
         srcMem->load(buffer, src, itr->size);
@@ -245,7 +224,7 @@ void WorkGroup::clearBarrier()
     m_events.erase(event);
 
     // Remove copies from list for this event
-    list< pair<AsyncCopy,set<const WorkItem*> > >::iterator cItr;
+    list<pair<AsyncCopy, set<const WorkItem*>>>::iterator cItr;
     for (cItr = m_asyncCopies.begin(); cItr != m_asyncCopies.end();)
     {
       if (cItr->first.event == event)
@@ -255,8 +234,7 @@ void WorkGroup::clearBarrier()
         {
           Context::Message msg(ERROR, m_context);
           msg << "Work-group divergence detected (async copy)" << endl
-              << msg.INDENT
-              << "Kernel:     " << msg.CURRENT_KERNEL << endl
+              << msg.INDENT << "Kernel:     " << msg.CURRENT_KERNEL << endl
               << "Work-group: " << msg.CURRENT_WORK_GROUP << endl
               << "Only " << dec << cItr->second.size() << " out of "
               << m_workItems.size() << " work-items executed copy" << endl
@@ -306,7 +284,7 @@ Memory* WorkGroup::getLocalMemory() const
   return m_localMemory;
 }
 
-size_t WorkGroup::getLocalMemoryAddress(const llvm::Value *value) const
+size_t WorkGroup::getLocalMemoryAddress(const llvm::Value* value) const
 {
   return m_localAddresses.at(value);
 }
@@ -323,7 +301,7 @@ WorkItem* WorkGroup::getNextWorkItem() const
 WorkItem* WorkGroup::getWorkItem(Size3 localID) const
 {
   return m_workItems[localID.x +
-                    (localID.y + localID.z*m_groupSize.y)*m_groupSize.x];
+                     (localID.y + localID.z * m_groupSize.y) * m_groupSize.x];
 }
 
 bool WorkGroup::hasBarrier() const
@@ -331,8 +309,8 @@ bool WorkGroup::hasBarrier() const
   return m_barrier;
 }
 
-void WorkGroup::notifyBarrier(WorkItem *workItem,
-                              const llvm::Instruction *instruction,
+void WorkGroup::notifyBarrier(WorkItem* workItem,
+                              const llvm::Instruction* instruction,
                               uint64_t fence, list<size_t> events)
 {
   if (!m_barrier)
@@ -359,8 +337,7 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
     // Check for divergence
     bool divergence = false;
     if (instruction->getDebugLoc() != m_barrier->instruction->getDebugLoc() ||
-        fence != m_barrier->fence ||
-        events.size() != m_barrier->events.size())
+        fence != m_barrier->fence || events.size() != m_barrier->events.size())
     {
       divergence = true;
     }
@@ -393,8 +370,7 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
     {
       Context::Message msg(ERROR, m_context);
       msg << "Work-group divergence detected (barrier)" << endl
-          << msg.INDENT
-          << "Kernel:     " << msg.CURRENT_KERNEL << endl
+          << msg.INDENT << "Kernel:     " << msg.CURRENT_KERNEL << endl
           << "Work-group: " << msg.CURRENT_WORK_GROUP << endl
           << endl
           << "Work-item:  " << msg.CURRENT_ENTITY << endl
@@ -403,8 +379,8 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
           << "num_events=" << dec << events.size() << endl;
       if (divergentEventIndex >= 0)
       {
-        msg << "events[" << dec << divergentEventIndex << "]="
-            << newEvent << endl;
+        msg << "events[" << dec << divergentEventIndex << "]=" << newEvent
+            << endl;
       }
       msg << endl
           << "Previous work-items executed:" << endl
@@ -413,8 +389,8 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
           << "num_events=" << dec << m_barrier->events.size() << endl;
       if (divergentEventIndex >= 0)
       {
-        msg << "events[" << dec << divergentEventIndex << "]="
-            << oldEvent << endl;
+        msg << "events[" << dec << divergentEventIndex << "]=" << oldEvent
+            << endl;
       }
       msg.send();
     }
@@ -424,7 +400,7 @@ void WorkGroup::notifyBarrier(WorkItem *workItem,
   m_barrier->workItems.insert(workItem);
 }
 
-void WorkGroup::notifyFinished(WorkItem *workItem)
+void WorkGroup::notifyFinished(WorkItem* workItem)
 {
   m_running.erase(workItem);
 
@@ -435,8 +411,8 @@ void WorkGroup::notifyFinished(WorkItem *workItem)
   }
 }
 
-bool WorkGroup::WorkItemCmp::operator()(const WorkItem *lhs,
-                                        const WorkItem *rhs) const
+bool WorkGroup::WorkItemCmp::operator()(const WorkItem* lhs,
+                                        const WorkItem* rhs) const
 {
   Size3 lgid = lhs->getGlobalID();
   Size3 rgid = rhs->getGlobalID();

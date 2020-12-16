@@ -8,8 +8,8 @@
 
 #include "common.h"
 
-#include <cassert>
 #include <algorithm>
+#include <cassert>
 
 #include "Context.h"
 #include "KernelInvocation.h"
@@ -19,14 +19,12 @@
 using namespace oclgrind;
 using namespace std;
 
-Queue::Queue(const Context *context, bool out_of_order)
-  : m_context(context), m_out_of_order(out_of_order)
+Queue::Queue(const Context* context, bool out_of_order)
+    : m_context(context), m_out_of_order(out_of_order)
 {
 }
 
-Queue::~Queue()
-{
-}
+Queue::~Queue() {}
 
 Event::Event()
 {
@@ -35,9 +33,9 @@ Event::Event()
   startTime = endTime = 0;
 }
 
-Event* Queue::enqueue(Command *cmd)
+Event* Queue::enqueue(Command* cmd)
 {
-  Event *event = new Event();
+  Event* event = new Event();
   cmd->event = event;
   event->command = cmd;
   event->queue = this;
@@ -45,30 +43,24 @@ Event* Queue::enqueue(Command *cmd)
   return event;
 }
 
-void Queue::executeCopyBuffer(CopyCommand *cmd)
+void Queue::executeCopyBuffer(CopyCommand* cmd)
 {
   m_context->getGlobalMemory()->copy(cmd->dst, cmd->src, cmd->size);
 }
 
-void Queue::executeCopyBufferRect(CopyRectCommand *cmd)
+void Queue::executeCopyBufferRect(CopyRectCommand* cmd)
 {
   // Perform copy
-  Memory *memory = m_context->getGlobalMemory();
+  Memory* memory = m_context->getGlobalMemory();
   for (unsigned z = 0; z < cmd->region[2]; z++)
   {
     for (unsigned y = 0; y < cmd->region[1]; y++)
     {
       // Compute addresses
-      size_t src =
-        cmd->src +
-        cmd->src_offset[0] +
-        y * cmd->src_offset[1] +
-        z * cmd->src_offset[2];
-      size_t dst =
-        cmd->dst +
-        cmd->dst_offset[0] +
-        y * cmd->dst_offset[1] +
-        z * cmd->dst_offset[2];
+      size_t src = cmd->src + cmd->src_offset[0] + y * cmd->src_offset[1] +
+                   z * cmd->src_offset[2];
+      size_t dst = cmd->dst + cmd->dst_offset[0] + y * cmd->dst_offset[1] +
+                   z * cmd->dst_offset[2];
 
       // Copy data
       memory->copy(dst, src, cmd->region[0]);
@@ -76,20 +68,19 @@ void Queue::executeCopyBufferRect(CopyRectCommand *cmd)
   }
 }
 
-void Queue::executeFillBuffer(FillBufferCommand *cmd)
+void Queue::executeFillBuffer(FillBufferCommand* cmd)
 {
-  Memory *memory = m_context->getGlobalMemory();
-  for (unsigned i = 0; i < cmd->size/cmd->pattern_size; i++)
+  Memory* memory = m_context->getGlobalMemory();
+  for (unsigned i = 0; i < cmd->size / cmd->pattern_size; i++)
   {
-    memory->store(cmd->pattern,
-                  cmd->address + i*cmd->pattern_size,
+    memory->store(cmd->pattern, cmd->address + i * cmd->pattern_size,
                   cmd->pattern_size);
   }
 }
 
-void Queue::executeFillImage(FillImageCommand *cmd)
+void Queue::executeFillImage(FillImageCommand* cmd)
 {
-  Memory *memory = m_context->getGlobalMemory();
+  Memory* memory = m_context->getGlobalMemory();
 
   for (unsigned z = 0; z < cmd->region[2]; z++)
   {
@@ -97,95 +88,79 @@ void Queue::executeFillImage(FillImageCommand *cmd)
     {
       for (unsigned x = 0; x < cmd->region[0]; x++)
       {
-        size_t address = cmd->base
-                       + (cmd->origin[0] + x) * cmd->pixelSize
-                       + (cmd->origin[1] + y) * cmd->rowPitch
-                       + (cmd->origin[2] + z) * cmd->slicePitch;
+        size_t address = cmd->base + (cmd->origin[0] + x) * cmd->pixelSize +
+                         (cmd->origin[1] + y) * cmd->rowPitch +
+                         (cmd->origin[2] + z) * cmd->slicePitch;
         memory->store(cmd->color, address, cmd->pixelSize);
       }
     }
   }
 }
 
-void Queue::executeKernel(KernelCommand *cmd)
+void Queue::executeKernel(KernelCommand* cmd)
 {
   // Run kernel
-  KernelInvocation::run(m_context,
-                        cmd->kernel,
-                        cmd->work_dim,
-                        cmd->globalOffset,
-                        cmd->globalSize,
-                        cmd->localSize);
+  KernelInvocation::run(m_context, cmd->kernel, cmd->work_dim,
+                        cmd->globalOffset, cmd->globalSize, cmd->localSize);
 }
 
-void Queue::executeMap(MapCommand *cmd)
+void Queue::executeMap(MapCommand* cmd)
 {
-  m_context->notifyMemoryMap(m_context->getGlobalMemory(),
-                             cmd->address, cmd->offset, cmd->size, cmd->flags);
+  m_context->notifyMemoryMap(m_context->getGlobalMemory(), cmd->address,
+                             cmd->offset, cmd->size, cmd->flags);
 }
 
-void Queue::executeNativeKernel(NativeKernelCommand *cmd)
+void Queue::executeNativeKernel(NativeKernelCommand* cmd)
 {
   // Run kernel
   cmd->func(cmd->args);
 }
 
-void Queue::executeReadBuffer(BufferCommand *cmd)
+void Queue::executeReadBuffer(BufferCommand* cmd)
 {
   m_context->getGlobalMemory()->load(cmd->ptr, cmd->address, cmd->size);
 }
 
-void Queue::executeReadBufferRect(BufferRectCommand *cmd)
+void Queue::executeReadBufferRect(BufferRectCommand* cmd)
 {
-  Memory *memory = m_context->getGlobalMemory();
+  Memory* memory = m_context->getGlobalMemory();
   for (unsigned z = 0; z < cmd->region[2]; z++)
   {
     for (unsigned y = 0; y < cmd->region[1]; y++)
     {
-      unsigned char *host =
-        cmd->ptr +
-        cmd->host_offset[0] +
-        y * cmd->host_offset[1] +
-        z * cmd->host_offset[2];
-      size_t buff =
-        cmd->address +
-        cmd->buffer_offset[0] +
-        y * cmd->buffer_offset[1] +
-        z * cmd->buffer_offset[2];
+      unsigned char* host = cmd->ptr + cmd->host_offset[0] +
+                            y * cmd->host_offset[1] + z * cmd->host_offset[2];
+      size_t buff = cmd->address + cmd->buffer_offset[0] +
+                    y * cmd->buffer_offset[1] + z * cmd->buffer_offset[2];
       memory->load(host, buff, cmd->region[0]);
     }
   }
 }
 
-void Queue::executeUnmap(UnmapCommand *cmd)
+void Queue::executeUnmap(UnmapCommand* cmd)
 {
-  m_context->notifyMemoryUnmap(m_context->getGlobalMemory(),
-                               cmd->address, cmd->ptr);
+  m_context->notifyMemoryUnmap(m_context->getGlobalMemory(), cmd->address,
+                               cmd->ptr);
 }
 
-void Queue::executeWriteBuffer(BufferCommand *cmd)
+void Queue::executeWriteBuffer(BufferCommand* cmd)
 {
   m_context->getGlobalMemory()->store(cmd->ptr, cmd->address, cmd->size);
 }
 
-void Queue::executeWriteBufferRect(BufferRectCommand *cmd)
+void Queue::executeWriteBufferRect(BufferRectCommand* cmd)
 {
   // Perform write
-  Memory *memory = m_context->getGlobalMemory();
+  Memory* memory = m_context->getGlobalMemory();
   for (unsigned z = 0; z < cmd->region[2]; z++)
   {
     for (unsigned y = 0; y < cmd->region[1]; y++)
     {
-      const unsigned char *host =
-        cmd->ptr +
-        cmd->host_offset[0] +
-        y * cmd->host_offset[1] +
-        z * cmd->host_offset[2];
-      size_t buff =
-        cmd->address +
-        cmd->buffer_offset[0] +
-        y * cmd->buffer_offset[1] +
-        z * cmd->buffer_offset[2];
+      const unsigned char* host = cmd->ptr + cmd->host_offset[0] +
+                                  y * cmd->host_offset[1] +
+                                  z * cmd->host_offset[2];
+      size_t buff = cmd->address + cmd->buffer_offset[0] +
+                    y * cmd->buffer_offset[1] + z * cmd->buffer_offset[2];
       memory->store(host, buff, cmd->region[0]);
     }
   }
@@ -196,7 +171,7 @@ bool Queue::isEmpty() const
   return m_queue.empty();
 }
 
-void Queue::execute(Command *command, bool flush)
+void Queue::execute(Command* command, bool flush)
 {
   // Find command in queue
   auto it = std::find(m_queue.begin(), m_queue.end(), command);
@@ -213,7 +188,7 @@ void Queue::execute(Command *command, bool flush)
   // current command
   while (!command->waitList.empty())
   {
-    Event *evt = command->waitList.front();
+    Event* evt = command->waitList.front();
     command->waitList.pop_front();
 
     if (evt->state < 0)
@@ -303,7 +278,7 @@ Command* Queue::finish()
 
   // Get most recent command in queue and execute it, triggering the execution
   // of all previous commands even if it's an out-of-order queue
-  Command *cmd = m_queue.back();
+  Command* cmd = m_queue.back();
   execute(cmd, true);
 
   return cmd;

@@ -23,14 +23,14 @@
 using namespace oclgrind;
 using namespace std;
 
-#define COUNTED_LOAD_BASE  (llvm::Instruction::OtherOpsEnd + 4)
+#define COUNTED_LOAD_BASE (llvm::Instruction::OtherOpsEnd + 4)
 #define COUNTED_STORE_BASE (COUNTED_LOAD_BASE + 8)
-#define COUNTED_CALL_BASE  (COUNTED_STORE_BASE + 8)
+#define COUNTED_CALL_BASE (COUNTED_STORE_BASE + 8)
 
-THREAD_LOCAL InstructionCounter::WorkerState
-  InstructionCounter::m_state = {NULL};
+THREAD_LOCAL InstructionCounter::WorkerState InstructionCounter::m_state = {
+  NULL};
 
-static bool compareNamedCount(pair<string,size_t> a, pair<string,size_t> b)
+static bool compareNamedCount(pair<string, size_t> a, pair<string, size_t> b)
 {
   if (a.second > b.second)
     return true;
@@ -57,7 +57,7 @@ string InstructionCounter::getOpcodeName(unsigned opcode) const
     name.imbue(defaultLocale);
 
     // Get number of bytes
-    size_t bytes = m_memopBytes[opcode-COUNTED_LOAD_BASE];
+    size_t bytes = m_memopBytes[opcode - COUNTED_LOAD_BASE];
 
     // Get name of operation
     if (opcode >= COUNTED_STORE_BASE)
@@ -84,7 +84,7 @@ string InstructionCounter::getOpcodeName(unsigned opcode) const
 }
 
 void InstructionCounter::instructionExecuted(
-  const WorkItem *workItem, const llvm::Instruction *instruction,
+  const WorkItem* workItem, const llvm::Instruction* instruction,
   const TypedValue& result)
 {
   unsigned opcode = instruction->getOpcode();
@@ -94,19 +94,19 @@ void InstructionCounter::instructionExecuted(
   {
     // Track operations in separate address spaces
     bool load = (opcode == llvm::Instruction::Load);
-    const llvm::Type *type = instruction->getOperand(load?0:1)->getType();
+    const llvm::Type* type = instruction->getOperand(load ? 0 : 1)->getType();
     unsigned addrSpace = type->getPointerAddressSpace();
     opcode = (load ? COUNTED_LOAD_BASE : COUNTED_STORE_BASE) + addrSpace;
 
     // Count total number of bytes loaded/stored
     unsigned bytes = getTypeSize(type->getPointerElementType());
-    (*m_state.memopBytes)[opcode-COUNTED_LOAD_BASE] += bytes;
+    (*m_state.memopBytes)[opcode - COUNTED_LOAD_BASE] += bytes;
   }
   else if (opcode == llvm::Instruction::Call)
   {
     // Track distinct function calls
-    const llvm::CallInst *callInst = (const llvm::CallInst*)instruction;
-    const llvm::Function *function = callInst->getCalledFunction();
+    const llvm::CallInst* callInst = (const llvm::CallInst*)instruction;
+    const llvm::Function* function = callInst->getCalledFunction();
     if (function)
     {
       vector<const llvm::Function*>::iterator itr =
@@ -125,12 +125,12 @@ void InstructionCounter::instructionExecuted(
 
   if (opcode >= m_state.instCounts->size())
   {
-    m_state.instCounts->resize(opcode+1);
+    m_state.instCounts->resize(opcode + 1);
   }
   (*m_state.instCounts)[opcode]++;
 }
 
-void InstructionCounter::kernelBegin(const KernelInvocation *kernelInvocation)
+void InstructionCounter::kernelBegin(const KernelInvocation* kernelInvocation)
 {
   m_instructionCounts.clear();
 
@@ -140,7 +140,7 @@ void InstructionCounter::kernelBegin(const KernelInvocation *kernelInvocation)
   m_functions.clear();
 }
 
-void InstructionCounter::kernelEnd(const KernelInvocation *kernelInvocation)
+void InstructionCounter::kernelEnd(const KernelInvocation* kernelInvocation)
 {
   // Load default locale
   locale previousLocale = cout.getloc();
@@ -152,7 +152,7 @@ void InstructionCounter::kernelEnd(const KernelInvocation *kernelInvocation)
   cout << endl;
 
   // Generate list named instructions and their counts
-  vector< pair<string,size_t> > namedCounts;
+  vector<pair<string, size_t>> namedCounts;
   for (unsigned i = 0; i < m_instructionCounts.size(); i++)
   {
     if (m_instructionCounts[i] == 0)
@@ -185,7 +185,7 @@ void InstructionCounter::kernelEnd(const KernelInvocation *kernelInvocation)
   cout.imbue(previousLocale);
 }
 
-void InstructionCounter::workGroupBegin(const WorkGroup *workGroup)
+void InstructionCounter::workGroupBegin(const WorkGroup* workGroup)
 {
   // Create worker state if haven't already
   if (!m_state.instCounts)
@@ -204,7 +204,7 @@ void InstructionCounter::workGroupBegin(const WorkGroup *workGroup)
   m_state.functions->clear();
 }
 
-void InstructionCounter::workGroupComplete(const WorkGroup *workGroup)
+void InstructionCounter::workGroupComplete(const WorkGroup* workGroup)
 {
   lock_guard<mutex> lock(m_mtx);
 
@@ -221,7 +221,7 @@ void InstructionCounter::workGroupComplete(const WorkGroup *workGroup)
     unsigned opcode = i;
     if (i >= COUNTED_CALL_BASE)
     {
-      const llvm::Function *func = m_state.functions->at(i - COUNTED_CALL_BASE);
+      const llvm::Function* func = m_state.functions->at(i - COUNTED_CALL_BASE);
       vector<const llvm::Function*>::iterator itr =
         find(m_functions.begin(), m_functions.end(), func);
       if (itr == m_functions.end())

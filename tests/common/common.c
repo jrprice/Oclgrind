@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void checkError(cl_int err, const char *operation)
+void checkError(cl_int err, const char* operation)
 {
   if (err != CL_SUCCESS)
   {
@@ -25,7 +25,7 @@ void checkOclgrindPlatform(cl_platform_id platform)
   }
 }
 
-Context createContext(const char *source, const char *options)
+Context createContext(const char* source, const char* options)
 {
   Context cl;
   cl_int err;
@@ -53,9 +53,9 @@ Context createContext(const char *source, const char *options)
     size_t sz;
     clGetProgramBuildInfo(cl.program, cl.device, CL_PROGRAM_BUILD_LOG,
                           sizeof(size_t), NULL, &sz);
-    char *buildLog = malloc(++sz);
-    clGetProgramBuildInfo(cl.program, cl.device, CL_PROGRAM_BUILD_LOG,
-                          sz, buildLog, NULL);
+    char* buildLog = malloc(++sz);
+    clGetProgramBuildInfo(cl.program, cl.device, CL_PROGRAM_BUILD_LOG, sz,
+                          buildLog, NULL);
     fprintf(stderr, "%s\n", buildLog);
   }
   checkError(err, "building program");

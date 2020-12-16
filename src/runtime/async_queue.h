@@ -10,12 +10,9 @@
 
 #include "core/Queue.h"
 
-extern void asyncEnqueue(cl_command_queue queue,
-                         cl_command_type type,
-                         oclgrind::Command *cmd,
-                         cl_uint numEvents,
-                         const cl_event *waitList,
-                         cl_event *eventOut);
-extern void asyncQueueRetain(oclgrind::Command *cmd, cl_mem mem);
-extern void asyncQueueRetain(oclgrind::Command *cmd, cl_kernel);
-extern void asyncQueueRelease(oclgrind::Command *cmd);
+extern void asyncEnqueue(cl_command_queue queue, cl_command_type type,
+                         oclgrind::Command* cmd, cl_uint numEvents,
+                         const cl_event* waitList, cl_event* eventOut);
+extern void asyncQueueRetain(oclgrind::Command* cmd, cl_mem mem);
+extern void asyncQueueRetain(oclgrind::Command* cmd, cl_kernel);
+extern void asyncQueueRelease(oclgrind::Command* cmd);

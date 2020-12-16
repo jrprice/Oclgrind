@@ -10,14 +10,9 @@
 
 using namespace oclgrind;
 
-Plugin::Plugin(const Context *context)
-  : m_context(context)
-{
-}
+Plugin::Plugin(const Context* context) : m_context(context) {}
 
-Plugin::~Plugin()
-{
-}
+Plugin::~Plugin() {}
 
 bool Plugin::isThreadSafe() const
 {
