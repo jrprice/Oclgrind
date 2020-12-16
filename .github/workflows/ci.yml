@@ -2,9 +2,22 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  check-format:
+    name: Check formatting
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: sudo apt-get install -y clang-format
+      - name: Check formatting
+        run: bash .github/workflows/check-format.sh
+
   build:
     name: Build ${{ matrix.os }} llvm-${{ matrix.llvm }} ${{ matrix.compiler }} ${{ matrix.build_type }}
     runs-on: ${{ matrix.os }}
+    needs: [check-format]
     env:
       LLVM_VERSION: ${{ matrix.llvm }}
     strategy:
