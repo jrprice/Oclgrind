@@ -195,6 +195,7 @@ struct _cl_mem
   bool isImage;
   void* hostPtr;
   std::stack<std::pair<void(CL_CALLBACK*)(cl_mem, void*), void*>> callbacks;
+  std::vector<cl_mem_properties> properties;
   unsigned int refCount;
 };
 

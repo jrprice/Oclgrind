@@ -1295,12 +1295,11 @@ CL_API_ENTRY cl_int CL_API_CALL clGetCommandQueueInfo(
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateBuffer(cl_context context, cl_mem_flags flags, size_t size,
-               void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
+namespace
 {
-  REGISTER_API;
-
+cl_mem createBuffer(cl_context context, cl_mem_flags flags, size_t size,
+                    void* host_ptr, cl_int* errcode_ret)
+{
   // Check parameters
   if (!context)
   {
@@ -1365,6 +1364,37 @@ clCreateBuffer(cl_context context, cl_mem_flags flags, size_t size,
 
   SetError(context, CL_SUCCESS);
   return mem;
+}
+} // namespace
+
+CL_API_ENTRY cl_mem CL_API_CALL
+clCreateBuffer(cl_context context, cl_mem_flags flags, size_t size,
+               void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
+{
+  REGISTER_API;
+
+  return createBuffer(context, flags, size, host_ptr, errcode_ret);
+}
+
+CL_API_ENTRY cl_mem CL_API_CALL clCreateBufferWithProperties(
+  cl_context context, const cl_mem_properties* properties, cl_mem_flags flags,
+  size_t size, void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
+{
+  REGISTER_API;
+
+  // Check properties (none are supported)
+  if (properties && properties[0] != 0)
+  {
+    SetErrorInfo(context, CL_INVALID_PROPERTY, "Unsupported property");
+  }
+
+  cl_mem buffer = createBuffer(context, flags, size, host_ptr, errcode_ret);
+  if (buffer && properties)
+  {
+    buffer->properties.assign(properties, properties + 1);
+  }
+
+  return buffer;
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL clCreateSubBuffer(
@@ -1869,8 +1899,10 @@ CL_API_ENTRY cl_int CL_API_CALL clGetMemObjectInfo(
     cl_mem clmem;
     size_t sizet;
     cl_uint cluint;
+    cl_bool clbool;
     void* ptr;
   } result_data;
+  const void* data = nullptr;
 
   switch (param_name)
   {
@@ -1912,6 +1944,14 @@ CL_API_ENTRY cl_int CL_API_CALL clGetMemObjectInfo(
     result_size = sizeof(size_t);
     result_data.sizet = memobj->offset;
     break;
+  case CL_MEM_USES_SVM_POINTER:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
+  case CL_MEM_PROPERTIES:
+    result_size = memobj->properties.size() * sizeof(cl_mem_properties);
+    data = memobj->properties.data();
+    break;
   default:
     ReturnErrorArg(memobj->context, CL_INVALID_VALUE, param_name);
   }
@@ -1926,7 +1966,10 @@ CL_API_ENTRY cl_int CL_API_CALL clGetMemObjectInfo(
     }
     else
     {
-      memcpy(param_value, &result_data, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
@@ -5692,16 +5735,6 @@ CL_API_ENTRY cl_int CL_API_CALL clSetProgramSpecializationConstant(
 
   ReturnErrorInfo(program->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.2 API");
-}
-
-CL_API_ENTRY cl_mem CL_API_CALL clCreateBufferWithProperties(
-  cl_context context, const cl_mem_properties* properties, cl_mem_flags flags,
-  size_t size, void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
-{
-  REGISTER_API;
-
-  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 3.0 API");
-  return nullptr;
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL clCreateImageWithProperties(
