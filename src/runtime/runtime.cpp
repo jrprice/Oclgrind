@@ -1484,6 +1484,9 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateSubBuffer(
   return mem;
 }
 
+namespace
+{
+
 // Utility function for getting number of dimensions in image
 size_t getNumDimensions(cl_mem_object_type type)
 {
@@ -1574,13 +1577,11 @@ bool isImageArray(cl_mem_object_type type)
   return false;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL clCreateImage(
-  cl_context context, cl_mem_flags flags, const cl_image_format* image_format,
-  const cl_image_desc* image_desc, void* host_ptr,
-  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
+cl_mem createImage(cl_context context, cl_mem_flags flags,
+                   const cl_image_format* image_format,
+                   const cl_image_desc* image_desc, void* host_ptr,
+                   cl_int* errcode_ret)
 {
-  REGISTER_API;
-
   // Check parameters
   if (!context)
   {
@@ -1672,6 +1673,41 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateImage(
   SetError(context, CL_SUCCESS);
   return image;
 }
+} // namespace
+
+CL_API_ENTRY cl_mem CL_API_CALL clCreateImage(
+  cl_context context, cl_mem_flags flags, const cl_image_format* image_format,
+  const cl_image_desc* image_desc, void* host_ptr,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
+{
+  REGISTER_API;
+
+  return createImage(context, flags, image_format, image_desc, host_ptr,
+                     errcode_ret);
+}
+
+CL_API_ENTRY cl_mem CL_API_CALL clCreateImageWithProperties(
+  cl_context context, const cl_mem_properties* properties, cl_mem_flags flags,
+  const cl_image_format* image_format, const cl_image_desc* image_desc,
+  void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
+{
+  REGISTER_API;
+
+  // Check properties (none are supported)
+  if (properties && properties[0] != 0)
+  {
+    SetErrorInfo(context, CL_INVALID_PROPERTY, "Unsupported property");
+  }
+
+  cl_mem image = createImage(context, flags, image_format, image_desc, host_ptr,
+                             errcode_ret);
+  if (image && properties)
+  {
+    image->properties.assign(properties, properties + 1);
+  }
+
+  return image;
+}
 
 CL_API_ENTRY cl_mem CL_API_CALL clCreateImage2D(
   cl_context context, cl_mem_flags flags, const cl_image_format* image_format,
@@ -1690,8 +1726,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateImage2D(
                         0,
                         0,
                         {NULL}};
-  return clCreateImage(context, flags, image_format, &desc, host_ptr,
-                       errcode_ret);
+  return createImage(context, flags, image_format, &desc, host_ptr,
+                     errcode_ret);
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL clCreateImage3D(
@@ -1712,8 +1748,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateImage3D(
                         0,
                         0,
                         {NULL}};
-  return clCreateImage(context, flags, image_format, &desc, host_ptr,
-                       errcode_ret);
+  return createImage(context, flags, image_format, &desc, host_ptr,
+                     errcode_ret);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL clRetainMemObject(cl_mem memobj)
@@ -5735,17 +5771,6 @@ CL_API_ENTRY cl_int CL_API_CALL clSetProgramSpecializationConstant(
 
   ReturnErrorInfo(program->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.2 API");
-}
-
-CL_API_ENTRY cl_mem CL_API_CALL clCreateImageWithProperties(
-  cl_context context, const cl_mem_properties* properties, cl_mem_flags flags,
-  const cl_image_format* image_format, const cl_image_desc* image_desc,
-  void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
-{
-  REGISTER_API;
-
-  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 3.0 API");
-  return nullptr;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL clSetContextDestructorCallback(
