@@ -2732,6 +2732,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetProgramInfo(
     cl_device_id device;
     cl_context context;
     size_t sizet;
+    cl_bool clbool;
   } result_data;
   const char* str = 0;
   string kernelNames;
@@ -2757,6 +2758,9 @@ CL_API_ENTRY cl_int CL_API_CALL clGetProgramInfo(
   case CL_PROGRAM_SOURCE:
     str = program->program->getSource().c_str();
     result_size = strlen(str) + 1;
+    break;
+  case CL_PROGRAM_IL:
+    result_size = 0;
     break;
   case CL_PROGRAM_BINARY_SIZES:
     result_size = sizeof(size_t);
@@ -2785,6 +2789,11 @@ CL_API_ENTRY cl_int CL_API_CALL clGetProgramInfo(
     result_size = strlen(str) + 1;
     break;
   }
+  case CL_PROGRAM_SCOPE_GLOBAL_CTORS_PRESENT:
+  case CL_PROGRAM_SCOPE_GLOBAL_DTORS_PRESENT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
   default:
     ReturnErrorArg(program->context, CL_INVALID_VALUE, param_name);
   }
