@@ -179,6 +179,7 @@ struct _cl_command_queue
   void* dispatch;
   cl_command_queue_properties properties;
   cl_context context;
+  std::vector<cl_queue_properties> properties_array;
   oclgrind::Queue* queue;
   unsigned int refCount;
 };

@@ -1254,7 +1254,9 @@ CL_API_ENTRY cl_int CL_API_CALL clGetCommandQueueInfo(
     cl_context context;
     cl_device_id cldevid;
     cl_command_queue_properties properties;
+    cl_command_queue queue;
   } result_data;
+  const void* data = nullptr;
 
   switch (param_name)
   {
@@ -1274,6 +1276,18 @@ CL_API_ENTRY cl_int CL_API_CALL clGetCommandQueueInfo(
     result_size = sizeof(cl_command_queue_properties);
     result_data.properties = command_queue->properties;
     break;
+  case CL_QUEUE_PROPERTIES_ARRAY:
+    result_size =
+      command_queue->properties_array.size() * sizeof(cl_queue_properties);
+    data = command_queue->properties_array.data();
+    break;
+  case CL_QUEUE_SIZE:
+    ReturnErrorArg(command_queue->context, CL_INVALID_COMMAND_QUEUE,
+                   param_name);
+  case CL_QUEUE_DEVICE_DEFAULT:
+    result_size = sizeof(cl_command_queue);
+    result_data.queue = nullptr;
+    break;
   default:
     ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, param_name);
   }
@@ -1288,7 +1302,10 @@ CL_API_ENTRY cl_int CL_API_CALL clGetCommandQueueInfo(
     }
     else
     {
-      memcpy(param_value, &result_data, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
@@ -5444,6 +5461,7 @@ CL_API_ENTRY cl_command_queue CL_API_CALL clCreateCommandQueueWithProperties(
     }
     i++;
   }
+  unsigned numProperties = i + 1;
 
   // Create command-queue object
   cl_command_queue queue;
@@ -5453,6 +5471,10 @@ CL_API_ENTRY cl_command_queue CL_API_CALL clCreateCommandQueueWithProperties(
   queue->properties = props;
   queue->context = context;
   queue->refCount = 1;
+  if (properties)
+  {
+    queue->properties_array.assign(properties, properties + numProperties);
+  }
 
   clRetainContext(context);
 
