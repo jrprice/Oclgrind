@@ -3006,10 +3006,8 @@ CL_API_ENTRY cl_int CL_API_CALL clReleaseKernel(cl_kernel kernel)
   {
 
     // Release memory allocated for image arguments
-    while (!kernel->imageArgs.empty())
+    for (auto* img : kernel->imageArgs)
     {
-      oclgrind::Image* img = kernel->imageArgs.top();
-      kernel->imageArgs.pop();
       delete img;
     }
 
@@ -3091,7 +3089,7 @@ clSetKernelArg(cl_kernel kernel, cl_uint arg_index, size_t arg_size,
         image->desc = ((cl_image*)mem)->desc;
         *(oclgrind::Image**)value.data = image;
         // Keep a record of the image struct for releasing it later
-        kernel->imageArgs.push(image);
+        kernel->imageArgs.push_back(image);
       }
       else
       {
@@ -5747,9 +5745,32 @@ CL_API_ENTRY cl_kernel CL_API_CALL clCloneKernel(
 {
   REGISTER_API;
 
-  SetErrorInfo(source_kernel->program->context, CL_INVALID_OPERATION,
-               "Unimplemented OpenCL 2.1 API");
-  return nullptr;
+  if (!source_kernel)
+  {
+    SetErrorArg(nullptr, CL_INVALID_KERNEL, source_kernel);
+    return nullptr;
+  }
+
+  // Create kernel object
+  cl_kernel kernel = new _cl_kernel;
+  kernel->dispatch = m_dispatchTable;
+  kernel->kernel = new oclgrind::Kernel(*source_kernel->kernel);
+  kernel->program = source_kernel->program;
+  kernel->memArgs = source_kernel->memArgs;
+  for (auto src_img : source_kernel->imageArgs)
+  {
+    oclgrind::Image* image = new oclgrind::Image;
+    image->address = src_img->address;
+    image->format = src_img->format;
+    image->desc = src_img->desc;
+    kernel->imageArgs.push_back(image);
+  }
+  kernel->refCount = 1;
+
+  clRetainProgram(kernel->program);
+
+  SetError(nullptr, CL_SUCCESS);
+  return kernel;
 }
 
 CL_API_ENTRY cl_program CL_API_CALL

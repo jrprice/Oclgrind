@@ -220,7 +220,7 @@ struct _cl_kernel
   oclgrind::Kernel* kernel;
   cl_program program;
   std::map<cl_uint, cl_mem> memArgs;
-  std::stack<oclgrind::Image*> imageArgs;
+  std::vector<oclgrind::Image*> imageArgs;
   unsigned int refCount;
 };
 
