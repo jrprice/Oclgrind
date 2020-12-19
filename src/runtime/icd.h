@@ -114,10 +114,11 @@
 #define clCreateEventFromGLsyncKHR _clCreateEventFromGLsyncKHR
 #endif // OCLGRIND_ICD
 
+#include <cstdint>
 #include <list>
 #include <map>
 #include <stack>
-#include <stdint.h>
+#include <vector>
 
 #define CL_USE_DEPRECATED_OPENCL_1_0_APIS
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS
@@ -239,6 +240,7 @@ struct _cl_sampler
   cl_bool normCoords;
   cl_addressing_mode addressMode;
   cl_filter_mode filterMode;
+  std::vector<cl_sampler_properties> properties;
   uint32_t sampler;
   unsigned int refCount;
 };

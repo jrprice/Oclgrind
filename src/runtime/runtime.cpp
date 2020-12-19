@@ -2090,6 +2090,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetSamplerInfo(
     cl_addressing_mode claddrmode;
     cl_filter_mode clfiltmode;
   } result_data;
+  const void* data = nullptr;
 
   switch (param_name)
   {
@@ -2113,6 +2114,10 @@ CL_API_ENTRY cl_int CL_API_CALL clGetSamplerInfo(
     result_size = sizeof(cl_filter_mode);
     result_data.clfiltmode = sampler->filterMode;
     break;
+  case CL_SAMPLER_PROPERTIES:
+    result_size = sampler->properties.size() * sizeof(cl_sampler_properties);
+    data = sampler->properties.data();
+    break;
   default:
     ReturnErrorArg(sampler->context, CL_INVALID_VALUE, param_name);
   }
@@ -2127,7 +2132,10 @@ CL_API_ENTRY cl_int CL_API_CALL clGetSamplerInfo(
     }
     else
     {
-      memcpy(param_value, &result_data, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
@@ -5246,6 +5254,7 @@ CL_API_ENTRY cl_sampler CL_API_CALL clCreateSamplerWithProperties(
     }
     i++;
   }
+  unsigned numProperties = i + 1;
 
   // Create sampler bitfield
   uint32_t bitfield = 0;
@@ -5297,6 +5306,11 @@ CL_API_ENTRY cl_sampler CL_API_CALL clCreateSamplerWithProperties(
   sampler->addressMode = addressing_mode;
   sampler->filterMode = filter_mode;
   sampler->sampler = bitfield;
+  if (sampler_properties)
+  {
+    sampler->properties.assign(sampler_properties,
+                               sampler_properties + numProperties);
+  }
 
   SetError(context, CL_SUCCESS);
   return sampler;
