@@ -5499,7 +5499,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetPipeInfo(
 {
   REGISTER_API;
 
-  ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
+  ReturnErrorInfo(NULL, CL_INVALID_MEM_OBJECT, "Pipes are not supported");
 }
 
 CL_API_ENTRY void* CL_API_CALL
