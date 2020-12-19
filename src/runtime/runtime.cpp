@@ -574,11 +574,11 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     break;
   case CL_DEVICE_IMAGE_PITCH_ALIGNMENT:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 4;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_MAX_PIPE_ARGS:
     result_size = sizeof(cl_uint);
@@ -1672,6 +1672,13 @@ cl_mem createImage(cl_context context, cl_mem_flags flags,
     }
     mem = image_desc->buffer;
     clRetainMemObject(image_desc->buffer);
+  }
+  else if (image_desc->image_type == CL_MEM_OBJECT_IMAGE2D &&
+           image_desc->mem_object)
+  {
+    SetErrorInfo(context, CL_INVALID_OPERATION,
+                 "Creating 2D images from buffers is not supported");
+    return nullptr;
   }
   else
   {
