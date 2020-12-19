@@ -308,49 +308,58 @@ CL_API_ENTRY cl_int CL_API_CALL clGetPlatformInfo(
 {
   REGISTER_API;
 
+  // All possible return types
+  union
+  {
+    cl_ulong clulong;
+  } result_data;
+  size_t result_size = 0;
+  const void* data = NULL;
+
   static constexpr char extensions[] = "cl_khr_icd";
   static constexpr cl_version numeric_version = CL_MAKE_VERSION(3, 0, 0);
   static constexpr cl_name_version extension_versions[] = {
     {CL_MAKE_VERSION(1, 0, 0), "cl_khr_icd"},
   };
 
-  size_t result_size = 0;
-  const void* result = NULL;
-
   // Select platform info
   switch (param_name)
   {
   case CL_PLATFORM_PROFILE:
-    result = PLATFORM_PROFILE;
-    result_size = strlen(static_cast<const char*>(result)) + 1;
+    data = PLATFORM_PROFILE;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_VERSION:
-    result = PLATFORM_VERSION;
-    result_size = strlen(static_cast<const char*>(result)) + 1;
+    data = PLATFORM_VERSION;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_NAME:
-    result = PLATFORM_NAME;
-    result_size = strlen(static_cast<const char*>(result)) + 1;
+    data = PLATFORM_NAME;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_VENDOR:
-    result = PLATFORM_VENDOR;
-    result_size = strlen(static_cast<const char*>(result)) + 1;
+    data = PLATFORM_VENDOR;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_EXTENSIONS:
-    result = extensions;
-    result_size = strlen(static_cast<const char*>(result)) + 1;
+    data = extensions;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_ICD_SUFFIX_KHR:
-    result = PLATFORM_SUFFIX;
-    result_size = strlen(static_cast<const char*>(result)) + 1;
+    data = PLATFORM_SUFFIX;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_NUMERIC_VERSION:
     result_size = sizeof(numeric_version);
-    result = &numeric_version;
+    data = &numeric_version;
     break;
   case CL_PLATFORM_EXTENSIONS_WITH_VERSION:
     result_size = sizeof(extension_versions);
-    result = extension_versions;
+    data = extension_versions;
+    break;
+  case CL_PLATFORM_HOST_TIMER_RESOLUTION:
+    result_size = sizeof(cl_ulong);
+    result_data.clulong = 0;
     break;
   default:
     ReturnErrorArg(NULL, CL_INVALID_VALUE, param_name);
@@ -372,7 +381,10 @@ CL_API_ENTRY cl_int CL_API_CALL clGetPlatformInfo(
     }
     else
     {
-      memcpy(param_value, result, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
