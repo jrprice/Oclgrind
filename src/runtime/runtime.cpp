@@ -179,16 +179,29 @@ void releaseCommand(oclgrind::Command* command)
 namespace
 {
 // Name of the API function currently being executed
-thread_local static const char* g_currentAPI = nullptr;
+thread_local static std::stack<const char*> g_apiCallStack;
 
-#define REGISTER_API g_currentAPI = __func__
+class APICallEntry
+{
+public:
+  APICallEntry(const char* name)
+  {
+    g_apiCallStack.push(name);
+  }
+  ~APICallEntry()
+  {
+    g_apiCallStack.pop();
+  }
+};
+
+#define REGISTER_API APICallEntry apiCallEntry(__func__)
 } // namespace
 
 #define ReturnErrorInfo(context, err, info)                                    \
   {                                                                            \
     ostringstream oss;                                                         \
     oss << info;                                                               \
-    notifyAPIError(context, err, g_currentAPI, oss.str());                     \
+    notifyAPIError(context, err, g_apiCallStack.top(), oss.str());             \
     return err;                                                                \
   }
 #define ReturnErrorArg(context, err, arg)                                      \
@@ -200,7 +213,7 @@ thread_local static const char* g_currentAPI = nullptr;
   {                                                                            \
     ostringstream oss;                                                         \
     oss << info;                                                               \
-    notifyAPIError(context, err, g_currentAPI, oss.str());                     \
+    notifyAPIError(context, err, g_apiCallStack.top(), oss.str());             \
   }                                                                            \
   if (errcode_ret)                                                             \
   {                                                                            \
@@ -1664,7 +1677,7 @@ cl_mem createImage(cl_context context, cl_mem_flags flags,
   {
     // Create buffer
     // TODO: Use pitches
-    mem = clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
+    mem = createBuffer(context, flags, size, host_ptr, errcode_ret);
     if (!mem)
     {
       return NULL;
