@@ -1039,6 +1039,15 @@ CL_API_ENTRY cl_int CL_API_CALL clReleaseContext(cl_context context)
     {
       free(context->properties);
     }
+
+    while (!context->callbacks.empty())
+    {
+      pair<void(CL_CALLBACK*)(cl_context, void*), void*> callback =
+        context->callbacks.top();
+      callback.first(context, callback.second);
+      context->callbacks.pop();
+    }
+
     delete context->context;
     delete context;
   }
@@ -5430,8 +5439,19 @@ CL_API_ENTRY cl_int CL_API_CALL clSetContextDestructorCallback(
   void(CL_CALLBACK* pfn_notify)(cl_context context, void* user_data),
   void* user_data) CL_API_SUFFIX__VERSION_3_0
 {
-  ReturnErrorInfo(context, CL_INVALID_OPERATION,
-                  "Unimplemented OpenCL 3.0 API");
+  // Check parameters
+  if (!context)
+  {
+    ReturnErrorArg(NULL, CL_INVALID_CONTEXT, context);
+  }
+  if (!pfn_notify)
+  {
+    ReturnErrorArg(context, CL_INVALID_VALUE, pfn_notify);
+  }
+
+  context->callbacks.push(make_pair(pfn_notify, user_data));
+
+  return CL_SUCCESS;
 }
 
 ////////////////////

@@ -170,6 +170,7 @@ struct _cl_context
   void* data;
   cl_context_properties* properties;
   size_t szProperties;
+  std::stack<std::pair<void(CL_CALLBACK*)(cl_context, void*), void*>> callbacks;
   unsigned int refCount;
 };
 
