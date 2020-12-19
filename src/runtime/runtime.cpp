@@ -4592,11 +4592,6 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNDRangeKernel(
   kernel->kernel->getRequiredWorkGroupSize(reqdWorkGroupSize);
   for (unsigned i = 0; i < work_dim; i++)
   {
-    if (!global_work_size[i])
-    {
-      ReturnErrorInfo(command_queue->context, CL_INVALID_GLOBAL_WORK_SIZE,
-                      "global_work_size[" << i << "] = 0");
-    }
     if (kernel->kernel->requiresUniformWorkGroups() && local_work_size &&
         global_work_size[i] % local_work_size[i])
     {
