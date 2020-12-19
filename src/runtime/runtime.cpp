@@ -176,15 +176,19 @@ void releaseCommand(oclgrind::Command* command)
 }
 } // namespace
 
-#if defined(_WIN32) && !defined(__MINGW32__)
-#define __func__ __FUNCTION__
-#endif
+namespace
+{
+// Name of the API function currently being executed
+thread_local static const char* g_currentAPI = nullptr;
+
+#define REGISTER_API g_currentAPI = __func__
+} // namespace
 
 #define ReturnErrorInfo(context, err, info)                                    \
   {                                                                            \
     ostringstream oss;                                                         \
     oss << info;                                                               \
-    notifyAPIError(context, err, __func__, oss.str());                         \
+    notifyAPIError(context, err, g_currentAPI, oss.str());                     \
     return err;                                                                \
   }
 #define ReturnErrorArg(context, err, arg)                                      \
@@ -196,7 +200,7 @@ void releaseCommand(oclgrind::Command* command)
   {                                                                            \
     ostringstream oss;                                                         \
     oss << info;                                                               \
-    notifyAPIError(context, err, __func__, oss.str());                         \
+    notifyAPIError(context, err, g_currentAPI, oss.str());                     \
   }                                                                            \
   if (errcode_ret)                                                             \
   {                                                                            \
@@ -216,6 +220,8 @@ static struct _cl_device_id* m_device = NULL;
 CL_API_ENTRY cl_int CL_API_CALL clIcdGetPlatformIDsKHR(
   cl_uint num_entries, cl_platform_id* platforms, cl_uint* num_platforms)
 {
+  REGISTER_API;
+
   if (platforms && num_entries < 1)
   {
     ReturnError(NULL, CL_INVALID_VALUE);
@@ -258,6 +264,8 @@ CL_API_ENTRY cl_int CL_API_CALL clIcdGetPlatformIDsKHR(
 CL_API_ENTRY void* CL_API_CALL
 clGetExtensionFunctionAddress(const char* funcname) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   if (strcmp(funcname, "clIcdGetPlatformIDsKHR") == 0)
   {
     return (void*)clIcdGetPlatformIDsKHR;
@@ -276,6 +284,8 @@ CL_API_ENTRY cl_int CL_API_CALL
 clGetPlatformIDs(cl_uint num_entries, cl_platform_id* platforms,
                  cl_uint* num_platforms) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   return clIcdGetPlatformIDsKHR(num_entries, platforms, num_platforms);
 }
 
@@ -283,6 +293,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetPlatformInfo(
   cl_platform_id platform, cl_platform_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   static constexpr char extensions[] = "cl_khr_icd";
   static constexpr cl_version numeric_version = CL_MAKE_VERSION(3, 0, 0);
   static constexpr cl_name_version extension_versions[] = {
@@ -358,6 +370,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDs(
   cl_platform_id platform, cl_device_type device_type, cl_uint num_entries,
   cl_device_id* devices, cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (devices && num_entries < 1)
   {
@@ -386,6 +400,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
   cl_device_id device, cl_device_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check device is valid
   if (device != m_device)
   {
@@ -896,18 +912,24 @@ CL_API_ENTRY cl_int CL_API_CALL clCreateSubDevices(
   cl_uint num_entries, cl_device_id* out_devices,
   cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_VALUE, "Not yet implemented");
 }
 
 CL_API_ENTRY cl_int CL_API_CALL clRetainDevice(cl_device_id device)
   CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL clReleaseDevice(cl_device_id device)
   CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   return CL_SUCCESS;
 }
 
@@ -917,6 +939,8 @@ CL_API_ENTRY cl_context CL_API_CALL clCreateContext(
   void(CL_CALLBACK* pfn_notify)(const char*, const void*, size_t, void*),
   void* user_data, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (num_devices != 1)
   {
@@ -972,6 +996,8 @@ CL_API_ENTRY cl_context CL_API_CALL clCreateContextFromType(
   void(CL_CALLBACK* pfn_notify)(const char*, const void*, size_t, void*),
   void* user_data, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!pfn_notify && user_data)
   {
@@ -1015,6 +1041,8 @@ CL_API_ENTRY cl_context CL_API_CALL clCreateContextFromType(
 CL_API_ENTRY cl_int CL_API_CALL clRetainContext(cl_context context)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!context)
   {
     ReturnErrorArg(NULL, CL_INVALID_CONTEXT, context);
@@ -1028,6 +1056,8 @@ CL_API_ENTRY cl_int CL_API_CALL clRetainContext(cl_context context)
 CL_API_ENTRY cl_int CL_API_CALL clReleaseContext(cl_context context)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!context)
   {
     ReturnErrorArg(NULL, CL_INVALID_CONTEXT, context);
@@ -1059,6 +1089,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetContextInfo(
   cl_context context, cl_context_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check context is valid
   if (!context)
   {
@@ -1121,6 +1153,8 @@ clCreateCommandQueue(cl_context context, cl_device_id device,
                      cl_command_queue_properties properties,
                      cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -1153,12 +1187,16 @@ CL_API_ENTRY cl_int CL_API_CALL clSetCommandQueueProperty(
   cl_command_queue command_queue, cl_command_queue_properties properties,
   cl_bool enable, cl_command_queue_properties* old_properties)
 {
+  REGISTER_API;
+
   return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
 clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -1173,6 +1211,8 @@ clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 CL_API_ENTRY cl_int CL_API_CALL
 clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!command_queue)
   {
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
@@ -1197,6 +1237,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetCommandQueueInfo(
   size_t param_value_size, void* param_value,
   size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check queue is valid
   if (!command_queue)
   {
@@ -1257,6 +1299,8 @@ CL_API_ENTRY cl_mem CL_API_CALL
 clCreateBuffer(cl_context context, cl_mem_flags flags, size_t size,
                void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -1328,6 +1372,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateSubBuffer(
   const void* buffer_create_info,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!buffer)
   {
@@ -1503,6 +1549,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateImage(
   const cl_image_desc* image_desc, void* host_ptr,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -1600,6 +1648,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateImage2D(
   size_t image_width, size_t image_height, size_t image_row_pitch,
   void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   cl_image_desc desc = {CL_MEM_OBJECT_IMAGE2D,
                         image_width,
                         image_height,
@@ -1620,6 +1670,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateImage3D(
   size_t image_row_pitch, size_t image_slice_pitch, void* host_ptr,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   cl_image_desc desc = {CL_MEM_OBJECT_IMAGE3D,
                         image_width,
                         image_height,
@@ -1637,6 +1689,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateImage3D(
 CL_API_ENTRY cl_int CL_API_CALL clRetainMemObject(cl_mem memobj)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!memobj)
   {
     ReturnErrorArg(NULL, CL_INVALID_MEM_OBJECT, memobj);
@@ -1649,6 +1703,8 @@ CL_API_ENTRY cl_int CL_API_CALL clRetainMemObject(cl_mem memobj)
 CL_API_ENTRY cl_int CL_API_CALL clReleaseMemObject(cl_mem memobj)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!memobj)
   {
     ReturnErrorArg(NULL, CL_INVALID_MEM_OBJECT, memobj);
@@ -1694,6 +1750,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetSupportedImageFormats(
   cl_uint num_entries, cl_image_format* image_formats,
   cl_uint* num_image_formats) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -1793,6 +1851,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetMemObjectInfo(
   cl_mem memobj, cl_mem_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check mem object is valid
   if (!memobj)
   {
@@ -1877,6 +1937,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetImageInfo(
   cl_mem image, cl_image_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check mem object is valid
   if (!image)
   {
@@ -1967,6 +2029,8 @@ CL_API_ENTRY cl_int CL_API_CALL clSetMemObjectDestructorCallback(
   cl_mem memobj, void(CL_CALLBACK* pfn_notify)(cl_mem, void*),
   void* user_data) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!memobj)
   {
@@ -1987,6 +2051,8 @@ clCreateSampler(cl_context context, cl_bool normalized_coords,
                 cl_addressing_mode addressing_mode, cl_filter_mode filter_mode,
                 cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -2053,6 +2119,8 @@ clCreateSampler(cl_context context, cl_bool normalized_coords,
 CL_API_ENTRY cl_int CL_API_CALL clRetainSampler(cl_sampler sampler)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!sampler)
   {
     ReturnErrorArg(NULL, CL_INVALID_SAMPLER, sampler);
@@ -2066,6 +2134,8 @@ CL_API_ENTRY cl_int CL_API_CALL clRetainSampler(cl_sampler sampler)
 CL_API_ENTRY cl_int CL_API_CALL clReleaseSampler(cl_sampler sampler)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!sampler)
   {
     ReturnErrorArg(NULL, CL_INVALID_SAMPLER, sampler);
@@ -2083,6 +2153,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetSamplerInfo(
   cl_sampler sampler, cl_sampler_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check sampler is valid
   if (!sampler)
   {
@@ -2155,6 +2227,8 @@ CL_API_ENTRY cl_program CL_API_CALL clCreateProgramWithSource(
   cl_context context, cl_uint count, const char** strings,
   const size_t* lengths, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -2204,6 +2278,8 @@ CL_API_ENTRY cl_program CL_API_CALL clCreateProgramWithBinary(
   const size_t* lengths, const unsigned char** binaries, cl_int* binary_status,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -2263,6 +2339,8 @@ CL_API_ENTRY cl_program CL_API_CALL clCreateProgramWithBuiltInKernels(
   cl_context context, cl_uint num_devices, const cl_device_id* device_list,
   const char* kernel_names, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   if (!context)
   {
     SetError(NULL, CL_INVALID_CONTEXT);
@@ -2276,6 +2354,8 @@ CL_API_ENTRY cl_program CL_API_CALL clCreateProgramWithBuiltInKernels(
 CL_API_ENTRY cl_int CL_API_CALL clRetainProgram(cl_program program)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!program)
   {
     ReturnErrorArg(NULL, CL_INVALID_PROGRAM, program);
@@ -2288,6 +2368,8 @@ CL_API_ENTRY cl_int CL_API_CALL clRetainProgram(cl_program program)
 CL_API_ENTRY cl_int CL_API_CALL clReleaseProgram(cl_program program)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!program)
   {
     ReturnErrorArg(NULL, CL_INVALID_PROGRAM, program);
@@ -2308,6 +2390,8 @@ CL_API_ENTRY cl_int CL_API_CALL clBuildProgram(
   const char* options, void(CL_CALLBACK* pfn_notify)(cl_program, void*),
   void* user_data) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!program || !program->program)
   {
@@ -2353,6 +2437,8 @@ CL_API_ENTRY cl_int CL_API_CALL clBuildProgram(
 CL_API_ENTRY cl_int CL_API_CALL clUnloadCompiler(void)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   return CL_SUCCESS;
 }
 
@@ -2363,6 +2449,8 @@ CL_API_ENTRY cl_int CL_API_CALL clCompileProgram(
   void(CL_CALLBACK* pfn_notify)(cl_program, void*),
   void* user_data) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!program)
   {
@@ -2418,6 +2506,8 @@ clLinkProgram(cl_context context, cl_uint num_devices,
               void(CL_CALLBACK* pfn_notify)(cl_program, void*), void* user_data,
               cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -2491,6 +2581,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetProgramInfo(
   cl_program program, cl_program_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check program is valid
   if (!program)
   {
@@ -2597,6 +2689,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetProgramBuildInfo(
   size_t param_value_size, void* param_value,
   size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check program is valid
   if (!program)
   {
@@ -2663,6 +2757,8 @@ CL_API_ENTRY cl_kernel CL_API_CALL
 clCreateKernel(cl_program program, const char* kernel_name,
                cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (program->dispatch != m_dispatchTable)
   {
@@ -2699,6 +2795,8 @@ CL_API_ENTRY cl_int CL_API_CALL clCreateKernelsInProgram(
   cl_program program, cl_uint num_kernels, cl_kernel* kernels,
   cl_uint* num_kernels_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!program)
   {
@@ -2746,6 +2844,8 @@ CL_API_ENTRY cl_int CL_API_CALL clCreateKernelsInProgram(
 CL_API_ENTRY cl_int CL_API_CALL clRetainKernel(cl_kernel kernel)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!kernel)
   {
     ReturnErrorArg(NULL, CL_INVALID_KERNEL, kernel);
@@ -2758,6 +2858,8 @@ CL_API_ENTRY cl_int CL_API_CALL clRetainKernel(cl_kernel kernel)
 CL_API_ENTRY cl_int CL_API_CALL clReleaseKernel(cl_kernel kernel)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!kernel)
   {
     ReturnErrorArg(NULL, CL_INVALID_KERNEL, kernel);
@@ -2788,6 +2890,8 @@ CL_API_ENTRY cl_int CL_API_CALL
 clSetKernelArg(cl_kernel kernel, cl_uint arg_index, size_t arg_size,
                const void* arg_value) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters are valid
   if (!kernel)
   {
@@ -2881,6 +2985,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetKernelInfo(
   cl_kernel kernel, cl_kernel_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check kernel is valid
   if (!kernel)
   {
@@ -2952,6 +3058,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetKernelArgInfo(
   size_t param_value_size, void* param_value,
   size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters are valid
   if (!kernel)
   {
@@ -3027,6 +3135,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetKernelWorkGroupInfo(
   size_t param_value_size, void* param_value,
   size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters are valid
   if (!kernel)
   {
@@ -3106,6 +3216,8 @@ inline bool isComplete(cl_event event)
 CL_API_ENTRY cl_int CL_API_CALL clWaitForEvents(
   cl_uint num_events, const cl_event* event_list) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!num_events)
   {
@@ -3168,6 +3280,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetEventInfo(
   cl_event event, cl_event_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check event is valid
   if (!event)
   {
@@ -3232,6 +3346,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetEventInfo(
 CL_API_ENTRY cl_event CL_API_CALL clCreateUserEvent(
   cl_context context, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -3258,6 +3374,8 @@ CL_API_ENTRY cl_event CL_API_CALL clCreateUserEvent(
 CL_API_ENTRY cl_int CL_API_CALL clRetainEvent(cl_event event)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!event)
   {
     ReturnErrorArg(NULL, CL_INVALID_EVENT, event);
@@ -3271,6 +3389,8 @@ CL_API_ENTRY cl_int CL_API_CALL clRetainEvent(cl_event event)
 CL_API_ENTRY cl_int CL_API_CALL clReleaseEvent(cl_event event)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!event)
   {
     ReturnErrorArg(NULL, CL_INVALID_EVENT, event);
@@ -3291,6 +3411,8 @@ CL_API_ENTRY cl_int CL_API_CALL clReleaseEvent(cl_event event)
 CL_API_ENTRY cl_int CL_API_CALL clSetUserEventStatus(
   cl_event event, cl_int execution_status) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!event)
   {
@@ -3327,6 +3449,8 @@ clSetEventCallback(cl_event event, cl_int command_exec_callback_type,
                    void(CL_CALLBACK* pfn_notify)(cl_event, cl_int, void*),
                    void* user_data) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!event)
   {
@@ -3353,6 +3477,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetEventProfilingInfo(
   cl_event event, cl_profiling_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check event is valid
   if (!event)
   {
@@ -3408,6 +3534,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetEventProfilingInfo(
 CL_API_ENTRY cl_int CL_API_CALL clFlush(cl_command_queue command_queue)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3423,6 +3551,8 @@ CL_API_ENTRY cl_int CL_API_CALL clFlush(cl_command_queue command_queue)
 CL_API_ENTRY cl_int CL_API_CALL clFinish(cl_command_queue command_queue)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3441,6 +3571,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadBuffer(
   size_t offset, size_t cb, void* ptr, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3492,6 +3624,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadBufferRect(
   size_t host_slice_pitch, void* ptr, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3574,6 +3708,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteBuffer(
   size_t offset, size_t cb, const void* ptr, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3625,6 +3761,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteBufferRect(
   size_t host_slice_pitch, const void* ptr, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3708,6 +3846,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBuffer(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3780,6 +3920,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBufferRect(
   size_t dst_slice_pitch, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3865,6 +4007,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueFillBuffer(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3921,6 +4065,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueFillImage(
   const size_t* origin, const size_t* region, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4092,6 +4238,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadImage(
   size_t slice_pitch, void* ptr, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4138,6 +4286,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteImage(
   size_t input_slice_pitch, const void* ptr, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4184,6 +4334,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyImage(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4244,6 +4396,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyImageToBuffer(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4286,6 +4440,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBufferToImage(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4328,6 +4484,8 @@ CL_API_ENTRY void* CL_API_CALL clEnqueueMapBuffer(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4399,6 +4557,8 @@ CL_API_ENTRY void* CL_API_CALL clEnqueueMapImage(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4518,6 +4678,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueUnmapMemObject(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4549,6 +4711,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueMigrateMemObjects(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4569,6 +4733,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNDRangeKernel(
   const size_t* local_work_size, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4697,6 +4863,8 @@ clEnqueueTask(cl_command_queue command_queue, cl_kernel kernel,
               cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
               cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   size_t work = 1;
   return clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &work, &work,
                                 num_events_in_wait_list, event_wait_list,
@@ -4709,6 +4877,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNativeKernel(
   const void** args_mem_loc, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4778,6 +4948,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNativeKernel(
 CL_API_ENTRY void* CL_API_CALL clGetExtensionFunctionAddressForPlatform(
   cl_platform_id platform, const char* func_name) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   return NULL;
 }
 
@@ -4785,6 +4957,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueMarkerWithWaitList(
   cl_command_queue command_queue, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4803,6 +4977,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueBarrierWithWaitList(
   cl_command_queue command_queue, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4822,12 +4998,16 @@ CL_API_ENTRY cl_int CL_API_CALL clSetPrintfCallback(
   void(CL_CALLBACK* pfn_notify)(cl_context, cl_uint, char*, void*),
   void* user_data) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnError(NULL, CL_INVALID_OPERATION);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL clEnqueueMarker(
   cl_command_queue command_queue, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   return clEnqueueMarkerWithWaitList(command_queue, 0, NULL, event);
 }
 
@@ -4835,6 +5015,8 @@ CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueWaitForEvents(cl_command_queue command_queue, cl_uint num_events,
                        const cl_event* event_list) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!command_queue)
   {
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
@@ -4851,6 +5033,8 @@ clEnqueueWaitForEvents(cl_command_queue command_queue, cl_uint num_events,
 CL_API_ENTRY cl_int CL_API_CALL clEnqueueBarrier(cl_command_queue command_queue)
   CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   return clEnqueueBarrierWithWaitList(command_queue, 0, NULL, NULL);
 }
 
@@ -4858,6 +5042,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLBuffer(
   cl_context context, cl_mem_flags flags, cl_GLuint bufret_mem,
   int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
@@ -4866,6 +5052,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLTexture(
   cl_context context, cl_mem_flags flags, cl_GLenum target, cl_GLint miplevel,
   cl_GLuint texture, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
@@ -4874,6 +5062,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLTexture2D(
   cl_context context, cl_mem_flags flags, cl_GLenum target, cl_GLint miplevel,
   cl_GLuint texture, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
@@ -4882,6 +5072,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLTexture3D(
   cl_context context, cl_mem_flags flags, cl_GLenum target, cl_GLint miplevel,
   cl_GLuint texture, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
@@ -4890,6 +5082,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLRenderbuffer(
   cl_context context, cl_mem_flags flags, cl_GLuint renderbuffer,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
@@ -4898,6 +5092,8 @@ CL_API_ENTRY cl_int CL_API_CALL
 clGetGLObjectInfo(cl_mem memobj, cl_gl_object_type* gl_object_type,
                   cl_GLuint* gl_object_name) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_MEM_OBJECT, "CL/GL interop not implements");
 }
 
@@ -4905,6 +5101,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetGLTextureInfo(
   cl_mem memobj, cl_gl_texture_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_MEM_OBJECT, "CL/GL interop not implemented");
 }
 
@@ -4913,6 +5111,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueAcquireGLObjects(
   const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
 }
 
@@ -4921,6 +5121,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReleaseGLObjects(
   const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
 }
 
@@ -4929,6 +5131,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetGLContextInfoKHR(
   size_t param_value_size, void* param_value,
   size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/GL interop not implemented");
 }
 
@@ -4936,6 +5140,8 @@ CL_API_ENTRY cl_event CL_API_CALL
 clCreateEventFromGLsyncKHR(cl_context context, cl_GLsync cl_GLsync,
                            cl_int* errcode_ret) CL_EXT_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
@@ -4947,6 +5153,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDsFromD3D10KHR(
   void* d3d_object, cl_d3d10_device_set_khr d3d_device_set, cl_uint num_entries,
   cl_device_id* devices, cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
@@ -4954,6 +5162,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D10BufferKHR(
   cl_context context, cl_mem_flags flags, ID3D10Buffer* resource,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/DX interop not implemented");
   return NULL;
 }
@@ -4962,6 +5172,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D10Texture2DKHR(
   cl_context context, cl_mem_flags flags, ID3D10Texture2D* resource,
   UINT subresource, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
   return NULL;
 }
@@ -4970,6 +5182,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D10Texture3DKHR(
   cl_context context, cl_mem_flags flags, ID3D10Texture3D* resource,
   UINT subresource, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
   return NULL;
 }
@@ -4979,6 +5193,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueAcquireD3D10ObjectsKHR(
   const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
@@ -4987,6 +5203,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReleaseD3D10ObjectsKHR(
   const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
@@ -4995,6 +5213,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDsFromD3D11KHR(
   void* d3d_object, cl_d3d11_device_set_khr d3d_device_set, cl_uint num_entries,
   cl_device_id* devices, cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
@@ -5002,6 +5222,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D11BufferKHR(
   cl_context context, cl_mem_flags flags, ID3D11Buffer* resource,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/DX interop not implemented");
   return NULL;
 }
@@ -5010,6 +5232,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D11Texture2DKHR(
   cl_context context, cl_mem_flags flags, ID3D11Texture2D* resource,
   UINT subresource, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
   return NULL;
 }
@@ -5018,6 +5242,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D11Texture3DKHR(
   cl_context context, cl_mem_flags flags, ID3D11Texture3D* resource,
   UINT subresource, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
   return NULL;
 }
@@ -5027,6 +5253,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueAcquireD3D11ObjectsKHR(
   const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
@@ -5035,6 +5263,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReleaseD3D11ObjectsKHR(
   const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
@@ -5044,6 +5274,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDsFromDX9MediaAdapterKHR(
   cl_dx9_media_adapter_set_khr media_adapter_set, cl_uint num_entries,
   cl_device_id* devices, cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
@@ -5052,6 +5284,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateFromDX9MediaSurfaceKHR(
   cl_dx9_media_adapter_type_khr adapter_type, void* surface_info, cl_uint plane,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/DX interop not implemented");
   return NULL;
 }
@@ -5061,6 +5295,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueAcquireDX9MediaSurfacesKHR(
   const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
@@ -5069,6 +5305,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReleaseDX9MediaSurfacesKHR(
   const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
@@ -5083,6 +5321,8 @@ CL_API_ENTRY cl_command_queue CL_API_CALL clCreateCommandQueueWithProperties(
   const cl_queue_properties* properties,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -5146,6 +5386,8 @@ clCreatePipe(cl_context context, cl_mem_flags flags, cl_uint pipe_packet_size,
              cl_uint pipe_max_packets, const cl_pipe_properties* properties,
              cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
   return NULL;
 }
@@ -5154,6 +5396,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetPipeInfo(
   cl_mem pipe, cl_pipe_info param_name, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
 }
 
@@ -5161,6 +5405,8 @@ CL_API_ENTRY void* CL_API_CALL
 clSVMAlloc(cl_context context, cl_svm_mem_flags flags, size_t size,
            cl_uint alignment) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   notifyAPIError(context, CL_INVALID_OPERATION, __func__,
                  "Unimplemented OpenCL 2.0 API");
   return NULL;
@@ -5169,6 +5415,8 @@ clSVMAlloc(cl_context context, cl_svm_mem_flags flags, size_t size,
 CL_API_ENTRY void CL_API_CALL clSVMFree(cl_context context, void* svm_pointer)
   CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   notifyAPIError(context, CL_INVALID_OPERATION, __func__,
                  "Unimplemented OpenCL 2.0 API");
 }
@@ -5182,6 +5430,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMFree(
   void* user_data, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
@@ -5191,6 +5441,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMMemcpy(
   const void* src_ptr, size_t size, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
@@ -5200,6 +5452,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMMemFill(
   size_t pattern_size, size_t size, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
@@ -5209,6 +5463,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMMap(
   void* svm_ptr, size_t size, cl_uint num_events_in_wait_list,
   const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
@@ -5218,6 +5474,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMUnmap(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
@@ -5226,6 +5484,8 @@ CL_API_ENTRY cl_sampler CL_API_CALL clCreateSamplerWithProperties(
   cl_context context, const cl_sampler_properties* sampler_properties,
   cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -5324,6 +5584,8 @@ CL_API_ENTRY cl_int CL_API_CALL
 clSetKernelArgSVMPointer(cl_kernel kernel, cl_uint arg_index,
                          const void* arg_value) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(kernel->program->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
@@ -5332,6 +5594,8 @@ CL_API_ENTRY cl_int CL_API_CALL clSetKernelExecInfo(
   cl_kernel kernel, cl_kernel_exec_info param_name, size_t param_value_size,
   const void* param_value) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(kernel->program->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
@@ -5339,6 +5603,8 @@ CL_API_ENTRY cl_int CL_API_CALL clSetKernelExecInfo(
 CL_API_ENTRY cl_kernel CL_API_CALL clCloneKernel(
   cl_kernel source_kernel, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_1
 {
+  REGISTER_API;
+
   SetErrorInfo(source_kernel->program->context, CL_INVALID_OPERATION,
                "Unimplemented OpenCL 2.1 API");
   return nullptr;
@@ -5348,6 +5614,8 @@ CL_API_ENTRY cl_program CL_API_CALL
 clCreateProgramWithIL(cl_context context, const void* il, size_t length,
                       cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_1
 {
+  REGISTER_API;
+
   SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.1 API");
   return nullptr;
 }
@@ -5358,6 +5626,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMMigrateMem(
   cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
   cl_event* event) CL_API_SUFFIX__VERSION_2_1
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.1 API");
 }
@@ -5366,6 +5636,8 @@ CL_API_ENTRY cl_int CL_API_CALL
 clGetDeviceAndHostTimer(cl_device_id device, cl_ulong* device_timestamp,
                         cl_ulong* host_timestamp) CL_API_SUFFIX__VERSION_2_1
 {
+  REGISTER_API;
+
   ReturnErrorInfo(nullptr, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.1 API");
 }
@@ -5373,6 +5645,8 @@ clGetDeviceAndHostTimer(cl_device_id device, cl_ulong* device_timestamp,
 CL_API_ENTRY cl_int CL_API_CALL clGetHostTimer(
   cl_device_id device, cl_ulong* host_timestamp) CL_API_SUFFIX__VERSION_2_1
 {
+  REGISTER_API;
+
   ReturnErrorInfo(nullptr, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.1 API");
 }
@@ -5382,6 +5656,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetKernelSubGroupInfo(
   size_t input_value_size, const void* input_value, size_t param_value_size,
   void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_2_1
 {
+  REGISTER_API;
+
   ReturnErrorInfo(kernel->program->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.1 API");
 }
@@ -5390,6 +5666,8 @@ CL_API_ENTRY cl_int CL_API_CALL clSetDefaultDeviceCommandQueue(
   cl_context context, cl_device_id device,
   cl_command_queue command_queue) CL_API_SUFFIX__VERSION_2_1
 {
+  REGISTER_API;
+
   ReturnErrorInfo(context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.1 API");
 }
@@ -5400,6 +5678,8 @@ clSetProgramReleaseCallback(
   void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data),
   void* user_data) CL_EXT_SUFFIX__VERSION_2_2_DEPRECATED
 {
+  REGISTER_API;
+
   ReturnErrorInfo(program->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.2 API");
 }
@@ -5408,6 +5688,8 @@ CL_API_ENTRY cl_int CL_API_CALL clSetProgramSpecializationConstant(
   cl_program program, cl_uint spec_id, size_t spec_size,
   const void* spec_value) CL_API_SUFFIX__VERSION_2_2
 {
+  REGISTER_API;
+
   ReturnErrorInfo(program->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.2 API");
 }
@@ -5416,6 +5698,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateBufferWithProperties(
   cl_context context, const cl_mem_properties* properties, cl_mem_flags flags,
   size_t size, void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
 {
+  REGISTER_API;
+
   SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 3.0 API");
   return nullptr;
 }
@@ -5425,6 +5709,8 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateImageWithProperties(
   const cl_image_format* image_format, const cl_image_desc* image_desc,
   void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
 {
+  REGISTER_API;
+
   SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 3.0 API");
   return nullptr;
 }
@@ -5434,6 +5720,8 @@ CL_API_ENTRY cl_int CL_API_CALL clSetContextDestructorCallback(
   void(CL_CALLBACK* pfn_notify)(cl_context context, void* user_data),
   void* user_data) CL_API_SUFFIX__VERSION_3_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
