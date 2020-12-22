@@ -486,10 +486,10 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
   };
 
   static constexpr cl_name_version opencl_c_all_versions[] = {
-    {CL_MAKE_VERSION(1, 0, 0), "OpenCL C 1.0"},
-    {CL_MAKE_VERSION(1, 1, 0), "OpenCL C 1.1"},
-    {CL_MAKE_VERSION(1, 2, 0), "OpenCL C 1.2"},
-    {CL_MAKE_VERSION(3, 0, 0), "OpenCL C 3.0"},
+    {CL_MAKE_VERSION(1, 0, 0), "OpenCL C"},
+    {CL_MAKE_VERSION(1, 1, 0), "OpenCL C"},
+    {CL_MAKE_VERSION(1, 2, 0), "OpenCL C"},
+    {CL_MAKE_VERSION(3, 0, 0), "OpenCL C"},
   };
 
   static constexpr cl_name_version il_versions[] = {};
