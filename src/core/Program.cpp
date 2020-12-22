@@ -316,6 +316,13 @@ bool Program::build(const char* options, list<Header> headers)
       if (strcmp(opt, "-cl-no-signed-zeros") == 0)
         continue;
 
+      // Handle -cl-denorms-are-zero
+      if (strcmp(opt, "-cl-denorms-are-zero") == 0)
+      {
+        args.push_back("-fdenormal-fp-math=preserve-sign");
+        continue;
+      }
+
       // Check for -cl-std flag
       if (strncmp(opt, "-cl-std=", 8) == 0)
       {
