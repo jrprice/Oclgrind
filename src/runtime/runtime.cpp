@@ -41,7 +41,7 @@ using namespace std;
 #define DEVICE_VENDOR "University of Bristol"
 #define DEVICE_VENDOR_ID 0x0042
 #define DEVICE_VERSION "OpenCL 3.0 (Oclgrind " PACKAGE_VERSION ")"
-#define DEVICE_LANG_VERSION "OpenCL C 3.0 (Oclgrind " PACKAGE_VERSION ")"
+#define DEVICE_LANG_VERSION "OpenCL C 1.2 (Oclgrind " PACKAGE_VERSION ")"
 #define DRIVER_VERSION "Oclgrind " PACKAGE_VERSION
 #define DEVICE_PROFILE "FULL_PROFILE"
 #define DEVICE_CTS_VERSION ""
