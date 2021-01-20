@@ -26,7 +26,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable rpath on OS X
-#set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_MACOSX_RPATH 1)
 
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
@@ -87,7 +87,7 @@ list(FIND LLVM_AVAILABLE_LIBS Polly _POLLY_INDEX)
 if (${_POLLY_INDEX} GREATER -1)
   list(APPEND LLVM_LIBS Polly)
 endif()
-message("llvm libs are: ${LLVM_LIBS}")
+
 # Allow user to set path to Clang installation via CLANG_ROOT
 set (CLANG_ROOT " " CACHE PATH "Root of Clang installation")
 if (NOT ${CLANG_ROOT} STREQUAL " ")
