@@ -1,5 +1,5 @@
 // KernelInvocation.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
@@ -25,28 +25,27 @@ using namespace std;
 
 struct
 {
-  WorkGroup *workGroup;
-  WorkItem  *workItem;
+  int id;
+  WorkGroup* workGroup;
+  WorkItem* workItem;
 } static THREAD_LOCAL workerState;
 
 static atomic<unsigned> nextGroupIndex;
 
-KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
-                                   unsigned int workDim,
-                                   Size3 globalOffset,
-                                   Size3 globalSize,
-                                   Size3 localSize)
-  : m_context(context), m_kernel(kernel)
+KernelInvocation::KernelInvocation(const Context* context, const Kernel* kernel,
+                                   unsigned int workDim, Size3 globalOffset,
+                                   Size3 globalSize, Size3 localSize)
+    : m_context(context), m_kernel(kernel)
 {
-  m_workDim      = workDim;
+  m_workDim = workDim;
   m_globalOffset = globalOffset;
-  m_globalSize   = globalSize;
-  m_localSize    = localSize;
+  m_globalSize = globalSize;
+  m_localSize = localSize;
 
-  m_numGroups.x = m_globalSize.x/m_localSize.x;
-  m_numGroups.y = m_globalSize.y/m_localSize.y;
-  m_numGroups.z = m_globalSize.z/m_localSize.z;
-  if (!m_kernel->getProgram()->requiresUniformWorkGroups())
+  m_numGroups.x = m_globalSize.x / m_localSize.x;
+  m_numGroups.y = m_globalSize.y / m_localSize.y;
+  m_numGroups.z = m_globalSize.z / m_localSize.z;
+  if (!m_kernel->requiresUniformWorkGroups())
   {
     m_numGroups.x += m_globalSize.x % m_localSize.x ? 1 : 0;
     m_numGroups.y += m_globalSize.y % m_localSize.y ? 1 : 0;
@@ -54,8 +53,8 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   }
 
   // Check for user overriding number of threads
-  m_numWorkers = getEnvInt("OCLGRIND_NUM_THREADS",
-                           thread::hardware_concurrency(), false);
+  m_numWorkers =
+    getEnvInt("OCLGRIND_NUM_THREADS", thread::hardware_concurrency(), false);
   if (!m_numWorkers || !m_context->isThreadSafe())
     m_numWorkers = 1;
 
@@ -64,7 +63,7 @@ KernelInvocation::KernelInvocation(const Context *context, const Kernel *kernel,
   {
     // Only run first and last work-groups in quick-mode
     Size3 firstGroup(0, 0, 0);
-    Size3 lastGroup(m_numGroups.x-1, m_numGroups.y-1, m_numGroups.z-1);
+    Size3 lastGroup(m_numGroups.x - 1, m_numGroups.y - 1, m_numGroups.z - 1);
     m_workGroups.push_back(firstGroup);
     if (lastGroup != firstGroup)
       m_workGroups.push_back(lastGroup);
@@ -139,17 +138,13 @@ size_t KernelInvocation::getWorkDim() const
   return m_workDim;
 }
 
-void KernelInvocation::run(const Context *context, Kernel *kernel,
-                           unsigned int workDim,
-                           Size3 globalOffset,
-                           Size3 globalSize,
-                           Size3 localSize)
+void KernelInvocation::run(const Context* context, Kernel* kernel,
+                           unsigned int workDim, Size3 globalOffset,
+                           Size3 globalSize, Size3 localSize)
 {
   // Create kernel invocation
-  KernelInvocation *ki = new KernelInvocation(context, kernel, workDim,
-                                              globalOffset,
-                                              globalSize,
-                                              localSize);
+  KernelInvocation* ki = new KernelInvocation(
+    context, kernel, workDim, globalOffset, globalSize, localSize);
 
   // Run kernel
   context->notifyKernelBegin(ki);
@@ -168,7 +163,7 @@ void KernelInvocation::run()
   vector<thread> threads;
   for (unsigned i = 0; i < m_numWorkers; i++)
   {
-    threads.push_back(thread(&KernelInvocation::runWorker, this));
+    threads.push_back(thread(&KernelInvocation::runWorker, this, i));
   }
 
   // Wait for workers to complete
@@ -178,10 +173,16 @@ void KernelInvocation::run()
   }
 }
 
-void KernelInvocation::runWorker()
+int KernelInvocation::getWorkerID() const
+{
+  return workerState.id;
+}
+
+void KernelInvocation::runWorker(int id)
 {
   workerState.workGroup = NULL;
   workerState.workItem = NULL;
+  workerState.id = id;
   try
   {
     while (true)
@@ -201,13 +202,13 @@ void KernelInvocation::runWorker()
           // No more work to do
           break;
 
-        Size3 wgid   = m_workGroups[index];
+        Size3 wgid = m_workGroups[index];
         Size3 wgsize = m_localSize;
 
         // Handle remainder work-groups
         for (unsigned i = 0; i < 3; i++)
         {
-          if (wgsize[i]*(wgid[i]+1) > m_globalSize[i])
+          if (wgsize[i] * (wgid[i] + 1) > m_globalSize[i])
             wgsize[i] = m_globalSize[i] % wgsize[i];
         }
 
@@ -250,8 +251,8 @@ void KernelInvocation::runWorker()
   {
     ostringstream info;
     info << "OCLGRIND FATAL ERROR "
-         << "(" << err.getFile() << ":" << err.getLine() << ")"
-         << endl << err.what();
+         << "(" << err.getFile() << ":" << err.getLine() << ")" << endl
+         << err.what();
     m_context->logError(info.str().c_str());
 
     if (workerState.workGroup)
@@ -264,10 +265,11 @@ bool KernelInvocation::switchWorkItem(const Size3 gid)
   assert(m_numWorkers == 1);
 
   // Compute work-group ID
-  Size3 group(gid.x/m_localSize.x, gid.y/m_localSize.y, gid.z/m_localSize.z);
+  Size3 group(gid.x / m_localSize.x, gid.y / m_localSize.y,
+              gid.z / m_localSize.z);
 
   bool found = false;
-  WorkGroup *previousWorkGroup = workerState.workGroup;
+  WorkGroup* previousWorkGroup = workerState.workGroup;
 
   // Check if we're already running the work-group
   if (group == previousWorkGroup->getGroupID())
@@ -295,23 +297,23 @@ bool KernelInvocation::switchWorkItem(const Size3 gid)
   if (!found)
   {
     std::vector<Size3>::iterator pItr;
-    for (pItr = m_workGroups.begin()+nextGroupIndex;
+    for (pItr = m_workGroups.begin() + nextGroupIndex;
          pItr != m_workGroups.end(); pItr++)
     {
-     if (group == *pItr)
-     {
-       workerState.workGroup = new WorkGroup(this, group);
-       m_context->notifyWorkGroupBegin(workerState.workGroup);
-       found = true;
+      if (group == *pItr)
+      {
+        workerState.workGroup = new WorkGroup(this, group);
+        m_context->notifyWorkGroupBegin(workerState.workGroup);
+        found = true;
 
-       // Re-order list of groups accordingly
-       // Safe since this is not in a multi-threaded context
-       m_workGroups.erase(pItr);
-       m_workGroups.insert(m_workGroups.begin()+nextGroupIndex, group);
-       nextGroupIndex++;
+        // Re-order list of groups accordingly
+        // Safe since this is not in a multi-threaded context
+        m_workGroups.erase(pItr);
+        m_workGroups.insert(m_workGroups.begin() + nextGroupIndex, group);
+        nextGroupIndex++;
 
-       break;
-     }
+        break;
+      }
     }
   }
 
@@ -326,7 +328,8 @@ bool KernelInvocation::switchWorkItem(const Size3 gid)
   }
 
   // Get work-item
-  Size3 lid(gid.x%m_localSize.x, gid.y%m_localSize.y, gid.z%m_localSize.z);
+  Size3 lid(gid.x % m_localSize.x, gid.y % m_localSize.y,
+            gid.z % m_localSize.z);
   workerState.workItem = workerState.workGroup->getWorkItem(lid);
 
   return true;

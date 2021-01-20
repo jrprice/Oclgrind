@@ -25,23 +25,22 @@ THREAD_LOCAL RaceDetector::WorkerState RaceDetector::m_state = {NULL};
 
 // Use a bank of mutexes to reduce unnecessary synchronisation
 #define NUM_GLOBAL_MUTEXES 4096 // Must be power of two
-#define GLOBAL_MUTEX(buffer,offset) \
-  m_globalMutexes[buffer][offset & (NUM_GLOBAL_MUTEXES-1)]
+#define GLOBAL_MUTEX(buffer, offset)                                           \
+  m_globalMutexes[buffer][offset & (NUM_GLOBAL_MUTEXES - 1)]
 
-RaceDetector::RaceDetector(const Context *context)
- : Plugin(context)
+RaceDetector::RaceDetector(const Context* context) : Plugin(context)
 {
   m_kernelInvocation = NULL;
 
   m_allowUniformWrites = !checkEnv("OCLGRIND_UNIFORM_WRITES");
 }
 
-void RaceDetector::kernelBegin(const KernelInvocation *kernelInvocation)
+void RaceDetector::kernelBegin(const KernelInvocation* kernelInvocation)
 {
   m_kernelInvocation = kernelInvocation;
 }
 
-void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
+void RaceDetector::kernelEnd(const KernelInvocation* kernelInvocation)
 {
   // Log races
   for (auto race : kernelRaces)
@@ -49,7 +48,7 @@ void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
   kernelRaces.clear();
 
   // Clear all global memory accesses
-  for (auto &buffer : m_globalAccesses)
+  for (auto& buffer : m_globalAccesses)
   {
     size_t sz = buffer.second.size();
     buffer.second.clear();
@@ -59,9 +58,9 @@ void RaceDetector::kernelEnd(const KernelInvocation *kernelInvocation)
   m_kernelInvocation = NULL;
 }
 
-void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
+void RaceDetector::memoryAllocated(const Memory* memory, size_t address,
                                    size_t size, cl_mem_flags flags,
-                                   const uint8_t *initData)
+                                   const uint8_t* initData)
 {
   size_t buffer = memory->extractBuffer(address);
   if (memory->getAddressSpace() == AddrSpaceGlobal)
@@ -71,24 +70,23 @@ void RaceDetector::memoryAllocated(const Memory *memory, size_t address,
   }
 }
 
-void RaceDetector::memoryAtomicLoad(const Memory *memory,
-                                    const WorkItem *workItem,
-                                    AtomicOp op, size_t address, size_t size)
+void RaceDetector::memoryAtomicLoad(const Memory* memory,
+                                    const WorkItem* workItem, AtomicOp op,
+                                    size_t address, size_t size)
 {
-  registerAccess(memory, workItem->getWorkGroup(), workItem,
-                 address, size, true);
+  registerAccess(memory, workItem->getWorkGroup(), workItem, address, size,
+                 true);
 }
 
-void RaceDetector::memoryAtomicStore(const Memory *memory,
-                                     const WorkItem *workItem,
-                                     AtomicOp op, size_t address, size_t size)
+void RaceDetector::memoryAtomicStore(const Memory* memory,
+                                     const WorkItem* workItem, AtomicOp op,
+                                     size_t address, size_t size)
 {
-  registerAccess(memory, workItem->getWorkGroup(), workItem,
-                 address, size, true,
-                 (const uint8_t*)memory->getPointer(address));
+  registerAccess(memory, workItem->getWorkGroup(), workItem, address, size,
+                 true, (const uint8_t*)memory->getPointer(address));
 }
 
-void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
+void RaceDetector::memoryDeallocated(const Memory* memory, size_t address)
 {
   size_t buffer = memory->extractBuffer(address);
   if (memory->getAddressSpace() == AddrSpaceGlobal)
@@ -100,70 +98,69 @@ void RaceDetector::memoryDeallocated(const Memory *memory, size_t address)
   }
 }
 
-void RaceDetector::memoryLoad(const Memory *memory, const WorkItem *workItem,
+void RaceDetector::memoryLoad(const Memory* memory, const WorkItem* workItem,
                               size_t address, size_t size)
 {
-  registerAccess(memory, workItem->getWorkGroup(), workItem,
-                 address, size, false, NULL);
+  registerAccess(memory, workItem->getWorkGroup(), workItem, address, size,
+                 false, NULL);
 }
 
-void RaceDetector::memoryLoad(const Memory *memory, const WorkGroup *workGroup,
+void RaceDetector::memoryLoad(const Memory* memory, const WorkGroup* workGroup,
                               size_t address, size_t size)
 {
   registerAccess(memory, workGroup, NULL, address, size, false);
 }
 
-void RaceDetector::memoryStore(const Memory *memory, const WorkItem *workItem,
+void RaceDetector::memoryStore(const Memory* memory, const WorkItem* workItem,
                                size_t address, size_t size,
-                               const uint8_t *storeData)
+                               const uint8_t* storeData)
 {
-  registerAccess(memory, workItem->getWorkGroup(), workItem,
-                 address, size, false, storeData);
+  registerAccess(memory, workItem->getWorkGroup(), workItem, address, size,
+                 false, storeData);
 }
 
-void RaceDetector::memoryStore(const Memory *memory, const WorkGroup *workGroup,
+void RaceDetector::memoryStore(const Memory* memory, const WorkGroup* workGroup,
                                size_t address, size_t size,
-                               const uint8_t *storeData)
+                               const uint8_t* storeData)
 {
-  registerAccess(memory, workGroup, NULL,
-                 address, size, false, storeData);
+  registerAccess(memory, workGroup, NULL, address, size, false, storeData);
 }
 
-void RaceDetector::workGroupBarrier(const WorkGroup *workGroup, uint32_t flags)
+void RaceDetector::workGroupBarrier(const WorkGroup* workGroup, uint32_t flags)
 {
   if (flags & CLK_LOCAL_MEM_FENCE)
   {
-    syncWorkItems(workGroup->getLocalMemory(),
-                  STATE(workGroup), STATE(workGroup).wiLocal);
+    syncWorkItems(workGroup->getLocalMemory(), STATE(workGroup),
+                  STATE(workGroup).wiLocal);
   }
   if (flags & CLK_GLOBAL_MEM_FENCE)
   {
-    syncWorkItems(m_context->getGlobalMemory(),
-                  STATE(workGroup), STATE(workGroup).wiGlobal);
+    syncWorkItems(m_context->getGlobalMemory(), STATE(workGroup),
+                  STATE(workGroup).wiGlobal);
   }
 }
 
-void RaceDetector::workGroupBegin(const WorkGroup *workGroup)
+void RaceDetector::workGroupBegin(const WorkGroup* workGroup)
 {
   // Create worker state if haven't already
   if (!m_state.groups)
   {
-    m_state.groups = new unordered_map<const WorkGroup*,WorkGroupState>;
+    m_state.groups = new unordered_map<const WorkGroup*, WorkGroupState>;
   }
 
   // Initialize work-group state
   WorkGroupState& state = (*m_state.groups)[workGroup];
   Size3 wgsize = workGroup->getGroupSize();
-  state.numWorkItems = wgsize.x*wgsize.y*wgsize.z;
+  state.numWorkItems = wgsize.x * wgsize.y * wgsize.z;
 
   // Re-use pool allocator for all access maps
   AccessMap tmp(0, AccessMap::hasher(), AccessMap::key_equal(),
                 state.wgGlobal.get_allocator());
-  state.wiGlobal.resize(state.numWorkItems+1, tmp);
-  state.wiLocal.resize(state.numWorkItems+1, tmp);
+  state.wiGlobal.resize(state.numWorkItems + 1, tmp);
+  state.wiLocal.resize(state.numWorkItems + 1, tmp);
 }
 
-void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
+void RaceDetector::workGroupComplete(const WorkGroup* workGroup)
 {
   WorkGroupState& state = STATE(workGroup);
 
@@ -172,7 +169,7 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
 
   // Merge global accesses across kernel invocation
   size_t group = workGroup->getGroupIndex();
-  for (auto &record : state.wgGlobal)
+  for (auto& record : state.wgGlobal)
   {
     size_t address = record.first;
     size_t buffer = m_context->getGlobalMemory()->extractBuffer(address);
@@ -184,7 +181,7 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
     AccessRecord& b = m_globalAccesses.at(buffer)[offset];
 
     // Check for races with previous accesses
-    if (check(a.load,  b.store) && getAccessWorkGroup(b.store) != group)
+    if (check(a.load, b.store) && getAccessWorkGroup(b.store) != group)
       insertKernelRace({AddrSpaceGlobal, address, a.load, b.store});
     if (check(a.store, b.load) && getAccessWorkGroup(b.load) != group)
       insertKernelRace({AddrSpaceGlobal, address, a.store, b.load});
@@ -208,8 +205,7 @@ void RaceDetector::workGroupComplete(const WorkGroup *workGroup)
   }
 }
 
-bool RaceDetector::check(const MemoryAccess& a,
-                         const MemoryAccess& b) const
+bool RaceDetector::check(const MemoryAccess& a, const MemoryAccess& b) const
 {
   // Ensure both accesses are valid
   if (!a.isSet() || !b.isSet())
@@ -243,7 +239,7 @@ size_t RaceDetector::getAccessWorkGroup(const MemoryAccess& access) const
   if (access.isWorkItem())
   {
     const Size3& wgsize = m_kernelInvocation->getLocalSize();
-    return access.getEntity() / (wgsize.x*wgsize.y*wgsize.z);
+    return access.getEntity() / (wgsize.x * wgsize.y * wgsize.z);
   }
   else
     return access.getEntity();
@@ -296,18 +292,16 @@ void RaceDetector::insertRace(RaceList& races, const Race& race) const
 
 void RaceDetector::logRace(const Race& race) const
 {
-  const char *raceType;
+  const char* raceType;
   if (race.a.isLoad() || race.b.isLoad())
     raceType = "Read-write";
   else
     raceType = "Write-write";
 
   Context::Message msg(ERROR, m_context);
-  msg << raceType << " data race at "
-      << getAddressSpaceName(race.addrspace)
+  msg << raceType << " data race at " << getAddressSpaceName(race.addrspace)
       << " memory address 0x" << hex << race.address << endl
-      << msg.INDENT
-      << "Kernel: " << msg.CURRENT_KERNEL << endl
+      << msg.INDENT << "Kernel: " << msg.CURRENT_KERNEL << endl
       << endl
       << "First entity:  ";
 
@@ -315,8 +309,8 @@ void RaceDetector::logRace(const Race& race) const
   {
     Size3 wgsize = m_kernelInvocation->getLocalSize();
     Size3 global(race.a.getEntity(), m_kernelInvocation->getGlobalSize());
-    Size3 local(global.x%wgsize.x, global.y%wgsize.y, global.z%wgsize.z);
-    Size3 group(global.x/wgsize.x, global.y/wgsize.y, global.z/wgsize.z);
+    Size3 local(global.x % wgsize.x, global.y % wgsize.y, global.z % wgsize.z);
+    Size3 group(global.x / wgsize.x, global.y / wgsize.y, global.z / wgsize.z);
     msg << "Global" << global << " Local" << local << " Group" << group;
   }
   else
@@ -325,17 +319,15 @@ void RaceDetector::logRace(const Race& race) const
         << Size3(race.a.getEntity(), m_kernelInvocation->getLocalSize());
   }
 
-  msg << endl << race.a.getInstruction() << endl
-      << endl
-      << "Second entity: ";
+  msg << endl << race.a.getInstruction() << endl << endl << "Second entity: ";
 
   // Show details of other entity involved in race
   if (race.b.isWorkItem())
   {
     Size3 wgsize = m_kernelInvocation->getLocalSize();
     Size3 global(race.b.getEntity(), m_kernelInvocation->getGlobalSize());
-    Size3 local(global.x%wgsize.x, global.y%wgsize.y, global.z%wgsize.z);
-    Size3 group(global.x/wgsize.x, global.y/wgsize.y, global.z/wgsize.z);
+    Size3 local(global.x % wgsize.x, global.y % wgsize.y, global.z % wgsize.z);
+    Size3 group(global.x / wgsize.x, global.y / wgsize.y, global.z / wgsize.z);
     msg << "Global" << global << " Local" << local << " Group" << group;
   }
   else
@@ -347,15 +339,14 @@ void RaceDetector::logRace(const Race& race) const
   msg.send();
 }
 
-void RaceDetector::registerAccess(const Memory *memory,
-                                  const WorkGroup *workGroup,
-                                  const WorkItem *workItem,
-                                  size_t address, size_t size, bool atomic,
-                                  const uint8_t *storeData)
+void RaceDetector::registerAccess(const Memory* memory,
+                                  const WorkGroup* workGroup,
+                                  const WorkItem* workItem, size_t address,
+                                  size_t size, bool atomic,
+                                  const uint8_t* storeData)
 {
   unsigned addrSpace = memory->getAddressSpace();
-  if (addrSpace == AddrSpacePrivate ||
-      addrSpace == AddrSpaceConstant)
+  if (addrSpace == AddrSpacePrivate || addrSpace == AddrSpaceConstant)
     return;
   if (!memory->isAddressValid(address, size))
     return;
@@ -368,28 +359,27 @@ void RaceDetector::registerAccess(const Memory *memory,
   {
     Size3 wgsize = workGroup->getGroupSize();
     Size3 lid = workItem->getLocalID();
-    index = lid.x + (lid.y + lid.z*wgsize.y)*wgsize.x;
+    index = lid.x + (lid.y + lid.z * wgsize.y) * wgsize.x;
   }
   else
   {
     index = STATE(workGroup).wiLocal.size() - 1;
   }
 
-  AccessMap& accesses = (addrSpace == AddrSpaceGlobal) ?
-    STATE(workGroup).wiGlobal[index] :
-    STATE(workGroup).wiLocal[index];
+  AccessMap& accesses = (addrSpace == AddrSpaceGlobal)
+                          ? STATE(workGroup).wiGlobal[index]
+                          : STATE(workGroup).wiLocal[index];
 
   for (size_t i = 0; i < size; i++)
   {
     if (storeData)
       access.setStoreData(storeData[i]);
 
-    insert(accesses[address+i], access);
+    insert(accesses[address + i], access);
   }
 }
 
-void RaceDetector::syncWorkItems(const Memory *memory,
-                                 WorkGroupState& state,
+void RaceDetector::syncWorkItems(const Memory* memory, WorkGroupState& state,
                                  vector<AccessMap>& accesses)
 {
   AccessMap wgAccesses(0, AccessMap::hasher(), AccessMap::key_equal(),
@@ -398,19 +388,22 @@ void RaceDetector::syncWorkItems(const Memory *memory,
   for (size_t i = 0; i < state.numWorkItems + 1; i++)
   {
     RaceList races;
-    for (auto &record : accesses[i])
+    for (auto& record : accesses[i])
     {
       size_t address = record.first;
 
       AccessRecord& a = record.second;
       AccessRecord& b = wgAccesses[address];
 
-      if (check(a.load,  b.store))
-        insertRace(races, {memory->getAddressSpace(),address,a.load,b.store});
+      if (check(a.load, b.store))
+        insertRace(races,
+                   {memory->getAddressSpace(), address, a.load, b.store});
       if (check(a.store, b.load))
-        insertRace(races, {memory->getAddressSpace(),address,a.store,b.load});
+        insertRace(races,
+                   {memory->getAddressSpace(), address, a.store, b.load});
       if (check(a.store, b.store))
-        insertRace(races, {memory->getAddressSpace(),address,a.store,b.store});
+        insertRace(races,
+                   {memory->getAddressSpace(), address, a.store, b.store});
 
       if (a.load.isSet())
       {
@@ -440,9 +433,9 @@ RaceDetector::MemoryAccess::MemoryAccess()
   this->instruction = NULL;
 }
 
-RaceDetector::MemoryAccess::MemoryAccess(const WorkGroup *workGroup,
-                                         const WorkItem *workItem,
-                                         bool store, bool atomic)
+RaceDetector::MemoryAccess::MemoryAccess(const WorkGroup* workGroup,
+                                         const WorkItem* workItem, bool store,
+                                         bool atomic)
 {
   this->info = 0;
 
@@ -457,7 +450,7 @@ RaceDetector::MemoryAccess::MemoryAccess(const WorkGroup *workGroup,
   }
   else
   {
-    this->info |= (1<<WG_BIT);
+    this->info |= (1 << WG_BIT);
     this->entity = workGroup->getGroupIndex();
     this->instruction = NULL; // TODO?
   }
@@ -471,12 +464,12 @@ void RaceDetector::MemoryAccess::clear()
 
 bool RaceDetector::MemoryAccess::isSet() const
 {
-  return this->info & (1<<SET_BIT);
+  return this->info & (1 << SET_BIT);
 }
 
 bool RaceDetector::MemoryAccess::isAtomic() const
 {
-  return this->info & (1<<ATOMIC_BIT);
+  return this->info & (1 << ATOMIC_BIT);
 }
 
 bool RaceDetector::MemoryAccess::isLoad() const
@@ -486,12 +479,12 @@ bool RaceDetector::MemoryAccess::isLoad() const
 
 bool RaceDetector::MemoryAccess::isStore() const
 {
-  return this->info & (1<<STORE_BIT);
+  return this->info & (1 << STORE_BIT);
 }
 
 bool RaceDetector::MemoryAccess::isWorkGroup() const
 {
-  return this->info & (1<<WG_BIT);
+  return this->info & (1 << WG_BIT);
 }
 
 bool RaceDetector::MemoryAccess::isWorkItem() const
@@ -523,6 +516,5 @@ bool RaceDetector::MemoryAccess::operator==(
   const RaceDetector::MemoryAccess& other) const
 {
   return this->entity == other.entity &&
-         this->instruction == other.instruction &&
-         this->info == other.info;
+         this->instruction == other.instruction && this->info == other.info;
 }

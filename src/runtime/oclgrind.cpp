@@ -1,5 +1,5 @@
 // oclgrind.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
@@ -29,11 +29,11 @@ using namespace std;
 
 static string appCmd;
 static void checkWow64(HANDLE parent, HANDLE child);
-static void die(const char *op);
+static void die(const char* op);
 
 #else // not Windows
 
-static char **appArgs = NULL;
+static char** appArgs = NULL;
 #ifdef __APPLE__
 #define LIB_EXTENSION "dylib"
 #define LD_LIBRARY_PATH_ENV "DYLD_LIBRARY_PATH"
@@ -47,11 +47,11 @@ static char **appArgs = NULL;
 #endif
 
 static string getLibDirPath();
-static bool parseArguments(int argc, char *argv[]);
+static bool parseArguments(int argc, char* argv[]);
 static void printUsage();
-static void setEnvironment(const char *name, const char *value);
+static void setEnvironment(const char* name, const char* value);
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   // Parse arguments
   if (!parseArguments(argc, argv))
@@ -65,9 +65,8 @@ int main(int argc, char *argv[])
   string dllpath = getLibDirPath();
   dllpath += "\\oclgrind-rt.dll";
 
-
-  PROCESS_INFORMATION pinfo = { 0 };
-  STARTUPINFOA sinfo = { 0 };
+  PROCESS_INFORMATION pinfo = {0};
+  STARTUPINFOA sinfo = {0};
   sinfo.cb = sizeof(sinfo);
 
   // Create child process in suspended state
@@ -79,14 +78,14 @@ int main(int argc, char *argv[])
   checkWow64(GetCurrentProcess(), pinfo.hProcess);
 
   // Allocate memory for DLL path
-  void *childPath = VirtualAllocEx(pinfo.hProcess, NULL, dllpath.size()+1,
+  void* childPath = VirtualAllocEx(pinfo.hProcess, NULL, dllpath.size() + 1,
                                    MEM_COMMIT, PAGE_READWRITE);
   if (!childPath)
     die("allocating child memory");
 
   // Write DLL path to child
-  if (!WriteProcessMemory(pinfo.hProcess, childPath,
-                          (void*)dllpath.c_str(), dllpath.size()+1, NULL))
+  if (!WriteProcessMemory(pinfo.hProcess, childPath, (void*)dllpath.c_str(),
+                          dllpath.size() + 1, NULL))
     die("writing child memory");
 
   // Create thread to load DLL in child process
@@ -103,8 +102,7 @@ int main(int argc, char *argv[])
     die("waiting for load thread");
 
   CloseHandle(childThread);
-  VirtualFreeEx(pinfo.hProcess, childPath, dllpath.size()+1, MEM_RELEASE);
-
+  VirtualFreeEx(pinfo.hProcess, childPath, dllpath.size() + 1, MEM_RELEASE);
 
   // Load DLL in this process as well to get function pointers
   HMODULE dll = LoadLibraryA(dllpath.c_str());
@@ -117,16 +115,15 @@ int main(int argc, char *argv[])
     die("getting init function address");
 
   // Launch init function in child process
-  childThread = CreateRemoteThread(pinfo.hProcess, NULL, 0,
-                                   (LPTHREAD_START_ROUTINE)initFunction,
-                                   NULL, 0, NULL);
+  childThread =
+    CreateRemoteThread(pinfo.hProcess, NULL, 0,
+                       (LPTHREAD_START_ROUTINE)initFunction, NULL, 0, NULL);
   if (!childThread)
     die("launching init in child thread");
 
   // Wait for init to finish
   if (WaitForSingleObject(childThread, INFINITE) != WAIT_OBJECT_0)
     die("waiting for init thread");
-
 
   // Check return value
   DWORD retval = 0;
@@ -161,7 +158,7 @@ int main(int argc, char *argv[])
 
   // Construct new LD_LIBRARY_PATH
   string ldLibraryPath = libdir;
-  const char *oldLdLibraryPath = getenv(LD_LIBRARY_PATH_ENV);
+  const char* oldLdLibraryPath = getenv(LD_LIBRARY_PATH_ENV);
   if (oldLdLibraryPath)
   {
     ldLibraryPath += ":";
@@ -172,7 +169,7 @@ int main(int argc, char *argv[])
   string ldPreload = libdir;
   ldPreload += "/liboclgrind-rt.";
   ldPreload += LIB_EXTENSION;
-  const char *oldLdPreload = getenv(LD_PRELOAD_ENV);
+  const char* oldLdPreload = getenv(LD_PRELOAD_ENV);
   if (oldLdPreload)
   {
     ldPreload += ":";
@@ -195,7 +192,7 @@ int main(int argc, char *argv[])
 #endif
 }
 
-static bool parseArguments(int argc, char *argv[])
+static bool parseArguments(int argc, char* argv[])
 {
   for (int i = 1; i < argc; i++)
   {
@@ -212,6 +209,24 @@ static bool parseArguments(int argc, char *argv[])
     {
       setEnvironment("OCLGRIND_CHECK_API", "1");
     }
+    else if (!strcmp(argv[i], "--compute-units"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --compute-units" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_COMPUTE_UNITS", argv[i]);
+    }
+    else if (!strcmp(argv[i], "--constant-mem-size"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --constant-mem-size" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_CONSTANT_MEM_SIZE", argv[i]);
+    }
     else if (!strcmp(argv[i], "--data-races"))
     {
       setEnvironment("OCLGRIND_DATA_RACES", "1");
@@ -223,6 +238,15 @@ static bool parseArguments(int argc, char *argv[])
     else if (!strcmp(argv[i], "--dump-spir"))
     {
       setEnvironment("OCLGRIND_DUMP_SPIR", "1");
+    }
+    else if (!strcmp(argv[i], "--global-mem-size"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --global-mem-size" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_GLOBAL_MEM_SIZE", argv[i]);
     }
     else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help"))
     {
@@ -244,6 +268,15 @@ static bool parseArguments(int argc, char *argv[])
     else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--interactive"))
     {
       setEnvironment("OCLGRIND_INTERACTIVE", "1");
+    }
+    else if (!strcmp(argv[i], "--local-mem-size"))
+    {
+      if (++i >= argc)
+      {
+        cerr << "Missing argument to --local-mem-size" << endl;
+        return false;
+      }
+      setEnvironment("OCLGRIND_LOCAL_MEM_SIZE", argv[i]);
     }
     else if (!strcmp(argv[i], "--log"))
     {
@@ -316,7 +349,7 @@ static bool parseArguments(int argc, char *argv[])
       cout << endl;
       cout << "Oclgrind " PACKAGE_VERSION << endl;
       cout << endl;
-      cout << "Copyright (c) 2013-2016" << endl;
+      cout << "Copyright (c) 2013-2019" << endl;
       cout << "James Price and Simon McIntosh-Smith, University of Bristol"
            << endl;
       cout << "https://github.com/jrprice/Oclgrind" << endl;
@@ -338,13 +371,13 @@ static bool parseArguments(int argc, char *argv[])
         appCmd += " ";
       }
 #else // not Windows
-      appArgs = (char**)malloc((argc-i+1) * sizeof(char*));
+      appArgs = (char**)malloc((argc - i + 1) * sizeof(char*));
       int offset = i;
       for (; i < argc; i++)
       {
-        appArgs[i-offset] = argv[i];
+        appArgs[i - offset] = argv[i];
       }
-      appArgs[argc-offset] = NULL;
+      appArgs[argc - offset] = NULL;
 #endif
       break;
     }
@@ -412,7 +445,7 @@ static string getLibDirPath()
   // Remove executable filename
   stripLastComponent(libdir);
 
-  const char *testing = getenv("OCLGRIND_TESTING");
+  const char* testing = getenv("OCLGRIND_TESTING");
   if (!testing)
   {
     // Remove containing directory and append library directory
@@ -481,7 +514,7 @@ static void printUsage()
     << endl;
 }
 
-static void setEnvironment(const char *name, const char *value)
+static void setEnvironment(const char* name, const char* value)
 {
 #if defined(_WIN32) && !defined(__MINGW32__)
   _putenv_s(name, value);
@@ -499,22 +532,20 @@ void checkWow64(HANDLE parent, HANDLE child)
   IsWow64Process(child, &childWow64);
   if (parentWow64 != childWow64)
   {
-    const char *bits = childWow64 ? "32" : "64";
+    const char* bits = childWow64 ? "32" : "64";
     cerr << "[Oclgrind] target application is " << bits << "-bit" << endl
-         << "Use the " << bits << "-bit version of oclgrind.exe"  << endl;
+         << "Use the " << bits << "-bit version of oclgrind.exe" << endl;
     exit(1);
   }
 }
 
-void die(const char *op)
+void die(const char* op)
 {
   DWORD err = GetLastError();
   char buffer[1024];
   FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err,
-    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-    buffer, 1024, NULL);
-  cerr << "[Oclgrind] Error while '" << op << "':" << endl
-       << buffer << endl;
+                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), buffer, 1024, NULL);
+  cerr << "[Oclgrind] Error while '" << op << "':" << endl << buffer << endl;
   exit(1);
 }
 

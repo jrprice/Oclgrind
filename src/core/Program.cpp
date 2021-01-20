@@ -1,13 +1,13 @@
 // Program.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
 // license terms please see the LICENSE file distributed with this
 // source code.
 
-#include "config.h"
 #include "common.h"
+#include "config.h"
 
 #include <fstream>
 
@@ -17,26 +17,22 @@
 #include <dlfcn.h>
 #endif
 
-#if LLVM_VERSION < 40
-#include "llvm/Bitcode/ReaderWriter.h"
-#else
-#include "llvm/Bitcode/BitcodeReader.h"
-#include "llvm/Bitcode/BitcodeWriter.h"
-#endif
-#include "llvm/IR/AssemblyAnnotationWriter.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/InstIterator.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/Linker/Linker.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
-#include "llvm/Transforms/Utils/Cloning.h"
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
 #include "clang/Lex/PreprocessorOptions.h"
+#include "llvm/Bitcode/BitcodeReader.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IR/AssemblyAnnotationWriter.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/InstIterator.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Linker/Linker.h"
+#include "llvm/Transforms/IPO/PassManagerBuilder.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 
 #include "Context.h"
 #include "Kernel.h"
@@ -56,11 +52,10 @@
 #endif
 
 #define REMAP_INPUT "input.cl"
-#define OPENCL_C_H_PATH REMAP_DIR"opencl-c.h"
+#define OPENCL_C_H_PATH REMAP_DIR "opencl-c.h"
 extern const char OPENCL_C_H_DATA[];
 
-const char *EXTENSIONS[] =
-{
+const char* EXTENSIONS[] = {
   "cl_khr_fp64",
   "cl_khr_3d_image_writes",
   "cl_khr_global_int32_base_atomics",
@@ -75,8 +70,8 @@ const char *EXTENSIONS[] =
 using namespace oclgrind;
 using namespace std;
 
-Program::Program(const Context *context, llvm::Module *module)
-  : m_module(module), m_context(context)
+Program::Program(const Context* context, llvm::Module* module)
+    : m_module(module), m_context(context)
 {
   m_buildLog = "";
   m_buildOptions = "";
@@ -87,8 +82,8 @@ Program::Program(const Context *context, llvm::Module *module)
   allocateProgramScopeVars();
 }
 
-Program::Program(const Context *context, const string& source)
-  : m_context(context)
+Program::Program(const Context* context, const string& source)
+    : m_context(context)
 {
   m_source = source;
   m_buildLog = "";
@@ -103,7 +98,7 @@ Program::Program(const Context *context, const string& source)
   {
     std::stringstream ss(source);
     std::string line;
-    while(std::getline(ss, line, '\n'))
+    while (std::getline(ss, line, '\n'))
     {
       m_sourceLines.push_back(line);
     }
@@ -120,7 +115,7 @@ void Program::allocateProgramScopeVars()
 {
   deallocateProgramScopeVars();
 
-  Memory *globalMemory = m_context->getGlobalMemory();
+  Memory* globalMemory = m_context->getGlobalMemory();
 
   // Create the pointer values for each global variable
   llvm::Module::const_global_iterator itr;
@@ -131,16 +126,13 @@ void Program::allocateProgramScopeVars()
       continue;
 
     // Allocate global variable
-    const llvm::Type *type = itr->getType()->getPointerElementType();
+    const llvm::Type* type = itr->getType()->getPointerElementType();
     size_t size = getTypeSize(type);
     size_t ptr = globalMemory->allocateBuffer(size);
     m_totalProgramScopeVarSize += size;
 
     // Create pointer value
-    TypedValue ptrValue =
-    {
-      sizeof(size_t), 1, new uint8_t[sizeof(size_t)]
-    };
+    TypedValue ptrValue = {sizeof(size_t), 1, new uint8_t[sizeof(size_t)]};
     ptrValue.setPointer(ptr);
     m_programScopeVars[&*itr] = ptrValue;
   }
@@ -148,12 +140,11 @@ void Program::allocateProgramScopeVars()
   try
   {
     // Initialize global variables
-    for (auto itr  = m_programScopeVars.begin();
-              itr != m_programScopeVars.end();
-              itr++)
+    for (auto itr = m_programScopeVars.begin(); itr != m_programScopeVars.end();
+         itr++)
     {
       auto var = llvm::cast<llvm::GlobalVariable>(itr->first);
-      const llvm::Constant *initializer = var->getInitializer();
+      const llvm::Constant* initializer = var->getInitializer();
       if (!initializer)
         continue;
 
@@ -166,7 +157,7 @@ void Program::allocateProgramScopeVars()
       else
       {
         size_t size = getTypeSize(initializer->getType());
-        uint8_t *data = new uint8_t[size];
+        uint8_t* data = new uint8_t[size];
         getConstantData((uint8_t*)data, (const llvm::Constant*)initializer);
         globalMemory->store(data, varptr, size);
         delete[] data;
@@ -175,11 +166,11 @@ void Program::allocateProgramScopeVars()
   }
   catch (FatalError& err)
   {
-    cerr << endl << "OCLGRIND FATAL ERROR "
-         << "(" << err.getFile() << ":" << err.getLine() << ")"
-         << endl << err.what()
-         << endl << "When initializing program scope global variables"
-         << endl;
+    cerr << endl
+         << "OCLGRIND FATAL ERROR "
+         << "(" << err.getFile() << ":" << err.getLine() << ")" << endl
+         << err.what() << endl
+         << "When initializing program scope global variables" << endl;
   }
 }
 
@@ -187,9 +178,9 @@ void Program::allocateProgramScopeVars()
 // After this returns, input will point to the start of the next string (no
 // leading spaces), and next will point to where the next string will start.
 // Modifies the content of input in place.
-void split_token(char *input, char **next)
+void split_token(char* input, char** next)
 {
-  char *output = input;
+  char* output = input;
 
   // Strip leading spaces
   while (*input == ' ')
@@ -211,7 +202,7 @@ void split_token(char *input, char **next)
     else
     {
       // Check for escaped space
-      if (*input == '\\' && *(input+1) == ' ')
+      if (*input == '\\' && *(input + 1) == ' ')
         input++;
 
       // Copy character to output string
@@ -231,7 +222,7 @@ void split_token(char *input, char **next)
   *output = '\0';
 }
 
-bool Program::build(const char *options, list<Header> headers)
+bool Program::build(const char* options, list<Header> headers)
 {
   m_buildStatus = CL_BUILD_IN_PROGRESS;
   m_buildOptions = options ? options : "";
@@ -267,58 +258,39 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back("-fno-builtin");
   args.push_back("-fgnu89-inline");
   args.push_back("-debug-info-kind=standalone");
-  args.push_back("-dwarf-column-info");
   args.push_back("-triple");
   if (sizeof(size_t) == 4)
     args.push_back("spir-unknown-unknown");
   else
     args.push_back("spir64-unknown-unknown");
 
-#if ! IS_BIG_ENDIAN
+#if !IS_BIG_ENDIAN
   args.push_back("-D__ENDIAN_LITTLE__=1");
 #endif
 
-#if LLVM_VERSION < 40
-  // Define extensions
-  for (unsigned i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
-  {
-    args.push_back("-D");
-    args.push_back(EXTENSIONS[i]);
-  }
-#else
   // Disable all extensions
   std::string cl_ext("-cl-ext=-all");
   // Explicitly enable supported extensions
-  for (unsigned i = 0; i < sizeof(EXTENSIONS)/sizeof(const char*); i++)
+  for (unsigned i = 0; i < sizeof(EXTENSIONS) / sizeof(const char*); i++)
   {
     cl_ext += ",+" + std::string(EXTENSIONS[i]);
   }
   args.push_back(cl_ext.c_str());
-#endif
 
-  // Disable Clang's optimizations.
-  // We will manually run optimization passes and legalize the IR later.
-  args.push_back("-O0");
-
-  bool optimize = true;
-  const char *clstd = NULL;
-  m_requiresUniformWorkGroups = false;
-
-  // Disable optimizations by default if in interactive mode
-  if (checkEnv("OCLGRIND_INTERACTIVE"))
-    optimize = false;
+  bool defaultOptimization = true;
+  const char* clstd = NULL;
 
   // Add OpenCL build options
-  const char *mainOptions = options;
-  const char *extraOptions = getenv("OCLGRIND_BUILD_OPTIONS");
+  const char* mainOptions = options;
+  const char* extraOptions = getenv("OCLGRIND_BUILD_OPTIONS");
   if (!mainOptions)
     mainOptions = "";
   if (!extraOptions)
     extraOptions = "";
-  char *tmpOptions = new char[strlen(mainOptions) + strlen(extraOptions) + 2];
+  char* tmpOptions = new char[strlen(mainOptions) + strlen(extraOptions) + 2];
   sprintf(tmpOptions, "%s %s", mainOptions, extraOptions);
-  char *opt = tmpOptions;
-  char *next = NULL;
+  char* opt = tmpOptions;
+  char* next = NULL;
   while (strlen(opt) > 0)
   {
     // Split token up to next unquoted space
@@ -335,25 +307,19 @@ bool Program::build(const char *options, list<Header> headers)
         strcmp(opt, "-cl-unsafe-math-optimizations") != 0)
     {
       // Check for optimization flags
-      if (strcmp(opt, "-O0") == 0 || strcmp(opt, "-cl-opt-disable") == 0)
+      if (strncmp(opt, "-O", 2) == 0 || strcmp(opt, "-cl-opt-disable") == 0)
       {
-        optimize = false;
-        continue;
-      }
-      else if (strncmp(opt, "-O", 2) == 0)
-      {
-        optimize = true;
-        continue;
+        defaultOptimization = false;
       }
 
       // Clang no longer supports -cl-no-signed-zeros
       if (strcmp(opt, "-cl-no-signed-zeros") == 0)
         continue;
 
-      // Check for -cl-uniform-work-group-size flag
-      if (strcmp(opt, "-cl-uniform-work-group-size") == 0)
+      // Handle -cl-denorms-are-zero
+      if (strcmp(opt, "-cl-denorms-are-zero") == 0)
       {
-        m_requiresUniformWorkGroups = true;
+        args.push_back("-fdenormal-fp-math=preserve-sign");
         continue;
       }
 
@@ -368,23 +334,29 @@ bool Program::build(const char *options, list<Header> headers)
     }
   }
 
+  if (defaultOptimization)
+  {
+    // Disable optimizations by default if in interactive mode
+    if (checkEnv("OCLGRIND_INTERACTIVE"))
+      args.push_back("-O0");
+    // Otherwise, default to optimizing for size
+    else
+      args.push_back("-Oz");
+  }
+
   if (!clstd)
   {
     clstd = "-cl-std=CL1.2";
   }
   args.push_back(clstd);
 
-  // If compiling for OpenCL 1.X, require uniform work-groups
-  if (strncmp(clstd, "-cl-std=CL1.", 12) == 0)
-    m_requiresUniformWorkGroups = true;
-
   // Pre-compiled header
-  char *pchdir = NULL;
-  char *pch    = NULL;
+  char* pchdir = NULL;
+  char* pch = NULL;
   if (!checkEnv("OCLGRIND_DISABLE_PCH") &&
       (!strcmp(clstd, "-cl-std=CL1.2") || !strcmp(clstd, "-cl-std=CL2.0")))
   {
-    const char *pchdirOverride = getenv("OCLGRIND_PCH_DIR");
+    const char* pchdirOverride = getenv("OCLGRIND_PCH_DIR");
     if (pchdirOverride)
     {
       pchdir = strdup(pchdirOverride);
@@ -395,28 +367,27 @@ bool Program::build(const char *options, list<Header> headers)
 #if defined(_WIN32) && !defined(__MINGW32__)
       char libpath[4096];
       HMODULE dll;
-      if (GetModuleHandleExA(
-            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            (LPCSTR)&Program::createFromBitcode, &dll) &&
+      if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                               GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                             (LPCSTR)&Program::createFromBitcode, &dll) &&
           GetModuleFileNameA(dll, libpath, sizeof(libpath)))
       {
 #else
       Dl_info dlinfo;
       if (dladdr((const void*)Program::createFromBitcode, &dlinfo))
       {
-        const char *libpath = dlinfo.dli_fname;
+        const char* libpath = dlinfo.dli_fname;
 #endif
 
         // Construct path to PCH directory
-        const char *dirend;
+        const char* dirend;
 #if defined(_WIN32) && !defined(__MINGW32__)
         if ((dirend = strrchr(libpath, '\\')))
 #else
         if ((dirend = strrchr(libpath, '/')))
 #endif
         {
-          const char *includes_relative = "/../include/oclgrind/";
+          const char* includes_relative = "/../include/oclgrind/";
           size_t length = dirend - libpath;
           pchdir = new char[length + strlen(includes_relative) + 1];
           strncpy(pchdir, libpath, length);
@@ -429,8 +400,8 @@ bool Program::build(const char *options, list<Header> headers)
     {
       // Select precompiled header
       pch = new char[strlen(pchdir) + 24];
-      sprintf(pch, "%s/opencl-c-%s-%d.pch",
-              pchdir, clstd+10, (sizeof(size_t) == 4 ? 32 : 64));
+      sprintf(pch, "%s/opencl-c-%s-%d.pch", pchdir, clstd + 10,
+              (sizeof(size_t) == 4 ? 32 : 64));
 
       // Check if precompiled header exists
       ifstream pchfile(pch);
@@ -469,10 +440,10 @@ bool Program::build(const char *options, list<Header> headers)
   args.push_back(REMAP_INPUT);
 
   // Create diagnostics engine
-  clang::DiagnosticOptions *diagOpts = new clang::DiagnosticOptions();
+  clang::DiagnosticOptions* diagOpts = new clang::DiagnosticOptions();
   llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(
     new clang::DiagnosticIDs());
-  clang::TextDiagnosticPrinter *diagConsumer =
+  clang::TextDiagnosticPrinter* diagConsumer =
     new clang::TextDiagnosticPrinter(buildLog, diagOpts);
   clang::DiagnosticsEngine diags(diagID, diagOpts, diagConsumer);
 
@@ -481,14 +452,9 @@ bool Program::build(const char *options, list<Header> headers)
   compiler.createDiagnostics(diagConsumer, false);
 
   // Create compiler invocation
-#if LLVM_VERSION < 40
-  clang::CompilerInvocation *invocation = new clang::CompilerInvocation;
-#else
   std::shared_ptr<clang::CompilerInvocation> invocation(
-      new clang::CompilerInvocation);
-#endif
-  clang::CompilerInvocation::CreateFromArgs(*invocation,
-                                            &args[0], &args[0] + args.size(),
+    new clang::CompilerInvocation);
+  clang::CompilerInvocation::CreateFromArgs(*invocation, args,
                                             compiler.getDiagnostics());
   compiler.setInvocation(invocation);
 
@@ -506,8 +472,8 @@ bool Program::build(const char *options, list<Header> headers)
 
   // Remap opencl-c.h
   buffer = llvm::MemoryBuffer::getMemBuffer(OPENCL_C_H_DATA, "", false);
-  compiler.getPreprocessorOpts().addRemappedFile(
-    OPENCL_C_H_PATH, buffer.release());
+  compiler.getPreprocessorOpts().addRemappedFile(OPENCL_C_H_PATH,
+                                                 buffer.release());
 
   // Remap input file
   buffer = llvm::MemoryBuffer::getMemBuffer(m_source, "", false);
@@ -526,29 +492,6 @@ bool Program::build(const char *options, list<Header> headers)
       stripDebugIntrinsics();
     }
 
-    // Run optimizations on module
-    if (optimize)
-    {
-      // Initialize pass managers
-      llvm::legacy::PassManager modulePasses;
-      llvm::legacy::FunctionPassManager functionPasses(m_module.get());
-
-      // Populate pass managers with -Oz
-      llvm::PassManagerBuilder builder;
-      builder.OptLevel = 2;
-      builder.SizeLevel = 2;
-      builder.populateModulePassManager(modulePasses);
-      builder.populateFunctionPassManager(functionPasses);
-
-      // Run passes
-      functionPasses.doInitialization();
-      llvm::Module::iterator fItr;
-      for (fItr = m_module->begin(); fItr != m_module->end(); fItr++)
-        functionPasses.run(*fItr);
-      functionPasses.doFinalization();
-      modulePasses.run(*m_module);
-    }
-
     removeLValueLoads();
 
     allocateProgramScopeVars();
@@ -565,16 +508,16 @@ bool Program::build(const char *options, list<Header> headers)
   {
     // Temporary directory
 #if defined(_WIN32)
-    const char *tmpdir = getenv("TEMP");
+    const char* tmpdir = getenv("TEMP");
 #else
-    const char *tmpdir = "/tmp";
+    const char* tmpdir = "/tmp";
 #endif
 
     // Construct unique output filenames
     size_t sz = snprintf(NULL, 0, "%s/oclgrind_%lX.XX", tmpdir, m_uid) + 1;
-    char *tempCL = new char[sz];
-    char *tempIR = new char[sz];
-    char *tempBC = new char[sz];
+    char* tempCL = new char[sz];
+    char* tempIR = new char[sz];
+    char* tempBC = new char[sz];
     sprintf(tempCL, "%s/oclgrind_%lX.cl", tmpdir, m_uid);
     sprintf(tempIR, "%s/oclgrind_%lX.ll", tmpdir, m_uid);
     sprintf(tempBC, "%s/oclgrind_%lX.bc", tmpdir, m_uid);
@@ -596,7 +539,7 @@ bool Program::build(const char *options, list<Header> headers)
 
       // Dump bitcode
       llvm::raw_fd_ostream bc(tempBC, err, llvm::sys::fs::F_None);
-      llvm::WriteBitcodeToFile(m_module.get(), bc);
+      llvm::WriteBitcodeToFile(*m_module, bc);
       bc.close();
     }
 
@@ -622,9 +565,8 @@ void Program::clearInterpreterCache()
   m_interpreterCache.clear();
 }
 
-Program* Program::createFromBitcode(const Context *context,
-                                    const unsigned char *bitcode,
-                                    size_t length)
+Program* Program::createFromBitcode(const Context* context,
+                                    const unsigned char* bitcode, size_t length)
 {
   // Load bitcode from file
   llvm::StringRef data((const char*)bitcode, length);
@@ -636,11 +578,7 @@ Program* Program::createFromBitcode(const Context *context,
   }
 
   // Parse bitcode into IR module
-#if LLVM_VERSION < 40
-  llvm::ErrorOr<unique_ptr<llvm::Module>> module =
-#else
   llvm::Expected<unique_ptr<llvm::Module>> module =
-#endif
     parseBitcodeFile(buffer->getMemBufferRef(), *context->getLLVMContext());
   if (!module)
   {
@@ -650,7 +588,7 @@ Program* Program::createFromBitcode(const Context *context,
   return new Program(context, module.get().release());
 }
 
-Program* Program::createFromBitcodeFile(const Context *context,
+Program* Program::createFromBitcodeFile(const Context* context,
                                         const string filename)
 {
   // Load bitcode from file
@@ -662,13 +600,8 @@ Program* Program::createFromBitcodeFile(const Context *context,
   }
 
   // Parse bitcode into IR module
-#if LLVM_VERSION < 40
-  llvm::ErrorOr<unique_ptr<llvm::Module>> module =
-#else
-  llvm::Expected<unique_ptr<llvm::Module>> module =
-#endif
-    parseBitcodeFile(buffer->get()->getMemBufferRef(),
-                     *context->getLLVMContext());
+  llvm::Expected<unique_ptr<llvm::Module>> module = parseBitcodeFile(
+    buffer->get()->getMemBufferRef(), *context->getLLVMContext());
   if (!module)
   {
     return NULL;
@@ -677,18 +610,18 @@ Program* Program::createFromBitcodeFile(const Context *context,
   return new Program(context, module.get().release());
 }
 
-Program* Program::createFromPrograms(const Context *context,
+Program* Program::createFromPrograms(const Context* context,
                                      list<const Program*> programs)
 {
-  llvm::Module *module = new llvm::Module("oclgrind_linked",
-                                          *context->getLLVMContext());
+  llvm::Module* module =
+    new llvm::Module("oclgrind_linked", *context->getLLVMContext());
   llvm::Linker linker(*module);
 
   // Link modules
   list<const Program*>::iterator itr;
   for (itr = programs.begin(); itr != programs.end(); itr++)
   {
-    unique_ptr<llvm::Module> m = llvm::CloneModule((*itr)->m_module.get());
+    unique_ptr<llvm::Module> m = llvm::CloneModule(*(*itr)->m_module);
     if (linker.linkInModule(std::move(m)))
     {
       return NULL;
@@ -704,7 +637,7 @@ Kernel* Program::createKernel(const string name)
     return NULL;
 
   // Iterate over functions in module to find kernel
-  llvm::Function *function = NULL;
+  llvm::Function* function = NULL;
 
   for (auto F = m_module->begin(); F != m_module->end(); F++)
   {
@@ -734,20 +667,19 @@ Kernel* Program::createKernel(const string name)
   }
   catch (FatalError& err)
   {
-    cerr << endl << "OCLGRIND FATAL ERROR "
-         << "(" << err.getFile() << ":" << err.getLine() << ")"
-         << endl << err.what()
-         << endl << "When creating kernel '" << name << "'"
-         << endl;
+    cerr << endl
+         << "OCLGRIND FATAL ERROR "
+         << "(" << err.getFile() << ":" << err.getLine() << ")" << endl
+         << err.what() << endl
+         << "When creating kernel '" << name << "'" << endl;
     return NULL;
   }
 }
 
 void Program::deallocateProgramScopeVars()
 {
-  for (auto psv  = m_programScopeVars.begin();
-            psv != m_programScopeVars.end();
-            psv++)
+  for (auto psv = m_programScopeVars.begin(); psv != m_programScopeVars.end();
+       psv++)
   {
     m_context->getGlobalMemory()->deallocateBuffer(psv->second.getPointer());
     delete[] psv->second.data;
@@ -756,14 +688,14 @@ void Program::deallocateProgramScopeVars()
   m_totalProgramScopeVarSize = 0;
 }
 
-void Program::getBinary(unsigned char *binary) const
+void Program::getBinary(unsigned char* binary) const
 {
   if (!m_module)
     return;
 
   std::string str;
   llvm::raw_string_ostream stream(str);
-  llvm::WriteBitcodeToFile(m_module.get(), stream);
+  llvm::WriteBitcodeToFile(*m_module, stream);
   stream.str();
 
   memcpy(binary, str.c_str(), str.length());
@@ -778,7 +710,7 @@ size_t Program::getBinarySize() const
 
   std::string str;
   llvm::raw_string_ostream stream(str);
-  llvm::WriteBitcodeToFile(m_module.get(), stream);
+  llvm::WriteBitcodeToFile(*m_module, stream);
   stream.str();
   return str.length();
 }
@@ -809,8 +741,8 @@ unsigned long Program::generateUID() const
   return rand();
 }
 
-const InterpreterCache* Program::getInterpreterCache(
-  const llvm::Function *kernel) const
+const InterpreterCache*
+Program::getInterpreterCache(const llvm::Function* kernel) const
 {
   return m_interpreterCache[kernel];
 }
@@ -822,7 +754,7 @@ list<string> Program::getKernelNames() const
   {
     if (F->getCallingConv() == llvm::CallingConv::SPIR_KERNEL)
     {
-      names.push_back(F->getName());
+      names.push_back(F->getName().str());
     }
   }
   return names;
@@ -848,7 +780,7 @@ unsigned int Program::getNumKernels() const
   return num;
 }
 
-const TypedValue& Program::getProgramScopeVar(const llvm::Value *variable) const
+const TypedValue& Program::getProgramScopeVar(const llvm::Value* variable) const
 {
   return m_programScopeVars.at(variable);
 }
@@ -860,10 +792,10 @@ const string& Program::getSource() const
 
 const char* Program::getSourceLine(size_t lineNumber) const
 {
-  if (!lineNumber || (lineNumber-1) >= m_sourceLines.size())
+  if (!lineNumber || (lineNumber - 1) >= m_sourceLines.size())
     return NULL;
 
-  return m_sourceLines[lineNumber-1].c_str();
+  return m_sourceLines[lineNumber - 1].c_str();
 }
 
 size_t Program::getNumSourceLines() const
@@ -881,7 +813,7 @@ unsigned long Program::getUID() const
   return m_uid;
 }
 
-void Program::pruneDeadCode(llvm::Instruction *instruction)
+void Program::pruneDeadCode(llvm::Instruction* instruction)
 {
   // Remove instructions that have no uses
   if (instruction->getNumUses() == 0)
@@ -915,7 +847,7 @@ void Program::removeLValueLoads()
   set<llvm::StoreInst*> aggStores;
   for (llvm::Module::iterator F = m_module->begin(); F != m_module->end(); F++)
   {
-    llvm::Function *f = &*F;
+    llvm::Function* f = &*F;
     for (llvm::inst_iterator I = inst_begin(f), E = inst_end(f); I != E; I++)
     {
       if (auto store = llvm::dyn_cast<llvm::StoreInst>(&*I))
@@ -931,28 +863,24 @@ void Program::removeLValueLoads()
   }
 }
 
-bool Program::requiresUniformWorkGroups() const
+void Program::scalarizeAggregateStore(llvm::StoreInst* store)
 {
-  return m_requiresUniformWorkGroups;
-}
+  llvm::IntegerType* gepIndexType =
+    (sizeof(size_t) == 8)
+      ? llvm::Type::getInt64Ty(m_module.get()->getContext())
+      : llvm::Type::getInt32Ty(m_module.get()->getContext());
 
-void Program::scalarizeAggregateStore(llvm::StoreInst *store)
-{
-  llvm::IntegerType *gepIndexType = (sizeof(size_t)==8) ?
-      llvm::Type::getInt64Ty(m_module.get()->getContext()) :
-      llvm::Type::getInt32Ty(m_module.get()->getContext());
-
-  llvm::Value *storeValue = store->getValueOperand();
-  llvm::Value *vectorPtr  = store->getPointerOperand();
+  llvm::Value* storeValue = store->getValueOperand();
+  llvm::Value* vectorPtr = store->getPointerOperand();
 
   if (auto insert = llvm::dyn_cast<llvm::InsertElementInst>(storeValue))
   {
-    llvm::Value *vector = insert->getOperand(0);
-    llvm::Value *value  = insert->getOperand(1);
-    llvm::Value *index  = insert->getOperand(2);
+    llvm::Value* vector = insert->getOperand(0);
+    llvm::Value* value = insert->getOperand(1);
+    llvm::Value* index = insert->getOperand(2);
 
     // Create GEP for scalar value
-    llvm::GetElementPtrInst *scalarPtr = NULL;
+    llvm::GetElementPtrInst* scalarPtr = NULL;
     if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(vectorPtr))
     {
       // Create GEP from existing GEP
@@ -973,28 +901,27 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       indices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
       indices.push_back(index);
       scalarPtr = llvm::GetElementPtrInst::Create(
-        vectorPtr->getType()->getPointerElementType(),
-        vectorPtr, indices);
+        vectorPtr->getType()->getPointerElementType(), vectorPtr, indices);
     }
     scalarPtr->setDebugLoc(store->getDebugLoc());
     scalarPtr->insertAfter(store);
 
     // Create direct scalar store
-    llvm::StoreInst *scalarStore = new llvm::StoreInst(
-      value, scalarPtr, store->isVolatile(),
-      getTypeAlignment(value->getType()));
+    llvm::StoreInst* scalarStore =
+      new llvm::StoreInst(value, scalarPtr, store->isVolatile(),
+                          llvm::Align(getTypeAlignment(value->getType())));
     scalarStore->setDebugLoc(store->getDebugLoc());
     scalarStore->insertAfter(scalarPtr);
 
     // Check if the input to the insertelement instruction came from something
     // other than a load to the same address as the store
-    llvm::LoadInst *load = llvm::dyn_cast<llvm::LoadInst>(vector);
+    llvm::LoadInst* load = llvm::dyn_cast<llvm::LoadInst>(vector);
     if (!(load && load->getPointerOperand() == store->getPointerOperand()))
     {
       // Replace value in store with the input to the insertelement instruction
-      llvm::StoreInst *_store = new llvm::StoreInst(
-        vector, store->getPointerOperand(),
-        store->isVolatile(), store->getAlignment());
+      llvm::StoreInst* _store = new llvm::StoreInst(
+        vector, store->getPointerOperand(), store->isVolatile(),
+        llvm::Align(store->getAlignment()));
       _store->setDebugLoc(store->getDebugLoc());
       _store->insertAfter(store);
 
@@ -1009,19 +936,20 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
   }
   else if (auto shuffle = llvm::dyn_cast<llvm::ShuffleVectorInst>(storeValue))
   {
-    llvm::Value *v1      = shuffle->getOperand(0);
-    llvm::Value *v2      = shuffle->getOperand(1);
-    llvm::Constant *mask = shuffle->getMask();
-    unsigned maskSize    = mask->getType()->getVectorNumElements();
+    llvm::Value* v1 = shuffle->getOperand(0);
+    llvm::Value* v2 = shuffle->getOperand(1);
+    unsigned maskSize = shuffle->getShuffleMask().size();
+    unsigned v1num =
+      llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements();
 
     // Check if shuffle sources came from a load with same address as the store
-    llvm::LoadInst *load;
+    llvm::LoadInst* load;
     bool v1SourceIsDest = false, v2SourceIsDest = false;
     if ((load = llvm::dyn_cast<llvm::LoadInst>(v1)) &&
-         load->getPointerOperand() == vectorPtr)
+        load->getPointerOperand() == vectorPtr)
       v1SourceIsDest = true;
     if ((load = llvm::dyn_cast<llvm::LoadInst>(v2)) &&
-         load->getPointerOperand() == vectorPtr)
+        load->getPointerOperand() == vectorPtr)
       v2SourceIsDest = true;
 
     // Get mask indices that don't correspond to the destination vector
@@ -1036,8 +964,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
 
       // Check if source is the store destination
       bool sourceIsDest =
-        ((unsigned)idx < v1->getType()->getVectorNumElements() ?
-          v1SourceIsDest : v2SourceIsDest);
+        ((unsigned)idx < v1num ? v1SourceIsDest : v2SourceIsDest);
 
       // If destination is used in non-identity position, leave shuffle as is
       if (sourceIsDest && (unsigned)idx != i)
@@ -1055,9 +982,8 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       // These would usually be caught by DCE, but if optimisations are
       // disabled we need to prune these manually
       list<llvm::LoadInst*> lvalueloads;
-      for (auto user  = vectorPtr->user_begin();
-                user != vectorPtr->user_end() ;
-                user++)
+      for (auto user = vectorPtr->user_begin(); user != vectorPtr->user_end();
+           user++)
       {
         if (auto load = llvm::dyn_cast<llvm::LoadInst>(*user))
         {
@@ -1080,7 +1006,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
       indices.pop();
 
       // Create GEP for scalar value
-      llvm::GetElementPtrInst *scalarPtr = NULL;
+      llvm::GetElementPtrInst* scalarPtr = NULL;
       if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(vectorPtr))
       {
         // Create GEP from existing GEP
@@ -1101,16 +1027,14 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
         scalarPtr = llvm::GetElementPtrInst::Create(
-          vectorPtr->getType()->getPointerElementType(),
-          vectorPtr, gepIndices);
+          vectorPtr->getType()->getPointerElementType(), vectorPtr, gepIndices);
       }
       scalarPtr->setDebugLoc(store->getDebugLoc());
       scalarPtr->insertAfter(store);
 
       // Get source vector and index
-      unsigned idx   = shuffle->getMaskValue(index);
-      unsigned v1num = v1->getType()->getVectorNumElements();
-      llvm::Value *src = v1;
+      unsigned idx = shuffle->getMaskValue(index);
+      llvm::Value* src = v1;
       if (idx >= v1num)
       {
         idx -= v1num;
@@ -1123,9 +1047,9 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         // If source is a constant, extract scalar constant
         src = cnst->getAggregateElement(idx);
 
-        llvm::StoreInst *scalarStore = new llvm::StoreInst(
-          src, scalarPtr, store->isVolatile(),
-          getTypeAlignment(src->getType()));
+        llvm::StoreInst* scalarStore =
+          new llvm::StoreInst(src, scalarPtr, store->isVolatile(),
+                              llvm::Align(getTypeAlignment(src->getType())));
         scalarStore->setDebugLoc(store->getDebugLoc());
         scalarStore->insertAfter(scalarPtr);
       }
@@ -1134,9 +1058,10 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
         // If extracting from a shuffle, trace back to last non-shuffle
         while (auto shfl = llvm::dyn_cast<llvm::ShuffleVectorInst>(src))
         {
-          llvm::Value *v1 = shfl->getOperand(0);
-          llvm::Value *v2 = shfl->getOperand(1);
-          unsigned v1num  = v1->getType()->getVectorNumElements();
+          llvm::Value* v1 = shfl->getOperand(0);
+          llvm::Value* v2 = shfl->getOperand(1);
+          unsigned v1num =
+            llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements();
 
           // Get source vector and index
           idx = shfl->getMaskValue(idx);
@@ -1148,14 +1073,14 @@ void Program::scalarizeAggregateStore(llvm::StoreInst *store)
           }
         }
 
-        llvm::ExtractElementInst *extract = llvm::ExtractElementInst::Create(
+        llvm::ExtractElementInst* extract = llvm::ExtractElementInst::Create(
           src, llvm::ConstantInt::getSigned(gepIndexType, idx));
         extract->setDebugLoc(shuffle->getDebugLoc());
         extract->insertAfter(scalarPtr);
 
-        llvm::StoreInst *scalarStore = new llvm::StoreInst(
+        llvm::StoreInst* scalarStore = new llvm::StoreInst(
           extract, scalarPtr, store->isVolatile(),
-          getTypeAlignment(extract->getType()));
+          llvm::Align(getTypeAlignment(extract->getType())));
         scalarStore->setDebugLoc(store->getDebugLoc());
         scalarStore->insertAfter(extract);
       }
@@ -1173,14 +1098,14 @@ void Program::stripDebugIntrinsics()
   set<llvm::Instruction*> intrinsics;
   for (llvm::Module::iterator F = m_module->begin(); F != m_module->end(); F++)
   {
-    llvm::Function *f = &*F;
+    llvm::Function* f = &*F;
     for (llvm::inst_iterator I = inst_begin(f), E = inst_end(f); I != E; I++)
     {
       if (I->getOpcode() == llvm::Instruction::Call)
       {
-        llvm::CallInst *call = (llvm::CallInst*)&*I;
-        llvm::Function *function =
-          (llvm::Function*)call->getCalledValue()->stripPointerCasts();
+        llvm::CallInst* call = (llvm::CallInst*)&*I;
+        llvm::Function* function =
+          (llvm::Function*)call->getCalledFunction()->stripPointerCasts();
         if (function->getName().startswith("llvm.dbg"))
         {
           intrinsics.insert(&*I);

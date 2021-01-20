@@ -1,5 +1,5 @@
 # CMakeLists.txt (Oclgrind)
-# Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+# Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 # University of Bristol. All rights reserved.
 #
 # This program is provided under a three-clause BSD license. For full
@@ -12,7 +12,9 @@ include_directories(../common)
 # Add runtime tests
 foreach(test
   build_program
+  kernel_scope_local_mem_usage
   map_buffer
+  multqueues
   sampler)
 
   add_executable(${test} ${test}.c ${COMMON_SOURCES})

@@ -9,17 +9,15 @@
 #define MAX_ERRORS 8
 #define MAX_PLATFORMS 8
 
-const char *KERNEL_SOURCE =
-"kernel void vecadd(global float *a, \n"
-"                   global float *b, \n"
-"                   global float *c) \n"
-"{                                   \n"
-"  int i = get_global_id(0);         \n"
-"  c[i] = a[i] + b[i];               \n"
-"}                                   \n"
-;
+const char* KERNEL_SOURCE = "kernel void vecadd(global float *a, \n"
+                            "                   global float *b, \n"
+                            "                   global float *c) \n"
+                            "{                                   \n"
+                            "  int i = get_global_id(0);         \n"
+                            "  c[i] = a[i] + b[i];               \n"
+                            "}                                   \n";
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   cl_int err;
   cl_kernel kernel;
@@ -49,7 +47,7 @@ int main(int argc, char *argv[])
   kernel = clCreateKernel(cl.program, "vecadd", &err);
   checkError(err, "creating kernel");
 
-  size_t dataSize = N*sizeof(cl_float);
+  size_t dataSize = N * sizeof(cl_float);
 
   // Initialise host data
   srand(0);
@@ -58,8 +56,8 @@ int main(int argc, char *argv[])
   h_c = malloc(dataSize);
   for (unsigned i = 0; i < N; i++)
   {
-    h_a[i] = rand()/(float)RAND_MAX;
-    h_b[i] = rand()/(float)RAND_MAX;
+    h_a[i] = rand() / (float)RAND_MAX;
+    h_b[i] = rand() / (float)RAND_MAX;
     h_c[i] = 0;
   }
 
@@ -70,30 +68,30 @@ int main(int argc, char *argv[])
   d_c = clCreateBuffer(cl.context, CL_MEM_WRITE_ONLY, dataSize, NULL, &err);
   checkError(err, "creating d_c buffer");
 
-  err = clEnqueueWriteBuffer(cl.queue, d_a, CL_FALSE,
-                             0, dataSize, h_a, 0, NULL, NULL);
+  err = clEnqueueWriteBuffer(cl.queue, d_a, CL_FALSE, 0, dataSize, h_a, 0, NULL,
+                             NULL);
   checkError(err, "writing d_a data");
-  err = clEnqueueWriteBuffer(cl.queue, d_b, CL_FALSE,
-                             0, dataSize, h_b, 0, NULL, NULL);
+  err = clEnqueueWriteBuffer(cl.queue, d_b, CL_FALSE, 0, dataSize, h_b, 0, NULL,
+                             NULL);
   checkError(err, "writing d_b data");
-  err = clEnqueueWriteBuffer(cl.queue, d_c, CL_FALSE,
-                             0, dataSize, h_c, 0, NULL, NULL);
+  err = clEnqueueWriteBuffer(cl.queue, d_c, CL_FALSE, 0, dataSize, h_c, 0, NULL,
+                             NULL);
   checkError(err, "writing d_c data");
 
-  err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
+  err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_a);
   err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_b);
   err |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_c);
   checkError(err, "setting kernel args");
 
-  err = clEnqueueNDRangeKernel(cl.queue, kernel,
-                               1, NULL, &global, NULL, 0, NULL, NULL);
+  err = clEnqueueNDRangeKernel(cl.queue, kernel, 1, NULL, &global, NULL, 0,
+                               NULL, NULL);
   checkError(err, "enqueuing kernel");
 
   err = clFinish(cl.queue);
   checkError(err, "running kernel");
 
-  err = clEnqueueReadBuffer(cl.queue, d_c, CL_TRUE,
-                            0, dataSize, h_c, 0, NULL, NULL);
+  err = clEnqueueReadBuffer(cl.queue, d_c, CL_TRUE, 0, dataSize, h_c, 0, NULL,
+                            NULL);
   checkError(err, "reading d_c data");
 
   // Check results

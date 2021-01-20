@@ -1,5 +1,5 @@
 // Plugin.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
@@ -10,14 +10,9 @@
 
 using namespace oclgrind;
 
-Plugin::Plugin(const Context *context)
-  : m_context(context)
-{
-}
+Plugin::Plugin(const Context* context) : m_context(context) {}
 
-Plugin::~Plugin()
-{
-}
+Plugin::~Plugin() {}
 
 bool Plugin::isThreadSafe() const
 {

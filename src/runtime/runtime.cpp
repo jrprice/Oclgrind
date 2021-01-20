@@ -1,5 +1,5 @@
 // runtime.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.
 //
 // This program is provided under a three-clause BSD license. For full
@@ -19,204 +19,222 @@
 
 #include "core/Context.h"
 #include "core/Kernel.h"
-#include "core/half.h"
 #include "core/Memory.h"
 #include "core/Program.h"
 #include "core/Queue.h"
+#include "core/half.h"
 
 using namespace std;
 
-#define MAX_GLOBAL_MEM_SIZE      (128 * 1048576)
-#define MAX_CONSTANT_BUFFER_SIZE (1048576)
-#define MAX_LOCAL_MEM_SIZE       (32768)
-#define DEFAULT_MAX_WGSIZE       (1024)
+#define DEFAULT_GLOBAL_MEM_SIZE (128 * 1048576)
+#define DEFAULT_CONSTANT_MEM_SIZE (65536)
+#define DEFAULT_LOCAL_MEM_SIZE (32768)
+#define DEFAULT_MAX_WGSIZE (1024)
 
-#define PLATFORM_NAME       "Oclgrind"
-#define PLATFORM_VENDOR     "University of Bristol"
-#define PLATFORM_VERSION    "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
-#define PLATFORM_PROFILE    "FULL_PROFILE"
-#define PLATFORM_SUFFIX     "oclg"
-#define PLATFORM_EXTENSIONS "cl_khr_icd"
+#define PLATFORM_NAME "Oclgrind"
+#define PLATFORM_VENDOR "University of Bristol"
+#define PLATFORM_VERSION "OpenCL 3.0 (Oclgrind " PACKAGE_VERSION ")"
+#define PLATFORM_PROFILE "FULL_PROFILE"
+#define PLATFORM_SUFFIX "oclg"
 
-#define DEVICE_NAME          "Oclgrind Simulator"
-#define DEVICE_VENDOR        "University of Bristol"
-#define DEVICE_VENDOR_ID     0x0042
-#define DEVICE_VERSION       "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
-#define DEVICE_LANG_VERSION  "OpenCL C 1.2 (Oclgrind " PACKAGE_VERSION ")"
-#define DRIVER_VERSION       "Oclgrind " PACKAGE_VERSION
-#define DEVICE_PROFILE       "FULL_PROFILE"
+#define DEVICE_NAME "Oclgrind Simulator"
+#define DEVICE_VENDOR "University of Bristol"
+#define DEVICE_VENDOR_ID 0x0042
+#define DEVICE_VERSION "OpenCL 3.0 (Oclgrind " PACKAGE_VERSION ")"
+#define DEVICE_LANG_VERSION "OpenCL C 3.0 (Oclgrind " PACKAGE_VERSION ")"
+#define DRIVER_VERSION "Oclgrind " PACKAGE_VERSION
+#define DEVICE_PROFILE "FULL_PROFILE"
+#define DEVICE_CTS_VERSION ""
 #define DEVICE_SPIR_VERSIONS "1.2"
-#define DEVICE_EXTENSIONS    "         \
-  cl_khr_spir                          \
-  cl_khr_3d_image_writes               \
-  cl_khr_global_int32_base_atomics     \
-  cl_khr_global_int32_extended_atomics \
-  cl_khr_local_int32_base_atomics      \
-  cl_khr_local_int32_extended_atomics  \
-  cl_khr_int64_base_atomics            \
-  cl_khr_int64_extended_atomics        \
-  cl_khr_byte_addressable_store        \
-  cl_khr_fp64"
-#define DEVICE_TYPE (CL_DEVICE_TYPE_CPU | \
-                     CL_DEVICE_TYPE_GPU | \
-                     CL_DEVICE_TYPE_ACCELERATOR | \
-                     CL_DEVICE_TYPE_DEFAULT)
-
+#define DEVICE_TYPE                                                            \
+  (CL_DEVICE_TYPE_CPU | CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR |      \
+   CL_DEVICE_TYPE_DEFAULT)
 
 namespace
 {
-#define CASE(X) case X: return #X;
-  const char* CLErrorToString(cl_int err)
+#define CASE(X)                                                                \
+  case X:                                                                      \
+    return #X;
+const char* CLErrorToString(cl_int err)
+{
+  switch (err)
   {
-    switch (err)
-    {
-      CASE(CL_SUCCESS)
-      CASE(CL_DEVICE_NOT_FOUND)
-      CASE(CL_DEVICE_NOT_AVAILABLE)
-      CASE(CL_COMPILER_NOT_AVAILABLE)
-      CASE(CL_MEM_OBJECT_ALLOCATION_FAILURE)
-      CASE(CL_OUT_OF_RESOURCES)
-      CASE(CL_OUT_OF_HOST_MEMORY)
-      CASE(CL_PROFILING_INFO_NOT_AVAILABLE)
-      CASE(CL_MEM_COPY_OVERLAP)
-      CASE(CL_IMAGE_FORMAT_MISMATCH)
-      CASE(CL_IMAGE_FORMAT_NOT_SUPPORTED)
-      CASE(CL_BUILD_PROGRAM_FAILURE)
-      CASE(CL_MAP_FAILURE)
-      CASE(CL_MISALIGNED_SUB_BUFFER_OFFSET)
-      CASE(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST)
-      CASE(CL_COMPILE_PROGRAM_FAILURE)
-      CASE(CL_LINKER_NOT_AVAILABLE)
-      CASE(CL_LINK_PROGRAM_FAILURE)
-      CASE(CL_DEVICE_PARTITION_FAILED)
-      CASE(CL_KERNEL_ARG_INFO_NOT_AVAILABLE)
-      CASE(CL_INVALID_VALUE)
-      CASE(CL_INVALID_DEVICE_TYPE)
-      CASE(CL_INVALID_PLATFORM)
-      CASE(CL_INVALID_DEVICE)
-      CASE(CL_INVALID_CONTEXT)
-      CASE(CL_INVALID_QUEUE_PROPERTIES)
-      CASE(CL_INVALID_COMMAND_QUEUE)
-      CASE(CL_INVALID_HOST_PTR)
-      CASE(CL_INVALID_MEM_OBJECT)
-      CASE(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR)
-      CASE(CL_INVALID_IMAGE_SIZE)
-      CASE(CL_INVALID_SAMPLER)
-      CASE(CL_INVALID_BINARY)
-      CASE(CL_INVALID_BUILD_OPTIONS)
-      CASE(CL_INVALID_PROGRAM)
-      CASE(CL_INVALID_PROGRAM_EXECUTABLE)
-      CASE(CL_INVALID_KERNEL_NAME)
-      CASE(CL_INVALID_KERNEL_DEFINITION)
-      CASE(CL_INVALID_KERNEL)
-      CASE(CL_INVALID_ARG_INDEX)
-      CASE(CL_INVALID_ARG_VALUE)
-      CASE(CL_INVALID_ARG_SIZE)
-      CASE(CL_INVALID_KERNEL_ARGS)
-      CASE(CL_INVALID_WORK_DIMENSION)
-      CASE(CL_INVALID_WORK_GROUP_SIZE)
-      CASE(CL_INVALID_WORK_ITEM_SIZE)
-      CASE(CL_INVALID_GLOBAL_OFFSET)
-      CASE(CL_INVALID_EVENT_WAIT_LIST)
-      CASE(CL_INVALID_EVENT)
-      CASE(CL_INVALID_OPERATION)
-      CASE(CL_INVALID_GL_OBJECT)
-      CASE(CL_INVALID_BUFFER_SIZE)
-      CASE(CL_INVALID_MIP_LEVEL)
-      CASE(CL_INVALID_GLOBAL_WORK_SIZE)
-      CASE(CL_INVALID_PROPERTY)
-      CASE(CL_INVALID_IMAGE_DESCRIPTOR)
-      CASE(CL_INVALID_COMPILER_OPTIONS)
-      CASE(CL_INVALID_LINKER_OPTIONS)
-      CASE(CL_INVALID_DEVICE_PARTITION_COUNT)
-    }
-    return "Unknown";
+    CASE(CL_SUCCESS)
+    CASE(CL_DEVICE_NOT_FOUND)
+    CASE(CL_DEVICE_NOT_AVAILABLE)
+    CASE(CL_COMPILER_NOT_AVAILABLE)
+    CASE(CL_MEM_OBJECT_ALLOCATION_FAILURE)
+    CASE(CL_OUT_OF_RESOURCES)
+    CASE(CL_OUT_OF_HOST_MEMORY)
+    CASE(CL_PROFILING_INFO_NOT_AVAILABLE)
+    CASE(CL_MEM_COPY_OVERLAP)
+    CASE(CL_IMAGE_FORMAT_MISMATCH)
+    CASE(CL_IMAGE_FORMAT_NOT_SUPPORTED)
+    CASE(CL_BUILD_PROGRAM_FAILURE)
+    CASE(CL_MAP_FAILURE)
+    CASE(CL_MISALIGNED_SUB_BUFFER_OFFSET)
+    CASE(CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST)
+    CASE(CL_COMPILE_PROGRAM_FAILURE)
+    CASE(CL_LINKER_NOT_AVAILABLE)
+    CASE(CL_LINK_PROGRAM_FAILURE)
+    CASE(CL_DEVICE_PARTITION_FAILED)
+    CASE(CL_KERNEL_ARG_INFO_NOT_AVAILABLE)
+    CASE(CL_INVALID_VALUE)
+    CASE(CL_INVALID_DEVICE_TYPE)
+    CASE(CL_INVALID_PLATFORM)
+    CASE(CL_INVALID_DEVICE)
+    CASE(CL_INVALID_CONTEXT)
+    CASE(CL_INVALID_QUEUE_PROPERTIES)
+    CASE(CL_INVALID_COMMAND_QUEUE)
+    CASE(CL_INVALID_HOST_PTR)
+    CASE(CL_INVALID_MEM_OBJECT)
+    CASE(CL_INVALID_IMAGE_FORMAT_DESCRIPTOR)
+    CASE(CL_INVALID_IMAGE_SIZE)
+    CASE(CL_INVALID_SAMPLER)
+    CASE(CL_INVALID_BINARY)
+    CASE(CL_INVALID_BUILD_OPTIONS)
+    CASE(CL_INVALID_PROGRAM)
+    CASE(CL_INVALID_PROGRAM_EXECUTABLE)
+    CASE(CL_INVALID_KERNEL_NAME)
+    CASE(CL_INVALID_KERNEL_DEFINITION)
+    CASE(CL_INVALID_KERNEL)
+    CASE(CL_INVALID_ARG_INDEX)
+    CASE(CL_INVALID_ARG_VALUE)
+    CASE(CL_INVALID_ARG_SIZE)
+    CASE(CL_INVALID_KERNEL_ARGS)
+    CASE(CL_INVALID_WORK_DIMENSION)
+    CASE(CL_INVALID_WORK_GROUP_SIZE)
+    CASE(CL_INVALID_WORK_ITEM_SIZE)
+    CASE(CL_INVALID_GLOBAL_OFFSET)
+    CASE(CL_INVALID_EVENT_WAIT_LIST)
+    CASE(CL_INVALID_EVENT)
+    CASE(CL_INVALID_OPERATION)
+    CASE(CL_INVALID_GL_OBJECT)
+    CASE(CL_INVALID_BUFFER_SIZE)
+    CASE(CL_INVALID_MIP_LEVEL)
+    CASE(CL_INVALID_GLOBAL_WORK_SIZE)
+    CASE(CL_INVALID_PROPERTY)
+    CASE(CL_INVALID_IMAGE_DESCRIPTOR)
+    CASE(CL_INVALID_COMPILER_OPTIONS)
+    CASE(CL_INVALID_LINKER_OPTIONS)
+    CASE(CL_INVALID_DEVICE_PARTITION_COUNT)
   }
+  return "Unknown";
+}
 #undef CASE
 
-  void notifyAPIError(cl_context context, cl_int err,
-                      const char* function, string info = "")
-  {
-    // Remove leading underscore from function name if necessary
-    if (!strncmp(function, "_cl", 3))
-    {
-      function++;
-    }
-
-    // Build error message
-    ostringstream oss;
-    oss << endl
-        << "Oclgrind - OpenCL runtime error detected" << endl
-        << "\tFunction: " << function << endl
-        << "\tError:    " << CLErrorToString(err) << endl;
-    if (!info.empty())
-    {
-      oss << "\t" << info << endl;
-    }
-    string error = oss.str();
-
-    // Output message to stderr if required
-    if (oclgrind::checkEnv("OCLGRIND_CHECK_API"))
-    {
-      cerr << error << endl;
-    }
-
-    // Fire context callback if set
-    if (context && context->notify)
-    {
-      context->notify(error.c_str(), context->data, 0, NULL);
-    }
-  }
-}
-
-#if defined(_WIN32) && !defined(__MINGW32__)
-#define __func__ __FUNCTION__
-#endif
-
-#define ReturnErrorInfo(context, err, info)          \
-{                                                    \
-  ostringstream oss;                                 \
-  oss << info;                                       \
-  notifyAPIError(context, err, __func__, oss.str()); \
-  return err;                                        \
-}
-#define ReturnErrorArg(context, err, arg) \
-  ReturnErrorInfo(context, err, "For argument '" #arg "'")
-#define ReturnError(context, err) \
-  ReturnErrorInfo(context, err, "")
-
-#define SetErrorInfo(context, err, info)               \
-  if (err != CL_SUCCESS)                               \
-  {                                                    \
-    ostringstream oss;                                 \
-    oss << info;                                       \
-    notifyAPIError(context, err, __func__, oss.str()); \
-  }                                                    \
-  if (errcode_ret)                                     \
-  {                                                    \
-    *errcode_ret = err;                                \
-  }
-#define SetErrorArg(context, err, arg) \
-  SetErrorInfo(context, err, "For argument '" #arg "'")
-#define SetError(context, err) \
-  SetErrorInfo(context, err, "")
-
-#define ParamValueSizeTooSmall                        \
-  "param_value_size is " << param_value_size <<       \
-  ", but result requires " << result_size << " bytes"
-
-
-static struct _cl_platform_id *m_platform = NULL;
-static struct _cl_device_id *m_device = NULL;
-
-CL_API_ENTRY cl_int CL_API_CALL
-clIcdGetPlatformIDsKHR
-(
-  cl_uint num_entries,
-  cl_platform_id *platforms,
-  cl_uint *num_platforms
-)
+void notifyAPIError(cl_context context, cl_int err, const char* function,
+                    string info = "")
 {
+  // Remove leading underscore from function name if necessary
+  if (!strncmp(function, "_cl", 3))
+  {
+    function++;
+  }
+
+  // Build error message
+  ostringstream oss;
+  oss << endl
+      << "Oclgrind - OpenCL runtime error detected" << endl
+      << "\tFunction: " << function << endl
+      << "\tError:    " << CLErrorToString(err) << endl;
+  if (!info.empty())
+  {
+    oss << "\t" << info << endl;
+  }
+  string error = oss.str();
+
+  // Output message to stderr if required
+  if (oclgrind::checkEnv("OCLGRIND_CHECK_API"))
+  {
+    cerr << error << endl;
+  }
+
+  // Fire context callback if set
+  if (context && context->notify)
+  {
+    context->notify(error.c_str(), context->data, 0, NULL);
+  }
+}
+
+void releaseCommand(oclgrind::Command* command)
+{
+  if (command)
+  {
+    asyncQueueRelease(command);
+
+    // Release dependent commands
+    while (!command->execBefore.empty())
+    {
+      oclgrind::Command* cmd = command->execBefore.front();
+      command->execBefore.pop_front();
+      releaseCommand(cmd);
+    }
+
+    delete command;
+  }
+}
+} // namespace
+
+namespace
+{
+// Name of the API function currently being executed
+thread_local static std::stack<const char*> g_apiCallStack;
+
+class APICallEntry
+{
+public:
+  APICallEntry(const char* name)
+  {
+    g_apiCallStack.push(name);
+  }
+  ~APICallEntry()
+  {
+    g_apiCallStack.pop();
+  }
+};
+
+#define REGISTER_API APICallEntry apiCallEntry(__func__)
+} // namespace
+
+#define ReturnErrorInfo(context, err, info)                                    \
+  {                                                                            \
+    ostringstream oss;                                                         \
+    oss << info;                                                               \
+    notifyAPIError(context, err, g_apiCallStack.top(), oss.str());             \
+    return err;                                                                \
+  }
+#define ReturnErrorArg(context, err, arg)                                      \
+  ReturnErrorInfo(context, err, "For argument '" #arg "'")
+#define ReturnError(context, err) ReturnErrorInfo(context, err, "")
+
+#define SetErrorInfo(context, err, info)                                       \
+  if (err != CL_SUCCESS)                                                       \
+  {                                                                            \
+    ostringstream oss;                                                         \
+    oss << info;                                                               \
+    notifyAPIError(context, err, g_apiCallStack.top(), oss.str());             \
+  }                                                                            \
+  if (errcode_ret)                                                             \
+  {                                                                            \
+    *errcode_ret = err;                                                        \
+  }
+#define SetErrorArg(context, err, arg)                                         \
+  SetErrorInfo(context, err, "For argument '" #arg "'")
+#define SetError(context, err) SetErrorInfo(context, err, "")
+
+#define ParamValueSizeTooSmall                                                 \
+  "param_value_size is " << param_value_size << ", but result requires "       \
+                         << result_size << " bytes"
+
+static struct _cl_platform_id* m_platform = NULL;
+static struct _cl_device_id* m_device = NULL;
+
+CL_API_ENTRY cl_int CL_API_CALL clIcdGetPlatformIDsKHR(
+  cl_uint num_entries, cl_platform_id* platforms, cl_uint* num_platforms)
+{
+  REGISTER_API;
+
   if (platforms && num_entries < 1)
   {
     ReturnError(NULL, CL_INVALID_VALUE);
@@ -229,6 +247,12 @@ clIcdGetPlatformIDsKHR
 
     m_device = new _cl_device_id;
     m_device->dispatch = m_dispatchTable;
+    m_device->globalMemSize = oclgrind::getEnvInt(
+      "OCLGRIND_GLOBAL_MEM_SIZE", DEFAULT_GLOBAL_MEM_SIZE, false);
+    m_device->constantMemSize = oclgrind::getEnvInt(
+      "OCLGRIND_CONSTANT_MEM_SIZE", DEFAULT_CONSTANT_MEM_SIZE, false);
+    m_device->localMemSize = oclgrind::getEnvInt("OCLGRIND_LOCAL_MEM_SIZE",
+                                                 DEFAULT_LOCAL_MEM_SIZE, false);
     m_device->maxWGSize =
       oclgrind::getEnvInt("OCLGRIND_MAX_WGSIZE", DEFAULT_MAX_WGSIZE, false);
   }
@@ -251,14 +275,17 @@ clIcdGetPlatformIDsKHR
 ////////////////////////////////////
 
 CL_API_ENTRY void* CL_API_CALL
-clGetExtensionFunctionAddress
-(
-  const char *  funcname
-) CL_API_SUFFIX__VERSION_1_2
+clGetExtensionFunctionAddress(const char* funcname) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   if (strcmp(funcname, "clIcdGetPlatformIDsKHR") == 0)
   {
     return (void*)clIcdGetPlatformIDsKHR;
+  }
+  else if (strcmp(funcname, "clGetPlatformInfo") == 0)
+  {
+    return (void*)clGetPlatformInfo;
   }
   else
   {
@@ -267,54 +294,78 @@ clGetExtensionFunctionAddress
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clGetPlatformIDs
-(
-  cl_uint           num_entries,
-  cl_platform_id *  platforms,
-  cl_uint *         num_platforms
-) CL_API_SUFFIX__VERSION_1_0
+clGetPlatformIDs(cl_uint num_entries, cl_platform_id* platforms,
+                 cl_uint* num_platforms) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   return clIcdGetPlatformIDsKHR(num_entries, platforms, num_platforms);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetPlatformInfo
-(
-  cl_platform_id    platform,
-  cl_platform_info  param_name,
-  size_t            param_value_size,
-  void *            param_value,
-  size_t *          param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetPlatformInfo(
+  cl_platform_id platform, cl_platform_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
-  // Select platform info string
-  const char *result = NULL;
-  switch(param_name)
+  REGISTER_API;
+
+  // All possible return types
+  union
+  {
+    cl_ulong clulong;
+  } result_data;
+  size_t result_size = 0;
+  const void* data = NULL;
+
+  static constexpr char extensions[] = "cl_khr_icd";
+  static constexpr cl_version numeric_version = CL_MAKE_VERSION(3, 0, 0);
+  static constexpr cl_name_version extension_versions[] = {
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_icd"},
+  };
+
+  // Select platform info
+  switch (param_name)
   {
   case CL_PLATFORM_PROFILE:
-    result = PLATFORM_PROFILE;
+    data = PLATFORM_PROFILE;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_VERSION:
-    result = PLATFORM_VERSION;
+    data = PLATFORM_VERSION;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_NAME:
-    result = PLATFORM_NAME;
+    data = PLATFORM_NAME;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_VENDOR:
-    result = PLATFORM_VENDOR;
+    data = PLATFORM_VENDOR;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_EXTENSIONS:
-    result = PLATFORM_EXTENSIONS;
+    data = extensions;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
     break;
   case CL_PLATFORM_ICD_SUFFIX_KHR:
-    result = PLATFORM_SUFFIX;
+    data = PLATFORM_SUFFIX;
+    result_size = strlen(static_cast<const char*>(data)) + 1;
+    break;
+  case CL_PLATFORM_NUMERIC_VERSION:
+    result_size = sizeof(numeric_version);
+    data = &numeric_version;
+    break;
+  case CL_PLATFORM_EXTENSIONS_WITH_VERSION:
+    result_size = sizeof(extension_versions);
+    data = extension_versions;
+    break;
+  case CL_PLATFORM_HOST_TIMER_RESOLUTION:
+    result_size = sizeof(cl_ulong);
+    result_data.clulong = 0;
     break;
   default:
     ReturnErrorArg(NULL, CL_INVALID_VALUE, param_name);
   }
 
   // Compute size of result
-  size_t result_size = strlen(result) + 1;
   if (param_value_size_ret)
   {
     *param_value_size_ret = result_size;
@@ -330,23 +381,22 @@ clGetPlatformInfo
     }
     else
     {
-      memcpy(param_value, result, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetDeviceIDs
-(
-  cl_platform_id  platform,
-  cl_device_type  device_type,
-  cl_uint         num_entries,
-  cl_device_id *  devices,
-  cl_uint *       num_devices
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDs(
+  cl_platform_id platform, cl_device_type device_type, cl_uint num_entries,
+  cl_device_id* devices, cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (devices && num_entries < 1)
   {
@@ -371,16 +421,12 @@ clGetDeviceIDs
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetDeviceInfo
-(
-  cl_device_id    device,
-  cl_device_info  param_name,
-  size_t          param_value_size,
-  void *          param_value,
-  size_t *        param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
+  cl_device_id device, cl_device_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check device is valid
   if (device != m_device)
   {
@@ -405,12 +451,53 @@ clGetDeviceInfo
     cl_device_exec_capabilities cldevexeccap;
     cl_command_queue_properties clcmdqprop;
     cl_platform_id clplatid;
+    cl_version clversion;
     cl_device_partition_property cldevpartprop;
     cl_device_affinity_domain cldevaffdom;
     cl_device_svm_capabilities svm;
+    cl_device_atomic_capabilities atomiccaps;
+    cl_device_device_enqueue_capabilities devenqcaps;
   } result_data;
-  // The result is actually a string that needs copying
-  const char* str = 0;
+  // The result is data in memory that needs copying
+  const void* data = 0;
+
+  static constexpr char extensions[] = " cl_khr_spir"
+                                       " cl_khr_3d_image_writes"
+                                       " cl_khr_global_int32_base_atomics"
+                                       " cl_khr_global_int32_extended_atomics"
+                                       " cl_khr_local_int32_base_atomics"
+                                       " cl_khr_local_int32_extended_atomics"
+                                       " cl_khr_int64_base_atomics"
+                                       " cl_khr_int64_extended_atomics"
+                                       " cl_khr_byte_addressable_store"
+                                       " cl_khr_fp64";
+
+  static constexpr cl_name_version extension_versions[] = {
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_spir"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_3d_image_writes"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_global_int32_base_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_global_int32_extended_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_local_int32_base_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_local_int32_extended_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_int64_base_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_int64_extended_atomics"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_byte_addressable_store"},
+    {CL_MAKE_VERSION(1, 0, 0), "cl_khr_fp64"},
+  };
+
+  static constexpr cl_name_version opencl_c_all_versions[] = {
+    {CL_MAKE_VERSION(1, 0, 0), "OpenCL C"},
+    {CL_MAKE_VERSION(1, 1, 0), "OpenCL C"},
+    {CL_MAKE_VERSION(1, 2, 0), "OpenCL C"},
+    {CL_MAKE_VERSION(3, 0, 0), "OpenCL C"},
+  };
+
+  static constexpr cl_name_version il_versions[] = {};
+
+  static constexpr cl_name_version built_in_kernel_versions[] = {};
+
+  // TODO: Populate this
+  static constexpr cl_name_version opencl_c_features[] = {};
 
   switch (param_name)
   {
@@ -424,7 +511,8 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_COMPUTE_UNITS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1;
+    result_data.cluint =
+      oclgrind::getEnvInt("OCLGRIND_COMPUTE_UNITS", 1, false);
     break;
   case CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:
     result_size = sizeof(cl_uint);
@@ -435,7 +523,7 @@ clGetDeviceInfo
     result_data.sizet = m_device->maxWGSize;
     break;
   case CL_DEVICE_MAX_WORK_ITEM_SIZES:
-    result_size = 3*sizeof(size_t);
+    result_size = 3 * sizeof(size_t);
     result_data.sizet3[0] = m_device->maxWGSize;
     result_data.sizet3[1] = m_device->maxWGSize;
     result_data.sizet3[2] = m_device->maxWGSize;
@@ -455,7 +543,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_ADDRESS_BITS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = sizeof(size_t)<<3;
+    result_data.cluint = sizeof(size_t) << 3;
     break;
   case CL_DEVICE_MAX_READ_IMAGE_ARGS:
     result_size = sizeof(cl_uint);
@@ -471,7 +559,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_MAX_MEM_ALLOC_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_GLOBAL_MEM_SIZE;
+    result_data.clulong = m_device->globalMemSize;
     break;
   case CL_DEVICE_IMAGE2D_MAX_WIDTH:
   case CL_DEVICE_IMAGE2D_MAX_HEIGHT:
@@ -498,27 +586,27 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_IMAGE_PITCH_ALIGNMENT:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 4;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_MAX_PIPE_ARGS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 16;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_PIPE_MAX_ACTIVE_RESERVATIONS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_PIPE_MAX_PACKET_SIZE:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1024;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_MEM_BASE_ADDR_ALIGN:
     result_size = sizeof(cl_uint);
-    result_data.cluint = sizeof(cl_long16)<<3;
+    result_data.cluint = sizeof(cl_long16) << 3;
     break;
   case CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:
     result_size = sizeof(cl_uint);
@@ -543,11 +631,11 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_GLOBAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_GLOBAL_MEM_SIZE;
+    result_data.clulong = device->globalMemSize;
     break;
   case CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_CONSTANT_BUFFER_SIZE;
+    result_data.clulong = device->constantMemSize;
     break;
   case CL_DEVICE_MAX_CONSTANT_ARGS:
     result_size = sizeof(cl_uint);
@@ -559,7 +647,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_GLOBAL_VARIABLE_PREFERRED_TOTAL_SIZE:
     result_size = sizeof(size_t);
-    result_data.sizet = MAX_GLOBAL_MEM_SIZE;
+    result_data.sizet = device->globalMemSize;
     break;
   case CL_DEVICE_LOCAL_MEM_TYPE:
     result_size = sizeof(cl_device_local_mem_type);
@@ -567,7 +655,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_LOCAL_MEM_SIZE:
     result_size = sizeof(cl_ulong);
-    result_data.clulong = MAX_LOCAL_MEM_SIZE;
+    result_data.clulong = device->localMemSize;
     break;
   case CL_DEVICE_ERROR_CORRECTION_SUPPORT:
     result_size = sizeof(cl_bool);
@@ -595,56 +683,56 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_EXECUTION_CAPABILITIES:
     result_size = sizeof(cl_device_exec_capabilities);
-    result_data.cldevexeccap =  CL_EXEC_KERNEL | CL_EXEC_NATIVE_KERNEL;
+    result_data.cldevexeccap = CL_EXEC_KERNEL | CL_EXEC_NATIVE_KERNEL;
     break;
   case CL_DEVICE_QUEUE_ON_HOST_PROPERTIES:
-    result_size = sizeof(cl_command_queue_properties);
-    result_data.clcmdqprop = CL_QUEUE_PROFILING_ENABLE;
-    break;
-  case CL_DEVICE_QUEUE_ON_DEVICE_PROPERTIES:
     result_size = sizeof(cl_command_queue_properties);
     result_data.clcmdqprop =
       CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE;
     break;
+  case CL_DEVICE_QUEUE_ON_DEVICE_PROPERTIES:
+    result_size = sizeof(cl_command_queue_properties);
+    result_data.clcmdqprop = 0;
+    break;
   case CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 16 * 1024;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 256 * 1024;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_MAX_ON_DEVICE_QUEUES:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_MAX_ON_DEVICE_EVENTS:
     result_size = sizeof(cl_uint);
-    result_data.cluint = 1024;
+    result_data.cluint = 0;
     break;
   case CL_DEVICE_NAME:
     result_size = sizeof(DEVICE_NAME);
-    str = DEVICE_NAME;
+    data = DEVICE_NAME;
     break;
   case CL_DEVICE_VENDOR:
     result_size = sizeof(DEVICE_VENDOR);
-    str = DEVICE_VENDOR;
+    data = DEVICE_VENDOR;
     break;
   case CL_DRIVER_VERSION:
     result_size = sizeof(DRIVER_VERSION);
-    str = DRIVER_VERSION;
+    data = DRIVER_VERSION;
     break;
   case CL_DEVICE_PROFILE:
     result_size = sizeof(DEVICE_PROFILE);
-    str = DEVICE_PROFILE;
+    data = DEVICE_PROFILE;
     break;
   case CL_DEVICE_VERSION:
     result_size = sizeof(DEVICE_VERSION);
-    str = DEVICE_VERSION;
+    data = DEVICE_VERSION;
     break;
   case CL_DEVICE_EXTENSIONS:
-    result_size = sizeof(DEVICE_EXTENSIONS);
-    str = DEVICE_EXTENSIONS;
+    result_size = sizeof(extensions);
+    data = extensions;
     break;
   case CL_DEVICE_PLATFORM:
     result_size = sizeof(cl_platform_id);
@@ -652,10 +740,9 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_DOUBLE_FP_CONFIG:
     result_size = sizeof(cl_device_fp_config);
-    result_data.devicefpconfig =
-      CL_FP_FMA | CL_FP_ROUND_TO_NEAREST |
-      CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF |
-      CL_FP_INF_NAN | CL_FP_DENORM;
+    result_data.devicefpconfig = CL_FP_FMA | CL_FP_ROUND_TO_NEAREST |
+                                 CL_FP_ROUND_TO_ZERO | CL_FP_ROUND_TO_INF |
+                                 CL_FP_INF_NAN | CL_FP_DENORM;
     break;
   case CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:
     result_size = sizeof(cl_uint);
@@ -680,7 +767,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_OPENCL_C_VERSION:
     result_size = sizeof(DEVICE_LANG_VERSION);
-    str = DEVICE_LANG_VERSION;
+    data = DEVICE_LANG_VERSION;
     break;
   case CL_DEVICE_LINKER_AVAILABLE:
     result_size = sizeof(cl_bool);
@@ -688,7 +775,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_BUILT_IN_KERNELS:
     result_size = 1;
-    str = "";
+    data = "";
     break;
   case CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:
     result_size = sizeof(size_t);
@@ -729,7 +816,7 @@ clGetDeviceInfo
     break;
   case CL_DEVICE_SVM_CAPABILITIES:
     result_size = sizeof(cl_device_svm_capabilities);
-    result_data.svm = CL_DEVICE_SVM_COARSE_GRAIN_BUFFER;
+    result_data.svm = 0;
     break;
   case CL_DEVICE_PREFERRED_PLATFORM_ATOMIC_ALIGNMENT:
     result_size = sizeof(cl_uint);
@@ -743,9 +830,84 @@ clGetDeviceInfo
     result_size = sizeof(cl_uint);
     result_data.cluint = 0;
     break;
+  case CL_DEVICE_MAX_NUM_SUB_GROUPS:
+    result_size = sizeof(cl_uint);
+    result_data.cluint = 0;
+    break;
+  case CL_DEVICE_SUB_GROUP_INDEPENDENT_FORWARD_PROGRESS:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
   case CL_DEVICE_SPIR_VERSIONS:
     result_size = sizeof(DEVICE_SPIR_VERSIONS);
-    str = DEVICE_SPIR_VERSIONS;
+    data = DEVICE_SPIR_VERSIONS;
+    break;
+  case CL_DEVICE_NUMERIC_VERSION:
+    result_size = sizeof(cl_version);
+    result_data.cluint = CL_MAKE_VERSION(3, 0, 0);
+    break;
+  case CL_DEVICE_EXTENSIONS_WITH_VERSION:
+    result_size = sizeof(extension_versions);
+    data = extension_versions;
+    break;
+  case CL_DEVICE_IL_VERSION:
+    result_size = 1;
+    data = "";
+    break;
+  case CL_DEVICE_ILS_WITH_VERSION:
+    result_size = sizeof(il_versions);
+    data = il_versions;
+    break;
+  case CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION:
+    result_size = sizeof(built_in_kernel_versions);
+    data = built_in_kernel_versions;
+    break;
+  case CL_DEVICE_ATOMIC_MEMORY_CAPABILITIES:
+    result_size = sizeof(cl_device_atomic_capabilities);
+    result_data.atomiccaps =
+      CL_DEVICE_ATOMIC_ORDER_RELAXED | CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP;
+    break;
+  case CL_DEVICE_ATOMIC_FENCE_CAPABILITIES:
+    result_size = sizeof(cl_device_atomic_capabilities);
+    result_data.atomiccaps = CL_DEVICE_ATOMIC_ORDER_RELAXED |
+                             CL_DEVICE_ATOMIC_ORDER_ACQ_REL |
+                             CL_DEVICE_ATOMIC_SCOPE_WORK_GROUP;
+    break;
+  case CL_DEVICE_NON_UNIFORM_WORK_GROUP_SUPPORT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_TRUE;
+    break;
+  case CL_DEVICE_OPENCL_C_ALL_VERSIONS:
+    result_size = sizeof(opencl_c_all_versions);
+    data = opencl_c_all_versions;
+    break;
+  case CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE:
+    result_size = sizeof(size_t);
+    result_data.sizet = 1;
+    break;
+  case CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
+  case CL_DEVICE_GENERIC_ADDRESS_SPACE_SUPPORT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
+  case CL_DEVICE_OPENCL_C_FEATURES:
+    result_size = sizeof(opencl_c_features);
+    data = opencl_c_features;
+    break;
+  case CL_DEVICE_DEVICE_ENQUEUE_CAPABILITIES:
+    result_size = sizeof(cl_device_device_enqueue_capabilities);
+    result_data.devenqcaps = 0;
+    break;
+  case CL_DEVICE_PIPE_SUPPORT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
+  case CL_DEVICE_LATEST_CONFORMANCE_VERSION_PASSED:
+    result_size = sizeof(DEVICE_CTS_VERSION);
+    data = DEVICE_CTS_VERSION;
     break;
   default:
     ReturnErrorArg(NULL, CL_INVALID_VALUE, param_name);
@@ -760,8 +922,8 @@ clGetDeviceInfo
     }
     else
     {
-      if (str)
-        memcpy(param_value, str, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
       else
         memcpy(param_value, &result_data, result_size);
     }
@@ -770,51 +932,40 @@ clGetDeviceInfo
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clCreateSubDevices
-(
-  cl_device_id                          in_device,
-  const cl_device_partition_property *  properties,
-  cl_uint                               num_entries,
-  cl_device_id *                        out_devices,
-  cl_uint *                             num_devices
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clCreateSubDevices(
+  cl_device_id in_device, const cl_device_partition_property* properties,
+  cl_uint num_entries, cl_device_id* out_devices,
+  cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_VALUE, "Not yet implemented");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainDevice
-(
-  cl_device_id  device
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clRetainDevice(cl_device_id device)
+  CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseDevice
-(
-  cl_device_id  device
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clReleaseDevice(cl_device_id device)
+  CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_context CL_API_CALL
-clCreateContext
-(
-  const cl_context_properties *  properties,
-  cl_uint                        num_devices,
-  const cl_device_id *           devices,
-  void (CL_CALLBACK *            pfn_notify)(const char *,
-                                             const void *,
-                                             size_t,
-                                             void *),
-  void *                         user_data,
-  cl_int *                       errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_context CL_API_CALL clCreateContext(
+  const cl_context_properties* properties, cl_uint num_devices,
+  const cl_device_id* devices,
+  void(CL_CALLBACK* pfn_notify)(const char*, const void*, size_t, void*),
+  void* user_data, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (num_devices != 1)
   {
@@ -855,7 +1006,7 @@ clCreateContext
     {
       num++;
     }
-    size_t sz = (num+1)*sizeof(cl_context_properties);
+    size_t sz = (num + 1) * sizeof(cl_context_properties);
     context->szProperties = sz;
     context->properties = (cl_context_properties*)malloc(sz);
     memcpy(context->properties, properties, sz);
@@ -865,19 +1016,13 @@ clCreateContext
   return context;
 }
 
-CL_API_ENTRY cl_context CL_API_CALL
-clCreateContextFromType
-(
-  const cl_context_properties *  properties,
-  cl_device_type                 device_type,
-  void (CL_CALLBACK *            pfn_notify)(const char *,
-                                             const void *,
-                                             size_t,
-                                             void *),
-  void *                         user_data,
-  cl_int *                       errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_context CL_API_CALL clCreateContextFromType(
+  const cl_context_properties* properties, cl_device_type device_type,
+  void(CL_CALLBACK* pfn_notify)(const char*, const void*, size_t, void*),
+  void* user_data, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!pfn_notify && user_data)
   {
@@ -908,7 +1053,7 @@ clCreateContextFromType
     {
       num++;
     }
-    size_t sz = (num+1)*sizeof(cl_context_properties);
+    size_t sz = (num + 1) * sizeof(cl_context_properties);
     context->szProperties = sz;
     context->properties = (cl_context_properties*)malloc(sz);
     memcpy(context->properties, properties, sz);
@@ -918,12 +1063,11 @@ clCreateContextFromType
   return context;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainContext
-(
-  cl_context  context
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clRetainContext(cl_context context)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!context)
   {
     ReturnErrorArg(NULL, CL_INVALID_CONTEXT, context);
@@ -934,12 +1078,11 @@ clRetainContext
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseContext
-(
-  cl_context  context
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clReleaseContext(cl_context context)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!context)
   {
     ReturnErrorArg(NULL, CL_INVALID_CONTEXT, context);
@@ -947,6 +1090,19 @@ clReleaseContext
 
   if (--context->refCount == 0)
   {
+    if (context->properties)
+    {
+      free(context->properties);
+    }
+
+    while (!context->callbacks.empty())
+    {
+      pair<void(CL_CALLBACK*)(cl_context, void*), void*> callback =
+        context->callbacks.top();
+      callback.first(context, callback.second);
+      context->callbacks.pop();
+    }
+
     delete context->context;
     delete context;
   }
@@ -954,16 +1110,12 @@ clReleaseContext
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetContextInfo
-(
-  cl_context       context,
-  cl_context_info  param_name,
-  size_t           param_value_size,
-  void *           param_value,
-  size_t *         param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetContextInfo(
+  cl_context context, cl_context_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check context is valid
   if (!context)
   {
@@ -1022,14 +1174,12 @@ clGetContextInfo
 }
 
 CL_API_ENTRY cl_command_queue CL_API_CALL
-clCreateCommandQueue
-(
-  cl_context                   context,
-  cl_device_id                 device,
-  cl_command_queue_properties  properties,
-  cl_int *                     errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+clCreateCommandQueue(cl_context context, cl_device_id device,
+                     cl_command_queue_properties properties,
+                     cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -1041,17 +1191,12 @@ clCreateCommandQueue
     SetErrorArg(context, CL_INVALID_DEVICE, device);
     return NULL;
   }
-  if (properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE)
-  {
-    SetErrorInfo(context, CL_INVALID_QUEUE_PROPERTIES,
-                 "Out-of-order command queues not supported");
-    return NULL;
-  }
 
   // Create command-queue object
+  bool out_of_order = properties & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
   cl_command_queue queue;
   queue = new _cl_command_queue;
-  queue->queue = new oclgrind::Queue(context->context);
+  queue->queue = new oclgrind::Queue(context->context, out_of_order);
   queue->dispatch = m_dispatchTable;
   queue->properties = properties;
   queue->context = context;
@@ -1063,24 +1208,20 @@ clCreateCommandQueue
   return queue;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetCommandQueueProperty
-(
-  cl_command_queue               command_queue,
-  cl_command_queue_properties    properties,
-  cl_bool                        enable,
-  cl_command_queue_properties *  old_properties
-)
+CL_API_ENTRY cl_int CL_API_CALL clSetCommandQueueProperty(
+  cl_command_queue command_queue, cl_command_queue_properties properties,
+  cl_bool enable, cl_command_queue_properties* old_properties)
 {
+  REGISTER_API;
+
   return CL_SUCCESS;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clRetainCommandQueue
-(
-  cl_command_queue  command_queue
-) CL_API_SUFFIX__VERSION_1_0
+clRetainCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -1093,11 +1234,10 @@ clRetainCommandQueue
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clReleaseCommandQueue
-(
-  cl_command_queue  command_queue
-) CL_API_SUFFIX__VERSION_1_0
+clReleaseCommandQueue(cl_command_queue command_queue) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!command_queue)
   {
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
@@ -1117,16 +1257,13 @@ clReleaseCommandQueue
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetCommandQueueInfo
-(
-  cl_command_queue       command_queue,
-  cl_command_queue_info  param_name,
-  size_t                 param_value_size,
-  void *                 param_value,
-  size_t *               param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetCommandQueueInfo(
+  cl_command_queue command_queue, cl_command_queue_info param_name,
+  size_t param_value_size, void* param_value,
+  size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check queue is valid
   if (!command_queue)
   {
@@ -1142,7 +1279,9 @@ clGetCommandQueueInfo
     cl_context context;
     cl_device_id cldevid;
     cl_command_queue_properties properties;
+    cl_command_queue queue;
   } result_data;
+  const void* data = nullptr;
 
   switch (param_name)
   {
@@ -1162,6 +1301,18 @@ clGetCommandQueueInfo
     result_size = sizeof(cl_command_queue_properties);
     result_data.properties = command_queue->properties;
     break;
+  case CL_QUEUE_PROPERTIES_ARRAY:
+    result_size =
+      command_queue->properties_array.size() * sizeof(cl_queue_properties);
+    data = command_queue->properties_array.data();
+    break;
+  case CL_QUEUE_SIZE:
+    ReturnErrorArg(command_queue->context, CL_INVALID_COMMAND_QUEUE,
+                   param_name);
+  case CL_QUEUE_DEVICE_DEFAULT:
+    result_size = sizeof(cl_command_queue);
+    result_data.queue = nullptr;
+    break;
   default:
     ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, param_name);
   }
@@ -1176,22 +1327,20 @@ clGetCommandQueueInfo
     }
     else
     {
-      memcpy(param_value, &result_data, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateBuffer
-(
-  cl_context    context,
-  cl_mem_flags  flags,
-  size_t        size,
-  void *        host_ptr,
-  cl_int *      errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+namespace
+{
+cl_mem createBuffer(cl_context context, cl_mem_flags flags, size_t size,
+                    void* host_ptr, cl_int* errcode_ret)
 {
   // Check parameters
   if (!context)
@@ -1205,8 +1354,7 @@ clCreateBuffer
     return NULL;
   }
   if ((host_ptr == NULL) ==
-      ((flags & CL_MEM_COPY_HOST_PTR) ||
-        flags & CL_MEM_USE_HOST_PTR))
+      ((flags & CL_MEM_COPY_HOST_PTR) || flags & CL_MEM_USE_HOST_PTR))
   {
     SetErrorInfo(context, CL_INVALID_HOST_PTR,
                  "host_ptr NULL but CL_MEM_{COPY,USE}_HOST_PTR used");
@@ -1222,7 +1370,7 @@ clCreateBuffer
   }
 
   // Create memory object
-  oclgrind::Memory *globalMemory = context->context->getGlobalMemory();
+  oclgrind::Memory* globalMemory = context->context->getGlobalMemory();
   cl_mem mem = new _cl_mem;
   mem->dispatch = m_dispatchTable;
   mem->context = context;
@@ -1259,17 +1407,45 @@ clCreateBuffer
   SetError(context, CL_SUCCESS);
   return mem;
 }
+} // namespace
 
 CL_API_ENTRY cl_mem CL_API_CALL
-clCreateSubBuffer
-(
-  cl_mem                 buffer,
-  cl_mem_flags           flags,
-  cl_buffer_create_type  buffer_create_type,
-  const void *           buffer_create_info,
-  cl_int *               errcode_ret
-) CL_API_SUFFIX__VERSION_1_1
+clCreateBuffer(cl_context context, cl_mem_flags flags, size_t size,
+               void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
+  return createBuffer(context, flags, size, host_ptr, errcode_ret);
+}
+
+CL_API_ENTRY cl_mem CL_API_CALL clCreateBufferWithProperties(
+  cl_context context, const cl_mem_properties* properties, cl_mem_flags flags,
+  size_t size, void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
+{
+  REGISTER_API;
+
+  // Check properties (none are supported)
+  if (properties && properties[0] != 0)
+  {
+    SetErrorInfo(context, CL_INVALID_PROPERTY, "Unsupported property");
+  }
+
+  cl_mem buffer = createBuffer(context, flags, size, host_ptr, errcode_ret);
+  if (buffer && properties)
+  {
+    buffer->properties.assign(properties, properties + 1);
+  }
+
+  return buffer;
+}
+
+CL_API_ENTRY cl_mem CL_API_CALL clCreateSubBuffer(
+  cl_mem buffer, cl_mem_flags flags, cl_buffer_create_type buffer_create_type,
+  const void* buffer_create_info,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_1
+{
+  REGISTER_API;
+
   // Check parameters
   if (!buffer)
   {
@@ -1308,12 +1484,12 @@ clCreateSubBuffer
 
   // Inherit flags from parent where appropriate
   cl_mem_flags memFlags = 0;
-  cl_mem_flags rwFlags = CL_MEM_READ_ONLY | CL_MEM_READ_WRITE |
-                         CL_MEM_WRITE_ONLY;
-  cl_mem_flags hostAccess = CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY |
-                            CL_MEM_HOST_WRITE_ONLY;
-  cl_mem_flags hostPtr = CL_MEM_USE_HOST_PTR | CL_MEM_ALLOC_HOST_PTR |
-                         CL_MEM_COPY_HOST_PTR;
+  cl_mem_flags rwFlags =
+    CL_MEM_READ_ONLY | CL_MEM_READ_WRITE | CL_MEM_WRITE_ONLY;
+  cl_mem_flags hostAccess =
+    CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY | CL_MEM_HOST_WRITE_ONLY;
+  cl_mem_flags hostPtr =
+    CL_MEM_USE_HOST_PTR | CL_MEM_ALLOC_HOST_PTR | CL_MEM_COPY_HOST_PTR;
   if ((flags & rwFlags) == 0)
   {
     memFlags |= buffer->flags & rwFlags;
@@ -1350,6 +1526,9 @@ clCreateSubBuffer
   return mem;
 }
 
+namespace
+{
+
 // Utility function for getting number of dimensions in image
 size_t getNumDimensions(cl_mem_object_type type)
 {
@@ -1370,7 +1549,7 @@ size_t getNumDimensions(cl_mem_object_type type)
 }
 
 // Utility function for getting number of channels in an image
-size_t getNumChannels(const cl_image_format *format)
+size_t getNumChannels(const cl_image_format* format)
 {
   switch (format->image_channel_order)
   {
@@ -1397,7 +1576,7 @@ size_t getNumChannels(const cl_image_format *format)
 }
 
 // Utility function for computing an image format's pixel size (in bytes)
-size_t getPixelSize(const cl_image_format *format)
+size_t getPixelSize(const cl_image_format* format)
 {
   // Get number of channels
   size_t numChannels = getNumChannels(format);
@@ -1415,11 +1594,11 @@ size_t getPixelSize(const cl_image_format *format)
   case CL_SIGNED_INT16:
   case CL_UNSIGNED_INT16:
   case CL_HALF_FLOAT:
-    return 2*numChannels;
+    return 2 * numChannels;
   case CL_SIGNED_INT32:
   case CL_UNSIGNED_INT32:
   case CL_FLOAT:
-    return 4*numChannels;
+    return 4 * numChannels;
   case CL_UNORM_SHORT_565:
   case CL_UNORM_SHORT_555:
     return 2;
@@ -1440,16 +1619,10 @@ bool isImageArray(cl_mem_object_type type)
   return false;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateImage
-(
-  cl_context               context,
-  cl_mem_flags             flags,
-  const cl_image_format *  image_format,
-  const cl_image_desc *    image_desc,
-  void *                   host_ptr,
-  cl_int *                 errcode_ret
-) CL_API_SUFFIX__VERSION_1_2
+cl_mem createImage(cl_context context, cl_mem_flags flags,
+                   const cl_image_format* image_format,
+                   const cl_image_desc* image_desc, void* host_ptr,
+                   cl_int* errcode_ret)
 {
   // Check parameters
   if (!context)
@@ -1512,11 +1685,18 @@ clCreateImage
     mem = image_desc->buffer;
     clRetainMemObject(image_desc->buffer);
   }
+  else if (image_desc->image_type == CL_MEM_OBJECT_IMAGE2D &&
+           image_desc->mem_object)
+  {
+    SetErrorInfo(context, CL_INVALID_OPERATION,
+                 "Creating 2D images from buffers is not supported");
+    return nullptr;
+  }
   else
   {
     // Create buffer
     // TODO: Use pitches
-    mem = clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
+    mem = createBuffer(context, flags, size, host_ptr, errcode_ret);
     if (!mem)
     {
       return NULL;
@@ -1524,7 +1704,7 @@ clCreateImage
   }
 
   // Create image object wrapper
-  cl_image *image = new cl_image;
+  cl_image* image = new cl_image;
   *(cl_mem)image = *mem;
   image->isImage = true;
   image->format = *image_format;
@@ -1542,78 +1722,90 @@ clCreateImage
   SetError(context, CL_SUCCESS);
   return image;
 }
+} // namespace
 
-
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateImage2D
-(
-  cl_context               context,
-  cl_mem_flags             flags,
-  const cl_image_format *  image_format,
-  size_t                   image_width,
-  size_t                   image_height,
-  size_t                   image_row_pitch,
-  void *                   host_ptr,
-  cl_int *                 errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateImage(
+  cl_context context, cl_mem_flags flags, const cl_image_format* image_format,
+  const cl_image_desc* image_desc, void* host_ptr,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
-  cl_image_desc desc =
-  {
-    CL_MEM_OBJECT_IMAGE2D,
-    image_width,
-    image_height,
-    1,
-    1,
-    image_row_pitch,
-    0,
-    0,
-    0,
-    {NULL}
-  };
-  return clCreateImage(context, flags,
-                       image_format, &desc,
-                       host_ptr, errcode_ret);
+  REGISTER_API;
+
+  return createImage(context, flags, image_format, image_desc, host_ptr,
+                     errcode_ret);
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateImage3D
-(
-  cl_context               context,
-  cl_mem_flags             flags,
-  const cl_image_format *  image_format,
-  size_t                   image_width,
-  size_t                   image_height,
-  size_t                   image_depth,
-  size_t                   image_row_pitch,
-  size_t                   image_slice_pitch,
-  void *                   host_ptr,
-  cl_int *                 errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateImageWithProperties(
+  cl_context context, const cl_mem_properties* properties, cl_mem_flags flags,
+  const cl_image_format* image_format, const cl_image_desc* image_desc,
+  void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_3_0
 {
-  cl_image_desc desc =
+  REGISTER_API;
+
+  // Check properties (none are supported)
+  if (properties && properties[0] != 0)
   {
-    CL_MEM_OBJECT_IMAGE3D,
-    image_width,
-    image_height,
-    image_depth,
-    1,
-    image_row_pitch,
-    image_slice_pitch,
-    0,
-    0,
-    {NULL}
-  };
-  return clCreateImage(context, flags,
-                       image_format, &desc,
-                       host_ptr, errcode_ret);
+    SetErrorInfo(context, CL_INVALID_PROPERTY, "Unsupported property");
+  }
+
+  cl_mem image = createImage(context, flags, image_format, image_desc, host_ptr,
+                             errcode_ret);
+  if (image && properties)
+  {
+    image->properties.assign(properties, properties + 1);
+  }
+
+  return image;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainMemObject
-(
-  cl_mem  memobj
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateImage2D(
+  cl_context context, cl_mem_flags flags, const cl_image_format* image_format,
+  size_t image_width, size_t image_height, size_t image_row_pitch,
+  void* host_ptr, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
+  cl_image_desc desc = {CL_MEM_OBJECT_IMAGE2D,
+                        image_width,
+                        image_height,
+                        1,
+                        1,
+                        image_row_pitch,
+                        0,
+                        0,
+                        0,
+                        {NULL}};
+  return createImage(context, flags, image_format, &desc, host_ptr,
+                     errcode_ret);
+}
+
+CL_API_ENTRY cl_mem CL_API_CALL clCreateImage3D(
+  cl_context context, cl_mem_flags flags, const cl_image_format* image_format,
+  size_t image_width, size_t image_height, size_t image_depth,
+  size_t image_row_pitch, size_t image_slice_pitch, void* host_ptr,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
+{
+  REGISTER_API;
+
+  cl_image_desc desc = {CL_MEM_OBJECT_IMAGE3D,
+                        image_width,
+                        image_height,
+                        image_depth,
+                        1,
+                        image_row_pitch,
+                        image_slice_pitch,
+                        0,
+                        0,
+                        {NULL}};
+  return createImage(context, flags, image_format, &desc, host_ptr,
+                     errcode_ret);
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clRetainMemObject(cl_mem memobj)
+  CL_API_SUFFIX__VERSION_1_0
+{
+  REGISTER_API;
+
   if (!memobj)
   {
     ReturnErrorArg(NULL, CL_INVALID_MEM_OBJECT, memobj);
@@ -1623,12 +1815,11 @@ clRetainMemObject
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseMemObject
-(
-  cl_mem  memobj
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clReleaseMemObject(cl_mem memobj)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!memobj)
   {
     ReturnErrorArg(NULL, CL_INVALID_MEM_OBJECT, memobj);
@@ -1656,7 +1847,7 @@ clReleaseMemObject
 
       while (!memobj->callbacks.empty())
       {
-        pair<void (CL_CALLBACK *)(cl_mem, void *), void*> callback =
+        pair<void(CL_CALLBACK*)(cl_mem, void*), void*> callback =
           memobj->callbacks.top();
         callback.first(memobj, callback.second);
         memobj->callbacks.pop();
@@ -1669,17 +1860,13 @@ clReleaseMemObject
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetSupportedImageFormats
-(
-  cl_context          context,
-  cl_mem_flags        flags,
-  cl_mem_object_type  image_type,
-  cl_uint             num_entries,
-  cl_image_format *   image_formats,
-  cl_uint *           num_image_formats
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetSupportedImageFormats(
+  cl_context context, cl_mem_flags flags, cl_mem_object_type image_type,
+  cl_uint num_entries, cl_image_format* image_formats,
+  cl_uint* num_image_formats) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -1694,65 +1881,52 @@ clGetSupportedImageFormats
   // TODO: Add support for packed image types
 
   // Channel orders
-  const cl_channel_order ordersAll[] =
-  {
-    CL_R, CL_Rx, CL_A,
-    CL_RG, CL_RGx, CL_RA,
-    CL_RGBA,
+  const cl_channel_order ordersAll[] = {
+    CL_R, CL_Rx, CL_A, CL_RG, CL_RGx, CL_RA, CL_RGBA,
   };
   const cl_channel_order ordersNormalized[] = {CL_INTENSITY, CL_LUMINANCE};
   const cl_channel_order ordersByte[] = {CL_ARGB, CL_BGRA};
   const cl_channel_order ordersPacked[] = {CL_RGB, CL_RGBx};
-  const cl_channel_order *orders[] =
-  {
+  const cl_channel_order* orders[] = {
     ordersAll, ordersNormalized, ordersByte //, ordersPacked
   };
-  const size_t numOrders[] =
-  {
-    sizeof(ordersAll)        / sizeof(cl_channel_order),
+  const size_t numOrders[] = {
+    sizeof(ordersAll) / sizeof(cl_channel_order),
     sizeof(ordersNormalized) / sizeof(cl_channel_order),
-    sizeof(ordersByte)       / sizeof(cl_channel_order),
-    sizeof(ordersPacked)     / sizeof(cl_channel_order),
+    sizeof(ordersByte) / sizeof(cl_channel_order),
+    sizeof(ordersPacked) / sizeof(cl_channel_order),
   };
 
   // Channel types
-  const cl_channel_type typesAll[] =
-  {
-    CL_SNORM_INT8, CL_SNORM_INT16,
-    CL_UNORM_INT8, CL_UNORM_INT16,
-    CL_SIGNED_INT8, CL_SIGNED_INT16, CL_SIGNED_INT32,
-    CL_UNSIGNED_INT8, CL_UNSIGNED_INT16, CL_UNSIGNED_INT32,
-    CL_FLOAT, CL_HALF_FLOAT,
+  const cl_channel_type typesAll[] = {
+    CL_SNORM_INT8,     CL_SNORM_INT16,    CL_UNORM_INT8,   CL_UNORM_INT16,
+    CL_SIGNED_INT8,    CL_SIGNED_INT16,   CL_SIGNED_INT32, CL_UNSIGNED_INT8,
+    CL_UNSIGNED_INT16, CL_UNSIGNED_INT32, CL_FLOAT,        CL_HALF_FLOAT,
   };
-  const cl_channel_type typesNormalized[] =
-  {
-    CL_SNORM_INT8, CL_SNORM_INT16,
-    CL_UNORM_INT8, CL_UNORM_INT16,
-    CL_FLOAT, CL_HALF_FLOAT,
+  const cl_channel_type typesNormalized[] = {
+    CL_SNORM_INT8,  CL_SNORM_INT16, CL_UNORM_INT8,
+    CL_UNORM_INT16, CL_FLOAT,       CL_HALF_FLOAT,
   };
-  const cl_channel_type typesByte[] =
-  {
-    CL_SNORM_INT8, CL_UNORM_INT8,
-    CL_SIGNED_INT8, CL_UNSIGNED_INT8,
+  const cl_channel_type typesByte[] = {
+    CL_SNORM_INT8,
+    CL_UNORM_INT8,
+    CL_SIGNED_INT8,
+    CL_UNSIGNED_INT8,
   };
-  const cl_channel_type typesPacked[] =
-  {
-    CL_UNORM_SHORT_565, CL_UNORM_SHORT_555, CL_UNORM_INT_101010
-  };
-  const cl_channel_type *types[] =
-  {
+  const cl_channel_type typesPacked[] = {CL_UNORM_SHORT_565, CL_UNORM_SHORT_555,
+                                         CL_UNORM_INT_101010};
+  const cl_channel_type* types[] = {
     typesAll, typesNormalized, typesByte //, typesPacked,
   };
-  const size_t numTypes[] =
-  {
-    sizeof(typesAll)        / sizeof(cl_channel_order),
+  const size_t numTypes[] = {
+    sizeof(typesAll) / sizeof(cl_channel_order),
     sizeof(typesNormalized) / sizeof(cl_channel_order),
-    sizeof(typesByte)       / sizeof(cl_channel_order),
-    sizeof(typesPacked)     / sizeof(cl_channel_order),
+    sizeof(typesByte) / sizeof(cl_channel_order),
+    sizeof(typesPacked) / sizeof(cl_channel_order),
   };
 
   // Calculate total number of formats
-  size_t numCatagories = sizeof(orders)/sizeof(cl_channel_order*);
+  size_t numCatagories = sizeof(orders) / sizeof(cl_channel_order*);
   size_t numFormats = 0;
   for (size_t c = 0; c < numCatagories; c++)
   {
@@ -1788,16 +1962,12 @@ clGetSupportedImageFormats
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetMemObjectInfo
-(
-  cl_mem       memobj,
-  cl_mem_info  param_name,
-  size_t       param_value_size,
-  void *       param_value,
-  size_t *     param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetMemObjectInfo(
+  cl_mem memobj, cl_mem_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check mem object is valid
   if (!memobj)
   {
@@ -1814,15 +1984,18 @@ clGetMemObjectInfo
     cl_mem clmem;
     size_t sizet;
     cl_uint cluint;
+    cl_bool clbool;
     void* ptr;
   } result_data;
+  const void* data = nullptr;
 
   switch (param_name)
   {
   case CL_MEM_TYPE:
     result_size = sizeof(cl_mem_object_type);
-    result_data.clmemobjty = memobj->isImage ?
-      ((cl_image*)memobj)->desc.image_type : CL_MEM_OBJECT_BUFFER;
+    result_data.clmemobjty = memobj->isImage
+                               ? ((cl_image*)memobj)->desc.image_type
+                               : CL_MEM_OBJECT_BUFFER;
     break;
   case CL_MEM_FLAGS:
     result_size = sizeof(cl_mem_flags);
@@ -1856,6 +2029,14 @@ clGetMemObjectInfo
     result_size = sizeof(size_t);
     result_data.sizet = memobj->offset;
     break;
+  case CL_MEM_USES_SVM_POINTER:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
+  case CL_MEM_PROPERTIES:
+    result_size = memobj->properties.size() * sizeof(cl_mem_properties);
+    data = memobj->properties.data();
+    break;
   default:
     ReturnErrorArg(memobj->context, CL_INVALID_VALUE, param_name);
   }
@@ -1870,29 +2051,28 @@ clGetMemObjectInfo
     }
     else
     {
-      memcpy(param_value, &result_data, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetImageInfo
-(
-  cl_mem         image,
-  cl_image_info  param_name,
-  size_t         param_value_size,
-  void *         param_value,
-  size_t *       param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetImageInfo(
+  cl_mem image, cl_image_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check mem object is valid
   if (!image)
   {
     ReturnErrorArg(NULL, CL_INVALID_MEM_OBJECT, image);
   }
-  cl_image *img = (cl_image*)image;
+  cl_image* img = (cl_image*)image;
 
   size_t dummy = 0;
   size_t& result_size = param_value_size_ret ? *param_value_size_ret : dummy;
@@ -1973,14 +2153,12 @@ clGetImageInfo
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetMemObjectDestructorCallback
-(
-  cl_mem               memobj,
-  void (CL_CALLBACK *  pfn_notify)(cl_mem, void*),
-  void *               user_data
-) CL_API_SUFFIX__VERSION_1_1
+CL_API_ENTRY cl_int CL_API_CALL clSetMemObjectDestructorCallback(
+  cl_mem memobj, void(CL_CALLBACK* pfn_notify)(cl_mem, void*),
+  void* user_data) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!memobj)
   {
@@ -1997,15 +2175,12 @@ clSetMemObjectDestructorCallback
 }
 
 CL_API_ENTRY cl_sampler CL_API_CALL
-clCreateSampler
-(
-  cl_context          context,
-  cl_bool             normalized_coords,
-  cl_addressing_mode  addressing_mode,
-  cl_filter_mode      filter_mode,
-  cl_int *            errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+clCreateSampler(cl_context context, cl_bool normalized_coords,
+                cl_addressing_mode addressing_mode, cl_filter_mode filter_mode,
+                cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -2023,36 +2198,36 @@ clCreateSampler
 
   switch (addressing_mode)
   {
-    case CL_ADDRESS_NONE:
-      break;
-    case CL_ADDRESS_CLAMP_TO_EDGE:
-      bitfield |= CLK_ADDRESS_CLAMP_TO_EDGE;
-      break;
-    case CL_ADDRESS_CLAMP:
-      bitfield |= CLK_ADDRESS_CLAMP;
-      break;
-    case CL_ADDRESS_REPEAT:
-      bitfield |= CLK_ADDRESS_REPEAT;
-      break;
-    case CL_ADDRESS_MIRRORED_REPEAT:
-      bitfield |= CLK_ADDRESS_MIRRORED_REPEAT;
-      break;
-    default:
-      SetErrorArg(context, CL_INVALID_VALUE, addressing_mode);
-      return NULL;
+  case CL_ADDRESS_NONE:
+    break;
+  case CL_ADDRESS_CLAMP_TO_EDGE:
+    bitfield |= CLK_ADDRESS_CLAMP_TO_EDGE;
+    break;
+  case CL_ADDRESS_CLAMP:
+    bitfield |= CLK_ADDRESS_CLAMP;
+    break;
+  case CL_ADDRESS_REPEAT:
+    bitfield |= CLK_ADDRESS_REPEAT;
+    break;
+  case CL_ADDRESS_MIRRORED_REPEAT:
+    bitfield |= CLK_ADDRESS_MIRRORED_REPEAT;
+    break;
+  default:
+    SetErrorArg(context, CL_INVALID_VALUE, addressing_mode);
+    return NULL;
   }
 
   switch (filter_mode)
   {
-    case CL_FILTER_NEAREST:
-      bitfield |= CLK_FILTER_NEAREST;
-      break;
-    case CL_FILTER_LINEAR:
-      bitfield |= CLK_FILTER_LINEAR;
-      break;
-    default:
-      SetErrorArg(context, CL_INVALID_VALUE, filter_mode);
-      return NULL;
+  case CL_FILTER_NEAREST:
+    bitfield |= CLK_FILTER_NEAREST;
+    break;
+  case CL_FILTER_LINEAR:
+    bitfield |= CLK_FILTER_LINEAR;
+    break;
+  default:
+    SetErrorArg(context, CL_INVALID_VALUE, filter_mode);
+    return NULL;
   }
 
   // Create sampler
@@ -2063,17 +2238,17 @@ clCreateSampler
   sampler->addressMode = addressing_mode;
   sampler->filterMode = filter_mode;
   sampler->sampler = bitfield;
+  sampler->refCount = 1;
 
   SetError(context, CL_SUCCESS);
   return sampler;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainSampler
-(
-  cl_sampler  sampler
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clRetainSampler(cl_sampler sampler)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!sampler)
   {
     ReturnErrorArg(NULL, CL_INVALID_SAMPLER, sampler);
@@ -2084,12 +2259,11 @@ clRetainSampler
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseSampler
-(
-  cl_sampler  sampler
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clReleaseSampler(cl_sampler sampler)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!sampler)
   {
     ReturnErrorArg(NULL, CL_INVALID_SAMPLER, sampler);
@@ -2103,16 +2277,12 @@ clReleaseSampler
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetSamplerInfo
-(
-  cl_sampler       sampler,
-  cl_sampler_info  param_name,
-  size_t           param_value_size,
-  void *           param_value,
-  size_t *         param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetSamplerInfo(
+  cl_sampler sampler, cl_sampler_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check sampler is valid
   if (!sampler)
   {
@@ -2129,6 +2299,7 @@ clGetSamplerInfo
     cl_addressing_mode claddrmode;
     cl_filter_mode clfiltmode;
   } result_data;
+  const void* data = nullptr;
 
   switch (param_name)
   {
@@ -2152,6 +2323,10 @@ clGetSamplerInfo
     result_size = sizeof(cl_filter_mode);
     result_data.clfiltmode = sampler->filterMode;
     break;
+  case CL_SAMPLER_PROPERTIES:
+    result_size = sampler->properties.size() * sizeof(cl_sampler_properties);
+    data = sampler->properties.data();
+    break;
   default:
     ReturnErrorArg(sampler->context, CL_INVALID_VALUE, param_name);
   }
@@ -2166,23 +2341,22 @@ clGetSamplerInfo
     }
     else
     {
-      memcpy(param_value, &result_data, result_size);
+      if (data)
+        memcpy(param_value, data, result_size);
+      else
+        memcpy(param_value, &result_data, result_size);
     }
   }
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_program CL_API_CALL
-clCreateProgramWithSource
-(
-  cl_context      context,
-  cl_uint         count,
-  const char **   strings,
-  const size_t *  lengths,
-  cl_int *        errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_program CL_API_CALL clCreateProgramWithSource(
+  cl_context context, cl_uint count, const char** strings,
+  const size_t* lengths, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -2227,18 +2401,13 @@ clCreateProgramWithSource
   return prog;
 }
 
-CL_API_ENTRY cl_program CL_API_CALL
-clCreateProgramWithBinary
-(
-  cl_context              context,
-  cl_uint                 num_devices,
-  const cl_device_id *    device_list,
-  const size_t *          lengths,
-  const unsigned char **  binaries,
-  cl_int *                binary_status,
-  cl_int *                errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_program CL_API_CALL clCreateProgramWithBinary(
+  cl_context context, cl_uint num_devices, const cl_device_id* device_list,
+  const size_t* lengths, const unsigned char** binaries, cl_int* binary_status,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -2294,16 +2463,12 @@ clCreateProgramWithBinary
   return prog;
 }
 
-CL_API_ENTRY cl_program CL_API_CALL
-clCreateProgramWithBuiltInKernels
-(
-  cl_context            context,
-  cl_uint               num_devices,
-  const cl_device_id *  device_list,
-  const char *          kernel_names,
-  cl_int *              errcode_ret
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_program CL_API_CALL clCreateProgramWithBuiltInKernels(
+  cl_context context, cl_uint num_devices, const cl_device_id* device_list,
+  const char* kernel_names, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   if (!context)
   {
     SetError(NULL, CL_INVALID_CONTEXT);
@@ -2314,12 +2479,11 @@ clCreateProgramWithBuiltInKernels
   return NULL;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainProgram
-(
-  cl_program  program
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clRetainProgram(cl_program program)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!program)
   {
     ReturnErrorArg(NULL, CL_INVALID_PROGRAM, program);
@@ -2329,12 +2493,11 @@ clRetainProgram
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseProgram
-(
-  cl_program  program
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clReleaseProgram(cl_program program)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!program)
   {
     ReturnErrorArg(NULL, CL_INVALID_PROGRAM, program);
@@ -2350,17 +2513,13 @@ clReleaseProgram
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clBuildProgram
-(
-  cl_program            program,
-  cl_uint               num_devices,
-  const cl_device_id *  device_list,
-  const char *          options,
-  void (CL_CALLBACK *   pfn_notify)(cl_program, void*),
-  void *                user_data
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clBuildProgram(
+  cl_program program, cl_uint num_devices, const cl_device_id* device_list,
+  const char* options, void(CL_CALLBACK* pfn_notify)(cl_program, void*),
+  void* user_data) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!program || !program->program)
   {
@@ -2387,10 +2546,7 @@ clBuildProgram
   }
 
   // Build program
-  if (!program->program->build(options))
-  {
-    ReturnError(program->context, CL_BUILD_PROGRAM_FAILURE);
-  }
+  bool success = program->program->build(options);
 
   // Fire callback
   if (pfn_notify)
@@ -2398,32 +2554,31 @@ clBuildProgram
     pfn_notify(program, user_data);
   }
 
+  if (!success)
+  {
+    ReturnError(program->context, CL_BUILD_PROGRAM_FAILURE);
+  }
+
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clUnloadCompiler
-(
-  void
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clUnloadCompiler(void)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clCompileProgram
-(
-  cl_program            program,
-  cl_uint               num_devices,
-  const cl_device_id *  device_list,
-  const char *          options,
-  cl_uint               num_input_headers,
-  const cl_program *    input_headers,
-  const char **         header_include_names,
-  void (CL_CALLBACK *   pfn_notify)(cl_program, void*),
-  void *                user_data
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clCompileProgram(
+  cl_program program, cl_uint num_devices, const cl_device_id* device_list,
+  const char* options, cl_uint num_input_headers,
+  const cl_program* input_headers, const char** header_include_names,
+  void(CL_CALLBACK* pfn_notify)(cl_program, void*),
+  void* user_data) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!program)
   {
@@ -2453,8 +2608,8 @@ clCompileProgram
   list<oclgrind::Program::Header> headers;
   for (unsigned i = 0; i < num_input_headers; i++)
   {
-    headers.push_back(make_pair(header_include_names[i],
-                                input_headers[i]->program));
+    headers.push_back(
+      make_pair(header_include_names[i], input_headers[i]->program));
   }
 
   // Build program
@@ -2473,19 +2628,14 @@ clCompileProgram
 }
 
 CL_API_ENTRY cl_program CL_API_CALL
-clLinkProgram
-(
-  cl_context            context,
-  cl_uint               num_devices,
-  const cl_device_id *  device_list,
-  const char *          options,
-  cl_uint               num_input_programs,
-  const cl_program *    input_programs,
-  void (CL_CALLBACK *   pfn_notify)(cl_program, void*),
-  void *                user_data,
-  cl_int *              errcode_ret
-) CL_API_SUFFIX__VERSION_1_2
+clLinkProgram(cl_context context, cl_uint num_devices,
+              const cl_device_id* device_list, const char* options,
+              cl_uint num_input_programs, const cl_program* input_programs,
+              void(CL_CALLBACK* pfn_notify)(cl_program, void*), void* user_data,
+              cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -2526,8 +2676,8 @@ clLinkProgram
   // Create program object
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
-  prog->program = oclgrind::Program::createFromPrograms(context->context,
-                                                        programs);
+  prog->program =
+    oclgrind::Program::createFromPrograms(context->context, programs);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
@@ -2550,24 +2700,17 @@ clLinkProgram
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clUnloadPlatformCompiler
-(
-  cl_platform_id  platform
-) CL_API_SUFFIX__VERSION_1_2
+clUnloadPlatformCompiler(cl_platform_id platform) CL_API_SUFFIX__VERSION_1_2
 {
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetProgramInfo
-(
-  cl_program       program,
-  cl_program_info  param_name,
-  size_t           param_value_size,
-  void *           param_value,
-  size_t *         param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetProgramInfo(
+  cl_program program, cl_program_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check program is valid
   if (!program)
   {
@@ -2589,6 +2732,7 @@ clGetProgramInfo
     cl_device_id device;
     cl_context context;
     size_t sizet;
+    cl_bool clbool;
   } result_data;
   const char* str = 0;
   string kernelNames;
@@ -2615,6 +2759,9 @@ clGetProgramInfo
     str = program->program->getSource().c_str();
     result_size = strlen(str) + 1;
     break;
+  case CL_PROGRAM_IL:
+    result_size = 0;
+    break;
   case CL_PROGRAM_BINARY_SIZES:
     result_size = sizeof(size_t);
     result_data.sizet = program->program->getBinarySize();
@@ -2636,12 +2783,17 @@ clGetProgramInfo
     }
     if (!kernelNames.empty())
     {
-      kernelNames.erase(kernelNames.length()-1);
+      kernelNames.erase(kernelNames.length() - 1);
     }
     str = kernelNames.c_str();
     result_size = strlen(str) + 1;
     break;
   }
+  case CL_PROGRAM_SCOPE_GLOBAL_CTORS_PRESENT:
+  case CL_PROGRAM_SCOPE_GLOBAL_DTORS_PRESENT:
+    result_size = sizeof(cl_bool);
+    result_data.clbool = CL_FALSE;
+    break;
   default:
     ReturnErrorArg(program->context, CL_INVALID_VALUE, param_name);
   }
@@ -2669,17 +2821,13 @@ clGetProgramInfo
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetProgramBuildInfo
-(
-  cl_program             program,
-  cl_device_id           device,
-  cl_program_build_info  param_name,
-  size_t                 param_value_size,
-  void *                 param_value,
-  size_t *               param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetProgramBuildInfo(
+  cl_program program, cl_device_id device, cl_program_build_info param_name,
+  size_t param_value_size, void* param_value,
+  size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check program is valid
   if (!program)
   {
@@ -2743,13 +2891,11 @@ clGetProgramBuildInfo
 }
 
 CL_API_ENTRY cl_kernel CL_API_CALL
-clCreateKernel
-(
-  cl_program    program,
-  const char *  kernel_name,
-  cl_int *      errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+clCreateKernel(cl_program program, const char* kernel_name,
+               cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (program->dispatch != m_dispatchTable)
   {
@@ -2782,15 +2928,12 @@ clCreateKernel
   return kernel;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clCreateKernelsInProgram
-(
-  cl_program   program,
-  cl_uint      num_kernels,
-  cl_kernel *  kernels,
-  cl_uint *    num_kernels_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clCreateKernelsInProgram(
+  cl_program program, cl_uint num_kernels, cl_kernel* kernels,
+  cl_uint* num_kernels_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!program)
   {
@@ -2806,8 +2949,8 @@ clCreateKernelsInProgram
   if (kernels && num_kernels < num)
   {
     ReturnErrorInfo(program->context, CL_INVALID_VALUE,
-                    "num_kernels is " << num_kernels <<
-                    ", but " << num << " kernels found");
+                    "num_kernels is " << num_kernels << ", but " << num
+                                      << " kernels found");
   }
 
   if (kernels)
@@ -2835,12 +2978,11 @@ clCreateKernelsInProgram
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainKernel
-(
-  cl_kernel  kernel
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clRetainKernel(cl_kernel kernel)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!kernel)
   {
     ReturnErrorArg(NULL, CL_INVALID_KERNEL, kernel);
@@ -2850,12 +2992,11 @@ clRetainKernel
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseKernel
-(
-  cl_kernel  kernel
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clReleaseKernel(cl_kernel kernel)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!kernel)
   {
     ReturnErrorArg(NULL, CL_INVALID_KERNEL, kernel);
@@ -2863,6 +3004,13 @@ clReleaseKernel
 
   if (--kernel->refCount == 0)
   {
+
+    // Release memory allocated for image arguments
+    for (auto* img : kernel->imageArgs)
+    {
+      delete img;
+    }
+
     delete kernel->kernel;
 
     clReleaseProgram(kernel->program);
@@ -2874,14 +3022,11 @@ clReleaseKernel
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clSetKernelArg
-(
-  cl_kernel     kernel,
-  cl_uint       arg_index,
-  size_t        arg_size,
-  const void *  arg_value
-) CL_API_SUFFIX__VERSION_1_0
+clSetKernelArg(cl_kernel kernel, cl_uint arg_index, size_t arg_size,
+               const void* arg_value) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters are valid
   if (!kernel)
   {
@@ -2890,22 +3035,22 @@ clSetKernelArg
   if (arg_index >= kernel->kernel->getNumArguments())
   {
     ReturnErrorInfo(kernel->program->context, CL_INVALID_ARG_INDEX,
-                    "arg_index is " << arg_index <<
-                    ", but kernel has " << kernel->kernel->getNumArguments()
-                    << " arguments");
+                    "arg_index is " << arg_index << ", but kernel has "
+                                    << kernel->kernel->getNumArguments()
+                                    << " arguments");
   }
 
   unsigned int addr = kernel->kernel->getArgumentAddressQualifier(arg_index);
   bool isSampler =
     kernel->kernel->getArgumentTypeName(arg_index) == "sampler_t";
 
-  if (kernel->kernel->getArgumentSize(arg_index) != arg_size
-      && !isSampler
-      && addr != CL_KERNEL_ARG_ADDRESS_LOCAL)
+  if (kernel->kernel->getArgumentSize(arg_index) != arg_size && !isSampler &&
+      addr != CL_KERNEL_ARG_ADDRESS_LOCAL)
   {
     ReturnErrorInfo(kernel->program->context, CL_INVALID_ARG_SIZE,
                     "arg_size is " << arg_size << ", but argument should be "
-                    << kernel->kernel->getArgumentSize(arg_index) << " bytes");
+                                   << kernel->kernel->getArgumentSize(arg_index)
+                                   << " bytes");
   }
 
   // Prepare argument value
@@ -2938,11 +3083,13 @@ clSetKernelArg
       if (mem->isImage)
       {
         // Create Image struct
-        oclgrind::Image *image = new oclgrind::Image;
+        oclgrind::Image* image = new oclgrind::Image;
         image->address = mem->address;
         image->format = ((cl_image*)mem)->format;
         image->desc = ((cl_image*)mem)->desc;
         *(oclgrind::Image**)value.data = image;
+        // Keep a record of the image struct for releasing it later
+        kernel->imageArgs.push_back(image);
       }
       else
       {
@@ -2969,16 +3116,12 @@ clSetKernelArg
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetKernelInfo
-(
-  cl_kernel       kernel,
-  cl_kernel_info  param_name,
-  size_t          param_value_size,
-  void *          param_value,
-  size_t *        param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetKernelInfo(
+  cl_kernel kernel, cl_kernel_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check kernel is valid
   if (!kernel)
   {
@@ -3045,17 +3188,13 @@ clGetKernelInfo
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetKernelArgInfo
-(
-  cl_kernel           kernel,
-  cl_uint             arg_indx,
-  cl_kernel_arg_info  param_name,
-  size_t              param_value_size,
-  void *              param_value,
-  size_t *            param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clGetKernelArgInfo(
+  cl_kernel kernel, cl_uint arg_indx, cl_kernel_arg_info param_name,
+  size_t param_value_size, void* param_value,
+  size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters are valid
   if (!kernel)
   {
@@ -3064,9 +3203,9 @@ clGetKernelArgInfo
   if (arg_indx >= kernel->kernel->getNumArguments())
   {
     ReturnErrorInfo(kernel->program->context, CL_INVALID_ARG_INDEX,
-                    "arg_indx is " << arg_indx <<
-                    ", but kernel has " << kernel->kernel->getNumArguments()
-                    << " arguments");
+                    "arg_indx is " << arg_indx << ", but kernel has "
+                                   << kernel->kernel->getNumArguments()
+                                   << " arguments");
   }
 
   size_t dummy = 0;
@@ -3126,17 +3265,13 @@ clGetKernelArgInfo
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetKernelWorkGroupInfo
-(
-  cl_kernel                  kernel,
-  cl_device_id               device,
-  cl_kernel_work_group_info  param_name,
-  size_t                     param_value_size,
-  void *                     param_value,
-  size_t *                   param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetKernelWorkGroupInfo(
+  cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name,
+  size_t param_value_size, void* param_value,
+  size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters are valid
   if (!kernel)
   {
@@ -3206,20 +3341,18 @@ clGetKernelWorkGroupInfo
 
 namespace
 {
-  // Utility to check if an event has completed (or terminated)
-  inline bool isComplete(cl_event event)
-  {
-    return (event->event->state == CL_COMPLETE || event->event->state < 0);
-  }
-}
-
-CL_API_ENTRY cl_int CL_API_CALL
-clWaitForEvents
-(
-  cl_uint           num_events,
-  const cl_event *  event_list
-) CL_API_SUFFIX__VERSION_1_0
+// Utility to check if an event has completed (or terminated)
+inline bool isComplete(cl_event event)
 {
+  return (event->event->state == CL_COMPLETE || event->event->state < 0);
+}
+} // namespace
+
+CL_API_ENTRY cl_int CL_API_CALL clWaitForEvents(
+  cl_uint num_events, const cl_event* event_list) CL_API_SUFFIX__VERSION_1_0
+{
+  REGISTER_API;
+
   // Check parameters
   if (!num_events)
   {
@@ -3243,15 +3376,12 @@ clWaitForEvents
         continue;
       }
 
-      // If it's not a user event, update the queue
+      // If it's not a user event, execute the associated command
       if (event_list[i]->queue)
       {
-        oclgrind::Queue::Command *cmd = event_list[i]->queue->queue->update();
-        if (cmd)
-        {
-          asyncQueueRelease(cmd);
-          delete cmd;
-        }
+        oclgrind::Command* cmd = event_list[i]->event->command;
+        event_list[i]->event->queue->execute(cmd, false);
+        releaseCommand(cmd);
 
         // If it's still not complete, update flag
         if (!isComplete(event_list[i]))
@@ -3273,24 +3403,20 @@ clWaitForEvents
     {
       ReturnErrorInfo(event_list[i]->context,
                       CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST,
-                      "Event " << i <<
-                      " terminated with error " << event_list[i]->event->state);
+                      "Event " << i << " terminated with error "
+                               << event_list[i]->event->state);
     }
   }
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetEventInfo
-(
-  cl_event       event,
-  cl_event_info  param_name,
-  size_t         param_value_size,
-  void *         param_value,
-  size_t *       param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetEventInfo(
+  cl_event event, cl_event_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check event is valid
   if (!event)
   {
@@ -3352,13 +3478,11 @@ clGetEventInfo
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_event CL_API_CALL
-clCreateUserEvent
-(
-  cl_context  context,
-  cl_int *    errcode_ret
-) CL_API_SUFFIX__VERSION_1_1
+CL_API_ENTRY cl_event CL_API_CALL clCreateUserEvent(
+  cl_context context, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -3374,18 +3498,19 @@ clCreateUserEvent
   event->type = CL_COMMAND_USER;
   event->event = new oclgrind::Event();
   event->event->state = CL_SUBMITTED;
+  event->event->command = NULL;
+  event->event->queue = NULL;
   event->refCount = 1;
 
   SetError(context, CL_SUCCESS);
   return event;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clRetainEvent
-(
-  cl_event  event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clRetainEvent(cl_event event)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!event)
   {
     ReturnErrorArg(NULL, CL_INVALID_EVENT, event);
@@ -3396,12 +3521,11 @@ clRetainEvent
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clReleaseEvent
-(
-  cl_event  event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clReleaseEvent(cl_event event)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!event)
   {
     ReturnErrorArg(NULL, CL_INVALID_EVENT, event);
@@ -3419,13 +3543,11 @@ clReleaseEvent
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetUserEventStatus
-(
-  cl_event  event,
-  cl_int    execution_status
-) CL_API_SUFFIX__VERSION_1_1
+CL_API_ENTRY cl_int CL_API_CALL clSetUserEventStatus(
+  cl_event event, cl_int execution_status) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!event)
   {
@@ -3448,7 +3570,7 @@ clSetUserEventStatus
   event->event->state = execution_status;
 
   // Perform callbacks
-  list< pair<void (CL_CALLBACK *)(cl_event, cl_int, void *), void*> >::iterator itr;
+  list<pair<void(CL_CALLBACK*)(cl_event, cl_int, void*), void*>>::iterator itr;
   for (itr = event->callbacks.begin(); itr != event->callbacks.end(); itr++)
   {
     itr->first(event, execution_status, itr->second);
@@ -3458,14 +3580,12 @@ clSetUserEventStatus
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clSetEventCallback
-(
-  cl_event             event,
-  cl_int               command_exec_callback_type,
-  void (CL_CALLBACK *  pfn_notify)(cl_event, cl_int, void*),
-  void *               user_data
-) CL_API_SUFFIX__VERSION_1_1
+clSetEventCallback(cl_event event, cl_int command_exec_callback_type,
+                   void(CL_CALLBACK* pfn_notify)(cl_event, cl_int, void*),
+                   void* user_data) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!event)
   {
@@ -3488,16 +3608,12 @@ clSetEventCallback
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetEventProfilingInfo
-(
-  cl_event           event,
-  cl_profiling_info  param_name,
-  size_t             param_value_size,
-  void *             param_value,
-  size_t *           param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetEventProfilingInfo(
+  cl_event event, cl_profiling_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check event is valid
   if (!event)
   {
@@ -3550,12 +3666,11 @@ clGetEventProfilingInfo
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clFlush
-(
-  cl_command_queue  command_queue
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clFlush(cl_command_queue command_queue)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3568,46 +3683,31 @@ clFlush
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clFinish
-(
-  cl_command_queue  command_queue
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clFinish(cl_command_queue command_queue)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
-  while (!command_queue->queue->isEmpty())
-  {
-    // TODO: Move this update to async thread?
-    oclgrind::Queue::Command *cmd = command_queue->queue->update();
-    if (cmd)
-    {
-      asyncQueueRelease(cmd);
-      delete cmd;
-    }
-  }
+  // TODO: Move this finish to async thread?
+  oclgrind::Command* cmd = command_queue->queue->finish();
+  releaseCommand(cmd);
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReadBuffer
-(
-  cl_command_queue  command_queue,
-  cl_mem            buffer,
-  cl_bool           blocking_read,
-  size_t            offset,
-  size_t            cb,
-  void *            ptr,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadBuffer(
+  cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read,
+  size_t offset, size_t cb, void* ptr, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3624,8 +3724,9 @@ clEnqueueReadBuffer
   if (offset + cb > buffer->size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "offset + cb (" << offset << " + " << cb <<
-                    ") exceeds buffer size (" << buffer->size << " bytes)");
+                    "offset + cb (" << offset << " + " << cb
+                                    << ") exceeds buffer size (" << buffer->size
+                                    << " bytes)");
   }
   if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_WRITE_ONLY))
   {
@@ -3634,8 +3735,8 @@ clEnqueueReadBuffer
   }
 
   // Enqueue command
-  oclgrind::Queue::BufferCommand *cmd =
-    new oclgrind::Queue::BufferCommand(oclgrind::Queue::READ);
+  oclgrind::BufferCommand* cmd =
+    new oclgrind::BufferCommand(oclgrind::Command::READ);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address + offset;
   cmd->size = cb;
@@ -3651,25 +3752,15 @@ clEnqueueReadBuffer
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReadBufferRect
-(
-  cl_command_queue  command_queue,
-  cl_mem            buffer,
-  cl_bool           blocking_read,
-  const size_t *    buffer_origin,
-  const size_t *    host_origin,
-  const size_t *    region,
-  size_t            buffer_row_pitch,
-  size_t            buffer_slice_pitch,
-  size_t            host_row_pitch,
-  size_t            host_slice_pitch,
-  void *            ptr,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_1
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadBufferRect(
+  cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_read,
+  const size_t* buffer_origin, const size_t* host_origin, const size_t* region,
+  size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch,
+  size_t host_slice_pitch, void* ptr, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3708,30 +3799,24 @@ clEnqueueReadBufferRect
   }
 
   // Compute origin offsets
-  size_t buffer_offset =
-    buffer_origin[2] * buffer_slice_pitch +
-    buffer_origin[1] * buffer_row_pitch +
-    buffer_origin[0];
-  size_t host_offset =
-    host_origin[2] * host_slice_pitch +
-    host_origin[1] * host_row_pitch +
-    host_origin[0];
+  size_t buffer_offset = buffer_origin[2] * buffer_slice_pitch +
+                         buffer_origin[1] * buffer_row_pitch + buffer_origin[0];
+  size_t host_offset = host_origin[2] * host_slice_pitch +
+                       host_origin[1] * host_row_pitch + host_origin[0];
 
   // Ensure buffer region valid
-  size_t end =
-    buffer_offset + region[0] +
-    (region[1]-1) * buffer_row_pitch +
-    (region[2]-1) * buffer_slice_pitch;
+  size_t end = buffer_offset + region[0] + (region[1] - 1) * buffer_row_pitch +
+               (region[2] - 1) * buffer_slice_pitch;
   if (end > buffer->size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "Region exceeds buffer size (" <<
-                    buffer->size << " bytes)");
+                    "Region exceeds buffer size (" << buffer->size
+                                                   << " bytes)");
   }
 
   // Enqueue command
-  oclgrind::Queue::BufferRectCommand *cmd =
-    new oclgrind::Queue::BufferRectCommand(oclgrind::Queue::READ_RECT);
+  oclgrind::BufferRectCommand* cmd =
+    new oclgrind::BufferRectCommand(oclgrind::Command::READ_RECT);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address;
   cmd->buffer_offset[0] = buffer_offset;
@@ -3740,9 +3825,9 @@ clEnqueueReadBufferRect
   cmd->host_offset[0] = host_offset;
   cmd->host_offset[1] = host_row_pitch;
   cmd->host_offset[2] = host_slice_pitch;
-  memcpy(cmd->region, region, 3*sizeof(size_t));
+  memcpy(cmd->region, region, 3 * sizeof(size_t));
   asyncQueueRetain(cmd, buffer);
-  asyncEnqueue(command_queue, CL_COMMAND_READ_BUFFER, cmd,
+  asyncEnqueue(command_queue, CL_COMMAND_READ_BUFFER_RECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   if (blocking_read)
@@ -3753,20 +3838,13 @@ clEnqueueReadBufferRect
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueWriteBuffer
-(
-  cl_command_queue  command_queue,
-  cl_mem            buffer,
-  cl_bool           blocking_write,
-  size_t            offset,
-  size_t            cb,
-  const void *      ptr,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteBuffer(
+  cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write,
+  size_t offset, size_t cb, const void* ptr, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3783,8 +3861,9 @@ clEnqueueWriteBuffer
   if (offset + cb > buffer->size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "offset + cb (" << offset << " + " << cb <<
-                    ") exceeds buffer size (" << buffer->size << " bytes)");
+                    "offset + cb (" << offset << " + " << cb
+                                    << ") exceeds buffer size (" << buffer->size
+                                    << " bytes)");
   }
   if (buffer->flags & (CL_MEM_HOST_NO_ACCESS | CL_MEM_HOST_READ_ONLY))
   {
@@ -3793,8 +3872,8 @@ clEnqueueWriteBuffer
   }
 
   // Enqueue command
-  oclgrind::Queue::BufferCommand *cmd =
-    new oclgrind::Queue::BufferCommand(oclgrind::Queue::WRITE);
+  oclgrind::BufferCommand* cmd =
+    new oclgrind::BufferCommand(oclgrind::Command::WRITE);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address + offset;
   cmd->size = cb;
@@ -3810,25 +3889,15 @@ clEnqueueWriteBuffer
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueWriteBufferRect
-(
-  cl_command_queue  command_queue,
-  cl_mem            buffer,
-  cl_bool           blocking_write,
-  const size_t *    buffer_origin,
-  const size_t *    host_origin,
-  const size_t *    region,
-  size_t            buffer_row_pitch,
-  size_t            buffer_slice_pitch,
-  size_t            host_row_pitch,
-  size_t            host_slice_pitch,
-  const void *      ptr,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_1
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteBufferRect(
+  cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_write,
+  const size_t* buffer_origin, const size_t* host_origin, const size_t* region,
+  size_t buffer_row_pitch, size_t buffer_slice_pitch, size_t host_row_pitch,
+  size_t host_slice_pitch, const void* ptr, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3867,30 +3936,24 @@ clEnqueueWriteBufferRect
   }
 
   // Compute origin offsets
-  size_t buffer_offset =
-    buffer_origin[2] * buffer_slice_pitch +
-    buffer_origin[1] * buffer_row_pitch +
-    buffer_origin[0];
-  size_t host_offset =
-    host_origin[2] * host_slice_pitch +
-    host_origin[1] * host_row_pitch +
-    host_origin[0];
+  size_t buffer_offset = buffer_origin[2] * buffer_slice_pitch +
+                         buffer_origin[1] * buffer_row_pitch + buffer_origin[0];
+  size_t host_offset = host_origin[2] * host_slice_pitch +
+                       host_origin[1] * host_row_pitch + host_origin[0];
 
   // Ensure buffer region valid
-  size_t end =
-    buffer_offset + region[0] +
-    (region[1]-1) * buffer_row_pitch +
-    (region[2]-1) * buffer_slice_pitch;
+  size_t end = buffer_offset + region[0] + (region[1] - 1) * buffer_row_pitch +
+               (region[2] - 1) * buffer_slice_pitch;
   if (end > buffer->size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "Region exceeds buffer size (" <<
-                    buffer->size << " bytes)");
+                    "Region exceeds buffer size (" << buffer->size
+                                                   << " bytes)");
   }
 
   // Enqueue command
-  oclgrind::Queue::BufferRectCommand *cmd =
-    new oclgrind::Queue::BufferRectCommand(oclgrind::Queue::WRITE_RECT);
+  oclgrind::BufferRectCommand* cmd =
+    new oclgrind::BufferRectCommand(oclgrind::Command::WRITE_RECT);
   cmd->ptr = (unsigned char*)ptr;
   cmd->address = buffer->address;
   cmd->buffer_offset[0] = buffer_offset;
@@ -3899,9 +3962,9 @@ clEnqueueWriteBufferRect
   cmd->host_offset[0] = host_offset;
   cmd->host_offset[1] = host_row_pitch;
   cmd->host_offset[2] = host_slice_pitch;
-  memcpy(cmd->region, region, 3*sizeof(size_t));
+  memcpy(cmd->region, region, 3 * sizeof(size_t));
   asyncQueueRetain(cmd, buffer);
-  asyncEnqueue(command_queue, CL_COMMAND_WRITE_BUFFER, cmd,
+  asyncEnqueue(command_queue, CL_COMMAND_WRITE_BUFFER_RECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   if (blocking_write)
@@ -3912,20 +3975,14 @@ clEnqueueWriteBufferRect
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyBuffer
-(
-  cl_command_queue  command_queue,
-  cl_mem            src_buffer,
-  cl_mem            dst_buffer,
-  size_t            src_offset,
-  size_t            dst_offset,
-  size_t            cb,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBuffer(
+  cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer,
+  size_t src_offset, size_t dst_offset, size_t cb,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3942,18 +3999,44 @@ clEnqueueCopyBuffer
   if (dst_offset + cb > dst_buffer->size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "dst_offset + cb (" << dst_offset << " + " << cb <<
-                    ") exceeds buffer size (" << dst_buffer->size << " bytes)");
+                    "dst_offset + cb (" << dst_offset << " + " << cb
+                                        << ") exceeds buffer size ("
+                                        << dst_buffer->size << " bytes)");
   }
   if (src_offset + cb > src_buffer->size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "src_offset + cb (" << src_offset << " + " << cb <<
-                    ") exceeds buffer size (" << src_buffer->size << " bytes)");
+                    "src_offset + cb (" << src_offset << " + " << cb
+                                        << ") exceeds buffer size ("
+                                        << src_buffer->size << " bytes)");
+  }
+  // If src and dst buffers are the same and if src_offset comes before
+  // dst_offset and src buffer size goes beyond dst_offset then there is an
+  // overlap
+  if ((src_buffer == dst_buffer) && (src_offset <= dst_offset) &&
+      ((src_offset + cb) > dst_offset))
+  {
+    ReturnErrorInfo(command_queue->context, CL_MEM_COPY_OVERLAP,
+                    "src_buffer == dst_buffer and "
+                    "src_offset + cb ("
+                      << src_offset << " + " << cb << ") overlaps dst_offset ("
+                      << dst_offset << ")");
+  }
+  // If src and dst buffers are the same and if dst_offset comes before
+  // src_offset and dst buffer size goes beyond src_offset then there is an
+  // overlap
+  if ((src_buffer == dst_buffer) && (dst_offset <= src_offset) &&
+      ((dst_offset + cb) > src_offset))
+  {
+    ReturnErrorInfo(command_queue->context, CL_MEM_COPY_OVERLAP,
+                    "src_buffer == dst_buffer and "
+                    "dst_offset + cb ("
+                      << dst_offset << " + " << cb << ") overlaps src_offset ("
+                      << src_offset << ")");
   }
 
   // Enqueue command
-  oclgrind::Queue::CopyCommand *cmd = new oclgrind::Queue::CopyCommand();
+  oclgrind::CopyCommand* cmd = new oclgrind::CopyCommand();
   cmd->dst = dst_buffer->address + dst_offset;
   cmd->src = src_buffer->address + src_offset;
   cmd->size = cb;
@@ -3965,24 +4048,15 @@ clEnqueueCopyBuffer
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyBufferRect
-(
-  cl_command_queue  command_queue,
-  cl_mem            src_buffer,
-  cl_mem            dst_buffer,
-  const size_t *    src_origin,
-  const size_t *    dst_origin,
-  const size_t *    region,
-  size_t            src_row_pitch,
-  size_t            src_slice_pitch,
-  size_t            dst_row_pitch,
-  size_t            dst_slice_pitch,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_1
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBufferRect(
+  cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_buffer,
+  const size_t* src_origin, const size_t* dst_origin, const size_t* region,
+  size_t src_row_pitch, size_t src_slice_pitch, size_t dst_row_pitch,
+  size_t dst_slice_pitch, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -3996,8 +4070,12 @@ clEnqueueCopyBufferRect
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, dst_buffer);
   }
+  if (!region || region[0] == 0 || region[1] == 0 || region[2] == 0)
+  {
+    ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, region);
+  }
 
-  // Compute pitches if neccessary
+  // Compute pitches if necessary
   if (src_row_pitch == 0)
   {
     src_row_pitch = region[0];
@@ -4016,39 +4094,31 @@ clEnqueueCopyBufferRect
   }
 
   // Compute origin offsets
-  size_t src_offset =
-    src_origin[2] * src_slice_pitch +
-    src_origin[1] * src_row_pitch +
-    src_origin[0];
-  size_t dst_offset =
-    dst_origin[2] * dst_slice_pitch +
-    dst_origin[1] * dst_row_pitch +
-    dst_origin[0];
+  size_t src_offset = src_origin[2] * src_slice_pitch +
+                      src_origin[1] * src_row_pitch + src_origin[0];
+  size_t dst_offset = dst_origin[2] * dst_slice_pitch +
+                      dst_origin[1] * dst_row_pitch + dst_origin[0];
 
   // Ensure buffer region valid
-  size_t src_end =
-    src_offset + region[0] +
-    (region[1]-1) * src_row_pitch +
-    (region[2]-1) * src_slice_pitch;
-  size_t dst_end =
-    dst_offset + region[0] +
-    (region[1]-1) * dst_row_pitch +
-    (region[2]-1) * dst_slice_pitch;
+  size_t src_end = src_offset + region[0] + (region[1] - 1) * src_row_pitch +
+                   (region[2] - 1) * src_slice_pitch;
+  size_t dst_end = dst_offset + region[0] + (region[1] - 1) * dst_row_pitch +
+                   (region[2] - 1) * dst_slice_pitch;
   if (src_end > src_buffer->size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "Region exceeds source buffer size (" <<
-                    src_buffer->size << " bytes)");
+                    "Region exceeds source buffer size (" << src_buffer->size
+                                                          << " bytes)");
   }
   if (dst_end > dst_buffer->size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "Region exceeds destination buffer size (" <<
-                    dst_buffer->size << " bytes)");
+                    "Region exceeds destination buffer size ("
+                      << dst_buffer->size << " bytes)");
   }
 
   // Enqueue command
-  oclgrind::Queue::CopyRectCommand *cmd = new oclgrind::Queue::CopyRectCommand();
+  oclgrind::CopyRectCommand* cmd = new oclgrind::CopyRectCommand();
   cmd->src = src_buffer->address;
   cmd->dst = dst_buffer->address;
   cmd->src_offset[0] = src_offset;
@@ -4057,29 +4127,23 @@ clEnqueueCopyBufferRect
   cmd->dst_offset[0] = dst_offset;
   cmd->dst_offset[1] = dst_row_pitch;
   cmd->dst_offset[2] = dst_slice_pitch;
-  memcpy(cmd->region, region, 3*sizeof(size_t));
+  memcpy(cmd->region, region, 3 * sizeof(size_t));
   asyncQueueRetain(cmd, src_buffer);
   asyncQueueRetain(cmd, dst_buffer);
-  asyncEnqueue(command_queue, CL_COMMAND_COPY_BUFFER, cmd,
+  asyncEnqueue(command_queue, CL_COMMAND_COPY_BUFFER_RECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueFillBuffer
-(
-  cl_command_queue  command_queue,
-  cl_mem            buffer,
-  const void *      pattern,
-  size_t            pattern_size,
-  size_t            offset,
-  size_t            cb,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueFillBuffer(
+  cl_command_queue command_queue, cl_mem buffer, const void* pattern,
+  size_t pattern_size, size_t offset, size_t cb,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4092,8 +4156,9 @@ clEnqueueFillBuffer
   if (offset + cb > buffer->size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "offset + cb (" << offset << " + " << cb <<
-                    ") exceeds buffer size (" << buffer->size << " bytes)");
+                    "offset + cb (" << offset << " + " << cb
+                                    << ") exceeds buffer size (" << buffer->size
+                                    << " bytes)");
   }
   if (!pattern)
   {
@@ -4103,23 +4168,24 @@ clEnqueueFillBuffer
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, pattern_size);
   }
-  if (offset%pattern_size)
+  if (offset % pattern_size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "offset (" << offset << ")" <<
-                    " not a multiple of pattern_size (" << pattern_size << ")");
+                    "offset (" << offset << ")"
+                               << " not a multiple of pattern_size ("
+                               << pattern_size << ")");
   }
-  if (cb%pattern_size)
+  if (cb % pattern_size)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                    "cb (" << cb << ")" <<
-                    " not a multiple of pattern_size (" << pattern_size << ")");
+                    "cb (" << cb << ")"
+                           << " not a multiple of pattern_size ("
+                           << pattern_size << ")");
   }
 
   // Enqueue command
-  oclgrind::Queue::FillBufferCommand *cmd =
-    new oclgrind::Queue::FillBufferCommand((const unsigned char*)pattern,
-                                          pattern_size);
+  oclgrind::FillBufferCommand* cmd = new oclgrind::FillBufferCommand(
+    (const unsigned char*)pattern, pattern_size);
   cmd->address = buffer->address + offset;
   cmd->size = cb;
   asyncQueueRetain(cmd, buffer);
@@ -4129,19 +4195,13 @@ clEnqueueFillBuffer
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueFillImage
-(
-  cl_command_queue  command_queue,
-  cl_mem            image,
-  const void *      fill_color,
-  const size_t *    origin,
-  const size_t *    region,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueFillImage(
+  cl_command_queue command_queue, cl_mem image, const void* fill_color,
+  const size_t* origin, const size_t* region, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4162,7 +4222,7 @@ clEnqueueFillImage
   }
 
   // Get image dimensions
-  cl_image *img = (cl_image*)image;
+  cl_image* img = (cl_image*)image;
   size_t width = img->desc.image_width;
   size_t height = img->desc.image_height;
   size_t depth = img->desc.image_depth;
@@ -4181,62 +4241,70 @@ clEnqueueFillImage
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
                     "origin[0] + region[0] > width ("
-                    << origin[0] << " + " << region[0] << " > " << width
-                    << " )");
+                      << origin[0] << " + " << region[0] << " > " << width
+                      << " )");
   }
   if (origin[1] + region[1] > height)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
                     "origin[1] + region[1] > height ("
-                    << origin[1] << " + " << region[1] << " > " << height
-                    << " )");
+                      << origin[1] << " + " << region[1] << " > " << height
+                      << " )");
   }
   if (origin[2] + region[2] > depth)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
                     "origin[2] + region[2] > depth ("
-                    << origin[2] << " + " << region[2] << " > " << depth
-                    << " )");
+                      << origin[2] << " + " << region[2] << " > " << depth
+                      << " )");
   }
 
   // Generate color data with correct order and data type
-  unsigned char *color = new unsigned char[pixelSize];
+  unsigned char* color = new unsigned char[pixelSize];
   for (unsigned output = 0; output < getNumChannels(&img->format); output++)
   {
     // Get input channel index
     int input = output;
     switch (img->format.image_channel_order)
     {
-      case CL_R:
-      case CL_Rx:
-      case CL_RG:
-      case CL_RGx:
-      case CL_RGB:
-      case CL_RGBx:
-      case CL_RGBA:
-        break;
-      case CL_BGRA:
-        if (output == 0) input = 2;
-        if (output == 2) input = 0;
-        break;
-      case CL_ARGB:
-        if (output == 0) input = 3;
-        if (output == 1) input = 0;
-        if (output == 2) input = 1;
-        if (output == 3) input = 2;
-        break;
-      case CL_A:
-        if (output == 0) input = 3;
-        break;
-      case CL_RA:
-        if (output == 1) input = 3;
-        break;
-      case CL_INTENSITY:
-      case CL_LUMINANCE:
+    case CL_R:
+    case CL_Rx:
+    case CL_RG:
+    case CL_RGx:
+    case CL_RGB:
+    case CL_RGBx:
+    case CL_RGBA:
+      break;
+    case CL_BGRA:
+      if (output == 0)
+        input = 2;
+      if (output == 2)
         input = 0;
-        break;
-      default:
-        ReturnError(command_queue->context, CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
+      break;
+    case CL_ARGB:
+      if (output == 0)
+        input = 3;
+      if (output == 1)
+        input = 0;
+      if (output == 2)
+        input = 1;
+      if (output == 3)
+        input = 2;
+      break;
+    case CL_A:
+      if (output == 0)
+        input = 3;
+      break;
+    case CL_RA:
+      if (output == 1)
+        input = 3;
+      break;
+    case CL_INTENSITY:
+    case CL_LUMINANCE:
+      input = 0;
+      break;
+    default:
+      ReturnError(command_queue->context, CL_INVALID_IMAGE_FORMAT_DESCRIPTOR);
     }
 
     // Interpret data
@@ -4244,19 +4312,19 @@ clEnqueueFillImage
     {
     case CL_SNORM_INT8:
       ((int8_t*)color)[output] =
-        rint(min(max(((float*)fill_color)[input]*127.f, -127.f), 128.f));
+        rint(min(max(((float*)fill_color)[input] * 127.f, -127.f), 128.f));
       break;
     case CL_UNORM_INT8:
       ((uint8_t*)color)[output] =
-        rint(min(max(((float*)fill_color)[input]*255.f, 0.f), 255.f));
+        rint(min(max(((float*)fill_color)[input] * 255.f, 0.f), 255.f));
       break;
     case CL_SNORM_INT16:
-      ((int16_t*)color)[output] =
-        rint(min(max(((float*)fill_color)[input]*32767.f, -32768.f), 32767.f));
+      ((int16_t*)color)[output] = rint(
+        min(max(((float*)fill_color)[input] * 32767.f, -32768.f), 32767.f));
       break;
     case CL_UNORM_INT16:
       ((uint16_t*)color)[output] =
-        rint(min(max(((float*)fill_color)[input]*65535.f, 0.f), 65535.f));
+        rint(min(max(((float*)fill_color)[input] * 65535.f, 0.f), 65535.f));
       break;
     case CL_FLOAT:
       ((float*)color)[output] = ((float*)fill_color)[input];
@@ -4289,10 +4357,8 @@ clEnqueueFillImage
   }
 
   // Enqueue command
-  oclgrind::Queue::FillImageCommand *cmd =
-    new oclgrind::Queue::FillImageCommand(image->address, origin, region,
-                                         row_pitch, slice_pitch,
-                                         pixelSize, color);
+  oclgrind::FillImageCommand* cmd = new oclgrind::FillImageCommand(
+    image->address, origin, region, row_pitch, slice_pitch, pixelSize, color);
   asyncQueueRetain(cmd, image);
   asyncEnqueue(command_queue, CL_COMMAND_FILL_IMAGE, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4301,22 +4367,14 @@ clEnqueueFillImage
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReadImage
-(
-  cl_command_queue  command_queue,
-  cl_mem            image,
-  cl_bool           blocking_read,
-  const size_t *    origin,
-  const size_t *    region,
-  size_t            row_pitch,
-  size_t            slice_pitch,
-  void *            ptr,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadImage(
+  cl_command_queue command_queue, cl_mem image, cl_bool blocking_read,
+  const size_t* origin, const size_t* region, size_t row_pitch,
+  size_t slice_pitch, void* ptr, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4327,11 +4385,11 @@ clEnqueueReadImage
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, image);
   }
 
-  cl_image *img = (cl_image*)image;
+  cl_image* img = (cl_image*)image;
 
   size_t pixelSize = getPixelSize(&img->format);
-  size_t buffer_origin[3] = {origin[0]*pixelSize, origin[1], origin[2]};
-  size_t pixel_region[3] = {region[0]*pixelSize, region[1], region[2]};
+  size_t buffer_origin[3] = {origin[0] * pixelSize, origin[1], origin[2]};
+  size_t pixel_region[3] = {region[0] * pixelSize, region[1], region[2]};
   size_t host_origin[3] = {0, 0, 0};
 
   size_t img_row_pitch = img->desc.image_width * pixelSize;
@@ -4347,33 +4405,24 @@ clEnqueueReadImage
 
   // Enqueue read
   cl_int ret = clEnqueueReadBufferRect(
-    command_queue, image, blocking_read,
-    buffer_origin, host_origin, pixel_region,
-    img_row_pitch, img_slice_pitch, row_pitch, slice_pitch,
-    ptr, num_events_in_wait_list, event_wait_list, event);
-  if (event)
+    command_queue, image, blocking_read, buffer_origin, host_origin,
+    pixel_region, img_row_pitch, img_slice_pitch, row_pitch, slice_pitch, ptr,
+    num_events_in_wait_list, event_wait_list, event);
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_READ_IMAGE;
   }
   return ret;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueWriteImage
-(
-  cl_command_queue  command_queue,
-  cl_mem            image,
-  cl_bool           blocking_write,
-  const size_t *    origin,
-  const size_t *    region,
-  size_t            input_row_pitch,
-  size_t            input_slice_pitch,
-  const void *      ptr,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteImage(
+  cl_command_queue command_queue, cl_mem image, cl_bool blocking_write,
+  const size_t* origin, const size_t* region, size_t input_row_pitch,
+  size_t input_slice_pitch, const void* ptr, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4384,11 +4433,11 @@ clEnqueueWriteImage
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, image);
   }
 
-  cl_image *img = (cl_image*)image;
+  cl_image* img = (cl_image*)image;
 
   size_t pixelSize = getPixelSize(&img->format);
-  size_t buffer_origin[3] = {origin[0]*pixelSize, origin[1], origin[2]};
-  size_t pixel_region[3] = {region[0]*pixelSize, region[1], region[2]};
+  size_t buffer_origin[3] = {origin[0] * pixelSize, origin[1], origin[2]};
+  size_t pixel_region[3] = {region[0] * pixelSize, region[1], region[2]};
   size_t host_origin[3] = {0, 0, 0};
 
   size_t img_row_pitch = img->desc.image_width * pixelSize;
@@ -4404,31 +4453,24 @@ clEnqueueWriteImage
 
   // Enqueue write
   cl_int ret = clEnqueueWriteBufferRect(
-    command_queue, image, blocking_write,
-    buffer_origin, host_origin, pixel_region,
-    img_row_pitch, img_slice_pitch, input_row_pitch, input_slice_pitch,
-    ptr, num_events_in_wait_list, event_wait_list, event);
-  if (event)
+    command_queue, image, blocking_write, buffer_origin, host_origin,
+    pixel_region, img_row_pitch, img_slice_pitch, input_row_pitch,
+    input_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_WRITE_IMAGE;
   }
   return ret;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyImage
-(
-  cl_command_queue  command_queue,
-  cl_mem            src_image,
-  cl_mem            dst_image,
-  const size_t *    src_origin,
-  const size_t *    dst_origin,
-  const size_t *    region,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyImage(
+  cl_command_queue command_queue, cl_mem src_image, cl_mem dst_image,
+  const size_t* src_origin, const size_t* dst_origin, const size_t* region,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4443,14 +4485,15 @@ clEnqueueCopyImage
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, dst_image);
   }
 
-  cl_image *src = (cl_image*)src_image;
-  cl_image *dst = (cl_image*)dst_image;
+  cl_image* src = (cl_image*)src_image;
+  cl_image* dst = (cl_image*)dst_image;
   if (src->format.image_channel_order != dst->format.image_channel_order)
   {
     ReturnErrorInfo(command_queue->context, CL_IMAGE_FORMAT_MISMATCH,
                     "Channel orders do not match");
   }
-  if (src->format.image_channel_data_type != dst->format.image_channel_data_type)
+  if (src->format.image_channel_data_type !=
+      dst->format.image_channel_data_type)
   {
     ReturnErrorInfo(command_queue->context, CL_IMAGE_FORMAT_MISMATCH,
                     "Channel data types do no match");
@@ -4459,11 +4502,11 @@ clEnqueueCopyImage
   size_t srcPixelSize = getPixelSize(&src->format);
   size_t dstPixelSize = getPixelSize(&dst->format);
 
-  size_t src_pixel_origin[3] = {src_origin[0]*srcPixelSize,
-                                src_origin[1], src_origin[2]};
-  size_t dst_pixel_origin[3] = {dst_origin[0]*dstPixelSize,
-                                dst_origin[1], dst_origin[2]};
-  size_t pixel_region[3] = {region[0]*srcPixelSize, region[1], region[2]};
+  size_t src_pixel_origin[3] = {src_origin[0] * srcPixelSize, src_origin[1],
+                                src_origin[2]};
+  size_t dst_pixel_origin[3] = {dst_origin[0] * dstPixelSize, dst_origin[1],
+                                dst_origin[2]};
+  size_t pixel_region[3] = {region[0] * srcPixelSize, region[1], region[2]};
 
   size_t src_row_pitch = src->desc.image_width * srcPixelSize;
   size_t src_slice_pitch = src->desc.image_height * src_row_pitch;
@@ -4472,31 +4515,24 @@ clEnqueueCopyImage
 
   // Enqueue copy
   cl_int ret = clEnqueueCopyBufferRect(
-    command_queue, src_image, dst_image,
-    src_pixel_origin, dst_pixel_origin, pixel_region,
-    src_row_pitch, src_slice_pitch, dst_row_pitch, dst_slice_pitch,
-    num_events_in_wait_list, event_wait_list, event);
-  if (event)
+    command_queue, src_image, dst_image, src_pixel_origin, dst_pixel_origin,
+    pixel_region, src_row_pitch, src_slice_pitch, dst_row_pitch,
+    dst_slice_pitch, num_events_in_wait_list, event_wait_list, event);
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_COPY_IMAGE;
   }
   return ret;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyImageToBuffer
-(
-  cl_command_queue  command_queue,
-  cl_mem            src_image,
-  cl_mem            dst_buffer,
-  const size_t *    src_origin,
-  const size_t *    region,
-  size_t            dst_offset,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyImageToBuffer(
+  cl_command_queue command_queue, cl_mem src_image, cl_mem dst_buffer,
+  const size_t* src_origin, const size_t* region, size_t dst_offset,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4511,43 +4547,36 @@ clEnqueueCopyImageToBuffer
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, dst_buffer);
   }
 
-  cl_image *src = (cl_image*)src_image;
+  cl_image* src = (cl_image*)src_image;
   size_t pixel_size = getPixelSize(&src->format);
-  size_t src_pixel_origin[3] = {src_origin[0]*pixel_size,
-                                src_origin[1], src_origin[2]};
+  size_t src_pixel_origin[3] = {src_origin[0] * pixel_size, src_origin[1],
+                                src_origin[2]};
   size_t src_row_pitch = src->desc.image_width * pixel_size;
   size_t src_slice_pitch = src->desc.image_height * src_row_pitch;
 
-  size_t pixel_region[3] = {region[0]*pixel_size, region[1], region[2]};
+  size_t pixel_region[3] = {region[0] * pixel_size, region[1], region[2]};
   size_t dst_origin[3] = {dst_offset, 0, 0};
 
   // Enqueue copy
   cl_int ret = clEnqueueCopyBufferRect(
-    command_queue, src_image, dst_buffer,
-    src_pixel_origin, dst_origin, pixel_region,
-    src_row_pitch, src_slice_pitch, 0, 0,
-    num_events_in_wait_list, event_wait_list, event);
-  if (event)
+    command_queue, src_image, dst_buffer, src_pixel_origin, dst_origin,
+    pixel_region, src_row_pitch, src_slice_pitch, 0, 0, num_events_in_wait_list,
+    event_wait_list, event);
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_COPY_IMAGE_TO_BUFFER;
   }
   return ret;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueCopyBufferToImage
-(
-  cl_command_queue  command_queue,
-  cl_mem            src_buffer,
-  cl_mem            dst_image,
-  size_t            src_offset,
-  const size_t *    dst_origin,
-  const size_t *    region,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBufferToImage(
+  cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_image,
+  size_t src_offset, const size_t* dst_origin, const size_t* region,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4562,44 +4591,36 @@ clEnqueueCopyBufferToImage
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, dst_image);
   }
 
-  cl_image *dst = (cl_image*)dst_image;
+  cl_image* dst = (cl_image*)dst_image;
   size_t pixel_size = getPixelSize(&dst->format);
-  size_t dst_pixel_origin[3] = {dst_origin[0]*pixel_size,
-                                dst_origin[1], dst_origin[2]};
+  size_t dst_pixel_origin[3] = {dst_origin[0] * pixel_size, dst_origin[1],
+                                dst_origin[2]};
   size_t dst_row_pitch = dst->desc.image_width * pixel_size;
   size_t dst_slice_pitch = dst->desc.image_height * dst_row_pitch;
 
-  size_t pixel_region[3] = {region[0]*pixel_size, region[1], region[2]};
+  size_t pixel_region[3] = {region[0] * pixel_size, region[1], region[2]};
   size_t src_origin[3] = {src_offset, 0, 0};
 
   // Enqueue copy
   cl_int ret = clEnqueueCopyBufferRect(
-    command_queue, src_buffer, dst_image,
-    src_origin, dst_pixel_origin, pixel_region,
-    0, 0, dst_row_pitch, dst_slice_pitch,
-    num_events_in_wait_list, event_wait_list, event);
-  if (event)
+    command_queue, src_buffer, dst_image, src_origin, dst_pixel_origin,
+    pixel_region, 0, 0, dst_row_pitch, dst_slice_pitch, num_events_in_wait_list,
+    event_wait_list, event);
+  if (event && ret == CL_SUCCESS)
   {
     (*event)->type = CL_COMMAND_COPY_BUFFER_TO_IMAGE;
   }
   return ret;
 }
 
-CL_API_ENTRY void* CL_API_CALL
-clEnqueueMapBuffer
-(
-  cl_command_queue  command_queue,
-  cl_mem            buffer,
-  cl_bool           blocking_map,
-  cl_map_flags      map_flags,
-  size_t            offset,
-  size_t            cb,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event,
-  cl_int *          errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY void* CL_API_CALL clEnqueueMapBuffer(
+  cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map,
+  cl_map_flags map_flags, size_t offset, size_t cb,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4630,13 +4651,14 @@ clEnqueueMapBuffer
   if (offset + cb > buffer->size)
   {
     SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                 "offset + cb (" << offset << " + " << cb <<
-                 ") exceeds buffer size (" << buffer->size << " bytes)");
+                 "offset + cb (" << offset << " + " << cb
+                                 << ") exceeds buffer size (" << buffer->size
+                                 << " bytes)");
     return NULL;
   }
 
   // Map buffer
-  void *ptr = buffer->context->context->getGlobalMemory()->mapBuffer(
+  void* ptr = buffer->context->context->getGlobalMemory()->mapBuffer(
     buffer->address, offset, cb);
   if (ptr == NULL)
   {
@@ -4645,11 +4667,11 @@ clEnqueueMapBuffer
   }
 
   // Enqueue command
-  oclgrind::Queue::MapCommand *cmd = new oclgrind::Queue::MapCommand();
+  oclgrind::MapCommand* cmd = new oclgrind::MapCommand();
   cmd->address = buffer->address;
-  cmd->offset  = offset;
-  cmd->size    = cb;
-  cmd->flags   = map_flags;
+  cmd->offset = offset;
+  cmd->size = cb;
+  cmd->flags = map_flags;
   asyncQueueRetain(cmd, buffer);
   asyncEnqueue(command_queue, CL_COMMAND_MAP_BUFFER, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4663,23 +4685,15 @@ clEnqueueMapBuffer
   return ptr;
 }
 
-CL_API_ENTRY void* CL_API_CALL
-clEnqueueMapImage
-(
-  cl_command_queue  command_queue,
-  cl_mem            image,
-  cl_bool           blocking_map,
-  cl_map_flags      map_flags,
-  const size_t *    origin,
-  const size_t *    region,
-  size_t *          image_row_pitch,
-  size_t *          image_slice_pitch,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event,
-  cl_int *          errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY void* CL_API_CALL clEnqueueMapImage(
+  cl_command_queue command_queue, cl_mem image, cl_bool blocking_map,
+  cl_map_flags map_flags, const size_t* origin, const size_t* region,
+  size_t* image_row_pitch, size_t* image_slice_pitch,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4717,7 +4731,7 @@ clEnqueueMapImage
   }
 
   // Get image dimensions
-  cl_image *img = (cl_image*)image;
+  cl_image* img = (cl_image*)image;
   size_t width = img->desc.image_width;
   size_t height = img->desc.image_height;
   size_t depth = img->desc.image_depth;
@@ -4736,35 +4750,33 @@ clEnqueueMapImage
   {
     SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
                  "origin[0] + region[0] > width ("
-                 << origin[0] << " + " << region[0] << " > " << width
-                 << " )");
+                   << origin[0] << " + " << region[0] << " > " << width
+                   << " )");
   }
   if (origin[1] + region[1] > height)
   {
     SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
                  "origin[1] + region[1] > height ("
-                 << origin[1] << " + " << region[1] << " > " << height
-                 << " )");
+                   << origin[1] << " + " << region[1] << " > " << height
+                   << " )");
   }
   if (origin[2] + region[2] > depth)
   {
     SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
                  "origin[2] + region[2] > depth ("
-                 << origin[2] << " + " << region[2] << " > " << depth
-                 << " )");
+                   << origin[2] << " + " << region[2] << " > " << depth
+                   << " )");
   }
 
   // Compute byte offset and size
-  size_t offset = origin[0] * pixelSize
-                + origin[1] * row_pitch
-                + origin[2] * slice_pitch;
-  size_t size = region[0] * pixelSize
-              + (region[1]-1) * row_pitch
-              + (region[2]-1) * slice_pitch;
+  size_t offset =
+    origin[0] * pixelSize + origin[1] * row_pitch + origin[2] * slice_pitch;
+  size_t size = region[0] * pixelSize + (region[1] - 1) * row_pitch +
+                (region[2] - 1) * slice_pitch;
 
   // Map image
-  void *ptr = image->context->context->getGlobalMemory()->mapBuffer(
-        image->address, offset, size);
+  void* ptr = image->context->context->getGlobalMemory()->mapBuffer(
+    image->address, offset, size);
   if (ptr == NULL)
   {
     SetError(command_queue->context, CL_INVALID_VALUE);
@@ -4778,11 +4790,11 @@ clEnqueueMapImage
   }
 
   // Enqueue command
-  oclgrind::Queue::MapCommand *cmd = new oclgrind::Queue::MapCommand();
+  oclgrind::MapCommand* cmd = new oclgrind::MapCommand();
   cmd->address = image->address;
-  cmd->offset  = offset;
-  cmd->size    = size;
-  cmd->flags   = map_flags;
+  cmd->offset = offset;
+  cmd->size = size;
+  cmd->flags = map_flags;
   asyncQueueRetain(cmd, image);
   asyncEnqueue(command_queue, CL_COMMAND_MAP_IMAGE, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4796,17 +4808,13 @@ clEnqueueMapImage
   return ptr;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueUnmapMemObject
-(
-  cl_command_queue  command_queue,
-  cl_mem            memobj,
-  void *            mapped_ptr,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueUnmapMemObject(
+  cl_command_queue command_queue, cl_mem memobj, void* mapped_ptr,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4816,11 +4824,15 @@ clEnqueueUnmapMemObject
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, memobj);
   }
+  if (!mapped_ptr)
+  {
+    ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, mapped_ptr);
+  }
 
   // Enqueue command
-  oclgrind::Queue::UnmapCommand *cmd = new oclgrind::Queue::UnmapCommand();
+  oclgrind::UnmapCommand* cmd = new oclgrind::UnmapCommand();
   cmd->address = memobj->address;
-  cmd->ptr     = mapped_ptr;
+  cmd->ptr = mapped_ptr;
   asyncQueueRetain(cmd, memobj);
   asyncEnqueue(command_queue, CL_COMMAND_UNMAP_MEM_OBJECT, cmd,
                num_events_in_wait_list, event_wait_list, event);
@@ -4828,18 +4840,14 @@ clEnqueueUnmapMemObject
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueMigrateMemObjects
-(
-  cl_command_queue        command_queue,
-  cl_uint                 num_mem_objects,
-  const cl_mem *          mem_objects,
-  cl_mem_migration_flags  flags,
-  cl_uint                 num_events_in_wait_list,
-  const cl_event *        event_wait_list,
-  cl_event *              event
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueMigrateMemObjects(
+  cl_command_queue command_queue, cl_uint num_mem_objects,
+  const cl_mem* mem_objects, cl_mem_migration_flags flags,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4847,27 +4855,21 @@ clEnqueueMigrateMemObjects
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
+  oclgrind::Command* cmd = new oclgrind::Command();
   asyncEnqueue(command_queue, CL_COMMAND_MIGRATE_MEM_OBJECTS, cmd,
                num_events_in_wait_list, event_wait_list, event);
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueNDRangeKernel
-(
-  cl_command_queue  command_queue,
-  cl_kernel         kernel,
-  cl_uint           work_dim,
-  const size_t *    global_work_offset,
-  const size_t *    global_work_size,
-  const size_t *    local_work_size,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueNDRangeKernel(
+  cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim,
+  const size_t* global_work_offset, const size_t* global_work_size,
+  const size_t* local_work_size, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -4875,9 +4877,9 @@ clEnqueueNDRangeKernel
   }
   if (work_dim < 1 || work_dim > 3)
   {
-    ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_DIMENSION,
-                    "Kernels must be 1, 2 or 3 dimensional (work_dim = "
-                    << work_dim << ")");
+    ReturnErrorInfo(
+      command_queue->context, CL_INVALID_WORK_DIMENSION,
+      "Kernels must be 1, 2 or 3 dimensional (work_dim = " << work_dim << ")");
   }
   if (!global_work_size)
   {
@@ -4891,26 +4893,22 @@ clEnqueueNDRangeKernel
   kernel->kernel->getRequiredWorkGroupSize(reqdWorkGroupSize);
   for (unsigned i = 0; i < work_dim; i++)
   {
-    if (!global_work_size[i])
-    {
-      ReturnErrorInfo(command_queue->context, CL_INVALID_GLOBAL_WORK_SIZE,
-                      "global_work_size[" << i << "] = 0");
-    }
-    if (kernel->kernel->getProgram()->requiresUniformWorkGroups() &&
-        local_work_size && global_work_size[i] % local_work_size[i])
+    if (kernel->kernel->requiresUniformWorkGroups() && local_work_size &&
+        global_work_size[i] % local_work_size[i])
     {
       ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_GROUP_SIZE,
-                      "local_work_size[" << i << "]=" << local_work_size[i] <<
-                      " does not divide global_work_size[" << i << "]=" <<
-                      global_work_size[i]);
+                      "local_work_size[" << i << "]=" << local_work_size[i]
+                                         << " does not divide global_work_size["
+                                         << i << "]=" << global_work_size[i]);
     }
     if (local_work_size)
     {
       if (local_work_size[i] > m_device->maxWGSize)
       {
         ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_ITEM_SIZE,
-                        "local_work_size[" << i << "]=" << local_work_size[i] <<
-                        " exceeds device maximum of " << m_device->maxWGSize);
+                        "local_work_size[" << i << "]=" << local_work_size[i]
+                                           << " exceeds device maximum of "
+                                           << m_device->maxWGSize);
       }
       totalWGSize *= local_work_size[i];
     }
@@ -4918,16 +4916,19 @@ clEnqueueNDRangeKernel
         local_work_size[i] != reqdWorkGroupSize[i])
     {
       ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_GROUP_SIZE,
-                      "local_work_size[" << i << "]=" << local_work_size[i] <<
-                      " does not match reqd_work_group_size[" << i << "]=" <<
-                      reqdWorkGroupSize[i])
+                      "local_work_size["
+                        << i << "]=" << local_work_size[i]
+                        << " does not match reqd_work_group_size[" << i
+                        << "]=" << reqdWorkGroupSize[i])
     }
   }
   if (totalWGSize > m_device->maxWGSize)
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_WORK_GROUP_SIZE,
-                    "total work-group size (" << totalWGSize << ")"
-                    " exceeds device maximum of " << m_device->maxWGSize);
+                    "total work-group size (" << totalWGSize
+                                              << ")"
+                                                 " exceeds device maximum of "
+                                              << m_device->maxWGSize);
   }
 
   // Ensure all arguments have been set
@@ -4937,21 +4938,51 @@ clEnqueueNDRangeKernel
                     "Not all kernel arguments set");
   }
 
+  // Check that local memory requirement is within device maximum
+  size_t totalLocal = kernel->kernel->getLocalMemorySize();
+  if (totalLocal > m_device->localMemSize)
+  {
+    ReturnErrorInfo(command_queue->context, CL_OUT_OF_RESOURCES,
+                    "total local memory size (" << totalLocal
+                                                << ")"
+                                                   " exceeds device maximum of "
+                                                << m_device->localMemSize);
+  }
+
+  // Check that constant memory requirement is within device maximum
+  size_t totalConstant = 0;
+  std::map<cl_uint, cl_mem>::iterator arg;
+  for (arg = kernel->memArgs.begin(); arg != kernel->memArgs.end(); arg++)
+  {
+    if (kernel->kernel->getArgumentAddressQualifier(arg->first) ==
+        CL_KERNEL_ARG_ADDRESS_CONSTANT)
+      totalConstant += arg->second->size;
+  }
+  if (totalConstant > m_device->constantMemSize)
+  {
+    ReturnErrorInfo(command_queue->context, CL_OUT_OF_RESOURCES,
+                    "total constant memory size ("
+                      << totalConstant
+                      << ")"
+                         " exceeds device maximum of "
+                      << m_device->constantMemSize);
+  }
+
   // Set-up offsets and sizes
-  oclgrind::Queue::KernelCommand *cmd = new oclgrind::Queue::KernelCommand();
+  oclgrind::KernelCommand* cmd = new oclgrind::KernelCommand();
   cmd->kernel = new oclgrind::Kernel(*kernel->kernel);
   cmd->work_dim = work_dim;
-  cmd->globalSize   = oclgrind::Size3(1, 1, 1);
+  cmd->globalSize = oclgrind::Size3(1, 1, 1);
   cmd->globalOffset = oclgrind::Size3(0, 0, 0);
-  cmd->localSize    = oclgrind::Size3(1, 1, 1);
-  memcpy(&cmd->globalSize, global_work_size, work_dim*sizeof(size_t));
+  cmd->localSize = oclgrind::Size3(1, 1, 1);
+  memcpy(&cmd->globalSize, global_work_size, work_dim * sizeof(size_t));
   if (global_work_offset)
   {
-    memcpy(&cmd->globalOffset, global_work_offset, work_dim*sizeof(size_t));
+    memcpy(&cmd->globalOffset, global_work_offset, work_dim * sizeof(size_t));
   }
   if (local_work_size)
   {
-    memcpy(&cmd->localSize, local_work_size, work_dim*sizeof(size_t));
+    memcpy(&cmd->localSize, local_work_size, work_dim * sizeof(size_t));
   }
 
   // Enqueue command
@@ -4963,38 +4994,26 @@ clEnqueueNDRangeKernel
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueTask
-(
-  cl_command_queue  command_queue,
-  cl_kernel         kernel,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+clEnqueueTask(cl_command_queue command_queue, cl_kernel kernel,
+              cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+              cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   size_t work = 1;
-  return clEnqueueNDRangeKernel(command_queue, kernel, 1,
-                                NULL, &work, &work,
-                                num_events_in_wait_list,
-                                event_wait_list,
+  return clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &work, &work,
+                                num_events_in_wait_list, event_wait_list,
                                 event);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueNativeKernel
-(
-  cl_command_queue  command_queue,
-  void (CL_CALLBACK *user_func)(void *),
-  void *            args,
-  size_t            cb_args,
-  cl_uint           num_mem_objects,
-  const cl_mem *    mem_list,
-  const void **     args_mem_loc,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueNativeKernel(
+  cl_command_queue command_queue, void(CL_CALLBACK* user_func)(void*),
+  void* args, size_t cb_args, cl_uint num_mem_objects, const cl_mem* mem_list,
+  const void** args_mem_loc, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -5007,7 +5026,7 @@ clEnqueueNativeKernel
   if (!args && (cb_args > 0 || num_mem_objects > 0))
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
-                   "args is NULL but cb_args|num_mem_objects >0");
+                    "args is NULL but cb_args|num_mem_objects >0");
   }
   if (args && cb_args == 0)
   {
@@ -5026,7 +5045,7 @@ clEnqueueNativeKernel
   }
 
   // Replace mem objects with real pointers
-  oclgrind::Memory *memory = command_queue->context->context->getGlobalMemory();
+  oclgrind::Memory* memory = command_queue->context->context->getGlobalMemory();
   for (unsigned i = 0; i < num_mem_objects; i++)
   {
     if (!mem_list[i])
@@ -5035,7 +5054,7 @@ clEnqueueNativeKernel
                       "Memory object " << i << " is NULL");
     }
 
-    void *addr = memory->getPointer(mem_list[i]->address);
+    void* addr = memory->getPointer(mem_list[i]->address);
     if (addr == NULL)
     {
       ReturnErrorInfo(command_queue->context, CL_INVALID_MEM_OBJECT,
@@ -5045,8 +5064,8 @@ clEnqueueNativeKernel
   }
 
   // Create command
-  oclgrind::Queue::NativeKernelCommand *cmd =
-    new oclgrind::Queue::NativeKernelCommand(user_func, args, cb_args);
+  oclgrind::NativeKernelCommand* cmd =
+    new oclgrind::NativeKernelCommand(user_func, args, cb_args);
 
   // Retain memory objects
   for (unsigned i = 0; i < num_mem_objects; i++)
@@ -5061,25 +5080,20 @@ clEnqueueNativeKernel
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY void* CL_API_CALL
-clGetExtensionFunctionAddressForPlatform
-(
-  cl_platform_id  platform,
-  const char *    func_name
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY void* CL_API_CALL clGetExtensionFunctionAddressForPlatform(
+  cl_platform_id platform, const char* func_name) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   return NULL;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueMarkerWithWaitList
-(
-  cl_command_queue  command_queue,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueMarkerWithWaitList(
+  cl_command_queue command_queue, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -5087,22 +5101,19 @@ clEnqueueMarkerWithWaitList
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
-  asyncEnqueue(command_queue, CL_COMMAND_MARKER, cmd,
-               num_events_in_wait_list, event_wait_list, event);
+  oclgrind::Command* cmd = new oclgrind::Command();
+  asyncEnqueue(command_queue, CL_COMMAND_MARKER, cmd, num_events_in_wait_list,
+               event_wait_list, event);
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueBarrierWithWaitList
-(
-  cl_command_queue  command_queue,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueBarrierWithWaitList(
+  cl_command_queue command_queue, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   // Check parameters
   if (!command_queue)
   {
@@ -5110,457 +5121,343 @@ clEnqueueBarrierWithWaitList
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
-  asyncEnqueue(command_queue, CL_COMMAND_BARRIER, cmd,
-               num_events_in_wait_list, event_wait_list, event);
+  oclgrind::Command* cmd = new oclgrind::Command();
+  asyncEnqueue(command_queue, CL_COMMAND_BARRIER, cmd, num_events_in_wait_list,
+               event_wait_list, event);
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetPrintfCallback
-(
-  cl_context           context,
-  void (CL_CALLBACK *  pfn_notify)(cl_context, cl_uint, char*, void*),
-  void *               user_data
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clSetPrintfCallback(
+  cl_context context,
+  void(CL_CALLBACK* pfn_notify)(cl_context, cl_uint, char*, void*),
+  void* user_data) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnError(NULL, CL_INVALID_OPERATION);
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueMarker
-(
-  cl_command_queue  command_queue,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueMarker(
+  cl_command_queue command_queue, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   return clEnqueueMarkerWithWaitList(command_queue, 0, NULL, event);
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueWaitForEvents
-(
-  cl_command_queue  command_queue,
-  cl_uint           num_events,
-  const cl_event *  event_list
-) CL_API_SUFFIX__VERSION_1_0
+clEnqueueWaitForEvents(cl_command_queue command_queue, cl_uint num_events,
+                       const cl_event* event_list) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   if (!command_queue)
   {
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
   }
 
   // Enqueue command
-  oclgrind::Queue::Command *cmd = new oclgrind::Queue::Command();
-  asyncEnqueue(command_queue, CL_COMMAND_BARRIER, cmd,
-               num_events, event_list, NULL);
+  oclgrind::Command* cmd = new oclgrind::Command();
+  asyncEnqueue(command_queue, CL_COMMAND_BARRIER, cmd, num_events, event_list,
+               NULL);
 
   return CL_SUCCESS;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueBarrier
-(
-  cl_command_queue  command_queue
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueBarrier(cl_command_queue command_queue)
+  CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   return clEnqueueBarrierWithWaitList(command_queue, 0, NULL, NULL);
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLBuffer
-(
-  cl_context    context,
-  cl_mem_flags  flags,
-  cl_GLuint     bufret_mem,
-  int *         errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLBuffer(
+  cl_context context, cl_mem_flags flags, cl_GLuint bufret_mem,
+  int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLTexture
-(
-  cl_context    context,
-  cl_mem_flags  flags,
-  cl_GLenum     target,
-  cl_GLint      miplevel,
-  cl_GLuint     texture,
-  cl_int *      errcode_ret
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLTexture(
+  cl_context context, cl_mem_flags flags, cl_GLenum target, cl_GLint miplevel,
+  cl_GLuint texture, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLTexture2D
-(
-  cl_context    context,
-  cl_mem_flags  flags,
-  cl_GLenum     target,
-  cl_GLint      miplevel,
-  cl_GLuint     texture,
-  cl_int *      errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLTexture2D(
+  cl_context context, cl_mem_flags flags, cl_GLenum target, cl_GLint miplevel,
+  cl_GLuint texture, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLTexture3D
-(
-  cl_context    context,
-  cl_mem_flags  flags,
-  cl_GLenum     target,
-  cl_GLint      miplevel,
-  cl_GLuint     texture,
-  cl_int *      errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLTexture3D(
+  cl_context context, cl_mem_flags flags, cl_GLenum target, cl_GLint miplevel,
+  cl_GLuint texture, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromGLRenderbuffer
-(
-  cl_context    context,
-  cl_mem_flags  flags,
-  cl_GLuint     renderbuffer,
-  cl_int *      errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromGLRenderbuffer(
+  cl_context context, cl_mem_flags flags, cl_GLuint renderbuffer,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clGetGLObjectInfo
-(
-  cl_mem               memobj,
-  cl_gl_object_type *  gl_object_type,
-  cl_GLuint *          gl_object_name
-) CL_API_SUFFIX__VERSION_1_0
+clGetGLObjectInfo(cl_mem memobj, cl_gl_object_type* gl_object_type,
+                  cl_GLuint* gl_object_name) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_MEM_OBJECT, "CL/GL interop not implements");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetGLTextureInfo
-(
-  cl_mem              memobj,
-  cl_gl_texture_info  param_name,
-  size_t              param_value_size,
-  void *              param_value,
-  size_t *            param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetGLTextureInfo(
+  cl_mem memobj, cl_gl_texture_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_MEM_OBJECT, "CL/GL interop not implemented");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueAcquireGLObjects
-(
-  cl_command_queue  command_queue,
-  cl_uint           num_objects,
-  const cl_mem *    mem_objects,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueAcquireGLObjects(
+  cl_command_queue command_queue, cl_uint num_objects,
+  const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReleaseGLObjects
-(
-  cl_command_queue  command_queue,
-  cl_uint           num_objects,
-  const cl_mem *    mem_objects,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueReleaseGLObjects(
+  cl_command_queue command_queue, cl_uint num_objects,
+  const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetGLContextInfoKHR
-(
-  const cl_context_properties *  properties,
-  cl_gl_context_info             param_name,
-  size_t                         param_value_size,
-  void *                         param_value,
-  size_t *                       param_value_size_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetGLContextInfoKHR(
+  const cl_context_properties* properties, cl_gl_context_info param_name,
+  size_t param_value_size, void* param_value,
+  size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/GL interop not implemented");
 }
 
 CL_API_ENTRY cl_event CL_API_CALL
-clCreateEventFromGLsyncKHR
-(
-  cl_context  context,
-  cl_GLsync   cl_GLsync,
-  cl_int *    errcode_ret
-) CL_EXT_SUFFIX__VERSION_1_1
+clCreateEventFromGLsyncKHR(cl_context context, cl_GLsync cl_GLsync,
+                           cl_int* errcode_ret) CL_EXT_SUFFIX__VERSION_1_1
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/GL interop not implemented");
   return NULL;
 }
 
 #if defined(_WIN32) && !defined(__MINGW32__) // DX extension functions
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetDeviceIDsFromD3D10KHR
-(
-  cl_platform_id              platform,
-  cl_d3d10_device_source_khr  d3d_device_source,
-  void *                      d3d_object,
-  cl_d3d10_device_set_khr     d3d_device_set,
-  cl_uint                     num_entries,
-  cl_device_id *              devices,
-  cl_uint *                   num_devices
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDsFromD3D10KHR(
+  cl_platform_id platform, cl_d3d10_device_source_khr d3d_device_source,
+  void* d3d_object, cl_d3d10_device_set_khr d3d_device_set, cl_uint num_entries,
+  cl_device_id* devices, cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromD3D10BufferKHR
-(
-  cl_context      context,
-  cl_mem_flags    flags,
-  ID3D10Buffer *  resource,
-  cl_int *        errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D10BufferKHR(
+  cl_context context, cl_mem_flags flags, ID3D10Buffer* resource,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/DX interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromD3D10Texture2DKHR
-(
-  cl_context         context,
-  cl_mem_flags       flags,
-  ID3D10Texture2D *  resource,
-  UINT               subresource,
-  cl_int *           errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D10Texture2DKHR(
+  cl_context context, cl_mem_flags flags, ID3D10Texture2D* resource,
+  UINT subresource, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromD3D10Texture3DKHR
-(
-  cl_context         context,
-  cl_mem_flags       flags,
-  ID3D10Texture3D *  resource,
-  UINT               subresource,
-  cl_int *           errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D10Texture3DKHR(
+  cl_context context, cl_mem_flags flags, ID3D10Texture3D* resource,
+  UINT subresource, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueAcquireD3D10ObjectsKHR
-(
-  cl_command_queue  command_queue,
-  cl_uint           num_objects,
-  const cl_mem *    mem_objects,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-)CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueAcquireD3D10ObjectsKHR(
+  cl_command_queue command_queue, cl_uint num_objects,
+  const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReleaseD3D10ObjectsKHR
-(
-  cl_command_queue  command_queue,
-  cl_uint           num_objects,
-  const cl_mem *    mem_objects,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueReleaseD3D10ObjectsKHR(
+  cl_command_queue command_queue, cl_uint num_objects,
+  const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetDeviceIDsFromD3D11KHR
-(
-  cl_platform_id              platform,
-  cl_d3d11_device_source_khr  d3d_device_source,
-  void *                      d3d_object,
-  cl_d3d11_device_set_khr     d3d_device_set,
-  cl_uint                     num_entries,
-  cl_device_id *              devices,
-  cl_uint *                   num_devices
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDsFromD3D11KHR(
+  cl_platform_id platform, cl_d3d11_device_source_khr d3d_device_source,
+  void* d3d_object, cl_d3d11_device_set_khr d3d_device_set, cl_uint num_entries,
+  cl_device_id* devices, cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromD3D11BufferKHR
-(
-  cl_context      context,
-  cl_mem_flags    flags,
-  ID3D11Buffer *  resource,
-  cl_int *        errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D11BufferKHR(
+  cl_context context, cl_mem_flags flags, ID3D11Buffer* resource,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/DX interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromD3D11Texture2DKHR
-(
-  cl_context         context,
-  cl_mem_flags       flags,
-  ID3D11Texture2D *  resource,
-  UINT               subresource,
-  cl_int *           errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D11Texture2DKHR(
+  cl_context context, cl_mem_flags flags, ID3D11Texture2D* resource,
+  UINT subresource, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromD3D11Texture3DKHR
-(
-  cl_context         context,
-  cl_mem_flags       flags,
-  ID3D11Texture3D *  resource,
-  UINT               subresource,
-  cl_int *           errcode_ret
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromD3D11Texture3DKHR(
+  cl_context context, cl_mem_flags flags, ID3D11Texture3D* resource,
+  UINT subresource, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueAcquireD3D11ObjectsKHR
-(
-  cl_command_queue  command_queue,
-  cl_uint           num_objects,
-  const cl_mem *    mem_objects,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-)CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueAcquireD3D11ObjectsKHR(
+  cl_command_queue command_queue, cl_uint num_objects,
+  const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReleaseD3D11ObjectsKHR
-(
-  cl_command_queue  command_queue,
-  cl_uint           num_objects,
-  const cl_mem *    mem_objects,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_1_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueReleaseD3D11ObjectsKHR(
+  cl_command_queue command_queue, cl_uint num_objects,
+  const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetDeviceIDsFromDX9MediaAdapterKHR
-(
-  cl_platform_id                   platform,
-  cl_uint                          num_media_adapters,
-  cl_dx9_media_adapter_type_khr *  media_adapter_type,
-  void *                           media_adapters,
-  cl_dx9_media_adapter_set_khr     media_adapter_set,
-  cl_uint                          num_entries,
-  cl_device_id *                   devices,
-  cl_uint *                        num_devices
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDsFromDX9MediaAdapterKHR(
+  cl_platform_id platform, cl_uint num_media_adapters,
+  cl_dx9_media_adapter_type_khr* media_adapter_type, void* media_adapters,
+  cl_dx9_media_adapter_set_khr media_adapter_set, cl_uint num_entries,
+  cl_device_id* devices, cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
-CL_API_ENTRY cl_mem CL_API_CALL
-clCreateFromDX9MediaSurfaceKHR
-(
-  cl_context                     context,
-  cl_mem_flags                   flags,
-  cl_dx9_media_adapter_type_khr  adapter_type,
-  void *                         surface_info,
-  cl_uint                        plane,
-  cl_int *                       errcode_ret
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_mem CL_API_CALL clCreateFromDX9MediaSurfaceKHR(
+  cl_context context, cl_mem_flags flags,
+  cl_dx9_media_adapter_type_khr adapter_type, void* surface_info, cl_uint plane,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   SetErrorInfo(NULL, CL_INVALID_CONTEXT, "CL/DX interop not implemented");
   return NULL;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueAcquireDX9MediaSurfacesKHR
-(
-  cl_command_queue command_queue,
-  cl_uint          num_objects,
-  const cl_mem *   mem_objects,
-  cl_uint          num_events_in_wait_list,
-  const cl_event * event_wait_list,
-  cl_event *       event
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueAcquireDX9MediaSurfacesKHR(
+  cl_command_queue command_queue, cl_uint num_objects,
+  const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueReleaseDX9MediaSurfacesKHR
-(
-  cl_command_queue command_queue,
-  cl_uint          num_objects,
-  const cl_mem *   mem_objects,
-  cl_uint          num_events_in_wait_list,
-  const cl_event * event_wait_list,
-  cl_event *       event
-) CL_API_SUFFIX__VERSION_1_2
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueReleaseDX9MediaSurfacesKHR(
+  cl_command_queue command_queue, cl_uint num_objects,
+  const cl_mem* mem_objects, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_1_2
 {
+  REGISTER_API;
+
   ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "CL/DX interop not implemented");
 }
 
 #endif // DX extension functions
 
-
 /////////////////////
 // OpenCL 2.0 APIs //
 /////////////////////
 
-CL_API_ENTRY cl_command_queue CL_API_CALL
-clCreateCommandQueueWithProperties
-(
-  cl_context                  context,
-  cl_device_id                device,
-  const cl_queue_properties * properties,
-  cl_int *                    errcode_ret
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY cl_command_queue CL_API_CALL clCreateCommandQueueWithProperties(
+  cl_context context, cl_device_id device,
+  const cl_queue_properties* properties,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -5575,6 +5472,7 @@ clCreateCommandQueueWithProperties
 
   // Parse properties
   cl_command_queue_properties props = 0;
+  bool out_of_order = false;
   unsigned i = 0;
   while (properties && properties[i])
   {
@@ -5583,12 +5481,9 @@ clCreateCommandQueueWithProperties
     case CL_QUEUE_PROPERTIES:
       if (properties[i] & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE)
       {
-        SetErrorInfo(context, CL_INVALID_QUEUE_PROPERTIES,
-                     "Out-of-order command queues not supported");
-        return NULL;
+        out_of_order = true;
       }
-      if (properties[i] &
-          (CL_QUEUE_ON_DEVICE|CL_QUEUE_ON_DEVICE_DEFAULT))
+      if (properties[i] & (CL_QUEUE_ON_DEVICE | CL_QUEUE_ON_DEVICE_DEFAULT))
       {
         SetErrorInfo(context, CL_INVALID_QUEUE_PROPERTIES,
                      "On device queues not implemented");
@@ -5605,15 +5500,20 @@ clCreateCommandQueueWithProperties
     }
     i++;
   }
+  unsigned numProperties = i + 1;
 
   // Create command-queue object
   cl_command_queue queue;
   queue = new _cl_command_queue;
-  queue->queue = new oclgrind::Queue(context->context);
+  queue->queue = new oclgrind::Queue(context->context, out_of_order);
   queue->dispatch = m_dispatchTable;
   queue->properties = props;
   queue->context = context;
   queue->refCount = 1;
+  if (properties)
+  {
+    queue->properties_array.assign(properties, properties + numProperties);
+  }
 
   clRetainContext(context);
 
@@ -5622,152 +5522,110 @@ clCreateCommandQueueWithProperties
 }
 
 CL_API_ENTRY cl_mem CL_API_CALL
-clCreatePipe
-(
-  cl_context                 context,
-  cl_mem_flags               flags,
-  cl_uint                    pipe_packet_size,
-  cl_uint                    pipe_max_packets,
-  const cl_pipe_properties * properties,
-  cl_int *                   errcode_ret
-) CL_API_SUFFIX__VERSION_2_0
+clCreatePipe(cl_context context, cl_mem_flags flags, cl_uint pipe_packet_size,
+             cl_uint pipe_max_packets, const cl_pipe_properties* properties,
+             cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
   return NULL;
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clGetPipeInfo
-(
-  cl_mem       pipe,
-  cl_pipe_info param_name,
-  size_t       param_value_size,
-  void *       param_value,
-  size_t *     param_value_size_ret
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY cl_int CL_API_CALL clGetPipeInfo(
+  cl_mem pipe, cl_pipe_info param_name, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_2_0
 {
-  ReturnErrorInfo(NULL, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.0 API");
+  REGISTER_API;
+
+  ReturnErrorInfo(NULL, CL_INVALID_MEM_OBJECT, "Pipes are not supported");
 }
 
-CL_API_ENTRY void * CL_API_CALL
-clSVMAlloc
-(
-  cl_context       context,
-  cl_svm_mem_flags flags,
-  size_t           size,
-  cl_uint          alignment
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY void* CL_API_CALL
+clSVMAlloc(cl_context context, cl_svm_mem_flags flags, size_t size,
+           cl_uint alignment) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   notifyAPIError(context, CL_INVALID_OPERATION, __func__,
                  "Unimplemented OpenCL 2.0 API");
   return NULL;
 }
 
-CL_API_ENTRY void CL_API_CALL
-clSVMFree
-(
-  cl_context context,
-  void *     svm_pointer
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY void CL_API_CALL clSVMFree(cl_context context, void* svm_pointer)
+  CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   notifyAPIError(context, CL_INVALID_OPERATION, __func__,
                  "Unimplemented OpenCL 2.0 API");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueSVMFree
-(
-  cl_command_queue command_queue,
-  cl_uint num_svm_pointers,
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMFree(
+  cl_command_queue command_queue, cl_uint num_svm_pointers,
   void* svm_pointers[],
-  void (CL_CALLBACK* pfn_free_func)(
-      cl_command_queue queue,
-      cl_uint num_svm_pointers,
-      void* svm_pointers[],
-      void* user_data),
-  void* user_data,
-  cl_uint num_events_in_wait_list,
-  const cl_event* event_wait_list,
-  cl_event* event
-) CL_API_SUFFIX__VERSION_2_0
+  void(CL_CALLBACK* pfn_free_func)(cl_command_queue queue,
+                                   cl_uint num_svm_pointers,
+                                   void* svm_pointers[], void* user_data),
+  void* user_data, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueSVMMemcpy
-(
-  cl_command_queue  command_queue,
-  cl_bool           blocking_copy,
-  void *            dst_ptr,
-  const void *      src_ptr,
-  size_t            size,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMMemcpy(
+  cl_command_queue command_queue, cl_bool blocking_copy, void* dst_ptr,
+  const void* src_ptr, size_t size, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueSVMMemFill
-(
-  cl_command_queue command_queue,
-  void *           svm_ptr,
-  const void *     pattern,
-  size_t           pattern_size,
-  size_t           size,
-  cl_uint          num_events_in_wait_list,
-  const cl_event * event_wait_list,
-  cl_event *       event
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMMemFill(
+  cl_command_queue command_queue, void* svm_ptr, const void* pattern,
+  size_t pattern_size, size_t size, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueSVMMap
-(
-  cl_command_queue  command_queue,
-  cl_bool           blocking_map,
-  cl_map_flags      flags,
-  void *            svm_ptr,
-  size_t            size,
-  cl_uint           num_events_in_wait_list,
-  const cl_event *  event_wait_list,
-  cl_event *        event
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMMap(
+  cl_command_queue command_queue, cl_bool blocking_map, cl_map_flags flags,
+  void* svm_ptr, size_t size, cl_uint num_events_in_wait_list,
+  const cl_event* event_wait_list, cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clEnqueueSVMUnmap
-(
-  cl_command_queue command_queue,
-  void *           svm_ptr,
-  cl_uint          num_events_in_wait_list,
-  const cl_event * event_wait_list,
-  cl_event *       event
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMUnmap(
+  cl_command_queue command_queue, void* svm_ptr,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
 
-CL_API_ENTRY cl_sampler CL_API_CALL
-clCreateSamplerWithProperties
-(
-  cl_context                     context,
-  const cl_sampler_properties *  sampler_properties,
-  cl_int *                       errcode_ret
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY cl_sampler CL_API_CALL clCreateSamplerWithProperties(
+  cl_context context, const cl_sampler_properties* sampler_properties,
+  cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   // Check parameters
   if (!context)
   {
@@ -5775,9 +5633,9 @@ clCreateSamplerWithProperties
     return NULL;
   }
 
-  cl_bool             normalized_coords = CL_TRUE;
-  cl_addressing_mode  addressing_mode   = CL_ADDRESS_CLAMP;
-  cl_filter_mode      filter_mode       = CL_FILTER_NEAREST;
+  cl_bool normalized_coords = CL_TRUE;
+  cl_addressing_mode addressing_mode = CL_ADDRESS_CLAMP;
+  cl_filter_mode filter_mode = CL_FILTER_NEAREST;
 
   // Parse properties
   unsigned i = 0;
@@ -5800,6 +5658,7 @@ clCreateSamplerWithProperties
     }
     i++;
   }
+  unsigned numProperties = i + 1;
 
   // Create sampler bitfield
   uint32_t bitfield = 0;
@@ -5811,36 +5670,36 @@ clCreateSamplerWithProperties
 
   switch (addressing_mode)
   {
-    case CL_ADDRESS_NONE:
-      break;
-    case CL_ADDRESS_CLAMP_TO_EDGE:
-      bitfield |= CLK_ADDRESS_CLAMP_TO_EDGE;
-      break;
-    case CL_ADDRESS_CLAMP:
-      bitfield |= CLK_ADDRESS_CLAMP;
-      break;
-    case CL_ADDRESS_REPEAT:
-      bitfield |= CLK_ADDRESS_REPEAT;
-      break;
-    case CL_ADDRESS_MIRRORED_REPEAT:
-      bitfield |= CLK_ADDRESS_MIRRORED_REPEAT;
-      break;
-    default:
-      SetErrorArg(context, CL_INVALID_VALUE, sampler_properties);
-      return NULL;
+  case CL_ADDRESS_NONE:
+    break;
+  case CL_ADDRESS_CLAMP_TO_EDGE:
+    bitfield |= CLK_ADDRESS_CLAMP_TO_EDGE;
+    break;
+  case CL_ADDRESS_CLAMP:
+    bitfield |= CLK_ADDRESS_CLAMP;
+    break;
+  case CL_ADDRESS_REPEAT:
+    bitfield |= CLK_ADDRESS_REPEAT;
+    break;
+  case CL_ADDRESS_MIRRORED_REPEAT:
+    bitfield |= CLK_ADDRESS_MIRRORED_REPEAT;
+    break;
+  default:
+    SetErrorArg(context, CL_INVALID_VALUE, sampler_properties);
+    return NULL;
   }
 
   switch (filter_mode)
   {
-    case CL_FILTER_NEAREST:
-      bitfield |= CLK_FILTER_NEAREST;
-      break;
-    case CL_FILTER_LINEAR:
-      bitfield |= CLK_FILTER_LINEAR;
-      break;
-    default:
-      SetErrorArg(context, CL_INVALID_VALUE, sampler_properties);
-      return NULL;
+  case CL_FILTER_NEAREST:
+    bitfield |= CLK_FILTER_NEAREST;
+    break;
+  case CL_FILTER_LINEAR:
+    bitfield |= CLK_FILTER_LINEAR;
+    break;
+  default:
+    SetErrorArg(context, CL_INVALID_VALUE, sampler_properties);
+    return NULL;
   }
 
   // Create sampler
@@ -5851,34 +5710,173 @@ clCreateSamplerWithProperties
   sampler->addressMode = addressing_mode;
   sampler->filterMode = filter_mode;
   sampler->sampler = bitfield;
+  if (sampler_properties)
+  {
+    sampler->properties.assign(sampler_properties,
+                               sampler_properties + numProperties);
+  }
 
   SetError(context, CL_SUCCESS);
   return sampler;
 }
 
 CL_API_ENTRY cl_int CL_API_CALL
-clSetKernelArgSVMPointer
-(
-  cl_kernel    kernel,
-  cl_uint      arg_index,
-  const void * arg_value
-) CL_API_SUFFIX__VERSION_2_0
+clSetKernelArgSVMPointer(cl_kernel kernel, cl_uint arg_index,
+                         const void* arg_value) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(kernel->program->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
 }
 
-CL_API_ENTRY cl_int CL_API_CALL
-clSetKernelExecInfo
-(
-  cl_kernel            kernel,
-  cl_kernel_exec_info  param_name,
-  size_t               param_value_size,
-  const void *         param_value
-) CL_API_SUFFIX__VERSION_2_0
+CL_API_ENTRY cl_int CL_API_CALL clSetKernelExecInfo(
+  cl_kernel kernel, cl_kernel_exec_info param_name, size_t param_value_size,
+  const void* param_value) CL_API_SUFFIX__VERSION_2_0
 {
+  REGISTER_API;
+
   ReturnErrorInfo(kernel->program->context, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.0 API");
+}
+
+CL_API_ENTRY cl_kernel CL_API_CALL clCloneKernel(
+  cl_kernel source_kernel, cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_1
+{
+  REGISTER_API;
+
+  if (!source_kernel)
+  {
+    SetErrorArg(nullptr, CL_INVALID_KERNEL, source_kernel);
+    return nullptr;
+  }
+
+  // Create kernel object
+  cl_kernel kernel = new _cl_kernel;
+  kernel->dispatch = m_dispatchTable;
+  kernel->kernel = new oclgrind::Kernel(*source_kernel->kernel);
+  kernel->program = source_kernel->program;
+  kernel->memArgs = source_kernel->memArgs;
+  for (auto src_img : source_kernel->imageArgs)
+  {
+    oclgrind::Image* image = new oclgrind::Image;
+    image->address = src_img->address;
+    image->format = src_img->format;
+    image->desc = src_img->desc;
+    kernel->imageArgs.push_back(image);
+  }
+  kernel->refCount = 1;
+
+  clRetainProgram(kernel->program);
+
+  SetError(nullptr, CL_SUCCESS);
+  return kernel;
+}
+
+CL_API_ENTRY cl_program CL_API_CALL
+clCreateProgramWithIL(cl_context context, const void* il, size_t length,
+                      cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_1
+{
+  REGISTER_API;
+
+  SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.1 API");
+  return nullptr;
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clEnqueueSVMMigrateMem(
+  cl_command_queue command_queue, cl_uint num_svm_pointers,
+  const void** svm_pointers, const size_t* sizes, cl_mem_migration_flags flags,
+  cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
+  cl_event* event) CL_API_SUFFIX__VERSION_2_1
+{
+  REGISTER_API;
+
+  ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL
+clGetDeviceAndHostTimer(cl_device_id device, cl_ulong* device_timestamp,
+                        cl_ulong* host_timestamp) CL_API_SUFFIX__VERSION_2_1
+{
+  REGISTER_API;
+
+  ReturnErrorInfo(nullptr, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clGetHostTimer(
+  cl_device_id device, cl_ulong* host_timestamp) CL_API_SUFFIX__VERSION_2_1
+{
+  REGISTER_API;
+
+  ReturnErrorInfo(nullptr, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clGetKernelSubGroupInfo(
+  cl_kernel kernel, cl_device_id device, cl_kernel_sub_group_info param_name,
+  size_t input_value_size, const void* input_value, size_t param_value_size,
+  void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_2_1
+{
+  REGISTER_API;
+
+  ReturnErrorInfo(kernel->program->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clSetDefaultDeviceCommandQueue(
+  cl_context context, cl_device_id device,
+  cl_command_queue command_queue) CL_API_SUFFIX__VERSION_2_1
+{
+  REGISTER_API;
+
+  ReturnErrorInfo(context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.1 API");
+}
+
+CL_API_ENTRY CL_EXT_PREFIX__VERSION_2_2_DEPRECATED cl_int CL_API_CALL
+clSetProgramReleaseCallback(
+  cl_program program,
+  void(CL_CALLBACK* pfn_notify)(cl_program program, void* user_data),
+  void* user_data) CL_EXT_SUFFIX__VERSION_2_2_DEPRECATED
+{
+  REGISTER_API;
+
+  ReturnErrorInfo(program->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.2 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clSetProgramSpecializationConstant(
+  cl_program program, cl_uint spec_id, size_t spec_size,
+  const void* spec_value) CL_API_SUFFIX__VERSION_2_2
+{
+  REGISTER_API;
+
+  ReturnErrorInfo(program->context, CL_INVALID_OPERATION,
+                  "Unimplemented OpenCL 2.2 API");
+}
+
+CL_API_ENTRY cl_int CL_API_CALL clSetContextDestructorCallback(
+  cl_context context,
+  void(CL_CALLBACK* pfn_notify)(cl_context context, void* user_data),
+  void* user_data) CL_API_SUFFIX__VERSION_3_0
+{
+  REGISTER_API;
+
+  // Check parameters
+  if (!context)
+  {
+    ReturnErrorArg(NULL, CL_INVALID_CONTEXT, context);
+  }
+  if (!pfn_notify)
+  {
+    ReturnErrorArg(context, CL_INVALID_VALUE, pfn_notify);
+  }
+
+  context->callbacks.push(make_pair(pfn_notify, user_data));
+
+  return CL_SUCCESS;
 }
 
 ////////////////////
@@ -5887,8 +5885,7 @@ clSetKernelExecInfo
 
 #define _NULL_ NULL
 #define DISPATCH_TABLE_ENTRY(FUNCTION) (void*)(FUNCTION)
-void *m_dispatchTable[] =
-{
+void* m_dispatchTable[] = {
   DISPATCH_TABLE_ENTRY(clGetPlatformIDs),
   DISPATCH_TABLE_ENTRY(clGetPlatformInfo),
   DISPATCH_TABLE_ENTRY(clGetDeviceIDs),
@@ -6065,6 +6062,24 @@ void *m_dispatchTable[] =
 
   // cl_khr_sub_groups
   DISPATCH_TABLE_ENTRY(NULL),
+
+  // OpenCL 2.1
+  DISPATCH_TABLE_ENTRY(clCloneKernel),
+  DISPATCH_TABLE_ENTRY(clCreateProgramWithIL),
+  DISPATCH_TABLE_ENTRY(clEnqueueSVMMigrateMem),
+  DISPATCH_TABLE_ENTRY(clGetDeviceAndHostTimer),
+  DISPATCH_TABLE_ENTRY(clGetHostTimer),
+  DISPATCH_TABLE_ENTRY(clGetKernelSubGroupInfo),
+  DISPATCH_TABLE_ENTRY(clSetDefaultDeviceCommandQueue),
+
+  // OpenCL 2.2
+  DISPATCH_TABLE_ENTRY(clSetProgramReleaseCallback),
+  DISPATCH_TABLE_ENTRY(clSetProgramSpecializationConstant),
+
+  // OpenCL 3.0
+  DISPATCH_TABLE_ENTRY(clCreateBufferWithProperties),
+  DISPATCH_TABLE_ENTRY(clCreateImageWithProperties),
+  DISPATCH_TABLE_ENTRY(clSetContextDestructorCallback),
 };
 
 #if defined(_WIN32) && !defined(OCLGRIND_ICD)
@@ -6081,22 +6096,22 @@ void *m_dispatchTable[] =
 bool initOclgrind()
 {
   // Get base address of process
-  char *base = (char*)GetModuleHandle(NULL);
+  char* base = (char*)GetModuleHandle(NULL);
 
   // Get pointer to NT headers
   PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)(base);
   PIMAGE_NT_HEADERS ntHeaders = (PIMAGE_NT_HEADERS)(base + dosHeader->e_lfanew);
   if (ntHeaders->Signature != IMAGE_NT_SIGNATURE)
   {
-    std::cerr << "[Oclgrind] Invalid NT signature: "
-              << ntHeaders->Signature << std::endl;
+    std::cerr << "[Oclgrind] Invalid NT signature: " << ntHeaders->Signature
+              << std::endl;
     return false;
   }
 
   // Get pointer to import directory
   DWORD importOffset =
-    ntHeaders->OptionalHeader.
-      DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
+    ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT]
+      .VirtualAddress;
   PIMAGE_IMPORT_DESCRIPTOR importDesc =
     (PIMAGE_IMPORT_DESCRIPTOR)(base + importOffset);
 
@@ -6104,7 +6119,7 @@ bool initOclgrind()
   while (importDesc->Name)
   {
     // Look for OpenCL.dll
-    const char *modname = (const char*)(base + importDesc->Name);
+    const char* modname = (const char*)(base + importDesc->Name);
     if (!stricmp(modname, "opencl.dll"))
     {
       // We use the OriginalFirstThunk to match the name,

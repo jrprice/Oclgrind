@@ -1,24 +1,24 @@
 // WorkItem.cpp (Oclgrind)
-// Copyright (c) 2013-2016, James Price and Simon McIntosh-Smith,
+// Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 // University of Bristol. All rights reserved.`
 //
 // This program is provided under a three-clause BSD license. For full
 // license terms please see the LICENSE file distributed with this
 // source code.
 
-#include "config.h"
 #include "common.h"
+#include "config.h"
 
 #include <math.h>
 
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/InstIterator.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/InstIterator.h"
 
 #include "Context.h"
 #include "Kernel.h"
@@ -34,19 +34,18 @@ using namespace std;
 struct WorkItem::Position
 {
   bool hasBegun;
-  const llvm::BasicBlock *             prevBlock;
-  const llvm::BasicBlock *             currBlock;
-  const llvm::BasicBlock *             nextBlock;
-  llvm::BasicBlock::const_iterator     currInst;
+  const llvm::BasicBlock* prevBlock;
+  const llvm::BasicBlock* currBlock;
+  const llvm::BasicBlock* nextBlock;
+  llvm::BasicBlock::const_iterator currInst;
   std::stack<const llvm::Instruction*> callStack;
-  std::stack< std::list<size_t> >      allocations;
+  std::stack<std::list<size_t>> allocations;
 };
 
-WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
-                   WorkGroup *workGroup, Size3 lid)
-  : m_context(kernelInvocation->getContext()),
-    m_kernelInvocation(kernelInvocation),
-    m_workGroup(workGroup)
+WorkItem::WorkItem(const KernelInvocation* kernelInvocation,
+                   WorkGroup* workGroup, Size3 lid)
+    : m_context(kernelInvocation->getContext()),
+      m_kernelInvocation(kernelInvocation), m_workGroup(workGroup)
 {
   m_localID = lid;
 
@@ -54,16 +53,15 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   Size3 groupID = workGroup->getGroupID();
   Size3 groupSize = kernelInvocation->getLocalSize();
   Size3 globalOffset = kernelInvocation->getGlobalOffset();
-  m_globalID.x = lid.x + groupID.x*groupSize.x + globalOffset.x;
-  m_globalID.y = lid.y + groupID.y*groupSize.y + globalOffset.y;
-  m_globalID.z = lid.z + groupID.z*groupSize.z + globalOffset.z;
+  m_globalID.x = lid.x + groupID.x * groupSize.x + globalOffset.x;
+  m_globalID.y = lid.y + groupID.y * groupSize.y + globalOffset.y;
+  m_globalID.z = lid.z + groupID.z * groupSize.z + globalOffset.z;
 
   Size3 globalSize = kernelInvocation->getGlobalSize();
   m_globalIndex = (m_globalID.x +
-                  (m_globalID.y +
-                   m_globalID.z*globalSize.y) * globalSize.x);
+                   (m_globalID.y + m_globalID.z * globalSize.y) * globalSize.x);
 
-  const Kernel *kernel = kernelInvocation->getKernel();
+  const Kernel* kernel = kernelInvocation->getKernel();
 
   // Load interpreter cache
   m_cache = kernel->getProgram()->getInterpreterCache(kernel->getFunction());
@@ -71,26 +69,22 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
   // Set initial number of values to store based on cache
   m_values.resize(m_cache->getNumValues());
 
-  m_privateMemory = new Memory(AddrSpacePrivate, sizeof(size_t)==8 ? 32 : 16,
-                               m_context);
+  m_privateMemory =
+    new Memory(AddrSpacePrivate, sizeof(size_t) == 8 ? 32 : 16, m_context);
 
   // Initialise kernel arguments and global variables
-  for (auto value  = kernel->values_begin();
-            value != kernel->values_end();
-            value++)
+  for (auto value = kernel->values_begin(); value != kernel->values_end();
+       value++)
   {
-    pair<unsigned,unsigned> size = getValueSize(value->first);
-    TypedValue v = {
-      size.first,
-      size.second,
-      m_pool.alloc(size.first*size.second)
-    };
+    pair<unsigned, unsigned> size = getValueSize(value->first);
+    TypedValue v = {size.first, size.second,
+                    m_pool.alloc(size.first * size.second)};
 
-    const llvm::Type *type = value->first->getType();
+    const llvm::Type* type = value->first->getType();
     if (type->isPointerTy() &&
         type->getPointerAddressSpace() == AddrSpacePrivate)
     {
-      size_t sz = value->second.size*value->second.num;
+      size_t sz = value->second.size * value->second.num;
       v.setPointer(m_privateMemory->allocateBuffer(sz, 0, value->second.data));
     }
     else if (type->isPointerTy() &&
@@ -100,14 +94,14 @@ WorkItem::WorkItem(const KernelInvocation *kernelInvocation,
     }
     else
     {
-      memcpy(v.data, value->second.data, v.size*v.num);
+      memcpy(v.data, value->second.data, v.size * v.num);
     }
 
     setValue(value->first, v);
   }
 
   // Initialize interpreter state
-  m_state    = READY;
+  m_state = READY;
   m_position = new Position;
   m_position->hasBegun = false;
   m_position->prevBlock = NULL;
@@ -131,7 +125,7 @@ void WorkItem::clearBarrier()
   }
 }
 
-void WorkItem::dispatch(const llvm::Instruction *instruction,
+void WorkItem::dispatch(const llvm::Instruction* instruction,
                         TypedValue& result)
 {
   switch (instruction->getOpcode())
@@ -174,6 +168,9 @@ void WorkItem::dispatch(const llvm::Instruction *instruction,
     break;
   case llvm::Instruction::FMul:
     fmul(instruction, result);
+    break;
+  case llvm::Instruction::FNeg:
+    fneg(instruction, result);
     break;
   case llvm::Instruction::FPExt:
     fpext(instruction, result);
@@ -279,26 +276,24 @@ void WorkItem::dispatch(const llvm::Instruction *instruction,
   case llvm::Instruction::ZExt:
     zext(instruction, result);
     break;
+  case llvm::Instruction::Freeze:
+    freeze(instruction, result);
+    break;
   default:
     FATAL_ERROR("Unsupported instruction: %s", instruction->getOpcodeName());
   }
 }
 
-void WorkItem::execute(const llvm::Instruction *instruction)
+void WorkItem::execute(const llvm::Instruction* instruction)
 {
   // Prepare private variable for instruction result
-  pair<unsigned,unsigned> resultSize = getValueSize(instruction);
+  pair<unsigned, unsigned> resultSize = getValueSize(instruction);
 
   // Prepare result
-  TypedValue result = {
-    resultSize.first,
-    resultSize.second,
-    NULL
-  };
-
+  TypedValue result = {resultSize.first, resultSize.second, NULL};
   if (result.size)
   {
-    result.data = m_pool.alloc(result.size*result.num);
+    result.data = m_pool.alloc(result.size * result.num);
   }
 
   if (instruction->getOpcode() != llvm::Instruction::PHI &&
@@ -365,19 +360,19 @@ Memory* WorkItem::getMemory(unsigned int addrSpace) const
 {
   switch (addrSpace)
   {
-    case AddrSpacePrivate:
-      return m_privateMemory;
-    case AddrSpaceGlobal:
-    case AddrSpaceConstant:
-      return m_context->getGlobalMemory();
-    case AddrSpaceLocal:
-      return m_workGroup->getLocalMemory();
-    default:
-      FATAL_ERROR("Unsupported address space: %d", addrSpace);
+  case AddrSpacePrivate:
+    return m_privateMemory;
+  case AddrSpaceGlobal:
+  case AddrSpaceConstant:
+    return m_context->getGlobalMemory();
+  case AddrSpaceLocal:
+    return m_workGroup->getLocalMemory();
+  default:
+    FATAL_ERROR("Unsupported address space: %d", addrSpace);
   }
 }
 
-TypedValue WorkItem::getOperand(const llvm::Value *operand) const
+TypedValue WorkItem::getOperand(const llvm::Value* operand) const
 {
   unsigned valID = operand->getValueID();
   if (valID == llvm::Value::ArgumentVal ||
@@ -386,58 +381,58 @@ TypedValue WorkItem::getOperand(const llvm::Value *operand) const
   {
     return getValue(operand);
   }
-  //else if (valID == llvm::Value::BasicBlockVal)
+  // else if (valID == llvm::Value::BasicBlockVal)
   //{
   //}
-  //else if (valID == llvm::Value::FunctionVal)
+  // else if (valID == llvm::Value::FunctionVal)
   //{
   //}
-  //else if (valID == llvm::Value::GlobalAliasVal)
+  // else if (valID == llvm::Value::GlobalAliasVal)
   //{
   //}
-  //else if (valID == llvm::Value::BlockAddressVal)
+  // else if (valID == llvm::Value::BlockAddressVal)
   //{
   //}
   else if (valID == llvm::Value::ConstantExprVal)
   {
-    pair<unsigned,unsigned> size = getValueSize(operand);
+    pair<unsigned, unsigned> size = getValueSize(operand);
     TypedValue result;
     result.size = size.first;
-    result.num  = size.second;
+    result.num = size.second;
     result.data = m_pool.alloc(getTypeSize(operand->getType()));
 
     // Use of const_cast here is ugly, but ConstExpr instructions
     // shouldn't actually modify WorkItem state anyway
-    const_cast<WorkItem*>(this)->dispatch(
-      m_cache->getConstantExpr(operand), result);
+    const_cast<WorkItem*>(this)->dispatch(m_cache->getConstantExpr(operand),
+                                          result);
     return result;
   }
-  else if (valID == llvm::Value::UndefValueVal            ||
+  else if (valID == llvm::Value::UndefValueVal ||
            valID == llvm::Value::ConstantAggregateZeroVal ||
-           valID == llvm::Value::ConstantDataArrayVal     ||
-           valID == llvm::Value::ConstantDataVectorVal    ||
-           valID == llvm::Value::ConstantIntVal           ||
-           valID == llvm::Value::ConstantFPVal            ||
-           valID == llvm::Value::ConstantArrayVal         ||
-           valID == llvm::Value::ConstantStructVal        ||
-           valID == llvm::Value::ConstantVectorVal        ||
+           valID == llvm::Value::ConstantDataArrayVal ||
+           valID == llvm::Value::ConstantDataVectorVal ||
+           valID == llvm::Value::ConstantIntVal ||
+           valID == llvm::Value::ConstantFPVal ||
+           valID == llvm::Value::ConstantArrayVal ||
+           valID == llvm::Value::ConstantStructVal ||
+           valID == llvm::Value::ConstantVectorVal ||
            valID == llvm::Value::ConstantPointerNullVal)
   {
     return m_cache->getConstant(operand);
   }
-  //else if (valID == llvm::Value::MDNodeVal)
+  // else if (valID == llvm::Value::MDNodeVal)
   //{
   //}
-  //else if (valID == llvm::Value::MDStringVal)
+  // else if (valID == llvm::Value::MDStringVal)
   //{
   //}
-  //else if (valID == llvm::Value::InlineAsmVal)
+  // else if (valID == llvm::Value::InlineAsmVal)
   //{
   //}
-  //else if (valID == llvm::Value::PseudoSourceValueVal)
+  // else if (valID == llvm::Value::PseudoSourceValueVal)
   //{
   //}
-  //else if (valID == llvm::Value::FixedStackPseudoSourceValueVal)
+  // else if (valID == llvm::Value::FixedStackPseudoSourceValueVal)
   //{
   //}
   else
@@ -464,12 +459,12 @@ WorkItem::State WorkItem::getState() const
   return m_state;
 }
 
-TypedValue WorkItem::getValue(const llvm::Value *key) const
+TypedValue WorkItem::getValue(const llvm::Value* key) const
 {
   return m_values[m_cache->getValueID(key)];
 }
 
-const unsigned char* WorkItem::getValueData(const llvm::Value *value) const
+const unsigned char* WorkItem::getValueData(const llvm::Value* value) const
 {
   if (!hasValue(value))
   {
@@ -483,7 +478,7 @@ const WorkGroup* WorkItem::getWorkGroup() const
   return m_workGroup;
 }
 
-bool WorkItem::hasValue(const llvm::Value *key) const
+bool WorkItem::hasValue(const llvm::Value* key) const
 {
   return m_cache->hasValue(key);
 }
@@ -504,8 +499,8 @@ void WorkItem::printExpression(string expr) const
     expr = "";
   }
 
-  const llvm::Value *baseValue = NULL;
-  const llvm::DIVariable *divar = NULL;
+  const llvm::Value* baseValue = NULL;
+  const llvm::DIVariable* divar = NULL;
 
   // Check private variables
   VariableMap::const_iterator itr;
@@ -517,32 +512,27 @@ void WorkItem::printExpression(string expr) const
   }
 
   // Check global variables
-  string globalName = m_position->currBlock->getParent()->getName();
+  string globalName = m_position->currBlock->getParent()->getName().str();
   globalName += ".";
   globalName += basename;
-  const llvm::Module *module =
+  const llvm::Module* module =
     m_kernelInvocation->getKernel()->getFunction()->getParent();
-  for (auto global = module->global_begin();
-            global != module->global_end();
-            global++)
+  for (auto global = module->global_begin(); global != module->global_end();
+       global++)
   {
     if (global->getName() == globalName)
     {
       baseValue = &*global;
 
-#if LLVM_VERSION >= 40
       llvm::SmallVector<llvm::DIGlobalVariableExpression*, 3> GVEs;
       global->getDebugInfo(GVEs);
       if (GVEs.size() == 0)
-#endif
       {
         cout << "global variable debug information not found";
         return;
       }
-#if LLVM_VERSION >= 40
       // TODO: Does it matter which GVE we pick?
       divar = llvm::dyn_cast<llvm::DIGlobalVariable>(GVEs[0]->getRawVariable());
-#endif
     }
   }
 
@@ -555,17 +545,17 @@ void WorkItem::printExpression(string expr) const
 
   // Get variable data and type
   TypedValue result = getOperand(baseValue);
-  unsigned char *data = result.data;
-  const llvm::Type *type = baseValue->getType();
-  const llvm::Metadata *mdtype = divar->getRawType();
+  unsigned char* data = result.data;
+  const llvm::Type* type = baseValue->getType();
+  const llvm::Metadata* mdtype = divar->getRawType();
 
   // Auto-dereference global variables and allocas
   if (baseValue->getValueID() == llvm::Value::GlobalVariableVal ||
-      ((const llvm::Instruction*)baseValue)->getOpcode()
-         == llvm::Instruction::Alloca)
+      ((const llvm::Instruction*)baseValue)->getOpcode() ==
+        llvm::Instruction::Alloca)
   {
     size_t address = result.getPointer();
-    Memory *memory = getMemory(type->getPointerAddressSpace());
+    Memory* memory = getMemory(type->getPointerAddressSpace());
     data = (unsigned char*)memory->getPointer(address);
     type = type->getPointerElementType();
   }
@@ -600,7 +590,7 @@ void WorkItem::printExpression(string expr) const
       }
 
       // Parse index value
-      stringstream ss(expr.substr(1, end-1));
+      stringstream ss(expr.substr(1, end - 1));
       ss >> subscript;
       if (!ss.eof())
       {
@@ -608,7 +598,7 @@ void WorkItem::printExpression(string expr) const
         return;
       }
 
-      expr = expr.substr(end+1);
+      expr = expr.substr(end + 1);
       dereference = true;
     }
     else
@@ -629,7 +619,7 @@ void WorkItem::printExpression(string expr) const
 
       // Get pointer value
       size_t address = *(size_t*)data;
-      Memory *memory = getMemory(type->getPointerAddressSpace());
+      Memory* memory = getMemory(type->getPointerAddressSpace());
 
       // Check address is valid
       auto elemType = type->getPointerElementType();
@@ -694,7 +684,7 @@ void WorkItem::printExpression(string expr) const
           // Increment data pointer by offset and update type
           type = type->getStructElementType(i);
           mdtype = elem->getRawBaseType();
-          data = data + elem->getOffsetInBits()/8;
+          data = data + elem->getOffsetInBits() / 8;
           found = true;
         }
       }
@@ -709,7 +699,7 @@ void WorkItem::printExpression(string expr) const
   printTypedData(type, data);
 }
 
-bool WorkItem::printValue(const llvm::Value *value) const
+bool WorkItem::printValue(const llvm::Value* value) const
 {
   if (!hasValue(value))
   {
@@ -721,7 +711,7 @@ bool WorkItem::printValue(const llvm::Value *value) const
   return true;
 }
 
-void WorkItem::setValue(const llvm::Value *key, TypedValue value)
+void WorkItem::setValue(const llvm::Value* key, TypedValue value)
 {
   m_values[m_cache->getValueID(key)] = value;
 }
@@ -749,7 +739,7 @@ WorkItem::State WorkItem::step()
       m_position->prevBlock = m_position->currBlock;
       m_position->currBlock = m_position->nextBlock;
       m_position->nextBlock = NULL;
-      m_position->currInst  = m_position->currBlock->begin();
+      m_position->currInst = m_position->currBlock->begin();
     }
   }
 
@@ -759,13 +749,12 @@ WorkItem::State WorkItem::step()
   return m_state;
 }
 
-
 ///////////////////////////////
 //// Instruction execution ////
 ///////////////////////////////
 
-#define INSTRUCTION(name) \
-  void WorkItem::name(const llvm::Instruction *instruction, TypedValue& result)
+#define INSTRUCTION(name)                                                      \
+  void WorkItem::name(const llvm::Instruction* instruction, TypedValue& result)
 
 INSTRUCTION(add)
 {
@@ -779,8 +768,8 @@ INSTRUCTION(add)
 
 INSTRUCTION(alloc)
 {
-  const llvm::AllocaInst *allocInst = ((const llvm::AllocaInst*)instruction);
-  const llvm::Type *type = allocInst->getAllocatedType();
+  const llvm::AllocaInst* allocInst = ((const llvm::AllocaInst*)instruction);
+  const llvm::Type* type = allocInst->getAllocatedType();
 
   // Perform allocation
   unsigned size = getTypeSize(type);
@@ -801,8 +790,10 @@ INSTRUCTION(ashr)
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
   uint64_t shiftMask =
-    (result.num > 1 ? result.size : max((size_t)result.size, sizeof(uint32_t)))
-    * 8 - 1;
+    (result.num > 1 ? result.size
+                    : max((size_t)result.size, sizeof(uint32_t))) *
+      8 -
+    1;
   for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getSInt(i) >> (opB.getUInt(i) & shiftMask), i);
@@ -812,7 +803,7 @@ INSTRUCTION(ashr)
 INSTRUCTION(bitcast)
 {
   TypedValue operand = getOperand(instruction->getOperand(0));
-  memcpy(result.data, operand.data, result.size*result.num);
+  memcpy(result.data, operand.data, result.size * result.num);
 }
 
 INSTRUCTION(br)
@@ -826,8 +817,8 @@ INSTRUCTION(br)
   {
     // Conditional branch
     bool pred = getOperand(instruction->getOperand(0)).getUInt();
-    const llvm::Value *iftrue = instruction->getOperand(2);
-    const llvm::Value *iffalse = instruction->getOperand(1);
+    const llvm::Value* iftrue = instruction->getOperand(2);
+    const llvm::Value* iffalse = instruction->getOperand(1);
     m_position->nextBlock = (const llvm::BasicBlock*)(pred ? iftrue : iffalse);
   }
 }
@@ -864,15 +855,15 @@ INSTRUCTION(bwxor)
 
 INSTRUCTION(call)
 {
-  const llvm::CallInst *callInst = (const llvm::CallInst*)instruction;
-  const llvm::Function *function = callInst->getCalledFunction();
+  const llvm::CallInst* callInst = (const llvm::CallInst*)instruction;
+  const llvm::Function* function = callInst->getCalledFunction();
 
   // Check for indirect function calls
   if (!callInst->getCalledFunction())
   {
     // Resolve indirect function pointer
-    const llvm::Value *func = callInst->getCalledValue();
-    const llvm::Value *funcPtr = ((const llvm::User*)func)->getOperand(0);
+    const llvm::Value* func = callInst->getCalledOperand();
+    const llvm::Value* funcPtr = ((const llvm::User*)func)->getOperand(0);
     function = (const llvm::Function*)funcPtr;
   }
 
@@ -885,27 +876,22 @@ INSTRUCTION(call)
 
     // Set function arguments
     llvm::Function::const_arg_iterator argItr;
-    for (argItr = function->arg_begin();
-         argItr != function->arg_end(); argItr++)
+    for (argItr = function->arg_begin(); argItr != function->arg_end();
+         argItr++)
     {
-      const llvm::Value *arg = callInst->getArgOperand(argItr->getArgNo());
+      const llvm::Value* arg = callInst->getArgOperand(argItr->getArgNo());
       TypedValue value = getOperand(arg);
 
       if (argItr->hasByValAttr())
       {
         // Make new copy of value in private memory
-        void *data = m_privateMemory->getPointer(value.getPointer());
+        void* data = m_privateMemory->getPointer(value.getPointer());
         size_t size = getTypeSize(argItr->getType()->getPointerElementType());
-        size_t ptr  = m_privateMemory->allocateBuffer(size, 0, (uint8_t*)data);
+        size_t ptr = m_privateMemory->allocateBuffer(size, 0, (uint8_t*)data);
         m_position->allocations.top().push_back(ptr);
 
         // Pass new allocation to function
-        TypedValue address =
-        {
-          sizeof(size_t),
-          1,
-          m_pool.alloc(sizeof(size_t))
-        };
+        TypedValue address = {sizeof(size_t), 1, m_pool.alloc(sizeof(size_t))};
         address.setPointer(ptr);
         setValue(&*argItr, address);
       }
@@ -920,30 +906,29 @@ INSTRUCTION(call)
 
   // Call builtin function
   InterpreterCache::Builtin builtin = m_cache->getBuiltin(function);
-  builtin.function.func(this, callInst,
-                        builtin.name, builtin.overload,
-                        result, builtin.function.op);
+  builtin.function.func(this, callInst, builtin.name, builtin.overload, result,
+                        builtin.function.op);
 }
 
 INSTRUCTION(extractelem)
 {
-  const llvm::ExtractElementInst *extract =
+  const llvm::ExtractElementInst* extract =
     (const llvm::ExtractElementInst*)instruction;
-  unsigned index     = getOperand(extract->getIndexOperand()).getUInt();
+  unsigned index = getOperand(extract->getIndexOperand()).getUInt();
   TypedValue operand = getOperand(extract->getVectorOperand());
-  memcpy(result.data, operand.data + result.size*index, result.size);
+  memcpy(result.data, operand.data + result.size * index, result.size);
 }
 
 INSTRUCTION(extractval)
 {
-  const llvm::ExtractValueInst *extract =
+  const llvm::ExtractValueInst* extract =
     (const llvm::ExtractValueInst*)instruction;
-  const llvm::Value *agg = extract->getAggregateOperand();
+  const llvm::Value* agg = extract->getAggregateOperand();
   llvm::ArrayRef<unsigned int> indices = extract->getIndices();
 
   // Compute offset for target value
   int offset = 0;
-  const llvm::Type *type = agg->getType();
+  const llvm::Type* type = agg->getType();
   for (unsigned i = 0; i < indices.size(); i++)
   {
     if (type->isArrayTy())
@@ -953,8 +938,8 @@ INSTRUCTION(extractval)
     }
     else if (type->isStructTy())
     {
-      offset += getStructMemberOffset((const llvm::StructType*)type,
-                                      indices[i]);
+      offset +=
+        getStructMemberOffset((const llvm::StructType*)type, indices[i]);
       type = type->getStructElementType(indices[i]);
     }
     else
@@ -979,7 +964,7 @@ INSTRUCTION(fadd)
 
 INSTRUCTION(fcmp)
 {
-  const llvm::CmpInst *cmpInst = (const llvm::CmpInst*)instruction;
+  const llvm::CmpInst* cmpInst = (const llvm::CmpInst*)instruction;
   llvm::CmpInst::Predicate pred = cmpInst->getPredicate();
 
   TypedValue opA = getOperand(instruction->getOperand(0));
@@ -1060,6 +1045,15 @@ INSTRUCTION(fmul)
   }
 }
 
+INSTRUCTION(fneg)
+{
+  TypedValue op = getOperand(instruction->getOperand(0));
+  for (unsigned i = 0; i < result.num; i++)
+  {
+    result.setFloat(-op.getFloat(i), i);
+  }
+}
+
 INSTRUCTION(fpext)
 {
   TypedValue op = getOperand(instruction->getOperand(0));
@@ -1118,12 +1112,12 @@ INSTRUCTION(fsub)
 
 INSTRUCTION(gep)
 {
-  const llvm::GetElementPtrInst *gepInst =
+  const llvm::GetElementPtrInst* gepInst =
     (const llvm::GetElementPtrInst*)instruction;
 
   // Get base address
   size_t base = getOperand(gepInst->getPointerOperand()).getPointer();
-  const llvm::Type *ptrType = gepInst->getPointerOperandType();
+  const llvm::Type* ptrType = gepInst->getPointerOperandType();
 
   // Get indices
   std::vector<int64_t> offsets;
@@ -1138,7 +1132,7 @@ INSTRUCTION(gep)
 
 INSTRUCTION(icmp)
 {
-  const llvm::CmpInst *cmpInst = (const llvm::CmpInst*)instruction;
+  const llvm::CmpInst* cmpInst = (const llvm::CmpInst*)instruction;
   llvm::CmpInst::Predicate pred = cmpInst->getPredicate();
 
   TypedValue opA = getOperand(instruction->getOperand(0));
@@ -1150,8 +1144,8 @@ INSTRUCTION(icmp)
     // Load operands
     uint64_t ua = opA.getUInt(i);
     uint64_t ub = opB.getUInt(i);
-    int64_t  sa = opA.getSInt(i);
-    int64_t  sb = opB.getSInt(i);
+    int64_t sa = opA.getSInt(i);
+    int64_t sb = opB.getSInt(i);
 
     uint64_t r;
     switch (pred)
@@ -1196,26 +1190,26 @@ INSTRUCTION(icmp)
 
 INSTRUCTION(insertelem)
 {
-  TypedValue vector  = getOperand(instruction->getOperand(0));
+  TypedValue vector = getOperand(instruction->getOperand(0));
   TypedValue element = getOperand(instruction->getOperand(1));
-  unsigned index     = getOperand(instruction->getOperand(2)).getUInt();
-  memcpy(result.data, vector.data, result.size*result.num);
-  memcpy(result.data + index*result.size, element.data, result.size);
+  unsigned index = getOperand(instruction->getOperand(2)).getUInt();
+  memcpy(result.data, vector.data, result.size * result.num);
+  memcpy(result.data + index * result.size, element.data, result.size);
 }
 
 INSTRUCTION(insertval)
 {
-  const llvm::InsertValueInst *insert =
+  const llvm::InsertValueInst* insert =
     (const llvm::InsertValueInst*)instruction;
 
   // Load original aggregate data
-  const llvm::Value *agg = insert->getAggregateOperand();
-  memcpy(result.data, getOperand(agg).data, result.size*result.num);
+  const llvm::Value* agg = insert->getAggregateOperand();
+  memcpy(result.data, getOperand(agg).data, result.size * result.num);
 
   // Compute offset for inserted value
   int offset = 0;
   llvm::ArrayRef<unsigned int> indices = insert->getIndices();
-  const llvm::Type *type = agg->getType();
+  const llvm::Type* type = agg->getType();
   for (unsigned i = 0; i < indices.size(); i++)
   {
     if (type->isArrayTy())
@@ -1225,8 +1219,8 @@ INSTRUCTION(insertval)
     }
     else if (type->isStructTy())
     {
-      offset += getStructMemberOffset((const llvm::StructType*)type,
-                                      indices[i]);
+      offset +=
+        getStructMemberOffset((const llvm::StructType*)type, indices[i]);
       type = type->getStructElementType(indices[i]);
     }
     else
@@ -1236,7 +1230,7 @@ INSTRUCTION(insertval)
   }
 
   // Copy inserted value into result
-  const llvm::Value *value = insert->getInsertedValueOperand();
+  const llvm::Value* value = insert->getInsertedValueOperand();
   memcpy(result.data + offset, getOperand(value).data,
          getTypeSize(value->getType()));
 }
@@ -1261,23 +1255,23 @@ INSTRUCTION(itrunc)
 
 INSTRUCTION(load)
 {
-  const llvm::LoadInst *loadInst = (const llvm::LoadInst*)instruction;
+  const llvm::LoadInst* loadInst = (const llvm::LoadInst*)instruction;
   unsigned addressSpace = loadInst->getPointerAddressSpace();
-  const llvm::Value *opPtr = loadInst->getPointerOperand();
+  const llvm::Value* opPtr = loadInst->getPointerOperand();
   size_t address = getOperand(opPtr).getPointer();
 
   // Check address is correctly aligned
   unsigned alignment = loadInst->getAlignment();
   if (!alignment)
     alignment = getTypeAlignment(opPtr->getType()->getPointerElementType());
-  if (address & (alignment-1))
+  if (address & (alignment - 1))
   {
     m_context->logError("Invalid memory load - source pointer is "
                         "not aligned to the pointed type");
   }
 
   // Load data
-  getMemory(addressSpace)->load(result.data, address, result.size*result.num);
+  getMemory(addressSpace)->load(result.data, address, result.size * result.num);
 }
 
 INSTRUCTION(lshr)
@@ -1285,8 +1279,10 @@ INSTRUCTION(lshr)
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
   uint64_t shiftMask =
-    (result.num > 1 ? result.size : max((size_t)result.size, sizeof(uint32_t)))
-    * 8 - 1;
+    (result.num > 1 ? result.size
+                    : max((size_t)result.size, sizeof(uint32_t))) *
+      8 -
+    1;
   for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) >> (opB.getUInt(i) & shiftMask), i);
@@ -1305,10 +1301,10 @@ INSTRUCTION(mul)
 
 INSTRUCTION(phi)
 {
-  const llvm::PHINode *phiNode = (const llvm::PHINode*)instruction;
-  const llvm::Value *value = phiNode->getIncomingValueForBlock(
+  const llvm::PHINode* phiNode = (const llvm::PHINode*)instruction;
+  const llvm::Value* value = phiNode->getIncomingValueForBlock(
     (const llvm::BasicBlock*)m_position->prevBlock);
-  memcpy(result.data, getOperand(value).data, result.size*result.num);
+  memcpy(result.data, getOperand(value).data, result.size * result.num);
 }
 
 INSTRUCTION(ptrtoint)
@@ -1322,7 +1318,7 @@ INSTRUCTION(ptrtoint)
 
 INSTRUCTION(ret)
 {
-  const llvm::ReturnInst *retInst = (const llvm::ReturnInst*)instruction;
+  const llvm::ReturnInst* retInst = (const llvm::ReturnInst*)instruction;
 
   if (!m_position->callStack.empty())
   {
@@ -1332,7 +1328,7 @@ INSTRUCTION(ret)
     m_position->callStack.pop();
 
     // Set return value
-    const llvm::Value *returnVal = retInst->getReturnValue();
+    const llvm::Value* returnVal = retInst->getReturnValue();
     if (returnVal)
     {
       setValue(&*m_position->currInst, m_pool.clone(getOperand(returnVal)));
@@ -1374,26 +1370,23 @@ INSTRUCTION(sdiv)
 
 INSTRUCTION(select)
 {
-  const llvm::SelectInst *selectInst = (const llvm::SelectInst*)instruction;
+  const llvm::SelectInst* selectInst = (const llvm::SelectInst*)instruction;
   TypedValue opCondition = getOperand(selectInst->getCondition());
   for (unsigned i = 0; i < result.num; i++)
   {
-    const bool cond =
-      selectInst->getCondition()->getType()->isVectorTy() ?
-      opCondition.getUInt(i) :
-      opCondition.getUInt();
-    const llvm::Value *op = cond ?
-      selectInst->getTrueValue() :
-      selectInst->getFalseValue();
-    memcpy(result.data + i*result.size,
-           getOperand(op).data + i*result.size,
+    const bool cond = selectInst->getCondition()->getType()->isVectorTy()
+                        ? opCondition.getUInt(i)
+                        : opCondition.getUInt();
+    const llvm::Value* op =
+      cond ? selectInst->getTrueValue() : selectInst->getFalseValue();
+    memcpy(result.data + i * result.size, getOperand(op).data + i * result.size,
            result.size);
   }
 }
 
 INSTRUCTION(sext)
 {
-  const llvm::Value *operand = instruction->getOperand(0);
+  const llvm::Value* operand = instruction->getOperand(0);
   TypedValue value = getOperand(operand);
   for (unsigned i = 0; i < result.num; i++)
   {
@@ -1411,8 +1404,10 @@ INSTRUCTION(shl)
   TypedValue opA = getOperand(instruction->getOperand(0));
   TypedValue opB = getOperand(instruction->getOperand(1));
   uint64_t shiftMask =
-    (result.num > 1 ? result.size : max((size_t)result.size, sizeof(uint32_t)))
-    * 8 - 1;
+    (result.num > 1 ? result.size
+                    : max((size_t)result.size, sizeof(uint32_t))) *
+      8 -
+    1;
   for (unsigned i = 0; i < result.num; i++)
   {
     result.setUInt(opA.getUInt(i) << (opB.getUInt(i) & shiftMask), i);
@@ -1421,32 +1416,31 @@ INSTRUCTION(shl)
 
 INSTRUCTION(shuffle)
 {
-  const llvm::ShuffleVectorInst *shuffle =
+  const llvm::ShuffleVectorInst* shuffle =
     (const llvm::ShuffleVectorInst*)instruction;
 
-  const llvm::Value *v1 = shuffle->getOperand(0);
-  const llvm::Value *v2 = shuffle->getOperand(1);
-  TypedValue mask = getOperand(shuffle->getMask());
+  const llvm::Value* v1 = shuffle->getOperand(0);
+  const llvm::Value* v2 = shuffle->getOperand(1);
 
-  unsigned num = v1->getType()->getVectorNumElements();
+  unsigned num =
+    llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements();
   for (unsigned i = 0; i < result.num; i++)
   {
-    if (shuffle->getMask()->getAggregateElement(i)->getValueID()
-          == llvm::Value::UndefValueVal)
+    const llvm::Value* src = v1;
+    int index = shuffle->getMaskValue(i);
+    if (index == llvm::UndefMaskElem)
     {
       // Don't care / undef
       continue;
     }
 
-    const llvm::Value *src = v1;
-    unsigned int index = mask.getUInt(i);
     if (index >= num)
     {
       index -= num;
       src = v2;
     }
-    memcpy(result.data + i*result.size,
-           getOperand(src).data + index*result.size, result.size);
+    memcpy(result.data + i * result.size,
+           getOperand(src).data + index * result.size, result.size);
   }
 }
 
@@ -1478,16 +1472,16 @@ INSTRUCTION(srem)
 
 INSTRUCTION(store)
 {
-  const llvm::StoreInst *storeInst = (const llvm::StoreInst*)instruction;
+  const llvm::StoreInst* storeInst = (const llvm::StoreInst*)instruction;
   unsigned addressSpace = storeInst->getPointerAddressSpace();
-  const llvm::Value *opPtr = storeInst->getPointerOperand();
+  const llvm::Value* opPtr = storeInst->getPointerOperand();
   size_t address = getOperand(opPtr).getPointer();
 
   // Check address is correctly aligned
   unsigned alignment = storeInst->getAlignment();
   if (!alignment)
     alignment = getTypeAlignment(opPtr->getType()->getPointerElementType());
-  if (address & (alignment-1))
+  if (address & (alignment - 1))
   {
     m_context->logError("Invalid memory store - source pointer is "
                         "not aligned to the pointed type");
@@ -1495,8 +1489,8 @@ INSTRUCTION(store)
 
   // Store data
   TypedValue operand = getOperand(storeInst->getValueOperand());
-  getMemory(addressSpace)->store(operand.data, address,
-                                 operand.size*operand.num);
+  getMemory(addressSpace)
+    ->store(operand.data, address, operand.size * operand.num);
 }
 
 INSTRUCTION(sub)
@@ -1511,8 +1505,8 @@ INSTRUCTION(sub)
 
 INSTRUCTION(swtch)
 {
-  const llvm::SwitchInst *swtch = (const llvm::SwitchInst*)instruction;
-  const llvm::Value *cond = swtch->getCondition();
+  const llvm::SwitchInst* swtch = (const llvm::SwitchInst*)instruction;
+  const llvm::Value* cond = swtch->getCondition();
   uint64_t val = getOperand(cond).getUInt();
 
   // Look for case matching condition value
@@ -1575,27 +1569,31 @@ INSTRUCTION(zext)
   }
 }
 
-#undef INSTRUCTION
+INSTRUCTION(freeze)
+{
+  TypedValue operand = getOperand(instruction->getOperand(0));
+  memcpy(result.data, operand.data, result.size * result.num);
+}
 
+#undef INSTRUCTION
 
 ////////////////////////////////
 // WorkItem::InterpreterCache //
 ////////////////////////////////
 
-InterpreterCache::InterpreterCache(llvm::Function *kernel)
+InterpreterCache::InterpreterCache(llvm::Function* kernel)
 {
   // TODO: Determine this number dynamically?
   m_valueIDs.reserve(1024);
 
   // Add global variables to cache
   // TODO: Only add variables that are used?
-  const llvm::Module *module = kernel->getParent();
+  const llvm::Module* module = kernel->getParent();
   llvm::Module::const_global_iterator G;
   for (G = module->global_begin(); G != module->global_end(); G++)
   {
     addValueID(&*G);
   }
-
 
   set<llvm::Function*> processed;
   set<llvm::Function*> pending;
@@ -1605,7 +1603,7 @@ InterpreterCache::InterpreterCache(llvm::Function *kernel)
   while (!pending.empty())
   {
     // Get next function to process
-    llvm::Function *function = *pending.begin();
+    llvm::Function* function = *pending.begin();
     processed.insert(function);
     pending.erase(function);
 
@@ -1625,9 +1623,9 @@ InterpreterCache::InterpreterCache(llvm::Function *kernel)
       // Check for function calls
       if (I->getOpcode() == llvm::Instruction::Call)
       {
-        const llvm::CallInst *call = ((const llvm::CallInst*)&*I);
-        llvm::Function *callee =
-          (llvm::Function*)call->getCalledValue()->stripPointerCasts();
+        const llvm::CallInst* call = ((const llvm::CallInst*)&*I);
+        llvm::Function* callee =
+          (llvm::Function*)call->getCalledFunction()->stripPointerCasts();
         if (callee->isDeclaration())
         {
           // Resolve builtin function calls
@@ -1653,26 +1651,21 @@ InterpreterCache::InterpreterCache(llvm::Function *kernel)
 InterpreterCache::~InterpreterCache()
 {
   ConstantMap::iterator constItr;
-  for (constItr  = m_constants.begin();
-       constItr != m_constants.end(); constItr++)
+  for (constItr = m_constants.begin(); constItr != m_constants.end();
+       constItr++)
   {
     delete[] constItr->second.data;
   }
 
   ConstExprMap::iterator constExprItr;
-  for (constExprItr  = m_constExpressions.begin();
+  for (constExprItr = m_constExpressions.begin();
        constExprItr != m_constExpressions.end(); constExprItr++)
   {
-#if LLVM_VERSION < 50
-    delete constExprItr->second;
-#else
     constExprItr->second->deleteValue();
-#endif
   }
 }
 
-void InterpreterCache::addBuiltin(
-  const llvm::Function *function)
+void InterpreterCache::addBuiltin(const llvm::Function* function)
 {
   // Check if already in cache
   InterpreterCache::BuiltinMap::iterator fItr = m_builtins.find(function);
@@ -1684,9 +1677,9 @@ void InterpreterCache::addBuiltin(
   // Extract unmangled name and overload
   string name, overload;
   const string fullname = function->getName().str();
-  if (fullname.compare(0,2, "_Z") == 0)
+  if (fullname.compare(0, 2, "_Z") == 0)
   {
-    int len = atoi(fullname.c_str()+2);
+    int len = atoi(fullname.c_str() + 2);
     int start = fullname.find_first_not_of("0123456789", 2);
     name = fullname.substr(start, len);
     overload = fullname.substr(start + len);
@@ -1725,13 +1718,13 @@ void InterpreterCache::addBuiltin(
   FATAL_ERROR("Undefined external function: %s", name.c_str());
 }
 
-InterpreterCache::Builtin InterpreterCache::getBuiltin(
-  const llvm::Function *function) const
+InterpreterCache::Builtin
+InterpreterCache::getBuiltin(const llvm::Function* function) const
 {
   return m_builtins.at(function);
 }
 
-void InterpreterCache::addConstant(const llvm::Value *value)
+void InterpreterCache::addConstant(const llvm::Value* value)
 {
   // Check if constant already in cache
   if (m_constants.count(value))
@@ -1740,17 +1733,17 @@ void InterpreterCache::addConstant(const llvm::Value *value)
   }
 
   // Create constant and add to cache
-  pair<unsigned,unsigned> size = getValueSize(value);
+  pair<unsigned, unsigned> size = getValueSize(value);
   TypedValue constant;
   constant.size = size.first;
-  constant.num  = size.second;
+  constant.num = size.second;
   constant.data = new unsigned char[getTypeSize(value->getType())];
   getConstantData(constant.data, (const llvm::Constant*)value);
 
   m_constants[value] = constant;
 }
 
-TypedValue InterpreterCache::getConstant(const llvm::Value *operand) const
+TypedValue InterpreterCache::getConstant(const llvm::Value* operand) const
 {
   ConstantMap::const_iterator itr = m_constants.find(operand);
   if (itr == m_constants.end())
@@ -1760,8 +1753,8 @@ TypedValue InterpreterCache::getConstant(const llvm::Value *operand) const
   return itr->second;
 }
 
-const llvm::Instruction* InterpreterCache::getConstantExpr(
-  const llvm::Value *expr) const
+const llvm::Instruction*
+InterpreterCache::getConstantExpr(const llvm::Value* expr) const
 {
   ConstExprMap::const_iterator itr = m_constExpressions.find(expr);
   if (itr == m_constExpressions.end())
@@ -1771,7 +1764,7 @@ const llvm::Instruction* InterpreterCache::getConstantExpr(
   return itr->second;
 }
 
-unsigned InterpreterCache::addValueID(const llvm::Value *value)
+unsigned InterpreterCache::addValueID(const llvm::Value* value)
 {
   ValueMap::iterator itr = m_valueIDs.find(value);
   if (itr == m_valueIDs.end())
@@ -1783,7 +1776,7 @@ unsigned InterpreterCache::addValueID(const llvm::Value *value)
   return itr->second;
 }
 
-unsigned InterpreterCache::getValueID(const llvm::Value *value) const
+unsigned InterpreterCache::getValueID(const llvm::Value* value) const
 {
   ValueMap::const_iterator itr = m_valueIDs.find(value);
   if (itr == m_valueIDs.end())
@@ -1798,23 +1791,23 @@ unsigned InterpreterCache::getNumValues() const
   return m_valueIDs.size();
 }
 
-bool InterpreterCache::hasValue(const llvm::Value *value) const
+bool InterpreterCache::hasValue(const llvm::Value* value) const
 {
   return m_valueIDs.count(value);
 }
 
-void InterpreterCache::addOperand(const llvm::Value *operand)
+void InterpreterCache::addOperand(const llvm::Value* operand)
 {
   // Resolve constants
-  if (operand->getValueID() == llvm::Value::UndefValueVal            ||
+  if (operand->getValueID() == llvm::Value::UndefValueVal ||
       operand->getValueID() == llvm::Value::ConstantAggregateZeroVal ||
-      operand->getValueID() == llvm::Value::ConstantDataArrayVal     ||
-      operand->getValueID() == llvm::Value::ConstantDataVectorVal    ||
-      operand->getValueID() == llvm::Value::ConstantIntVal           ||
-      operand->getValueID() == llvm::Value::ConstantFPVal            ||
-      operand->getValueID() == llvm::Value::ConstantArrayVal         ||
-      operand->getValueID() == llvm::Value::ConstantStructVal        ||
-      operand->getValueID() == llvm::Value::ConstantVectorVal        ||
+      operand->getValueID() == llvm::Value::ConstantDataArrayVal ||
+      operand->getValueID() == llvm::Value::ConstantDataVectorVal ||
+      operand->getValueID() == llvm::Value::ConstantIntVal ||
+      operand->getValueID() == llvm::Value::ConstantFPVal ||
+      operand->getValueID() == llvm::Value::ConstantArrayVal ||
+      operand->getValueID() == llvm::Value::ConstantStructVal ||
+      operand->getValueID() == llvm::Value::ConstantVectorVal ||
       operand->getValueID() == llvm::Value::ConstantPointerNullVal)
   {
     addConstant(operand);
@@ -1822,7 +1815,7 @@ void InterpreterCache::addOperand(const llvm::Value *operand)
   else if (operand->getValueID() == llvm::Value::ConstantExprVal)
   {
     // Resolve constant expressions
-    const llvm::ConstantExpr *expr = (const llvm::ConstantExpr*)operand;
+    const llvm::ConstantExpr* expr = (const llvm::ConstantExpr*)operand;
     if (!m_constExpressions.count(expr))
     {
       for (auto O = expr->op_begin(); O != expr->op_end(); O++)

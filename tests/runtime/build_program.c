@@ -7,24 +7,20 @@
 #define MAX_ERRORS 8
 #define N 16
 
-const char *SOURCE_INCLUDE =
-"#include \"header.h\"                    \n"
-"kernel void test_kernel(global int *out) \n"
-"{                                        \n"
-"  *out = VALUE;                          \n"
-"}                                        \n"
-;
+const char* SOURCE_INCLUDE = "#include \"header.h\"                    \n"
+                             "kernel void test_kernel(global int *out) \n"
+                             "{                                        \n"
+                             "  *out = VALUE;                          \n"
+                             "}                                        \n";
 
-const char *SOURCE_MACRO =
-"#define _STR(ARG) #ARG                   \n"
-"#define STR(ARG) _STR(ARG)               \n"
-"kernel void test_kernel(global int *out) \n"
-"{                                        \n"
-"  printf(\"MSG = %s\\n\", STR(MSG));     \n"
-"}                                        \n"
-;
+const char* SOURCE_MACRO = "#define _STR(ARG) #ARG                   \n"
+                           "#define STR(ARG) _STR(ARG)               \n"
+                           "kernel void test_kernel(global int *out) \n"
+                           "{                                        \n"
+                           "  printf(\"MSG = %s\\n\", STR(MSG));     \n"
+                           "}                                        \n";
 
-void run(const char *source, const char *options)
+void run(const char* source, const char* options)
 {
   cl_int err;
   cl_kernel kernel;
@@ -42,15 +38,15 @@ void run(const char *source, const char *options)
   checkError(err, "setting kernel argument");
 
   size_t global[1] = {1};
-  err = clEnqueueNDRangeKernel(cl.queue, kernel,
-                               1, NULL, global, NULL, 0, NULL, NULL);
+  err = clEnqueueNDRangeKernel(cl.queue, kernel, 1, NULL, global, NULL, 0, NULL,
+                               NULL);
   checkError(err, "enqueuing kernel");
 
   err = clFinish(cl.queue);
   checkError(err, "running kernel");
 
-  int *h_out = clEnqueueMapBuffer(cl.queue, d_out, CL_TRUE, CL_MAP_READ,
-                                  0, 4, 0, NULL, NULL, &err);
+  int* h_out = clEnqueueMapBuffer(cl.queue, d_out, CL_TRUE, CL_MAP_READ, 0, 4,
+                                  0, NULL, NULL, &err);
   checkError(err, "mapping buffer for reading");
 
   printf("out = %d\n", *h_out);
@@ -63,7 +59,7 @@ void run(const char *source, const char *options)
   releaseContext(cl);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   run(SOURCE_INCLUDE, "-I " ROOT_DIR "/inc/nospace");
   run(SOURCE_INCLUDE, "-I \"" ROOT_DIR "/inc/with space\"");
