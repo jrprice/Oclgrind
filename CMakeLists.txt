@@ -251,7 +251,7 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/WorkloadCharacterisation.h
   src/plugins/WorkloadCharacterisation.cpp)
 set_target_properties(oclgrind PROPERTIES INSTALL_RPATH ${CLANG_ROOT}/lib)
-target_link_libraries(oclgrind PRIVATE ${CORE_EXTRA_LIBS} -Wl,-rpath,${CLANG_ROOT}/lib
+target_link_libraries(oclgrind PUBLIC ${CORE_EXTRA_LIBS} -Wl,-rpath,${CLANG_ROOT}/lib
   clangFrontend clangSerialization clangDriver clangCodeGen
   clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
   "${LLVM_LIBS}")
