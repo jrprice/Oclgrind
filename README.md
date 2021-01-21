@@ -5,6 +5,24 @@ The Architecture Independent Workload Characterization (AIWC -- pronounced | \ '
 
 ## Building & Installing
 
+### Docker
+
+The tool has a docker file provided for rapid evaluation, a prebuilt image can be run directly with:
+
+    docker run beaujoh/aiwc:v1.1
+
+Alternatively, to build your own image based on the provided Dockerfile, run:
+
+    docker build -t <yourname>/aiwc:v1.1 .
+    docker run <yourname>/aiwc:v1.1 .
+
+Both images will launch a demonstration of using AIWC to profile LU Decomposition (an OpenCL implementations from the Extended OpenDwarfs Benchmark suite), and should support all OpenCL codes.
+To test on your own codes, run docker with an interactive session:
+
+    docker run -it beaujoh/aiwc:v1.1 bash
+
+### Manual
+
 Set the following environment variables as desired
 
     export OCLGRIND=/oclgrind
@@ -14,12 +32,12 @@ Set the following environment variables as desired
 The rest can be built with the following commands (tested on Ubuntu 18.04)
 
     apt-get update && apt-get install --no-install-recommends -y libreadline-dev
-    git clone --single-branch --branch llvm-9.0.1-shared-libs https://github.com/BeauJoh/AIWC.git $OCLGRIND_SRC
+    git clone https://github.com/BeauJoh/AIWC.git $OCLGRIND_SRC
     mkdir $OCLGRIND_SRC/build
     cd $OCLGRIND_SRC/build
-    CC /llvm-9.0.1/bin/clang
-    CXX /llvm-9.0.1/bin/clang++
-    cmake $OCLGRIND_SRC -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLLVM_DIR=/llvm-9.0.1/lib/cmake/llvm -DCLANG_ROOT=/llvm-9.0.1 -DCMAKE_INSTALL_PREFIX=$OCLGRIND -DBUILD_SHARED_LIBS=On
+    CC /llvm-11.0.1/bin/clang
+    CXX /llvm-11.0.1/bin/clang++
+    cmake $OCLGRIND_SRC -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLLVM_DIR=/llvm-11.0.1/lib/cmake/llvm -DCLANG_ROOT=/llvm-11.0.1 -DCMAKE_INSTALL_PREFIX=$OCLGRIND -DBUILD_SHARED_LIBS=On
     make
     make install
     mkdir -p /etc/OpenCL/vendors && echo $OCLGRIND/lib/liboclgrind-rt-icd.so > /etc/OpenCL/vendors/oclgrind.icd
