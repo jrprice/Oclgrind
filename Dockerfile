@@ -1,7 +1,7 @@
 FROM ubuntu:xenial
 
-ENV https_proxy http://proxy.ftpn.ornl.gov:3128
-ENV http_proxy http://proxy.ftpn.ornl.gov:3128
+#ENV https_proxy http://proxy.ftpn.ornl.gov:3128
+#ENV http_proxy http://proxy.ftpn.ornl.gov:3128
 
 RUN apt-get -yq update
 
