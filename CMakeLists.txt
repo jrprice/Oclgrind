@@ -21,6 +21,12 @@ if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 endif()
 
+# pthreads
+#find_package( Threads )
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+
 # Require C++14 (hard requirement for LLVM >10)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,7 +54,6 @@ endif()
 
 # Detect endianness
 test_big_endian(IS_BIG_ENDIAN)
-
 
 # Find LLVM
 find_package(LLVM REQUIRED CONFIG NO_CMAKE_BUILDS_PATH)
@@ -254,7 +259,7 @@ set_target_properties(oclgrind PROPERTIES INSTALL_RPATH ${CLANG_ROOT}/lib)
 target_link_libraries(oclgrind PUBLIC ${CORE_EXTRA_LIBS} -Wl,-rpath,${CLANG_ROOT}/lib
   clangFrontend clangSerialization clangDriver clangCodeGen
   clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
-  "${LLVM_LIBS}")
+  "${LLVM_LIBS}" Threads::Threads)
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
@@ -273,9 +278,9 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 endif()
 
 add_library(oclgrind-rt-icd SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
-set_target_properties(oclgrind-rt-icd PROPERTIES COMPILE_FLAGS -DOCLGRIND_ICD)
+set_target_properties(oclgrind-rt-icd PROPERTIES COMPILE_FLAGS "-DOCLGRIND_ICD")
 set_target_properties(oclgrind-rt-icd PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
-target_link_libraries(oclgrind-rt-icd ${CMAKE_DL_LIBS} oclgrind)
+target_link_libraries(oclgrind-rt-icd oclgrind)
 
 # Add runtime exports on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
@@ -284,7 +289,7 @@ endif()
 
 add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
 set_target_properties(oclgrind-rt PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
-target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
+target_link_libraries(oclgrind-rt oclgrind)
 
 if (UNIX AND NOT APPLE)
   # Change the SONAME of the library so that it gets recognized by dlopen
@@ -381,6 +386,10 @@ add_custom_command(
 
 # Generate config.h
 set(LLVM_VERSION ${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR})
+if(NOT INSTALLED_LIBRARY_DIR)
+  set(INSTALLED_LIBRARY_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+endif()
+
 configure_file("config.h.in" "config.h")
 
 

@@ -13,6 +13,7 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
+#include <dlfcn.h>
 
 #include "async_queue.h"
 #include "icd.h"
@@ -242,6 +243,15 @@ CL_API_ENTRY cl_int CL_API_CALL clIcdGetPlatformIDsKHR(
 
   if (!m_platform)
   {
+    //First off, and this is more than a little bit hacky, if this is used by an application that is single threaded (doesn't use POSIX threads) but this library (or treated as an OpenCL ICD) does.
+    //The first application reserves/links a version of the functions without multithreading guards, forking methods etc. So having the library perform a:
+    //    dlopen("/lib/x86_64-linux-gnu/libpthread.so.0", RTLD_NOW|RTLD_GLOBAL);
+    // reloads and correctly initialises these links.
+    // Since we know that our library does correctly use pthreads if we force a reload by association the correct version of POSIX threads should also be initialized.
+    // **NOTE** this has the assumption that both liboclgrind-rt.so and liboclgrind-rt-icd.so are installed in the same location; INSTALLED_LIBRARY_DIR is passed from cmake and is defined in config.h
+    std::string library_path = std::string(INSTALLED_LIBRARY_DIR)+std::string("/liboclgrind-rt-icd.so");
+    dlopen(library_path.c_str(), RTLD_NOW|RTLD_GLOBAL);
+
     m_platform = new _cl_platform_id;
     m_platform->dispatch = m_dispatchTable;
 
