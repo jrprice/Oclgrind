@@ -944,6 +944,12 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem* workItem,
   switch (I->getIntrinsicID())
   {
   case llvm::Intrinsic::fmuladd:
+#if LLVM_VERSION > 110
+  case llvm::Intrinsic::smax:
+  case llvm::Intrinsic::smin:
+  case llvm::Intrinsic::umax:
+  case llvm::Intrinsic::umin:
+#endif
   {
     SimpleOr(workItem, I);
     break;

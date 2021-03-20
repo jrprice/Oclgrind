@@ -3833,6 +3833,10 @@ BuiltinFunctionMap WorkItemBuiltins::initBuiltins()
   ADD_PREFIX_BUILTIN("llvm.memmove", llvm_memcpy, NULL);
   ADD_PREFIX_BUILTIN("llvm.memset", llvm_memset, NULL);
   ADD_PREFIX_BUILTIN("llvm.fmuladd", fma_builtin, NULL);
+  ADD_PREFIX_BUILTIN("llvm.smax", s2arg, _max_<int64_t>);
+  ADD_PREFIX_BUILTIN("llvm.smin", s2arg, _min_<int64_t>);
+  ADD_PREFIX_BUILTIN("llvm.umax", u2arg, _max_<uint64_t>);
+  ADD_PREFIX_BUILTIN("llvm.umin", u2arg, _min_<uint64_t>);
   ADD_BUILTIN("llvm.trap", llvm_trap, NULL);
 
   return builtins;
