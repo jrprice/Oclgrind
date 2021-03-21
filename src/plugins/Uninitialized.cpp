@@ -944,7 +944,7 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem* workItem,
   switch (I->getIntrinsicID())
   {
   case llvm::Intrinsic::fmuladd:
-#if LLVM_VERSION > 110
+#if LLVM_VERSION >= 120
   case llvm::Intrinsic::smax:
   case llvm::Intrinsic::smin:
   case llvm::Intrinsic::umax:
