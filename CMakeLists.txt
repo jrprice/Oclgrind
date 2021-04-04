@@ -141,6 +141,10 @@ else()
   message(STATUS "Using opencl-c.h: ${CLANG_OPENCL_C_H}")
 endif()
 
+if (EXISTS "${CLANG_LIB_DIR}/clang/${CLANG_FULL_VERSION}/include/opencl-c-base.h")
+  set(CLANG_OPENCL_C_BASE_H "${CLANG_LIB_DIR}/clang/${CLANG_FULL_VERSION}/include/opencl-c-base.h")
+endif()
+
 # Check for clang
 find_program(CLANG clang
              PATHS "${CLANG_ROOT}/bin" "${LLVM_TOOLS_BINARY_DIR}"
@@ -301,12 +305,23 @@ set(OPENCL_C_H
 
 add_custom_target(OPENCL_C_HEADERS ALL DEPENDS ${OPENCL_C_H})
 
+if (CLANG_OPENCL_C_BASE_H)
+  add_custom_command(
+    OUTPUT include/oclgrind/opencl-c-base.h
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E
+      copy ${CLANG_OPENCL_C_BASE_H} include/oclgrind/opencl-c-base.h
+    DEPENDS ${CLANG_OPENCL_C_BASE_H})
+  set(OPENCL_C_H_DEPENDS include/oclgrind/opencl-c-base.h)
+  set(OPENCL_C_H ${OPENCL_C_H} ${CMAKE_BINARY_DIR}/${OPENCL_C_H_DEPENDS})
+endif()
+
 add_custom_command(
   OUTPUT include/oclgrind/opencl-c.h
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E
     copy ${CLANG_OPENCL_C_H} include/oclgrind/opencl-c.h
-  DEPENDS ${CLANG_OPENCL_C_H})
+  DEPENDS ${CLANG_OPENCL_C_H} ${OPENCL_C_H_DEPENDS})
 
 # Generate precompiled headers for opencl-c.h
 set(OPENCL_C_H_SYSROOT "${CMAKE_BINARY_DIR}/include/oclgrind/")
