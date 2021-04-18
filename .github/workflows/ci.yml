@@ -65,3 +65,41 @@ jobs:
       - name: Test
         run: ctest -C ${{ matrix.build_type }} --output-on-failure
         working-directory: build
+
+  build-windows:
+    name: Build ${{ matrix.platform }} llvm-${{ matrix.llvm }}
+    runs-on: windows-2019
+    needs: [check-format]
+    env:
+      LLVM_VERSION: ${{ matrix.llvm }}
+      BUILD_PLATFORM: ${{ matrix.platform }}
+    strategy:
+      matrix:
+        platform: [Win32, x64]
+        llvm: [11, 12]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: cache-llvm
+        uses: actions/cache@v2
+        with:
+          path: llvm-${{ matrix.llvm }}
+          key: llvm-${{ matrix.llvm }}-${{ matrix.platform }}
+      - name: Install dependencies
+        run: bash .github/workflows/install-deps.sh
+      - name: Create build dir
+        run: cmake -E make_directory build
+      - name: CMake
+        shell: bash
+        run: >
+          cmake .. -G "Visual Studio 16 2019" -A ${{ matrix.platform }}
+          -DLLVM_DIR=$PWD/../llvm-${{ matrix.llvm }}/install/lib/cmake/llvm
+        working-directory: build
+      - name: Build
+        run: cmake --build . --config Release --target ALL_BUILD
+        working-directory: build
+      - name: Test
+        run: >
+          cmake --build . --config Release --target RUN_TESTS --output-on-failure ;
+          cat ./Testing/Temporary/LastTest.log
+        working-directory: build

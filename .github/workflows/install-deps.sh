@@ -26,4 +26,33 @@ elif [ "`uname`" == "Darwin" ]; then
     mkdir -p llvm-${LLVM_VERSION}
     wget "$URL/$ARCHIVE"
     tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}
+elif [[ "`uname`" == "MINGW64"* ]]; then
+    if [ ! -r llvm-${LLVM_VERSION}/install/lib/cmake/llvm/LLVMConfig.cmake ]; then
+        URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}.0.0"
+
+        # Get LLVM
+        ARCHIVE="llvm-${LLVM_VERSION}.0.0.src.tar.xz"
+        mkdir -p llvm-${LLVM_VERSION}
+        curl -OL "$URL/$ARCHIVE"
+        tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}
+
+        # Get Clang
+        ARCHIVE="clang-${LLVM_VERSION}.0.0.src.tar.xz"
+        mkdir -p llvm-${LLVM_VERSION}/tools/clang
+        curl -OL "$URL/$ARCHIVE"
+        tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/tools/clang
+
+        # Build LLVM + Clang
+        mkdir -p llvm-${LLVM_VERSION}/build
+        cd llvm-${LLVM_VERSION}/build
+        cmake .. \
+        -G "Visual Studio 16 2019" -A ${BUILD_PLATFORM} \
+        -DCMAKE_INSTALL_PREFIX=$PWD/../install \
+        -DLLVM_TARGETS_TO_BUILD=host
+        cmake --build . --config Release --target ALL_BUILD
+        cmake --build . --config Release --target INSTALL
+    fi
+else
+  echo "Unrecognized uname: `uname`"
+  exit 1
 fi
