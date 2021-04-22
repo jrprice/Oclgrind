@@ -492,12 +492,14 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     {CL_MAKE_VERSION(3, 0, 0), "OpenCL C"},
   };
 
-  static constexpr cl_name_version il_versions[] = {};
-
-  static constexpr cl_name_version built_in_kernel_versions[] = {};
+  // TODO: Populate this
+  // static constexpr cl_name_version il_versions[] = {};
 
   // TODO: Populate this
-  static constexpr cl_name_version opencl_c_features[] = {};
+  // static constexpr cl_name_version built_in_kernel_versions[] = {};
+
+  // TODO: Populate this
+  // static constexpr cl_name_version opencl_c_features[] = {};
 
   switch (param_name)
   {
@@ -855,12 +857,16 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     data = "";
     break;
   case CL_DEVICE_ILS_WITH_VERSION:
-    result_size = sizeof(il_versions);
-    data = il_versions;
+    // TODO: Enable when supported.
+    // result_size = sizeof(il_versions);
+    // data = il_versions;
+    result_size = 0;
     break;
   case CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION:
-    result_size = sizeof(built_in_kernel_versions);
-    data = built_in_kernel_versions;
+    // TODO: Enable when supported.
+    // result_size = sizeof(built_in_kernel_versions);
+    // data = built_in_kernel_versions;
+    result_size = 0;
     break;
   case CL_DEVICE_ATOMIC_MEMORY_CAPABILITIES:
     result_size = sizeof(cl_device_atomic_capabilities);
@@ -894,8 +900,10 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     result_data.clbool = CL_FALSE;
     break;
   case CL_DEVICE_OPENCL_C_FEATURES:
-    result_size = sizeof(opencl_c_features);
-    data = opencl_c_features;
+    // TODO: Enable when supported.
+    // result_size = sizeof(opencl_c_features);
+    // data = opencl_c_features;
+    result_size = 0;
     break;
   case CL_DEVICE_DEVICE_ENQUEUE_CAPABILITIES:
     result_size = sizeof(cl_device_device_enqueue_capabilities);
