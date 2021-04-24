@@ -539,6 +539,10 @@ void Context::Message::send() const
   {
     getline(m_stream, line);
 
+    // Strip trailing carriage return if present
+    if (!line.empty() && line[line.size() - 1] == '\r')
+      line.pop_back();
+
     // TODO: Wrap long lines
     msg += line;
 
