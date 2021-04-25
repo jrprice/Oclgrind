@@ -54,9 +54,15 @@ jobs:
           fi
       - name: Create build dir
         run: cmake -E make_directory build
+      - name: cache-oclgrind
+        uses: actions/cache@v2
+        with:
+          path: install
+          key: oclgrind-${{ matrix.os }}-llvm-${{ matrix.llvm }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{github.sha}}
       - name: CMake
         run: >
           cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                   -DCMAKE_INSTALL_PREFIX=$PWD/../install \
                    -DLLVM_DIR="$LLVM_DIR"
         working-directory: build
       - name: Build
@@ -64,6 +70,9 @@ jobs:
         working-directory: build
       - name: Test
         run: ctest -C ${{ matrix.build_type }} --output-on-failure
+        working-directory: build
+      - name: Install
+        run: cmake --install . --config ${{ matrix.build_type }}
         working-directory: build
 
   build-windows:
@@ -103,3 +112,129 @@ jobs:
           cmake --build . --config Release --target RUN_TESTS --output-on-failure ;
           cat ./Testing/Temporary/LastTest.log
         working-directory: build
+
+  build-cts:
+    name: Build OpenCL CTS
+    runs-on: ubuntu-20.04
+    needs: [build]
+    env:
+      LLVM_VERSION: 12
+      cts_hash: 3dab3df48d7dbc22accf6c37c59e54e35a35de7f
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        id: cache-cts
+        with:
+          path: opencl-cts
+          key: opencl-cts-${{ env.cts_hash }}
+      - name: Install dependencies
+        if: steps.cache-cts.outputs.cache-hit != 'true'
+        run: bash .github/workflows/install-deps.sh
+      - uses: actions/checkout@v2
+        if: steps.cache-cts.outputs.cache-hit != 'true'
+        with:
+          repository: KhronosGroup/OpenCL-CTS
+          path: opencl-cts
+          ref: ${{ env.cts_hash }}
+      - uses: actions/checkout@v2
+        if: steps.cache-cts.outputs.cache-hit != 'true'
+        with:
+          repository: KhronosGroup/OpenCL-Headers
+          path: opencl-cts/opencl-headers
+      - uses: actions/checkout@v2
+        if: steps.cache-cts.outputs.cache-hit != 'true'
+        with:
+          repository: KhronosGroup/OpenCL-ICD-Loader
+          path: opencl-cts/opencl-icd-loader
+      - name: Create ICD loader build dir
+        run: cmake -E make_directory opencl-cts/opencl-icd-loader/build
+      - name: CMake ICD Loader
+        if: steps.cache-cts.outputs.cache-hit != 'true'
+        run: >
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$PWD/../../install \
+            -DOPENCL_ICD_LOADER_HEADERS_DIR=$PWD/../../opencl-headers
+        working-directory: opencl-cts/opencl-icd-loader/build
+      - name: Build ICD Loader
+        if: steps.cache-cts.outputs.cache-hit != 'true'
+        run: >
+          cmake --build . && cmake --install .
+        working-directory: opencl-cts/opencl-icd-loader/build
+      - name: Create CTS build dir
+        run: cmake -E make_directory opencl-cts/build
+      - name: CMake CTS
+        if: steps.cache-cts.outputs.cache-hit != 'true'
+        run: >
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$PWD/../install \
+            -DCL_INCLUDE_DIR=$PWD/../opencl-headers \
+            -DCL_LIB_DIR=$PWD/../install/lib \
+            -DCL_LIBCLCXX_DIR=. \
+            -DCLConform_LIBRARIES=OpenCL
+        working-directory: opencl-cts/build
+      - name: Build CTS
+        if: steps.cache-cts.outputs.cache-hit != 'true'
+        run: cmake --build .
+        working-directory: opencl-cts/build
+
+  run-cts:
+    name: Run OpenCL CTS ${{ matrix.suite[0] }}
+    runs-on: ubuntu-20.04
+    needs: [build-cts]
+    env:
+      LLVM_VERSION: 12
+      cts_hash: 3dab3df48d7dbc22accf6c37c59e54e35a35de7f
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [
+          [allocations],
+          [api],
+          [atomics],
+          [basic],
+          [buffers],
+          [commonfns],
+          [compiler],
+          [computeinfo],
+          [contractions],
+          [conversions, "-w -[4096]"],
+          [events],
+          [geometrics],
+          [images_clCopyImage],
+          [images_clFillImage],
+          [images_clGetInfo],
+          [images_clReadWriteImage],
+          [images_kernel_image_methods],
+          [images_kernel_read_write, read write small_images CL_FILTER_NEAREST CL_RGBA], # TODO: Enable all orders.
+          [images_samplerlessReads],
+          [half, -w],
+          #[integer_ops], # TODO: Fix crash.
+          #[math_brute_force, -w -m], # TODO: Fix crash when multi-threaded and access-when-mapped issue in CTS.
+          [mem_host_flags],
+          [multiple_device_context],
+          [printf],
+          [profiling],
+          [relationals],
+          [select, -w],
+          #[thread_dimensions], # TODO: Takes too long.
+          [vectors],
+        ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: bash .github/workflows/install-deps.sh
+      - name: cache-oclgrind
+        uses: actions/cache@v2
+        with:
+          path: install
+          key: oclgrind-ubuntu-20.04-llvm-12-gcc-Release-${{github.sha}}
+      - name: cache-cts
+        uses: actions/cache@v2
+        with:
+          path: opencl-cts
+          key: opencl-cts-${{ env.cts_hash }}
+      - name: Run CTS suite
+        run: bash .github/workflows/run-cts-suite.sh ${{ matrix.suite[0] }} ${{ matrix.suite[1] }}
