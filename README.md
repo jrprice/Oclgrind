@@ -9,8 +9,8 @@ for creating tools to aid OpenCL development. In particular, this
 project currently implements utilities for debugging memory access
 errors, detecting data-races and barrier divergence, collecting
 instruction histograms, and for interactive OpenCL kernel debugging.
-The simulator is built on an interpreter for LLVM IR. This project is
-being developed by James Price and Simon McIntosh-Smith at the
+The simulator is built on an interpreter for LLVM IR. This project was
+originally created by James Price and Simon McIntosh-Smith at the
 University of Bristol.
 
 Binary releases can be found on the GitHub releases page:
@@ -20,18 +20,18 @@ Binary releases can be found on the GitHub releases page:
 
 Build dependencies
 ------------------
-To build this project, you will need LLVM and Clang 5.0 (or newer)
+To build this project, you will need LLVM and Clang 11.0 (or newer)
 development libraries and headers. If you build LLVM from source, it
 is recommended to enable optimizations to significantly improve the
 performance of Oclgrind (set `CMAKE_BUILD_TYPE` to `Release` or
 `RelWithDebInfo`).
 
-You will need to use a compiler that supports C++11. Python should
+You will need to use a compiler that supports C++14. Python should
 also be available in order to run the test suite.
 
 
-Building on Linux and OS X (CMake)
-----------------------------------
+Building on Linux and macOS (CMake)
+-----------------------------------
 The recommended method of building Oclgrind is via CMake.
 
 When configuring the CMake build, you may be prompted to supply a
@@ -74,9 +74,7 @@ copying the `oclgrind.icd` file from the build directory to
 
 Building on Windows
 -------------------
-Building Oclgrind on Windows requires Visual Studio 2013 (or newer),
-and Windows 7 (or newer). Compiling against recent versions of LLVM
-may require Visual Studio 2015.
+Building Oclgrind on Windows requires Visual Studio 2017 (or newer).
 
 When configuring the CMake build, you may be prompted to supply a
 value for the `LLVM_DIR` parameter. This should be set to the
