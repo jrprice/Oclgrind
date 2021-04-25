@@ -11,12 +11,6 @@
 
 #include <fstream>
 
-#if defined(_WIN32) && !defined(__MINGW32__)
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
-
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
@@ -33,6 +27,12 @@
 #include "llvm/Linker/Linker.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Utils/Cloning.h"
+
+#if defined(_WIN32) && !defined(__MINGW32__)
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
 
 #include "Context.h"
 #include "Kernel.h"
