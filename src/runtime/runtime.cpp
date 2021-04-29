@@ -44,7 +44,7 @@ using namespace std;
 #define DEVICE_LANG_VERSION "OpenCL C 1.2 (Oclgrind " PACKAGE_VERSION ")"
 #define DRIVER_VERSION "Oclgrind " PACKAGE_VERSION
 #define DEVICE_PROFILE "FULL_PROFILE"
-#define DEVICE_CTS_VERSION ""
+#define DEVICE_CTS_VERSION "v0000-01-01-00"
 #define DEVICE_SPIR_VERSIONS "1.2"
 #define DEVICE_TYPE                                                            \
   (CL_DEVICE_TYPE_CPU | CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR |      \
