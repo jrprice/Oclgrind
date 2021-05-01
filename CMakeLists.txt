@@ -28,6 +28,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Enable rpath on OS X
 set(CMAKE_MACOSX_RPATH 1)
 
+# Enable WIP 3.0 support.
+option(ENABLE_EXPERIMENTAL_OPENCL_3, "Enable experimental OpenCL 3.0 support.")
+if (${ENABLE_EXPERIMENTAL_OPENCL_3})
+  add_definitions(-DENABLE_OPENCL_3)
+endif()
+
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
