@@ -334,14 +334,18 @@ void getConstantData(unsigned char* data, const llvm::Constant* constant)
 
   const llvm::Type* type = constant->getType();
   unsigned size = getTypeSize(type);
+
+  if (auto* undef = llvm::dyn_cast<llvm::UndefValue>(constant))
+  {
+    memset(data, 0, size);
+    return;
+  }
+
   switch (type->getTypeID())
   {
   case llvm::Type::IntegerTyID:
   {
-    uint64_t ui = 0;
-    if (!llvm::isa<llvm::UndefValue>(constant))
-      ui = ((llvm::ConstantInt*)constant)->getZExtValue();
-
+    uint64_t ui = ((llvm::ConstantInt*)constant)->getZExtValue();
     switch (size)
     {
     case 1:
