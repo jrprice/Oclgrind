@@ -214,7 +214,6 @@ endif()
 set(CORE_HEADERS
   src/core/common.h
   src/core/Context.h
-  src/core/half.h
   src/core/Kernel.h
   src/core/KernelInvocation.h
   src/core/Memory.h
@@ -229,7 +228,6 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/core/opencl-c.h.cpp
   src/core/common.cpp
   src/core/Context.cpp
-  src/core/half.cpp
   src/core/Kernel.cpp
   src/core/KernelInvocation.cpp
   src/core/Memory.cpp

@@ -17,12 +17,12 @@
 #include "async_queue.h"
 #include "icd.h"
 
+#include "CL/cl_half.h"
 #include "core/Context.h"
 #include "core/Kernel.h"
 #include "core/Memory.h"
 #include "core/Program.h"
 #include "core/Queue.h"
-#include "core/half.h"
 
 using namespace std;
 
@@ -4347,7 +4347,7 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueFillImage(
       break;
     case CL_HALF_FLOAT:
       ((uint16_t*)color)[output] =
-        oclgrind::floatToHalf(((float*)fill_color)[input]);
+        cl_half_from_float(((float*)fill_color)[input], CL_HALF_RTE);
       break;
     case CL_SIGNED_INT8:
       ((int8_t*)color)[output] = ((int32_t*)fill_color)[input];
