@@ -2039,7 +2039,14 @@ CL_API_ENTRY cl_int CL_API_CALL clGetMemObjectInfo(
     break;
   case CL_MEM_ASSOCIATED_MEMOBJECT:
     result_size = sizeof(cl_mem);
-    result_data.clmem = memobj->parent;
+    if (memobj->isImage)
+    {
+      result_data.clmem = static_cast<cl_image*>(memobj)->desc.mem_object;
+    }
+    else
+    {
+      result_data.clmem = memobj->parent;
+    }
     break;
   case CL_MEM_OFFSET:
     result_size = sizeof(size_t);
