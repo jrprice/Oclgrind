@@ -67,8 +67,24 @@ const char* EXTENSIONS[] = {
   "cl_khr_byte_addressable_store",
 };
 
+#define OCLGRIND_BINARY_TYPE "oclgrind_binary_type"
+
 using namespace oclgrind;
 using namespace std;
+
+namespace
+{
+void setBinaryType(llvm::Module& mod, cl_program_binary_type type)
+{
+  llvm::LLVMContext& ctx = mod.getContext();
+  llvm::MDNode* binaryTypeMD = llvm::MDNode::get(
+    ctx, llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(
+           ctx, llvm::APInt(sizeof(cl_program_binary_type), type))));
+  llvm::NamedMDNode* md = mod.getOrInsertNamedMetadata(OCLGRIND_BINARY_TYPE);
+  md->clearOperands();
+  md->addOperand(binaryTypeMD);
+}
+} // namespace
 
 Program::Program(const Context* context, llvm::Module* module)
     : m_module(module), m_context(context)
@@ -80,6 +96,30 @@ Program::Program(const Context* context, llvm::Module* module)
   m_totalProgramScopeVarSize = 0;
 
   allocateProgramScopeVars();
+
+  m_binaryType = CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
+
+  // Override binary based on module flag if present.
+  llvm::NamedMDNode* md = m_module->getNamedMetadata(OCLGRIND_BINARY_TYPE);
+  if (md && md->getNumOperands() > 0)
+  {
+    llvm::MDNode* node = llvm::dyn_cast<llvm::MDNode>(md->getOperand(0));
+    if (node && node->getNumOperands() > 0)
+    {
+      llvm::ConstantAsMetadata* cam =
+        llvm::dyn_cast<llvm::ConstantAsMetadata>(node->getOperand(0).get());
+      if (cam)
+      {
+        llvm::ConstantInt* value =
+          llvm::dyn_cast<llvm::ConstantInt>(cam->getValue());
+        if (value)
+        {
+          m_binaryType = static_cast<cl_program_binary_type>(
+            value->getValue().getZExtValue());
+        }
+      }
+    }
+  }
 }
 
 Program::Program(const Context* context, const string& source)
@@ -222,7 +262,8 @@ void split_token(char* input, char** next)
   *output = '\0';
 }
 
-bool Program::build(const char* options, list<Header> headers)
+bool Program::build(BuildType buildType, const char* options,
+                    list<Header> headers)
 {
   m_buildStatus = CL_BUILD_IN_PROGRESS;
   m_buildOptions = options ? options : "";
@@ -246,6 +287,8 @@ bool Program::build(const char* options, list<Header> headers)
     clearInterpreterCache();
     m_module.reset();
   }
+
+  m_binaryType = CL_PROGRAM_BINARY_TYPE_NONE;
 
   // Assign a new UID to this program
   m_uid = generateUID();
@@ -497,6 +540,15 @@ bool Program::build(const char* options, list<Header> headers)
     allocateProgramScopeVars();
 
     m_buildStatus = CL_BUILD_SUCCESS;
+    if (buildType == BUILD)
+    {
+      m_binaryType = CL_PROGRAM_BINARY_TYPE_EXECUTABLE;
+    }
+    else
+    {
+      m_binaryType = CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
+    }
+    setBinaryType(*m_module, m_binaryType);
   }
   else
   {
@@ -611,7 +663,8 @@ Program* Program::createFromBitcodeFile(const Context* context,
 }
 
 Program* Program::createFromPrograms(const Context* context,
-                                     list<const Program*> programs)
+                                     list<const Program*> programs,
+                                     const char* options)
 {
   llvm::Module* module =
     new llvm::Module("oclgrind_linked", *context->getLLVMContext());
@@ -627,6 +680,14 @@ Program* Program::createFromPrograms(const Context* context,
       return NULL;
     }
   }
+
+  // Set program binary type
+  cl_program_binary_type binaryType = CL_PROGRAM_BINARY_TYPE_EXECUTABLE;
+  if (options && strstr(options, "-create-library"))
+  {
+    binaryType = CL_PROGRAM_BINARY_TYPE_LIBRARY;
+  }
+  setBinaryType(*module, binaryType);
 
   return new Program(context, module);
 }
@@ -713,6 +774,11 @@ size_t Program::getBinarySize() const
   llvm::WriteBitcodeToFile(*m_module, stream);
   stream.str();
   return str.length();
+}
+
+cl_program_binary_type Program::getBinaryType() const
+{
+  return m_binaryType;
 }
 
 const string& Program::getBuildLog() const

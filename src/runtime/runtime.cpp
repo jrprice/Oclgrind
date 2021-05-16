@@ -2569,7 +2569,7 @@ CL_API_ENTRY cl_int CL_API_CALL clBuildProgram(
   }
 
   // Build program
-  bool success = program->program->build(options);
+  bool success = program->program->build(oclgrind::Program::BUILD, options);
 
   // Fire callback
   if (pfn_notify)
@@ -2636,7 +2636,7 @@ CL_API_ENTRY cl_int CL_API_CALL clCompileProgram(
   }
 
   // Build program
-  if (!program->program->build(options, headers))
+  if (!program->program->build(oclgrind::Program::COMPILE, options, headers))
   {
     ReturnError(program->context, CL_BUILD_PROGRAM_FAILURE);
   }
@@ -2700,7 +2700,7 @@ clLinkProgram(cl_context context, cl_uint num_devices,
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
   prog->program =
-    oclgrind::Program::createFromPrograms(context->context, programs);
+    oclgrind::Program::createFromPrograms(context->context, programs, options);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
@@ -2883,7 +2883,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetProgramBuildInfo(
     break;
   case CL_PROGRAM_BINARY_TYPE:
     result_size = sizeof(cl_program_binary_type);
-    result_data.type = CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
+    result_data.type = program->program->getBinaryType();
     break;
   case CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE:
     result_size = sizeof(size_t);

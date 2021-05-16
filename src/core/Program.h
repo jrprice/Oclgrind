@@ -27,6 +27,12 @@ class Program
 public:
   typedef std::pair<std::string, const Program*> Header;
 
+  enum BuildType
+  {
+    BUILD,
+    COMPILE,
+  };
+
 public:
   Program(const Context* context, const std::string& source);
   virtual ~Program();
@@ -37,15 +43,17 @@ public:
   static Program* createFromBitcodeFile(const Context* context,
                                         const std::string filename);
   static Program* createFromPrograms(const Context* context,
-                                     std::list<const Program*>);
+                                     std::list<const Program*>,
+                                     const char* options);
 
-  bool build(const char* options,
+  bool build(BuildType buildType, const char* options,
              std::list<Header> headers = std::list<Header>());
   Kernel* createKernel(const std::string name);
   const std::string& getBuildLog() const;
   const std::string& getBuildOptions() const;
   void getBinary(unsigned char* binary) const;
   size_t getBinarySize() const;
+  cl_program_binary_type getBinaryType() const;
   unsigned int getBuildStatus() const;
   const Context* getContext() const;
   const InterpreterCache*
@@ -70,6 +78,8 @@ private:
   unsigned int m_buildStatus;
   const Context* m_context;
   std::vector<std::string> m_sourceLines;
+
+  cl_program_binary_type m_binaryType;
 
   TypedValueMap m_programScopeVars;
   size_t m_totalProgramScopeVarSize;
