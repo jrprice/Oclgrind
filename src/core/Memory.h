@@ -44,6 +44,7 @@ public:
   void* mapBuffer(size_t address, size_t offset, size_t size);
   bool store(const unsigned char* source, size_t address, size_t size = 1);
 
+  static unsigned int extractAddressSpace(size_t address);
   size_t extractBuffer(size_t address) const;
   size_t extractOffset(size_t address) const;
 
@@ -56,10 +57,13 @@ private:
   unsigned int m_addressSpace;
   size_t m_totalAllocated;
 
+  static const size_t m_numBitsAddrSpace = 2;
   unsigned m_numBitsBuffer;
   unsigned m_numBitsAddress;
   size_t m_maxNumBuffers;
   size_t m_maxBufferSize;
+  size_t m_maskBitsAddress;
+  size_t m_maskBitsBuffer;
 
   unsigned getNextBuffer();
 };
