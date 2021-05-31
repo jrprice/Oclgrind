@@ -47,7 +47,7 @@ using namespace std;
 #define DEVICE_PROFILE "FULL_PROFILE"
 #define DEVICE_CTS_VERSION ""
 #define DEVICE_SPIR_VERSIONS "1.2"
-#define DEVICE_TYPE                                                            \
+#define DEFAULT_DEVICE_TYPE                                                            \
   (CL_DEVICE_TYPE_CPU | CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR |      \
    CL_DEVICE_TYPE_DEFAULT)
 
@@ -175,6 +175,51 @@ void releaseCommand(oclgrind::Command* command)
     delete command;
   }
 }
+
+cl_device_type getDeviceType() {
+  static bool computed_device_type = false;
+  static cl_device_type device_type = 0;
+
+  if (!computed_device_type) {
+    const char* device_env_c = getenv("OCLGRIND_DEVICE_TYPE");
+
+    if (device_env_c == nullptr || strcmp(device_env_c, "ALL") == 0) {
+      device_type = DEFAULT_DEVICE_TYPE;
+    } else {
+      std::string device_env = std::string(device_env_c);
+
+      size_t start = 0;
+
+      while (true) {
+        size_t end = device_env.find(";", start);
+        size_t count = end == std::string::npos ? end : end - start;
+        std::string name = device_env.substr(start, count);
+
+        if (name == "CPU") {
+          device_type |= CL_DEVICE_TYPE_CPU;
+        } else if (name == "GPU") {
+          device_type |= CL_DEVICE_TYPE_GPU;
+        } else if (name == "ACCELERATOR") {
+          device_type |= CL_DEVICE_TYPE_ACCELERATOR;
+        } else if (name == "DEFAULT") {
+          device_type |= CL_DEVICE_TYPE_DEFAULT;
+        }
+
+        if (end == std::string::npos) {
+          break;
+        }
+
+        start = end + 1;
+      }
+    }
+
+
+    computed_device_type = true;
+  }
+
+  return device_type;
+}
+
 } // namespace
 
 namespace
@@ -413,7 +458,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDs(
     ReturnError(NULL, CL_INVALID_VALUE);
   }
 
-  if (!(device_type & DEVICE_TYPE))
+  if (!(device_type & getDeviceType()))
   {
     ReturnError(NULL, CL_DEVICE_NOT_FOUND);
   }
@@ -513,7 +558,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
   {
   case CL_DEVICE_TYPE:
     result_size = sizeof(cl_device_type);
-    result_data.cldevicetype = DEVICE_TYPE;
+    result_data.cldevicetype = getDeviceType();
     break;
   case CL_DEVICE_VENDOR_ID:
     result_size = sizeof(cl_uint);
@@ -1040,7 +1085,7 @@ CL_API_ENTRY cl_context CL_API_CALL clCreateContextFromType(
                  "pfn_notify NULL but user_data non-NULL");
     return NULL;
   }
-  if (!(device_type & DEVICE_TYPE))
+  if (!(device_type & getDeviceType()))
   {
     SetErrorArg(NULL, CL_DEVICE_NOT_FOUND, device_type);
     return NULL;
