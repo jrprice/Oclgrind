@@ -101,7 +101,7 @@ void Queue::executeKernel(KernelCommand* cmd)
 {
   // Run kernel
   KernelInvocation::run(m_context, cmd->kernel, cmd->work_dim,
-                        cmd->globalOffset, cmd->globalSize, cmd->localSize);
+                        cmd->globalOffset, cmd->globalSize, cmd->localSize, cmd->localSizeSpecified);
 }
 
 void Queue::executeMap(MapCommand* cmd)

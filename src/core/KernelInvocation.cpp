@@ -34,13 +34,14 @@ static atomic<unsigned> nextGroupIndex;
 
 KernelInvocation::KernelInvocation(const Context* context, const Kernel* kernel,
                                    unsigned int workDim, Size3 globalOffset,
-                                   Size3 globalSize, Size3 localSize)
+                                   Size3 globalSize, Size3 localSize, bool localSizeSpecified)
     : m_context(context), m_kernel(kernel)
 {
   m_workDim = workDim;
   m_globalOffset = globalOffset;
   m_globalSize = globalSize;
   m_localSize = localSize;
+  m_localSizeSpecified = localSizeSpecified;
 
   m_numGroups.x = m_globalSize.x / m_localSize.x;
   m_numGroups.y = m_globalSize.y / m_localSize.y;
@@ -140,11 +141,11 @@ size_t KernelInvocation::getWorkDim() const
 
 void KernelInvocation::run(const Context* context, Kernel* kernel,
                            unsigned int workDim, Size3 globalOffset,
-                           Size3 globalSize, Size3 localSize)
+                           Size3 globalSize, Size3 localSize, bool localSizeSpecified)
 {
   // Create kernel invocation
   KernelInvocation* ki = new KernelInvocation(
-    context, kernel, workDim, globalOffset, globalSize, localSize);
+    context, kernel, workDim, globalOffset, globalSize, localSize, localSizeSpecified);
 
   // Run kernel
   context->notifyKernelBegin(ki);
