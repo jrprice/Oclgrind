@@ -33,6 +33,7 @@ public:
   bool switchWorkItem(const Size3 gid);
 
   int getWorkerID() const;
+  bool workGroupSizeSpecified() const;
 
 private:
   KernelInvocation(const Context* context, const Kernel* kernel,

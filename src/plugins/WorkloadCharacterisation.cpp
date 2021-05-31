@@ -300,7 +300,6 @@ void WorkloadCharacterisation::kernelBegin(const KernelInvocation *kernelInvocat
   m_psl_per_group = vector<vector<double>>();
 }
 
-
 vector<double> entropy(unordered_map<size_t, uint32_t> histogram) {
   std::vector<std::unordered_map<size_t, uint32_t>> local_address_count(11, unordered_map<size_t, uint32_t>());
   local_address_count[0] = histogram;
@@ -603,6 +602,7 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
 
   logfile << "metric,category,count\n";
   logfile << "kernel_name,Meta," << kernelInvocation->getKernel()->getName() << "\n";
+  logfile << "work_group_size_specified,Meta," << (kernelInvocation->workGroupSizeSpecified() ? "1" : "0") << "\n";
 
   logfile << "opcode_counts,Compute,";
   for (const auto &item : sorted_ops) {
@@ -613,8 +613,8 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
   logfile << "freedom_to_reorder,Compute," << freedom_to_reorder << "\n";
   logfile << "resource_pressure,Compute," << resource_pressure << "\n";
   logfile << "work_items,Parallelism," << m_threads_invoked << "\n";
-  logfile << "work_groups,Parallelism," << m_group_num[0] * m_group_num[1] * m_group_num[2] << "\n";
-  logfile << "work_items_per_work_group,Parallelism," << m_local_num[0] * m_local_num[1] * m_local_num[2] << "\n";
+  logfile << "work_groups,Parallelism," << m_group_num[0] << list_delim << m_group_num[1] << list_delim << m_group_num[2] << list_delim << "\n";
+  logfile << "work_items_per_work_group,Parallelism," << m_local_num[0] << list_delim << m_local_num[1] << list_delim << m_local_num[2] << list_delim << "\n";
   logfile << "SIMD_operand_sum,Parallelism," << simd_sum << "\n";
   logfile << "total_barriers_hit,Parallelism," << m_barriers_hit << "\n";
   logfile << "min_ITB,Parallelism," << itb_min << "\n";

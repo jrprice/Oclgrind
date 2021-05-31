@@ -335,3 +335,8 @@ bool KernelInvocation::switchWorkItem(const Size3 gid)
 
   return true;
 }
+
+bool KernelInvocation::workGroupSizeSpecified() const
+{
+  return m_localSizeSpecified;
+}
