@@ -259,7 +259,7 @@ set_target_properties(oclgrind PROPERTIES INSTALL_RPATH ${CLANG_ROOT}/lib)
 target_link_libraries(oclgrind PUBLIC ${CORE_EXTRA_LIBS} -Wl,-rpath,${CLANG_ROOT}/lib
   clangFrontend clangSerialization clangDriver clangCodeGen
   clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
-  "${LLVM_LIBS}" Threads::Threads)
+  "${LLVM_LIBS}" Threads::Threads dl)
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
