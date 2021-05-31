@@ -42,18 +42,20 @@ public:
   virtual void workItemComplete(const WorkItem *workItem) override;
   virtual void workItemBarrier(const WorkItem *workItem) override;
   virtual void workItemClearBarrier(const WorkItem *workItem) override;
-  
+
   struct ledgerElement {
     size_t address;
     uint32_t timestep;
   };
 private:
+  const KernelInvocation *m_kernelInvocation;
+
   // std::unordered_map<std::pair<size_t, bool>, uint32_t> m_memoryOps;
   std::unordered_map<size_t, uint32_t> m_storeOps;
   std::unordered_map<size_t, uint32_t> m_loadOps;
   std::unordered_map<std::string, size_t> m_computeOps;
-  std::unordered_map<size_t, std::unordered_map<uint16_t, uint32_t>> m_branchPatterns;
-  std::unordered_map<size_t, uint32_t> m_branchCounts;
+  std::unordered_map<const llvm::Instruction *, std::unordered_map<uint16_t, uint32_t>> m_branchPatterns;
+  std::unordered_map<const llvm::Instruction *, uint32_t> m_branchCounts;
   std::vector<uint32_t> m_instructionsToBarrier;
   std::unordered_map<uint16_t, size_t> m_instructionWidth;
   std::vector<uint32_t> m_instructionsPerWorkitem;
@@ -79,10 +81,13 @@ private:
     std::unordered_map<size_t, uint32_t> *storeOps;
     std::unordered_map<size_t, uint32_t> *loadOps;
     // true -> load; false -> store.
+
     bool previous_instruction_is_branch;
-    std::string target1, target2;
-    uint32_t branch_loc;
-    std::unordered_map<size_t, std::vector<bool>> *branchOps;
+    llvm::BasicBlock* target1;
+    llvm::BasicBlock* target2;
+    const llvm::Instruction* branch_loc;
+    std::unordered_map<const llvm::Instruction*, std::vector<bool>> *branchOps;
+
     uint32_t threads_invoked;
     uint32_t barriers_hit;
     uint32_t instruction_count;
