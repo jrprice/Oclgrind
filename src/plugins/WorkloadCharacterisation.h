@@ -43,6 +43,8 @@ public:
   virtual void workItemBarrier(const WorkItem *workItem) override;
   virtual void workItemClearBarrier(const WorkItem *workItem) override;
 
+  void logMetrics(const KernelInvocation *kernelInvocation);
+
   struct ledgerElement {
     size_t address;
     uint32_t timestep;
