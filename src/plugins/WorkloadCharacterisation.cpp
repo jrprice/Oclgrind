@@ -640,7 +640,7 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
   }
 
   std::ofstream logfile;
-  logfile.open(logfile_name, std::ios::ate); // sppend to file
+  logfile.open(logfile_name, std::ios::app); // sppend to file
 
   if (!logfile.is_open()) {
     std::cerr << "[AIWC error] Failed to open file for logging \"" << logfile_name << "\"" << std::endl;
