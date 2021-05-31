@@ -45,14 +45,8 @@ WorkloadCharacterisation::WorkloadCharacterisation(const Context *context) : Wor
 }
 
 WorkloadCharacterisation::~WorkloadCharacterisation() {
-  locale previousLocale = cout.getloc();
-  locale defaultLocale("");
-  cout.imbue(defaultLocale);
-
   // present memory transfer statistics -- only run once, since these are collected outside kernel invocations
-  cout << "+-------------------------------------------------------------------------------------------------------+" << endl;
-  cout << "|Memory Transfers -- statistics around host to device and device to host memory transfers               |" << endl;
-  cout << "+=======================================================================================================+" << endl;
+
   // I can't imagine a scenario where data are copied from the device before a kernel is executed. So I use the deviceToHostCopy kernel names for the final statistics -- these names for the m_hostToDeviceCopy's are updated when the kernel is enqueued.
   std::vector<std::string> x = m_deviceToHostCopy;
   std::vector<std::string>::iterator unique_x = std::unique(x.begin(), x.end());
@@ -64,25 +58,26 @@ WorkloadCharacterisation::~WorkloadCharacterisation() {
   x.resize(std::distance(x.begin(), unique_x));
   std::vector<std::string> unique_kernels_involved_with_host_to_device_copies = x;
 
-  cout << "Total Host To Device Transfers (#) for kernel:" << endl;
-  for (auto const &item : unique_kernels_involved_with_host_to_device_copies) {
-    cout << "\t" << item << ": " << std::count(m_hostToDeviceCopy.begin(), m_hostToDeviceCopy.end(), item) << endl;
-  }
-  cout << "Total Device To Host Transfers (#) for kernel:" << endl;
-  for (auto const &item : unique_kernels_involved_with_device_to_host_copies) {
-    cout << "\t" << item << ": " << std::count(m_deviceToHostCopy.begin(), m_deviceToHostCopy.end(), item) << endl;
-  }
-
   //write it out to special .csv file
   int logfile_count = 0;
-  std::string logfile_name = "aiwc_memory_transfers_" + std::to_string(logfile_count) + ".csv";
-  while (std::ifstream(logfile_name)) {
-    logfile_count++;
+  std::string logfile_name = "";
+
+  while (true) {
     logfile_name = "aiwc_memory_transfers_" + std::to_string(logfile_count) + ".csv";
+    if (std::ifstream(logfile_name)) {
+      break;
+    }
+    logfile_count++;
   }
+
   std::ofstream logfile;
   logfile.open(logfile_name);
-  assert(logfile);
+
+  if (!logfile.is_open()) {
+    std::cerr << "[AIWC error] Failed to open file for memory transfer logging \"" << logfile_name << "\"" << std::endl;
+    return;
+  }
+
   logfile << "metric,kernel,count\n";
 
   for (auto const &item : unique_kernels_involved_with_host_to_device_copies) {
@@ -91,10 +86,8 @@ WorkloadCharacterisation::~WorkloadCharacterisation() {
   for (auto const &item : unique_kernels_involved_with_device_to_host_copies) {
     logfile << "transfer: device to host," << item << "," << std::count(m_deviceToHostCopy.begin(), m_deviceToHostCopy.end(), item) << "\n";
   }
-  logfile.close();
 
-  // Restore locale
-  cout.imbue(previousLocale);
+  logfile.close();
 }
 
 void WorkloadCharacterisation::hostMemoryLoad(const Memory *memory, size_t address, size_t size) {
@@ -385,7 +378,6 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
 
   while (operation_count < significant_operation_count) {
     operation_count += sorted_ops[major_operations].second;
-    cout << sorted_ops[major_operations].first;
     major_operations++;
   }
 
