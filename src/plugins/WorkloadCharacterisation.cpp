@@ -591,7 +591,7 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
   }
 
   std::ofstream logfile;
-  logfile.open(logfile_name, std::ios::app); // sppend to file
+  logfile.open(logfile_name, std::ios::app); // append to file
 
   if (!logfile.is_open()) {
     std::cerr << "[AIWC error] Failed to open file for logging \"" << logfile_name << "\"" << std::endl;
@@ -604,43 +604,43 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
   logfile << "metric,category,count\n";
   logfile << "kernel_name,Meta," << kernelInvocation->getKernel()->getName() << "\n";
 
-  logfile << "OpcodeCounts,Compute,";
+  logfile << "opcode_counts,Compute,";
   for (const auto &item : sorted_ops) {
     logfile << item.first << keyval_sep << item.second << list_delim;
   }
   logfile << "\n";
 
-  logfile << "Freedom to Reorder,Compute," << freedom_to_reorder << "\n";
-  logfile << "Resource Pressure,Compute," << resource_pressure << "\n";
-  logfile << "Work-items,Parallelism," << m_threads_invoked << "\n";
-  logfile << "Work-groups,Parallelism," << m_group_num[0] * m_group_num[1] * m_group_num[2] << "\n";
-  logfile << "Work-items per Work-group,Parallelism," << m_local_num[0] * m_local_num[1] * m_local_num[2] << "\n";
-  logfile << "SIMD Operand Sum,Parallelism," << simd_sum << "\n";
-  logfile << "Total Barriers Hit,Parallelism," << m_barriers_hit << "\n";
-  logfile << "Min ITB,Parallelism," << itb_min << "\n";
-  logfile << "Max ITB,Parallelism," << itb_max << "\n";
-  logfile << "Median ITB,Parallelism," << itb_median << "\n";
-  logfile << "Min IPT,Parallelism," << ipt_min << "\n";
-  logfile << "Max IPT,Parallelism," << ipt_max << "\n";
-  logfile << "Median IPT,Parallelism," << ipt_median << "\n";
-  logfile << "Min SIMD Width,Parallelism," << simd_min << "\n";
-  logfile << "Max SIMD Width,Parallelism," << simd_max << "\n";
-  logfile << "Mean SIMD Width,Parallelism," << simd_mean << "\n";
-  logfile << "SD SIMD Width,Parallelism," << simd_stdev << "\n";
-  logfile << "Num Memory Accesses,Memory," << memory_access_count << "\n";
-  logfile << "Total Memory Footprint,Memory," << local_address_count[0].size() << "\n";
-  logfile << "Unique Memory Accesses,Memory," << local_address_count[0].size() << "\n";
-  logfile << "Unique Reads,Memory," << m_storeOps.size() << "\n";
-  logfile << "Unique Writes,Memory," << m_loadOps.size()  << "\n";
-  logfile << "Unique Read/Write Ratio,Memory,"
+  logfile << "freedom_to_reorder,Compute," << freedom_to_reorder << "\n";
+  logfile << "resource_pressure,Compute," << resource_pressure << "\n";
+  logfile << "work_items,Parallelism," << m_threads_invoked << "\n";
+  logfile << "work_groups,Parallelism," << m_group_num[0] * m_group_num[1] * m_group_num[2] << "\n";
+  logfile << "work_items_per_work_group,Parallelism," << m_local_num[0] * m_local_num[1] * m_local_num[2] << "\n";
+  logfile << "SIMD_operand_sum,Parallelism," << simd_sum << "\n";
+  logfile << "total_barriers_hit,Parallelism," << m_barriers_hit << "\n";
+  logfile << "min_ITB,Parallelism," << itb_min << "\n";
+  logfile << "max_ITB,Parallelism," << itb_max << "\n";
+  logfile << "median_ITB,Parallelism," << itb_median << "\n";
+  logfile << "min_IPT,Parallelism," << ipt_min << "\n";
+  logfile << "max_IPT,Parallelism," << ipt_max << "\n";
+  logfile << "median_IPT,Parallelism," << ipt_median << "\n";
+  logfile << "min_SIMD_width,Parallelism," << simd_min << "\n";
+  logfile << "max_SIMD_width,Parallelism," << simd_max << "\n";
+  logfile << "mean_SIMD_width,Parallelism," << simd_mean << "\n";
+  logfile << "sd_SIMD_width,Parallelism," << simd_stdev << "\n";
+  logfile << "num_memory_accesses,Memory," << memory_access_count << "\n";
+  logfile << "total_memory_footprint,Memory," << local_address_count[0].size() << "\n";
+  logfile << "unique_memory_accesses,Memory," << local_address_count[0].size() << "\n";
+  logfile << "unique_reads,Memory," << m_storeOps.size() << "\n";
+  logfile << "unique_writes,Memory," << m_loadOps.size()  << "\n";
+  logfile << "unique_read_write_ratio,Memory,"
        << setprecision(4) << (float) (((double)m_loadOps.size()) / ((double)m_storeOps.size()))  << "\n";
-  logfile << "Total Reads,Memory," << load_count    << "\n";
-  logfile << "Total Writes,Memory," << store_count    << "\n";
-  logfile << "Rereads,Memory," << setprecision(4) << (float)((double)load_count / (double)m_loadOps.size()) << "\n";
-  logfile << "Rewrites,Memory," << setprecision(4) << (float)((double)store_count / (double)m_storeOps.size()) << "\n";
+  logfile << "total_reads,Memory," << load_count    << "\n";
+  logfile << "total_writes,Memory," << store_count    << "\n";
+  logfile << "rereads,Memory," << setprecision(4) << (float)((double)load_count / (double)m_loadOps.size()) << "\n";
+  logfile << "rewrites,Memory," << setprecision(4) << (float)((double)store_count / (double)m_storeOps.size()) << "\n";
 
-  logfile << "90\% Memory Footprint,Memory," << unique_memory_addresses << "\n";
-  logfile << "Global Memory Address Entropy,Memory," << mem_entropy << "\n";
+  logfile << "memory_footprint_90pc,Memory," << unique_memory_addresses << "\n";
+  logfile << "global_memory_address_entropy,Memory," << mem_entropy << "\n";
 
   logfile << "LMAE,Memory,";
   for (int nskip = 1; nskip < 11; nskip++) {
@@ -648,25 +648,25 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
   }
   logfile << "\n";
 
-  logfile << "Normed PSL,Memory,";
+  logfile << "normed_PSL,Memory,";
   for (int nskip = 0; nskip < 11; nskip++) {
     logfile << nskip << keyval_sep << avg_psl[nskip] << list_delim;
   }
   logfile << "\n";
 
-  logfile << "Total Global Memory Accessed,Memory," << m_global_memory_access << "\n";
-  logfile << "Total Local Memory Accessed,Memory," << m_local_memory_access << "\n";
-  logfile << "Total Constant Memory Accessed,Memory," << m_constant_memory_access << "\n";
+  logfile << "total_global_memory_accessed,Memory," << m_global_memory_access << "\n";
+  logfile << "total_local_memory_accessed,Memory," << m_local_memory_access << "\n";
+  logfile << "total_constant_memory_accessed,Memory," << m_constant_memory_access << "\n";
 
-  logfile << "Branch Counts,Control,";
+  logfile << "branch_counts,Control,";
   for (auto const &item : sorted_branch_ops) {
     logfile << item.first << keyval_sep << item.second << list_delim;
   }
   logfile << "\n";
 
-  logfile << "Branch History Size,Memory," << m << "\n";
-  logfile << "Yokota Branch Entropy,Memory," << yokota_entropy_per_workload << "\n";
-  logfile << "Average Linear Branch Entropy,Memory," << average_entropy << "\n";
+  logfile << "branch_history_size,Memory," << m << "\n";
+  logfile << "yokota_branch_entropy,Memory," << yokota_entropy_per_workload << "\n";
+  logfile << "average_linear_branch_entropy,Memory," << average_entropy << "\n";
 
   logfile.close();
 
