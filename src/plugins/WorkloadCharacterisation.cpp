@@ -647,12 +647,15 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
     return;
   }
 
+  std::string list_delim = ";";
+  std::string keyval_sep = "=";
+
   logfile << "metric,category,count\n";
   logfile << "kernel_name,Meta," << kernelInvocation->getKernel()->getName() << "\n";
 
   logfile << "OpcodeCounts,Compute,";
   for (const auto &item : sorted_ops) {
-    logfile << item.first << "=" << item.second << ";";
+    logfile << item.first << keyval_sep << item.second << list_delim;
   }
   logfile << "\n";
 
@@ -692,12 +695,19 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
 
   logfile << "90\% Memory Footprint,Memory," << unique_memory_addresses << "\n";
   logfile << "Global Memory Address Entropy,Memory," << mem_entropy << "\n";
+
+  logfile << "LMAE,Memory,";
   for (int nskip = 1; nskip < 11; nskip++) {
-    logfile << "LMAE -- Skipped " << nskip << " LSBs,Memory," << loc_entropy[nskip - 1] << "\n";
+    logfile << nskip << keyval_sep << loc_entropy[nskip - 1] << list_delim;
   }
+  logfile << "\n";
+
+  logfile << "Normed PSL,Memory,";
   for (int nskip = 0; nskip < 11; nskip++) {
-    logfile << "Normed PSL -- Skipped " << nskip << " LSBs,Memory," << avg_psl[nskip] << "\n";
+    logfile << nskip << keyval_sep << avg_psl[nskip] << list_delim;
   }
+  logfile << "\n";
+
   logfile << "Normed PSL Sum,Memory," << avg_psl_sum << "\n";
   logfile << "Total Global Memory Accessed,Memory," << m_global_memory_access << "\n";
   logfile << "Total Local Memory Accessed,Memory," << m_local_memory_access << "\n";
@@ -707,7 +717,7 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
 
   logfile << "Branch Counts,Control,";
   for (auto const &item : sorted_branch_ops) {
-    logfile << item.first << "=" << item.second << ";";
+    logfile << item.first << keyval_sep << item.second << list_delim;
   }
   logfile << "\n";
 
