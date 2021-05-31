@@ -629,7 +629,6 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
   logfile << "sd_SIMD_width,Parallelism," << simd_stdev << "\n";
   logfile << "num_memory_accesses,Memory," << memory_access_count << "\n";
   logfile << "total_memory_footprint,Memory," << local_address_count[0].size() << "\n";
-  logfile << "unique_memory_accesses,Memory," << local_address_count[0].size() << "\n";
   logfile << "unique_reads,Memory," << m_storeOps.size() << "\n";
   logfile << "unique_writes,Memory," << m_loadOps.size()  << "\n";
   logfile << "unique_read_write_ratio,Memory,"
