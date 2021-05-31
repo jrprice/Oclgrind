@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # run_test.py (Oclgrind)
 # Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 # University of Bristol. All rights reserved.
