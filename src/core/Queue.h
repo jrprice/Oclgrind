@@ -146,6 +146,7 @@ struct KernelCommand : Command
   Size3 globalOffset;
   Size3 globalSize;
   Size3 localSize;
+  bool localSizeSpecified;
   KernelCommand()
   {
     type = KERNEL;

@@ -19,7 +19,7 @@ class KernelInvocation
 {
 public:
   static void run(const Context* context, Kernel* kernel, unsigned int workDim,
-                  Size3 globalOffset, Size3 globalSize, Size3 localSize);
+                  Size3 globalOffset, Size3 globalSize, Size3 localSize, bool localSizeSpecified=true);
 
   const Context* getContext() const;
   const WorkGroup* getCurrentWorkGroup() const;
@@ -33,11 +33,12 @@ public:
   bool switchWorkItem(const Size3 gid);
 
   int getWorkerID() const;
+  bool workGroupSizeSpecified() const;
 
 private:
   KernelInvocation(const Context* context, const Kernel* kernel,
                    unsigned int workDim, Size3 globalOffset, Size3 globalSize,
-                   Size3 localSize);
+                   Size3 localSize, bool localSizeSpecified);
   virtual ~KernelInvocation();
   void run();
 
@@ -49,6 +50,7 @@ private:
   Size3 m_globalSize;
   Size3 m_localSize;
   Size3 m_numGroups;
+  bool m_localSizeSpecified;
 
   // Current execution state
   std::vector<Size3> m_workGroups;
