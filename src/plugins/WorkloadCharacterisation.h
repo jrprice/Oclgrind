@@ -55,7 +55,7 @@ private:
   // std::unordered_map<std::pair<size_t, bool>, uint32_t> m_memoryOps;
   std::unordered_map<size_t, uint32_t> m_storeOps;
   std::unordered_map<size_t, uint32_t> m_loadOps;
-  std::unordered_map<std::string, size_t> m_computeOps;
+  std::unordered_map<unsigned, size_t> m_computeOps;
   std::unordered_map<const llvm::Instruction *, std::unordered_map<uint16_t, uint32_t>> m_branchPatterns;
   std::unordered_map<const llvm::Instruction *, uint32_t> m_branchCounts;
   std::vector<uint32_t> m_instructionsToBarrier;
@@ -78,7 +78,7 @@ private:
   std::vector<std::vector<double>> m_psl_per_group;
 
   struct WorkerState {
-    std::unordered_map<std::string, size_t> *computeOps;
+    std::unordered_map<unsigned, size_t> *computeOps;
     //std::unordered_map<std::pair<size_t, bool>, uint32_t> *memoryOps;
     std::unordered_map<size_t, uint32_t> *storeOps;
     std::unordered_map<size_t, uint32_t> *loadOps;

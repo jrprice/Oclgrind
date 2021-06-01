@@ -148,8 +148,7 @@ void WorkloadCharacterisation::instructionExecuted(
     const TypedValue &result) {
 
   unsigned opcode = instruction->getOpcode();
-  std::string opcode_name = llvm::Instruction::getOpcodeName(opcode);
-  (*m_state.computeOps)[opcode_name]++;
+  (*m_state.computeOps)[opcode]++;
 
   bool isMemoryInst = false;
   unsigned addressSpace;
@@ -361,8 +360,8 @@ vector<double> parallelSpatialLocality(vector < vector < WorkloadCharacterisatio
 }
 
 void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocation) {
-  std::vector<std::pair<std::string, size_t>> sorted_ops(m_computeOps.size());
-  std::partial_sort_copy(m_computeOps.begin(), m_computeOps.end(), sorted_ops.begin(), sorted_ops.end(), [](const std::pair<std::string, size_t> &left, const std::pair<std::string, size_t> &right) {
+  std::vector<std::pair<unsigned, size_t>> sorted_ops(m_computeOps.size());
+  std::partial_sort_copy(m_computeOps.begin(), m_computeOps.end(), sorted_ops.begin(), sorted_ops.end(), [](const std::pair<unsigned, size_t> &left, const std::pair<unsigned, size_t> &right) {
     return (left.second > right.second);
   });
 
@@ -606,7 +605,7 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
 
   logfile << "opcode_counts,Compute,";
   for (const auto &item : sorted_ops) {
-    logfile << item.first << keyval_sep << item.second << list_delim;
+    logfile << llvm::Instruction::getOpcodeName(item.first) << keyval_sep << item.second << list_delim;
   }
   logfile << "\n";
 
@@ -698,7 +697,7 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup) {
     //m_state.memoryOps = new unordered_map<pair<size_t, bool>, uint32_t>;
     m_state.storeOps = new unordered_map<size_t, uint32_t>;
     m_state.loadOps = new unordered_map<size_t, uint32_t>;
-    m_state.computeOps = new unordered_map<std::string, size_t>;
+    m_state.computeOps = new unordered_map<unsigned, size_t>;
     m_state.branchOps = new unordered_map<const llvm::Instruction*, std::vector<bool>>;
     m_state.instructionsBetweenBarriers = new vector<uint32_t>;
     m_state.instructionWidth = new unordered_map<uint16_t, size_t>;
