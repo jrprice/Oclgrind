@@ -129,6 +129,7 @@ private:
 #define INSTRUCTION(name)                                                      \
   void name(const llvm::Instruction* instruction, TypedValue& result)
   INSTRUCTION(add);
+  INSTRUCTION(addrspacecast);
   INSTRUCTION(alloc);
   INSTRUCTION(ashr);
   INSTRUCTION(bitcast);

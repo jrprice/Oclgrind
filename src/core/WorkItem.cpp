@@ -134,6 +134,9 @@ void WorkItem::dispatch(const llvm::Instruction* instruction,
   case llvm::Instruction::Add:
     add(instruction, result);
     break;
+  case llvm::Instruction::AddrSpaceCast:
+    addrspacecast(instruction, result);
+    break;
   case llvm::Instruction::Alloca:
     alloc(instruction, result);
     break;
@@ -765,6 +768,12 @@ INSTRUCTION(add)
   {
     result.setUInt(opA.getUInt(i) + opB.getUInt(i), i);
   }
+}
+
+INSTRUCTION(addrspacecast)
+{
+  // do nothing; pointer already encodes address space
+  result.setPointer(getOperand(instruction->getOperand(0)).getPointer(), 0);
 }
 
 INSTRUCTION(alloc)
