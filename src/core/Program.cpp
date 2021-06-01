@@ -577,12 +577,39 @@ Program* Program::createFromBitcode(const Context* context,
     return NULL;
   }
 
+  std::string tag = std::to_string(rand());
+#if defined(_WIN32)
+  std::string tmpdir = getenv("TEMP");
+#else
+  std::string tmpdir = "/tmp";
+#endif
+
+  if (checkEnv(ENV_DUMP_SPIR)) {
+    std::string tempBC = tmpdir + "/oclgrind_" + tag + ".bc";
+
+    // Dump bitcode
+    ofstream bc_dump;
+    bc_dump.open(tempBC);
+    bc_dump << std::string(buffer->getMemBufferRef().getBufferStart(), buffer->getMemBufferRef().getBufferSize());
+    bc_dump.close();
+  }
+
   // Parse bitcode into IR module
   llvm::Expected<unique_ptr<llvm::Module>> module =
     parseBitcodeFile(buffer->getMemBufferRef(), *context->getLLVMContext());
   if (!module)
   {
     return NULL;
+  }
+
+  if (checkEnv(ENV_DUMP_SPIR)) {
+    // Dump LLVM IR
+    std::string tempIR = tmpdir + "/oclgrind_" + tag + ".ll";
+    std::error_code err;
+    llvm::raw_fd_ostream ir(tempIR, err, llvm::sys::fs::F_None);
+    llvm::AssemblyAnnotationWriter asmWriter;
+    (*module)->print(ir, &asmWriter);
+    ir.close();
   }
 
   return new Program(context, module.get().release());
