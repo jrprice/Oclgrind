@@ -11,7 +11,9 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <ctime>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <dlfcn.h>
 
@@ -176,7 +178,8 @@ void releaseCommand(oclgrind::Command* command)
   }
 }
 
-cl_device_type getDeviceType() {
+cl_device_type getDeviceType()
+{
   static bool computed_device_type = false;
   static cl_device_type device_type = 0;
 
@@ -218,6 +221,17 @@ cl_device_type getDeviceType() {
   }
 
   return device_type;
+}
+
+std::vector<char> read_file(std::string filepath)
+{
+  std::ifstream file(filepath, std::ios::in | std::ios::binary);
+  file.exceptions(std::ios::failbit | std::ios::badbit);
+
+  std::vector<char> buffer(file.seekg(0, std::ios::end).tellg(), '\0');
+  file.seekg(0, std::ios::beg);
+  file.read(buffer.data(), (std::streamsize) buffer.size());
+  return buffer;
 }
 
 } // namespace
@@ -5836,6 +5850,34 @@ clCreateProgramWithIL(cl_context context, const void* il, size_t length,
                       cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_1
 {
   REGISTER_API;
+
+  auto tag = std::to_string(std::time(nullptr)) + "-" + std::to_string(std::rand());
+  std::string prefix = "/tmp/";
+  std::string spirv_name = prefix + "input-spirv-" + tag + ".spv";
+  std::string llvmbc_name = prefix + "output-llvm-" + tag + ".bc";
+  std::string log_name = prefix + "stdout-" + tag + ".txt";
+  std::string err_name = prefix + "stderr-" + tag + ".txt";
+
+  std::ofstream spirv_file (spirv_name);
+  spirv_file.write((const char*) il, length);
+  spirv_file.close();
+
+  auto cmd = "llvm-spirv -r \"" + spirv_name + "\" -o \"" + llvmbc_name + "\""
+             " 2>\"" + err_name + "\" > \"" + log_name + "\"";
+
+  std::cout << "running " << cmd << std::endl;
+
+  std::cout << std::flush;
+  int r = std::system(cmd.c_str());
+
+  if (r == 0) {
+    try {
+      auto bitcode = read_file(llvmbc_name);
+      auto source_size = bitcode.size();
+      auto source_ptr = (const unsigned char*) bitcode.data();
+      return clCreateProgramWithBinary(context, 1, &m_device, &source_size, &source_ptr, nullptr, errcode_ret);
+    } catch (...) {/* fall through to API error */}
+  }
 
   SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.1 API");
   return nullptr;
