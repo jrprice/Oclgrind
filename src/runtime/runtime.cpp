@@ -5862,10 +5862,8 @@ clCreateProgramWithIL(cl_context context, const void* il, size_t length,
   spirv_file.write((const char*) il, length);
   spirv_file.close();
 
-  auto cmd = "llvm-spirv -r \"" + spirv_name + "\" -o \"" + llvmbc_name + "\""
+  auto cmd = "LD_PRELOAD='' llvm-spirv -r \"" + spirv_name + "\" -o \"" + llvmbc_name + "\""
              " 2>\"" + err_name + "\" > \"" + log_name + "\"";
-
-  std::cout << "running " << cmd << std::endl;
 
   std::cout << std::flush;
   int r = std::system(cmd.c_str());
