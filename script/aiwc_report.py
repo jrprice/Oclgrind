@@ -12,13 +12,13 @@ import matplotlib.pyplot as plt
 import aiwctools
 
 
-def plot(kernels, y_label, y_values, outdir="plots", scales=["linear"]):
+def plot(names, y_label, y_values, outdir="plots", scales=["linear"]):
     fig, ax = plt.subplots(figsize=(18, 6))
     x = list(range(len(y_values)))
     ax.bar(x, y_values)
 
     ax.set_xticks(list(range(len(y_values))))
-    ax.set_xticklabels(kernels)
+    ax.set_xticklabels(names)
 
     ax.set_xlabel("Kernel")
     ax.set_ylabel(y_label)
@@ -36,7 +36,7 @@ def to_percent(frac):
         return f"{frac * 100:.2f}%"
 
 
-def compare_features(features, outdir="plots", diff_threshold=0.05, anchor="first"):
+def compare_features(features, names, outdir="plots", diff_threshold=0.05, anchor="first"):
     """
     Prints a list of significant metric differences between a list of AiwcKernelMetrics
     instances. Also plots everything, putting plots in the given folder.
@@ -56,12 +56,10 @@ def compare_features(features, outdir="plots", diff_threshold=0.05, anchor="firs
             print(f"unknown anchor {anchor}")
             return vals[0]
 
-    kernels = [f.kernel_name() for f in features]
-
     def gen_plot(name, getter):
         print(f"plotting {name}")
         vals = [getter(f) for f in features]
-        plot(kernels, name, vals, outdir=outdir)
+        plot(names, name, vals, outdir=outdir)
 
         baseline = get_baseline(vals)
         if baseline == 0:
@@ -75,8 +73,8 @@ def compare_features(features, outdir="plots", diff_threshold=0.05, anchor="firs
             return
 
         print(f"{name}: {baseline}")
-        for kernel, val, pc_disp in zip(kernels, vals, pc_disps):
-            print(f" - {kernel}: {val} ({'+' if val >= baseline else '-'}{to_percent(pc_disp)})")
+        for name, val, pc_disp in zip(names, vals, pc_disps):
+            print(f" - {name}: {val} ({'+' if val >= baseline else '-'}{to_percent(pc_disp)})")
 
     gen_plot("Total instruction counts", lambda f: f.instructions_count_total())
     gen_plot("Freedom to reorder", lambda f: f.freedom_to_reorder())
@@ -392,7 +390,7 @@ def parse_argv():
 
     parser.add_argument(nargs='*', dest="input", help="features file to analyse")
     parser.add_argument("--compare", action="store_true", help="Compare features of given kernels")
-
+    parser.add_argument("--names", help="Semicolon separated list of names for each metric in comparison. Order matches `input`. Defaults to kernel name of inputs.")
     return parser.parse_args()
 
 
@@ -410,7 +408,15 @@ def main():
     features = [aiwctools.AiwcKernelMetrics(k) for k in kernels]
 
     if (argv.compare):
-        compare_features(features)
+        names = [f.kernel_name() for f in features]
+        if argv.names is not None:
+            try_names = argv.names.split(";")
+            if len(try_names) == len(features):
+                names = try_names
+            else:
+                print("`names` is wrong length: using kernel names")
+
+        compare_features(features, names)
     else:
         for aiwcKernelMetrics in features:
             print_features(aiwcKernelMetrics)
