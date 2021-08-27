@@ -80,6 +80,7 @@ enum AddressSpace
   AddrSpaceGlobal = 1,
   AddrSpaceConstant = 2,
   AddrSpaceLocal = 3,
+  AddrSpaceGeneric = 4,
 };
 
 enum AtomicOp

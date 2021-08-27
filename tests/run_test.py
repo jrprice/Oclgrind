@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # run_test.py (Oclgrind)
 # Copyright (c) 2013-2019, James Price and Simon McIntosh-Smith,
 # University of Bristol. All rights reserved.
@@ -45,7 +46,7 @@ else:
 # Enable race detection and uninitialized memory plugins
 os.environ["OCLGRIND_CHECK_API"] = "1"
 os.environ["OCLGRIND_DATA_RACES"] = "1"
-os.environ["OCLGRIND_UNINITIALIZED"] = "1"
+# os.environ["OCLGRIND_UNINITIALIZED"] = "1"
 
 def fail(ret=1):
   print('FAILED')

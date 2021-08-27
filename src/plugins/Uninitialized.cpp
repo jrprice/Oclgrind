@@ -2466,12 +2466,14 @@ void ShadowMemory::dump() const
 
 size_t ShadowMemory::extractBuffer(size_t address) const
 {
-  return (address >> m_numBitsAddress);
+  size_t m_maskBitsBuffer = (((size_t)1 << m_numBitsBuffer) - 1) << m_numBitsAddress;
+  return ((address & m_maskBitsBuffer) >> m_numBitsAddress);
 }
 
 size_t ShadowMemory::extractOffset(size_t address) const
 {
-  return (address & (((size_t)-1) >> m_numBitsBuffer));
+  size_t m_maskBitsAddress = (((size_t)1 << m_numBitsAddress) - 1);
+  return (address & m_maskBitsAddress);
 }
 
 void* ShadowMemory::getPointer(size_t address) const

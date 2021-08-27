@@ -2853,7 +2853,7 @@ class WorkItemBuiltins
   DEFINE_BUILTIN(vload)
   {
     size_t base = PARG(1);
-    unsigned int addressSpace = ARG(1)->getType()->getPointerAddressSpace();
+    unsigned int addressSpace = Memory::extractAddressSpace(base);
     uint64_t offset = UARG(0);
 
     size_t address = base + offset * result.size * result.num;
@@ -2873,7 +2873,7 @@ class WorkItemBuiltins
     }
 
     size_t base = PARG(2);
-    unsigned int addressSpace = ARG(2)->getType()->getPointerAddressSpace();
+    unsigned int addressSpace = Memory::extractAddressSpace(base);
     uint64_t offset = UARG(1);
 
     size_t address = base + offset * size;
@@ -2884,7 +2884,7 @@ class WorkItemBuiltins
   DEFINE_BUILTIN(vload_half)
   {
     size_t base = PARG(1);
-    unsigned int addressSpace = ARG(1)->getType()->getPointerAddressSpace();
+    unsigned int addressSpace = Memory::extractAddressSpace(base);
     uint64_t offset = UARG(0);
 
     size_t address;
@@ -2920,7 +2920,7 @@ class WorkItemBuiltins
     }
 
     size_t base = PARG(2);
-    unsigned int addressSpace = ARG(2)->getType()->getPointerAddressSpace();
+    unsigned int addressSpace = Memory::extractAddressSpace(base);
     uint64_t offset = UARG(1);
 
     // Convert to halfs
@@ -3526,8 +3526,8 @@ class WorkItemBuiltins
     size_t dest = workItem->getOperand(memcpyInst->getDest()).getPointer();
     size_t src = workItem->getOperand(memcpyInst->getSource()).getPointer();
     size_t size = workItem->getOperand(memcpyInst->getLength()).getUInt();
-    unsigned destAddrSpace = memcpyInst->getDestAddressSpace();
-    unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
+    unsigned destAddrSpace = Memory::extractAddressSpace(dest);
+    unsigned srcAddrSpace = Memory::extractAddressSpace(src);
 
     unsigned char* buffer = workItem->m_pool.alloc(size);
     workItem->getMemory(srcAddrSpace)->load(buffer, src, size);

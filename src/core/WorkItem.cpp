@@ -10,6 +10,7 @@
 #include "config.h"
 
 #include <math.h>
+#include <iostream>
 
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/GlobalVariable.h"
@@ -132,6 +133,9 @@ void WorkItem::dispatch(const llvm::Instruction* instruction,
   {
   case llvm::Instruction::Add:
     add(instruction, result);
+    break;
+  case llvm::Instruction::AddrSpaceCast:
+    addrspacecast(instruction, result);
     break;
   case llvm::Instruction::Alloca:
     alloc(instruction, result);
@@ -766,6 +770,12 @@ INSTRUCTION(add)
   }
 }
 
+INSTRUCTION(addrspacecast)
+{
+  // do nothing; pointer already encodes address space
+  result.setPointer(getOperand(instruction->getOperand(0)).getPointer(), 0);
+}
+
 INSTRUCTION(alloc)
 {
   const llvm::AllocaInst* allocInst = ((const llvm::AllocaInst*)instruction);
@@ -1256,9 +1266,20 @@ INSTRUCTION(itrunc)
 INSTRUCTION(load)
 {
   const llvm::LoadInst* loadInst = (const llvm::LoadInst*)instruction;
-  unsigned addressSpace = loadInst->getPointerAddressSpace();
+  unsigned instAddressSpace = loadInst->getPointerAddressSpace();
   const llvm::Value* opPtr = loadInst->getPointerOperand();
   size_t address = getOperand(opPtr).getPointer();
+
+  unsigned addressSpace = Memory::extractAddressSpace(address);
+  if (instAddressSpace != AddrSpaceGeneric && instAddressSpace != addressSpace &&
+     !((addressSpace == AddrSpaceGlobal && instAddressSpace == AddrSpaceConstant) ||
+      (addressSpace == AddrSpaceConstant && instAddressSpace == AddrSpaceGlobal))) {
+
+    std::string err = "Invalid memory load - source pointer is incorrect address space "
+                      "(ptr=" + std::string(getAddressSpaceName(addressSpace)) +
+                      ", inst=" + std::string(getAddressSpaceName(instAddressSpace)) + ")";
+    m_context->logError(err.c_str());
+  }
 
   // Check address is correctly aligned
   unsigned alignment = loadInst->getAlignment();
@@ -1473,9 +1494,19 @@ INSTRUCTION(srem)
 INSTRUCTION(store)
 {
   const llvm::StoreInst* storeInst = (const llvm::StoreInst*)instruction;
-  unsigned addressSpace = storeInst->getPointerAddressSpace();
+  unsigned instAddressSpace = storeInst->getPointerAddressSpace();
   const llvm::Value* opPtr = storeInst->getPointerOperand();
   size_t address = getOperand(opPtr).getPointer();
+
+  unsigned addressSpace = Memory::extractAddressSpace(address);
+  if (instAddressSpace != AddrSpaceGeneric && instAddressSpace != addressSpace &&
+     !((addressSpace == AddrSpaceGlobal && instAddressSpace == AddrSpaceConstant) ||
+      (addressSpace == AddrSpaceConstant && instAddressSpace == AddrSpaceGlobal))) {
+    std::string err = "Invalid memory store - source pointer is incorrect address space "
+                      "(ptr=" + std::string(getAddressSpaceName(addressSpace)) +
+                      ", inst=" + std::string(getAddressSpaceName(instAddressSpace)) + ")";
+    m_context->logError(err.c_str());
+  }
 
   // Check address is correctly aligned
   unsigned alignment = storeInst->getAlignment();

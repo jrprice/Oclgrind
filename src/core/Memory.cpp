@@ -33,9 +33,12 @@ Memory::Memory(unsigned addrSpace, unsigned bufferBits, const Context* context)
   m_addressSpace = addrSpace;
 
   m_numBitsBuffer = bufferBits;
-  m_numBitsAddress = ((sizeof(size_t) << 3) - m_numBitsBuffer);
+  m_numBitsAddress = ((sizeof(size_t) << 3) - (m_numBitsAddrSpace + m_numBitsBuffer));
   m_maxNumBuffers = ((size_t)1 << m_numBitsBuffer) - 1; // 0 reserved for NULL
   m_maxBufferSize = ((size_t)1 << m_numBitsAddress);
+
+  m_maskBitsAddress = (((size_t)1 << m_numBitsAddress) - 1);
+  m_maskBitsBuffer = (((size_t)1 << m_numBitsBuffer) - 1) << m_numBitsAddress;
 
   clear();
 }
@@ -84,7 +87,7 @@ size_t Memory::allocateBuffer(size_t size, cl_mem_flags flags,
   else
     memset(buffer->data, 0, size);
 
-  size_t address = ((size_t)b) << m_numBitsAddress;
+  size_t address = ((size_t)m_addressSpace << (m_numBitsBuffer + m_numBitsAddress)) | (((size_t)b) << m_numBitsAddress);
 
   m_context->notifyMemoryAllocated(this, address, size, flags, initData);
 
@@ -252,7 +255,7 @@ size_t Memory::createHostBuffer(size_t size, void* ptr, cl_mem_flags flags)
 
   m_totalAllocated += size;
 
-  size_t address = ((size_t)b) << m_numBitsAddress;
+  size_t address = ((size_t)m_addressSpace << (m_numBitsBuffer + m_numBitsAddress)) | (((size_t)b) << m_numBitsAddress);
 
   m_context->notifyMemoryAllocated(this, address, size, flags, (uint8_t*)ptr);
 
@@ -330,14 +333,19 @@ void Memory::dump() const
   cout << endl;
 }
 
+unsigned int Memory::extractAddressSpace(size_t address)
+{
+  return (address >> ((sizeof(size_t) * 8) - m_numBitsAddrSpace));
+}
+
 size_t Memory::extractBuffer(size_t address) const
 {
-  return (address >> m_numBitsAddress);
+  return ((address & m_maskBitsBuffer) >> m_numBitsAddress);
 }
 
 size_t Memory::extractOffset(size_t address) const
 {
-  return (address & (((size_t)-1) >> m_numBitsBuffer));
+  return (address & m_maskBitsAddress);
 }
 
 unsigned int Memory::getAddressSpace() const
@@ -395,10 +403,12 @@ size_t Memory::getTotalAllocated() const
 
 bool Memory::isAddressValid(size_t address, size_t size) const
 {
+  unsigned int space = extractAddressSpace(address);
   size_t buffer = extractBuffer(address);
   size_t offset = extractOffset(address);
-  if (buffer == 0 || buffer >= m_memory.size() || !m_memory[buffer] ||
-      offset + size > m_memory[buffer]->size)
+
+  if (m_addressSpace != space || buffer == 0 || buffer >= m_memory.size() ||
+      !m_memory[buffer] || offset + size > m_memory[buffer]->size)
   {
     return false;
   }
