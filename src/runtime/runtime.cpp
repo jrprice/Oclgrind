@@ -11,7 +11,9 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <ctime>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <dlfcn.h>
 
@@ -47,7 +49,7 @@ using namespace std;
 #define DEVICE_PROFILE "FULL_PROFILE"
 #define DEVICE_CTS_VERSION ""
 #define DEVICE_SPIR_VERSIONS "1.2"
-#define DEVICE_TYPE                                                            \
+#define DEFAULT_DEVICE_TYPE                                                            \
   (CL_DEVICE_TYPE_CPU | CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR |      \
    CL_DEVICE_TYPE_DEFAULT)
 
@@ -175,6 +177,63 @@ void releaseCommand(oclgrind::Command* command)
     delete command;
   }
 }
+
+cl_device_type getDeviceType()
+{
+  static bool computed_device_type = false;
+  static cl_device_type device_type = 0;
+
+  if (!computed_device_type) {
+    const char* device_env_c = getenv("OCLGRIND_DEVICE_TYPE");
+
+    if (device_env_c == nullptr || strcmp(device_env_c, "ALL") == 0) {
+      device_type = DEFAULT_DEVICE_TYPE;
+    } else {
+      std::string device_env = std::string(device_env_c);
+
+      size_t start = 0;
+
+      while (true) {
+        size_t end = device_env.find(";", start);
+        size_t count = end == std::string::npos ? end : end - start;
+        std::string name = device_env.substr(start, count);
+
+        if (name == "CPU") {
+          device_type |= CL_DEVICE_TYPE_CPU;
+        } else if (name == "GPU") {
+          device_type |= CL_DEVICE_TYPE_GPU;
+        } else if (name == "ACCELERATOR") {
+          device_type |= CL_DEVICE_TYPE_ACCELERATOR;
+        } else if (name == "DEFAULT") {
+          device_type |= CL_DEVICE_TYPE_DEFAULT;
+        }
+
+        if (end == std::string::npos) {
+          break;
+        }
+
+        start = end + 1;
+      }
+    }
+
+
+    computed_device_type = true;
+  }
+
+  return device_type;
+}
+
+std::vector<char> read_file(std::string filepath)
+{
+  std::ifstream file(filepath, std::ios::in | std::ios::binary);
+  file.exceptions(std::ios::failbit | std::ios::badbit);
+
+  std::vector<char> buffer(file.seekg(0, std::ios::end).tellg(), '\0');
+  file.seekg(0, std::ios::beg);
+  file.read(buffer.data(), (std::streamsize) buffer.size());
+  return buffer;
+}
+
 } // namespace
 
 namespace
@@ -413,7 +472,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceIDs(
     ReturnError(NULL, CL_INVALID_VALUE);
   }
 
-  if (!(device_type & DEVICE_TYPE))
+  if (!(device_type & getDeviceType()))
   {
     ReturnError(NULL, CL_DEVICE_NOT_FOUND);
   }
@@ -513,7 +572,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
   {
   case CL_DEVICE_TYPE:
     result_size = sizeof(cl_device_type);
-    result_data.cldevicetype = DEVICE_TYPE;
+    result_data.cldevicetype = getDeviceType();
     break;
   case CL_DEVICE_VENDOR_ID:
     result_size = sizeof(cl_uint);
@@ -1040,7 +1099,7 @@ CL_API_ENTRY cl_context CL_API_CALL clCreateContextFromType(
                  "pfn_notify NULL but user_data non-NULL");
     return NULL;
   }
-  if (!(device_type & DEVICE_TYPE))
+  if (!(device_type & getDeviceType()))
   {
     SetErrorArg(NULL, CL_DEVICE_NOT_FOUND, device_type);
     return NULL;
@@ -4985,6 +5044,8 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNDRangeKernel(
   cmd->globalSize = oclgrind::Size3(1, 1, 1);
   cmd->globalOffset = oclgrind::Size3(0, 0, 0);
   cmd->localSize = oclgrind::Size3(1, 1, 1);
+  cmd->localSizeSpecified = false;
+
   memcpy(&cmd->globalSize, global_work_size, work_dim * sizeof(size_t));
   if (global_work_offset)
   {
@@ -4993,6 +5054,7 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNDRangeKernel(
   if (local_work_size)
   {
     memcpy(&cmd->localSize, local_work_size, work_dim * sizeof(size_t));
+    cmd->localSizeSpecified = true;
   }
 
   // Enqueue command
@@ -5788,6 +5850,32 @@ clCreateProgramWithIL(cl_context context, const void* il, size_t length,
                       cl_int* errcode_ret) CL_API_SUFFIX__VERSION_2_1
 {
   REGISTER_API;
+
+  auto tag = std::to_string(std::time(nullptr)) + "-" + std::to_string(std::rand());
+  std::string prefix = "/tmp/";
+  std::string spirv_name = prefix + "input-spirv-" + tag + ".spv";
+  std::string llvmbc_name = prefix + "output-llvm-" + tag + ".bc";
+  std::string log_name = prefix + "stdout-" + tag + ".txt";
+  std::string err_name = prefix + "stderr-" + tag + ".txt";
+
+  std::ofstream spirv_file (spirv_name);
+  spirv_file.write((const char*) il, length);
+  spirv_file.close();
+
+  auto cmd = "LD_PRELOAD='' llvm-spirv -r \"" + spirv_name + "\" -o \"" + llvmbc_name + "\""
+             " 2>\"" + err_name + "\" > \"" + log_name + "\"";
+
+  std::cout << std::flush;
+  int r = std::system(cmd.c_str());
+
+  if (r == 0) {
+    try {
+      auto bitcode = read_file(llvmbc_name);
+      auto source_size = bitcode.size();
+      auto source_ptr = (const unsigned char*) bitcode.data();
+      return clCreateProgramWithBinary(context, 1, &m_device, &source_size, &source_ptr, nullptr, errcode_ret);
+    } catch (...) {/* fall through to API error */}
+  }
 
   SetErrorInfo(context, CL_INVALID_OPERATION, "Unimplemented OpenCL 2.1 API");
   return nullptr;
