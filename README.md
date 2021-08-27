@@ -49,8 +49,7 @@ An example of its usage on the OpenCL kmeans application is shown below:
 
     oclgrind --aiwc ./kmeans <args>
 
-The collected metrics are logged as text in the command line interface during execution and also in a csv file, stored separately for each kernel and invocation.
-These files can be found in the working directory with the naming convention `aiwc_α_β.csv`, where `α` is the kernel name and `β` is the invocation count.
+The collected metrics are stored in a csv file, stored separately for each kernel and invocation. These files can be found in the working directory with the naming convention `aiwc_α_β.csv`, where `α` is the kernel name and `β` is the invocation count.
 
 Alternatively, Oclgrind can be used as a regular OpenCL device but AIWC flags can be used with the following environment variables:
 
@@ -61,6 +60,10 @@ For example:
 
     OCLGRIND_WORKLOAD_CHARACTERISATION=1 OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH=~/aiwc_metrics.csv ./kmeans <args>
 
+
+To generate a markdown report of the metrics, run `script/aiwc_report.py ./path/to/logfile`. This will print a variety of metrics, with some derived from others. To compare metrics between logs, run `script/aiwc_report.py --compare ./logfile1 ./logfile2 ...`. This will print out values that are significantly different (threshold can be configured by modifying the script), and also generate a plot for each metric in a created `plots` directory. To set the name of each log file, pass `--names "name1;name2;..."` as an additional argument. Names default to the kernel name if not passed.
+
+
 ## Metrics
 
 Metrics reported by AIWC should reflect important memory access patterns, control flow operations and available parallelism inherent to achieving efficiency across architectures.
@@ -69,7 +72,7 @@ The following are the metrics collected by the AIWC tool ordered by type.
 <!--
 Type                            | Metric                            | Description
 :------------------------------ | :-------------------------------: | -------------------------------------------------------------------------:
-Compute                         | Opcode                            | total # of unique opcodes required to cover 90% of dynamic instructions 
+Compute                         | Opcode                            | total # of unique opcodes required to cover 90% of dynamic instructions
                                 | Total Instruction Count           | total # of instructions executed
 Parallelism                     | Work-items                        | total # of work-items or threads executed
                                 | Total Barriers Hit                | total # of barrier instructions
@@ -86,7 +89,7 @@ Memory                          | Total Memory Footprint            | total # of
                                 | 90\% Memory Footprint             | # of unique memory addresses that cover 90% of memory accesses
                                 | Unique Reads                      | total # of unique memory addresses read
                                 | Unique Writes                     | total # of unique memory addresses written
-                                | Unique Read/Write Ratio           | indication of workload being (unique reads / unique writes) 
+                                | Unique Read/Write Ratio           | indication of workload being (unique reads / unique writes)
                                 | Total Reads                       | total # of memory addresses read
                                 | Total Writes                      | total # of memory addresses written
                                 | Reread Ratio                      | indication of memory reuse for reads (unique reads/total reads)
@@ -188,4 +191,3 @@ For issues and questions with AIWC please contact Beau Johnston <beau@inbeta.org
   https://github.com/beaujoh/AIWC/issues
 
 For additional information on Oclgrind--on which this plugin is built--please check out https://github.com/jrprice/Oclgrind
-
