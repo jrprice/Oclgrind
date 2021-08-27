@@ -64,7 +64,7 @@ WorkloadCharacterisation::~WorkloadCharacterisation() {
 
   while (true) {
     logfile_name = "aiwc_memory_transfers_" + std::to_string(logfile_count) + ".csv";
-    if (std::ifstream(logfile_name)) {
+    if (!std::ifstream(logfile_name)) {
       break;
     }
     logfile_count++;
