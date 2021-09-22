@@ -584,13 +584,13 @@ bool Program::build(BuildType buildType, const char* options,
     {
       // Dump IR
       std::error_code err;
-      llvm::raw_fd_ostream ir(tempIR, err, llvm::sys::fs::F_None);
+      llvm::raw_fd_ostream ir(tempIR, err, llvm::sys::fs::OF_None);
       llvm::AssemblyAnnotationWriter asmWriter;
       m_module->print(ir, &asmWriter);
       ir.close();
 
       // Dump bitcode
-      llvm::raw_fd_ostream bc(tempBC, err, llvm::sys::fs::F_None);
+      llvm::raw_fd_ostream bc(tempBC, err, llvm::sys::fs::OF_None);
       llvm::WriteBitcodeToFile(*m_module, bc);
       bc.close();
     }

@@ -5,7 +5,7 @@ https://github.com/jrprice/Oclgrind/wiki
 Oclgrind Next
 ==============
 - Added initial support for OpenCL 3.0
-- Added support for LLVM 11 and 12
+- Added support for LLVM 11, 12, and 13
 - Dropped support for older versions of LLVM
 
 

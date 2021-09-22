@@ -466,13 +466,15 @@ llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr* expr)
   case llvm::Instruction::GetElementPtr:
     if (((const llvm::GEPOperator*)expr)->isInBounds())
     {
-      return llvm::GetElementPtrInst::CreateInBounds(operands[0],
-                                                     operands.slice(1));
+      return llvm::GetElementPtrInst::CreateInBounds(
+        operands[0]->getType()->getPointerElementType(), operands[0],
+        operands.slice(1));
     }
     else
     {
-      return llvm::GetElementPtrInst::Create(nullptr, operands[0],
-                                             operands.slice(1));
+      return llvm::GetElementPtrInst::Create(
+        operands[0]->getType()->getPointerElementType(), operands[0],
+        operands.slice(1));
     }
   case llvm::Instruction::ICmp:
   case llvm::Instruction::FCmp:
