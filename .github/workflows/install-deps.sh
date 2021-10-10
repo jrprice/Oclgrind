@@ -23,6 +23,8 @@ elif [ "`uname`" == "Darwin" ]; then
     URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}.0.0"
     ARCHIVE="clang+llvm-${LLVM_VERSION}.0.0-x86_64-apple-darwin.tar.xz"
 
+    ln -sfn /Applications/Xcode_12.4.app /Applications/Xcode.app
+
     mkdir -p llvm-${LLVM_VERSION}
     wget "$URL/$ARCHIVE"
     tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}

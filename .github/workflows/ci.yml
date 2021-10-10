@@ -27,6 +27,8 @@ jobs:
         build_type: [Release, Debug]
         llvm: [11, 12]
         exclude:
+          - os: ubuntu-20.04
+            llvm: 11
           - os: macos-11.0
             compiler: gcc
 
@@ -109,7 +111,7 @@ jobs:
         working-directory: build
       - name: Test
         run: >
-          cmake --build . --config Release --target RUN_TESTS --output-on-failure ;
+          cmake --build . --config Release --target RUN_TESTS ;
           cat ./Testing/Temporary/LastTest.log
         working-directory: build
 
