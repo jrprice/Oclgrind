@@ -1,6 +1,10 @@
 name: CI
 on: [push, pull_request]
 
+env:
+  RELEASE_VERSION: "21.10"
+  RELEASE_LLVM: "13"
+
 jobs:
   check-format:
     name: Check formatting
@@ -105,6 +109,7 @@ jobs:
         run: >
           cmake .. -G "Visual Studio 16 2019" -A ${{ matrix.platform }}
           -DLLVM_DIR=$PWD/../llvm-${{ matrix.llvm }}/install/lib/cmake/llvm
+          -DCMAKE_INSTALL_PREFIX=$PWD/../install/
         working-directory: build
       - name: Build
         run: cmake --build . --config Release --target ALL_BUILD
@@ -114,6 +119,50 @@ jobs:
           cmake --build . --config Release --target RUN_TESTS ;
           cat ./Testing/Temporary/LastTest.log
         working-directory: build
+      - name: Install
+        run: cmake --build . --config Release --target INSTALL
+        working-directory: build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Oclgrind-${{ env.RELEASE_VERSION }}-Windows-${{ matrix.platform }}-llvm${{ matrix.llvm }}
+          path: install
+          retention-days: 5
+
+  upload-windows-binaries:
+    name: Upload Windows binaries
+    runs-on: ubuntu-20.04
+    needs: [build-windows]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: Oclgrind-${{ env.RELEASE_VERSION }}-Windows-Win32-llvm${{ env.RELEASE_LLVM }}
+          path: artifact/oclgrind-${{ env.RELEASE_VERSION }}/x86
+      - uses: actions/download-artifact@v2
+        with:
+          name: Oclgrind-${{ env.RELEASE_VERSION }}-Windows-x64-llvm${{ env.RELEASE_LLVM }}
+          path: artifact/oclgrind-${{ env.RELEASE_VERSION }}/x64
+      - name: Prepare directory
+        shell: bash
+        run: |
+          outdir=artifact/oclgrind-${{ env.RELEASE_VERSION }}
+          cp src/install/INSTALL.windows $outdir/INSTALL.txt
+          cp src/install/install.bat $outdir/
+          cp src/install/uninstall.bat $outdir/
+          cp src/install/oclgrind-icd.reg $outdir/
+          mkdir $outdir/include
+          mv $outdir/x64/include/CL $outdir/include/
+          cp -r $outdir/x64/include/oclgrind $outdir/include/
+          rm -rf $outdir/include/oclgrind/*.pch
+          rm -rf $outdir/x86/include/CL
+          rm -rf $outdir/x86/include/oclgrind/*.h
+          rm -rf $outdir/x64/include/oclgrind/*.h
+      - name: Upload binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: Oclgrind-${{ env.RELEASE_VERSION }}-Windows
+          path: artifact
 
   build-cts:
     name: Build OpenCL CTS
