@@ -35,7 +35,7 @@ fi
 
 retcode=0
 
-export PATH=$PWD/install/bin:$PATH
+export PATH=$PWD/oclgrind-${RELEASE_VERSION}/bin:$PATH
 export CL_CONFORMANCE_RESULTS_FILENAME=$PWD/result.json
 echo oclgrind opencl-cts/build/test_conformance/${ctsdir}/${ctsbin} ${ctsargs}
 oclgrind opencl-cts/build/test_conformance/${ctsdir}/${ctsbin} ${ctsargs}
