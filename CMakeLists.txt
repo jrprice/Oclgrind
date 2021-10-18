@@ -8,7 +8,7 @@
 
 cmake_minimum_required(VERSION 3.1)
 project(Oclgrind)
-set(Oclgrind_VERSION_MAJOR 19)
+set(Oclgrind_VERSION_MAJOR 21)
 set(Oclgrind_VERSION_MINOR 10)
 
 include(CheckIncludeFiles)
