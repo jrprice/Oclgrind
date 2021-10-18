@@ -168,8 +168,6 @@ jobs:
           cp -r $outdir/x64/include/oclgrind $outdir/include/
           rm -rf $outdir/include/oclgrind/*.pch
           rm -rf $outdir/x86/include/CL
-          rm -rf $outdir/x86/include/oclgrind/*.h
-          rm -rf $outdir/x64/include/oclgrind/*.h
       - name: Upload binaries
         uses: actions/upload-artifact@v2
         with:
