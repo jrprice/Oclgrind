@@ -29,15 +29,15 @@ Set the following environment variables as desired
     export OCLGRIND_SRC=/oclgrind-source
     export OCLGRIND_BIN=/oclgrind/bin/oclgrind
 
-The rest can be built with the following commands (tested on Ubuntu 18.04)
+The rest can be built with the following commands (tested on Ubuntu 20.04)
 
-    apt-get update && apt-get install --no-install-recommends -y libreadline-dev
+    apt-get update && apt-get install --no-install-recommends -y libreadline-dev libclang-12-dev
     git clone https://github.com/BeauJoh/AIWC.git $OCLGRIND_SRC
     mkdir $OCLGRIND_SRC/build
     cd $OCLGRIND_SRC/build
-    CC /llvm-11.0.1/bin/clang
-    CXX /llvm-11.0.1/bin/clang++
-    cmake $OCLGRIND_SRC -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLLVM_DIR=/llvm-11.0.1/lib/cmake/llvm -DCLANG_ROOT=/llvm-11.0.1 -DCMAKE_INSTALL_PREFIX=$OCLGRIND -DBUILD_SHARED_LIBS=On
+    CC /llvm-12/bin/clang
+    CXX /llvm-12/bin/clang++
+    cmake $OCLGRIND_SRC -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLLVM_DIR=/llvm-12/lib/cmake/llvm -DCLANG_ROOT=/llvm-12 -DCMAKE_INSTALL_PREFIX=$OCLGRIND -DBUILD_SHARED_LIBS=On
     make
     make install
     mkdir -p /etc/OpenCL/vendors && echo $OCLGRIND/lib/liboclgrind-rt-icd.so > /etc/OpenCL/vendors/oclgrind.icd
