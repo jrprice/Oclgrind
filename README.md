@@ -144,6 +144,12 @@ GitHub Wiki:
   https://github.com/jrprice/Oclgrind/wiki/
 
 
+Architecture-Independent Workload Characterization (AIWC)
+---------------------------------------------------------
+
+AIWC is supported as a plugin in Oclgrind!
+Read [here](./AIWC.md) to find out more about it.
+
 Contact
 -------
 If you encounter any issues or have any questions, please use the
