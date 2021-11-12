@@ -739,6 +739,8 @@ void WorkloadCharacterisation::workGroupBegin(const WorkGroup *workGroup) {
 
   for (size_t i = 0; i < (m_state.ledger).size(); i++)
     (m_state.ledger)[i].clear();
+
+  m_state.psl_per_barrier->clear();
 }
 
 void WorkloadCharacterisation::workGroupComplete(const WorkGroup *workGroup) {
