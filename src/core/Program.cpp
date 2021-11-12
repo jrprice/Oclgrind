@@ -532,13 +532,13 @@ bool Program::build(const char* options, list<Header> headers)
     {
       // Dump IR
       std::error_code err;
-      llvm::raw_fd_ostream ir(tempIR, err, llvm::sys::fs::F_None);
+      llvm::raw_fd_ostream ir(tempIR, err, llvm::sys::fs::OF_None);
       llvm::AssemblyAnnotationWriter asmWriter;
       m_module->print(ir, &asmWriter);
       ir.close();
 
       // Dump bitcode
-      llvm::raw_fd_ostream bc(tempBC, err, llvm::sys::fs::F_None);
+      llvm::raw_fd_ostream bc(tempBC, err, llvm::sys::fs::OF_None);
       llvm::WriteBitcodeToFile(*m_module, bc);
       bc.close();
     }
@@ -606,7 +606,7 @@ Program* Program::createFromBitcode(const Context* context,
     // Dump LLVM IR
     std::string tempIR = tmpdir + "/oclgrind_" + tag + ".ll";
     std::error_code err;
-    llvm::raw_fd_ostream ir(tempIR, err, llvm::sys::fs::F_None);
+    llvm::raw_fd_ostream ir(tempIR, err, llvm::sys::fs::OF_None);
     llvm::AssemblyAnnotationWriter asmWriter;
     (*module)->print(ir, &asmWriter);
     ir.close();

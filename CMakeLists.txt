@@ -55,6 +55,10 @@ endif()
 # Detect endianness
 test_big_endian(IS_BIG_ENDIAN)
 
+if (CLANG_ROOT)
+  set(LLVM_DIR "${CLANG_ROOT}/lib/cmake/llvm")
+endif()
+
 # Find LLVM
 find_package(LLVM REQUIRED CONFIG NO_CMAKE_BUILDS_PATH)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
