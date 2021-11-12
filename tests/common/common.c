@@ -20,7 +20,7 @@ void checkOclgrindPlatform(cl_platform_id platform)
   checkError(err, "getting platform name");
   if (strcmp(name, "Oclgrind"))
   {
-    fprintf(stderr, "Unable to find Oclgrind platform\n");
+	fprintf(stderr, "Unable to find Oclgrind platform, found %s instead\n", name);
     exit(1);
   }
 }
