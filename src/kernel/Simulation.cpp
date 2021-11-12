@@ -185,7 +185,7 @@ bool Simulation::load(const char* filename)
       delete[] data;
 
       // Build program
-      if (!m_program->build(""))
+      if (!m_program->build(Program::BUILD, ""))
       {
         cerr << "Build failure:" << endl << m_program->getBuildLog() << endl;
         return false;

@@ -8,7 +8,7 @@
 
 cmake_minimum_required(VERSION 3.1)
 project(Oclgrind)
-set(Oclgrind_VERSION_MAJOR 19)
+set(Oclgrind_VERSION_MAJOR 21)
 set(Oclgrind_VERSION_MINOR 10)
 
 include(CheckIncludeFiles)
@@ -33,6 +33,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable rpath on OS X
 set(CMAKE_MACOSX_RPATH 1)
+
+# Enable WIP 3.0 support.
+option(ENABLE_EXPERIMENTAL_OPENCL_3, "Enable experimental OpenCL 3.0 support.")
+if (${ENABLE_EXPERIMENTAL_OPENCL_3})
+  add_definitions(-DENABLE_OPENCL_3)
+endif()
 
 if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
@@ -157,6 +163,10 @@ else()
   message(STATUS "Using opencl-c.h: ${CLANG_OPENCL_C_H}")
 endif()
 
+if (EXISTS "${CLANG_LIB_DIR}/clang/${CLANG_FULL_VERSION}/include/opencl-c-base.h")
+  set(CLANG_OPENCL_C_BASE_H "${CLANG_LIB_DIR}/clang/${CLANG_FULL_VERSION}/include/opencl-c-base.h")
+endif()
+
 # Check for clang
 find_program(CLANG clang
              PATHS "${CLANG_ROOT}/bin" "${LLVM_TOOLS_BINARY_DIR}"
@@ -220,7 +230,6 @@ endif()
 set(CORE_HEADERS
   src/core/common.h
   src/core/Context.h
-  src/core/half.h
   src/core/Kernel.h
   src/core/KernelInvocation.h
   src/core/Memory.h
@@ -235,7 +244,6 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/core/opencl-c.h.cpp
   src/core/common.cpp
   src/core/Context.cpp
-  src/core/half.cpp
   src/core/Kernel.cpp
   src/core/KernelInvocation.cpp
   src/core/Memory.cpp
@@ -326,12 +334,23 @@ set(OPENCL_C_H
 
 add_custom_target(OPENCL_C_HEADERS ALL DEPENDS ${OPENCL_C_H})
 
+if (CLANG_OPENCL_C_BASE_H)
+  add_custom_command(
+    OUTPUT include/oclgrind/opencl-c-base.h
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E
+      copy ${CLANG_OPENCL_C_BASE_H} include/oclgrind/opencl-c-base.h
+    DEPENDS ${CLANG_OPENCL_C_BASE_H})
+  set(OPENCL_C_H_DEPENDS include/oclgrind/opencl-c-base.h)
+  set(OPENCL_C_H ${OPENCL_C_H} ${CMAKE_BINARY_DIR}/${OPENCL_C_H_DEPENDS})
+endif()
+
 add_custom_command(
   OUTPUT include/oclgrind/opencl-c.h
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E
     copy ${CLANG_OPENCL_C_H} include/oclgrind/opencl-c.h
-  DEPENDS ${CLANG_OPENCL_C_H})
+  DEPENDS ${CLANG_OPENCL_C_H} ${OPENCL_C_H_DEPENDS})
 
 # Generate precompiled headers for opencl-c.h
 set(OPENCL_C_H_SYSROOT "${CMAKE_BINARY_DIR}/include/oclgrind/")

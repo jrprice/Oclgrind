@@ -20,12 +20,12 @@
 #include "async_queue.h"
 #include "icd.h"
 
+#include "CL/cl_half.h"
 #include "core/Context.h"
 #include "core/Kernel.h"
 #include "core/Memory.h"
 #include "core/Program.h"
 #include "core/Queue.h"
-#include "core/half.h"
 
 using namespace std;
 
@@ -35,19 +35,27 @@ using namespace std;
 #define DEFAULT_MAX_WGSIZE (1024)
 
 #define PLATFORM_NAME "Oclgrind"
-#define PLATFORM_VENDOR "University of Bristol"
+#define PLATFORM_VENDOR "Oclgrind"
+#ifdef ENABLE_OPENCL_3
 #define PLATFORM_VERSION "OpenCL 3.0 (Oclgrind " PACKAGE_VERSION ")"
+#else
+#define PLATFORM_VERSION "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
+#endif
 #define PLATFORM_PROFILE "FULL_PROFILE"
 #define PLATFORM_SUFFIX "oclg"
 
 #define DEVICE_NAME "Oclgrind Simulator"
-#define DEVICE_VENDOR "University of Bristol"
+#define DEVICE_VENDOR "Oclgrind"
 #define DEVICE_VENDOR_ID 0x0042
+#ifdef ENABLE_OPENCL_3
 #define DEVICE_VERSION "OpenCL 3.0 (Oclgrind " PACKAGE_VERSION ")"
-#define DEVICE_LANG_VERSION "OpenCL C 3.0 (Oclgrind " PACKAGE_VERSION ")"
+#else
+#define DEVICE_VERSION "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
+#endif
+#define DEVICE_LANG_VERSION "OpenCL C 1.2 (Oclgrind " PACKAGE_VERSION ")"
 #define DRIVER_VERSION "Oclgrind " PACKAGE_VERSION
 #define DEVICE_PROFILE "FULL_PROFILE"
-#define DEVICE_CTS_VERSION ""
+#define DEVICE_CTS_VERSION "v0000-01-01-00"
 #define DEVICE_SPIR_VERSIONS "1.2"
 #define DEFAULT_DEVICE_TYPE                                                            \
   (CL_DEVICE_TYPE_CPU | CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR |      \
@@ -561,12 +569,14 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     {CL_MAKE_VERSION(3, 0, 0), "OpenCL C"},
   };
 
-  static constexpr cl_name_version il_versions[] = {};
-
-  static constexpr cl_name_version built_in_kernel_versions[] = {};
+  // TODO: Populate this
+  // static constexpr cl_name_version il_versions[] = {};
 
   // TODO: Populate this
-  static constexpr cl_name_version opencl_c_features[] = {};
+  // static constexpr cl_name_version built_in_kernel_versions[] = {};
+
+  // TODO: Populate this
+  // static constexpr cl_name_version opencl_c_features[] = {};
 
   switch (param_name)
   {
@@ -924,12 +934,16 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     data = "";
     break;
   case CL_DEVICE_ILS_WITH_VERSION:
-    result_size = sizeof(il_versions);
-    data = il_versions;
+    // TODO: Enable when supported.
+    // result_size = sizeof(il_versions);
+    // data = il_versions;
+    result_size = 0;
     break;
   case CL_DEVICE_BUILT_IN_KERNELS_WITH_VERSION:
-    result_size = sizeof(built_in_kernel_versions);
-    data = built_in_kernel_versions;
+    // TODO: Enable when supported.
+    // result_size = sizeof(built_in_kernel_versions);
+    // data = built_in_kernel_versions;
+    result_size = 0;
     break;
   case CL_DEVICE_ATOMIC_MEMORY_CAPABILITIES:
     result_size = sizeof(cl_device_atomic_capabilities);
@@ -963,8 +977,10 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     result_data.clbool = CL_FALSE;
     break;
   case CL_DEVICE_OPENCL_C_FEATURES:
-    result_size = sizeof(opencl_c_features);
-    data = opencl_c_features;
+    // TODO: Enable when supported.
+    // result_size = sizeof(opencl_c_features);
+    // data = opencl_c_features;
+    result_size = 0;
     break;
   case CL_DEVICE_DEVICE_ENQUEUE_CAPABILITIES:
     result_size = sizeof(cl_device_device_enqueue_capabilities);
@@ -2092,7 +2108,14 @@ CL_API_ENTRY cl_int CL_API_CALL clGetMemObjectInfo(
     break;
   case CL_MEM_ASSOCIATED_MEMOBJECT:
     result_size = sizeof(cl_mem);
-    result_data.clmem = memobj->parent;
+    if (memobj->isImage)
+    {
+      result_data.clmem = static_cast<cl_image*>(memobj)->desc.mem_object;
+    }
+    else
+    {
+      result_data.clmem = memobj->parent;
+    }
     break;
   case CL_MEM_OFFSET:
     result_size = sizeof(size_t);
@@ -2615,7 +2638,7 @@ CL_API_ENTRY cl_int CL_API_CALL clBuildProgram(
   }
 
   // Build program
-  bool success = program->program->build(options);
+  bool success = program->program->build(oclgrind::Program::BUILD, options);
 
   // Fire callback
   if (pfn_notify)
@@ -2682,7 +2705,7 @@ CL_API_ENTRY cl_int CL_API_CALL clCompileProgram(
   }
 
   // Build program
-  if (!program->program->build(options, headers))
+  if (!program->program->build(oclgrind::Program::COMPILE, options, headers))
   {
     ReturnError(program->context, CL_BUILD_PROGRAM_FAILURE);
   }
@@ -2746,7 +2769,7 @@ clLinkProgram(cl_context context, cl_uint num_devices,
   cl_program prog = new _cl_program;
   prog->dispatch = m_dispatchTable;
   prog->program =
-    oclgrind::Program::createFromPrograms(context->context, programs);
+    oclgrind::Program::createFromPrograms(context->context, programs, options);
   prog->context = context;
   prog->refCount = 1;
   if (!prog->program)
@@ -2929,7 +2952,7 @@ CL_API_ENTRY cl_int CL_API_CALL clGetProgramBuildInfo(
     break;
   case CL_PROGRAM_BINARY_TYPE:
     result_size = sizeof(cl_program_binary_type);
-    result_data.type = CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT;
+    result_data.type = program->program->getBinaryType();
     break;
   case CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE:
     result_size = sizeof(size_t);
@@ -4400,7 +4423,7 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueFillImage(
       break;
     case CL_HALF_FLOAT:
       ((uint16_t*)color)[output] =
-        oclgrind::floatToHalf(((float*)fill_color)[input]);
+        cl_half_from_float(((float*)fill_color)[input], CL_HALF_RTE);
       break;
     case CL_SIGNED_INT8:
       ((int8_t*)color)[output] = ((int32_t*)fill_color)[input];

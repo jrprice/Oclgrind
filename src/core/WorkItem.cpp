@@ -378,26 +378,13 @@ Memory* WorkItem::getMemory(unsigned int addrSpace) const
 
 TypedValue WorkItem::getOperand(const llvm::Value* operand) const
 {
-  unsigned valID = operand->getValueID();
-  if (valID == llvm::Value::ArgumentVal ||
-      valID == llvm::Value::GlobalVariableVal ||
-      valID >= llvm::Value::InstructionVal)
+  if (llvm::isa<llvm::Argument>(operand) ||
+      llvm::isa<llvm::GlobalVariable>(operand) ||
+      llvm::isa<llvm::Instruction>(operand))
   {
     return getValue(operand);
   }
-  // else if (valID == llvm::Value::BasicBlockVal)
-  //{
-  //}
-  // else if (valID == llvm::Value::FunctionVal)
-  //{
-  //}
-  // else if (valID == llvm::Value::GlobalAliasVal)
-  //{
-  //}
-  // else if (valID == llvm::Value::BlockAddressVal)
-  //{
-  //}
-  else if (valID == llvm::Value::ConstantExprVal)
+  else if (llvm::isa<llvm::ConstantExpr>(operand))
   {
     pair<unsigned, unsigned> size = getValueSize(operand);
     TypedValue result;
@@ -411,37 +398,14 @@ TypedValue WorkItem::getOperand(const llvm::Value* operand) const
                                           result);
     return result;
   }
-  else if (valID == llvm::Value::UndefValueVal ||
-           valID == llvm::Value::ConstantAggregateZeroVal ||
-           valID == llvm::Value::ConstantDataArrayVal ||
-           valID == llvm::Value::ConstantDataVectorVal ||
-           valID == llvm::Value::ConstantIntVal ||
-           valID == llvm::Value::ConstantFPVal ||
-           valID == llvm::Value::ConstantArrayVal ||
-           valID == llvm::Value::ConstantStructVal ||
-           valID == llvm::Value::ConstantVectorVal ||
-           valID == llvm::Value::ConstantPointerNullVal)
+  else if (llvm::isa<llvm::ConstantAggregate>(operand) ||
+           llvm::isa<llvm::ConstantData>(operand))
   {
     return m_cache->getConstant(operand);
   }
-  // else if (valID == llvm::Value::MDNodeVal)
-  //{
-  //}
-  // else if (valID == llvm::Value::MDStringVal)
-  //{
-  //}
-  // else if (valID == llvm::Value::InlineAsmVal)
-  //{
-  //}
-  // else if (valID == llvm::Value::PseudoSourceValueVal)
-  //{
-  //}
-  // else if (valID == llvm::Value::FixedStackPseudoSourceValueVal)
-  //{
-  //}
   else
   {
-    FATAL_ERROR("Unhandled operand type: %d", valID);
+    FATAL_ERROR("Unhandled operand type: %d", operand->getValueID());
   }
 
   // Unreachable
@@ -1830,20 +1794,12 @@ bool InterpreterCache::hasValue(const llvm::Value* value) const
 void InterpreterCache::addOperand(const llvm::Value* operand)
 {
   // Resolve constants
-  if (operand->getValueID() == llvm::Value::UndefValueVal ||
-      operand->getValueID() == llvm::Value::ConstantAggregateZeroVal ||
-      operand->getValueID() == llvm::Value::ConstantDataArrayVal ||
-      operand->getValueID() == llvm::Value::ConstantDataVectorVal ||
-      operand->getValueID() == llvm::Value::ConstantIntVal ||
-      operand->getValueID() == llvm::Value::ConstantFPVal ||
-      operand->getValueID() == llvm::Value::ConstantArrayVal ||
-      operand->getValueID() == llvm::Value::ConstantStructVal ||
-      operand->getValueID() == llvm::Value::ConstantVectorVal ||
-      operand->getValueID() == llvm::Value::ConstantPointerNullVal)
+  if (llvm::isa<llvm::ConstantAggregate>(operand) ||
+      llvm::isa<llvm::ConstantData>(operand))
   {
     addConstant(operand);
   }
-  else if (operand->getValueID() == llvm::Value::ConstantExprVal)
+  else if (llvm::isa<llvm::ConstantExpr>(operand))
   {
     // Resolve constant expressions
     const llvm::ConstantExpr* expr = (const llvm::ConstantExpr*)operand;

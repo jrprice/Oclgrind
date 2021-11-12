@@ -21,12 +21,12 @@
 #include "llvm/IR/Metadata.h"
 
 #include "CL/cl.h"
+#include "CL/cl_half.h"
 #include "Context.h"
 #include "KernelInvocation.h"
 #include "Memory.h"
 #include "WorkGroup.h"
 #include "WorkItem.h"
-#include "half.h"
 
 using namespace oclgrind;
 using namespace std;
@@ -1064,7 +1064,7 @@ class WorkItemBuiltins
       color = *(float*)data;
       break;
     case CL_HALF_FLOAT:
-      color = halfToFloat(*(uint16_t*)data);
+      color = cl_half_to_float(*(cl_half*)data);
       break;
     default:
       FATAL_ERROR("Unsupported image channel data type: %X",
@@ -1572,7 +1572,7 @@ class WorkItemBuiltins
         ((float*)data)[i] = values[i];
         break;
       case CL_HALF_FLOAT:
-        ((uint16_t*)data)[i] = floatToHalf(values[i]);
+        ((uint16_t*)data)[i] = cl_half_from_float(values[i], CL_HALF_RTE);
         break;
       default:
         FATAL_ERROR("Unsupported image channel data type: %X",
@@ -2904,7 +2904,7 @@ class WorkItemBuiltins
     // Convert to floats
     for (unsigned i = 0; i < result.num; i++)
     {
-      ((float*)result.data)[i] = halfToFloat(halfData[i]);
+      ((float*)result.data)[i] = cl_half_to_float(halfData[i]);
     }
   }
 
@@ -2930,20 +2930,20 @@ class WorkItemBuiltins
     uint16_t* halfData = (uint16_t*)workItem->m_pool.alloc(2 * op.num);
 
     // Parse rounding mode (RTE is the default)
-    HalfRoundMode rmode = Half_RTE;
+    cl_half_rounding_mode rmode = CL_HALF_RTE;
     if (fnName.find("_rtz") != std::string::npos)
-      rmode = Half_RTZ;
+      rmode = CL_HALF_RTZ;
     else if (fnName.find("_rtn") != std::string::npos)
-      rmode = Half_RTN;
+      rmode = CL_HALF_RTN;
     else if (fnName.find("_rtp") != std::string::npos)
-      rmode = Half_RTP;
+      rmode = CL_HALF_RTP;
 
     for (unsigned i = 0; i < op.num; i++)
     {
       if (op.size == 4)
-        halfData[i] = floatToHalf(((float*)data)[i], rmode);
+        halfData[i] = cl_half_from_float(((float*)data)[i], rmode);
       else
-        halfData[i] = doubleToHalf(((double*)data)[i], rmode);
+        halfData[i] = cl_half_from_double(((double*)data)[i], rmode);
     }
 
     size_t address;
@@ -3132,13 +3132,13 @@ class WorkItemBuiltins
   DEFINE_BUILTIN(convert_half)
   {
     float f;
-    HalfRoundMode rmode = Half_RTE;
+    cl_half_rounding_mode rmode = CL_HALF_RTE;
     if (fnName.find("_rtz") != std::string::npos)
-      rmode = Half_RTZ;
+      rmode = CL_HALF_RTZ;
     else if (fnName.find("_rtn") != std::string::npos)
-      rmode = Half_RTN;
+      rmode = CL_HALF_RTN;
     else if (fnName.find("_rtp") != std::string::npos)
-      rmode = Half_RTP;
+      rmode = CL_HALF_RTP;
     const char srcType = getOverloadArgType(overload);
     for (unsigned i = 0; i < result.num; i++)
     {
@@ -3164,7 +3164,7 @@ class WorkItemBuiltins
         FATAL_ERROR("Unsupported argument type: %c",
                     getOverloadArgType(overload));
       }
-      result.setUInt(floatToHalf(f, rmode), i);
+      result.setUInt(cl_half_from_float(f, rmode), i);
     }
   }
 
@@ -3833,6 +3833,10 @@ BuiltinFunctionMap WorkItemBuiltins::initBuiltins()
   ADD_PREFIX_BUILTIN("llvm.memmove", llvm_memcpy, NULL);
   ADD_PREFIX_BUILTIN("llvm.memset", llvm_memset, NULL);
   ADD_PREFIX_BUILTIN("llvm.fmuladd", fma_builtin, NULL);
+  ADD_PREFIX_BUILTIN("llvm.smax", s2arg, _max_<int64_t>);
+  ADD_PREFIX_BUILTIN("llvm.smin", s2arg, _min_<int64_t>);
+  ADD_PREFIX_BUILTIN("llvm.umax", u2arg, _max_<uint64_t>);
+  ADD_PREFIX_BUILTIN("llvm.umin", u2arg, _min_<uint64_t>);
   ADD_BUILTIN("llvm.trap", llvm_trap, NULL);
 
   return builtins;
