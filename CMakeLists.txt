@@ -21,12 +21,6 @@ if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 endif()
 
-# pthreads
-#find_package( Threads )
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-find_package(Threads REQUIRED)
-
 # Require C++14 (hard requirement for LLVM >10)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -61,8 +55,8 @@ endif()
 # Detect endianness
 test_big_endian(IS_BIG_ENDIAN)
 
-if (CLANG_ROOT)
-  set(LLVM_DIR "${CLANG_ROOT}/lib/cmake/llvm")
+if (LLVM_ROOT_DIR)
+  set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
 endif()
 
 # Find LLVM
@@ -80,22 +74,15 @@ add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 
-#to build against a shared version of LLVM:
-exec_program("${CLANG_ROOT}/bin/llvm-config --libfiles"
-    WORKING_DIRECTORY ${CLANG_ROOT}/bin/llvm-config
-    OUTPUT_VARIABLE LLVM_LIBS)
-separate_arguments(LLVM_LIBS)
-add_compile_definitions(LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING=1)
-message("llvm libs are now: ${LLVM_LIBS}")
 # Get LLVM libraries for linking
-#list(FIND LLVM_AVAILABLE_LIBS LLVM _LLVM_SHARED_INDEX)
-#if (${_LLVM_SHARED_INDEX} GREATER -1)
-#  set(LLVM_LIBS LLVM)
-#else()
-#  llvm_map_components_to_libnames(LLVM_LIBS
-#    bitreader bitwriter core coroutines coverage frontendopenmp instrumentation
-#    ipo irreader linker lto mcparser objcarcopts support option target)
-#endif()
+list(FIND LLVM_AVAILABLE_LIBS LLVM _LLVM_SHARED_INDEX)
+if (${_LLVM_SHARED_INDEX} GREATER -1)
+  set(LLVM_LIBS LLVM)
+else()
+  llvm_map_components_to_libnames(LLVM_LIBS
+    bitreader bitwriter core coroutines coverage frontendopenmp instrumentation
+    ipo irreader linker lto mcparser objcarcopts option target)
+endif()
 
 # https://bugs.llvm.org/show_bug.cgi?id=44870
 list(FIND LLVM_AVAILABLE_LIBS Polly _POLLY_INDEX)
@@ -267,11 +254,9 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/Uninitialized.cpp
   src/plugins/WorkloadCharacterisation.h
   src/plugins/WorkloadCharacterisation.cpp)
-set_target_properties(oclgrind PROPERTIES INSTALL_RPATH ${CLANG_ROOT}/lib)
-target_link_libraries(oclgrind PUBLIC ${CORE_EXTRA_LIBS} -Wl,-rpath,${CLANG_ROOT}/lib
-  clangFrontend clangSerialization clangDriver clangCodeGen
-  clangParse clangSema clangAnalysis clangEdit clangAST clangLex clangBasic
-  "${LLVM_LIBS}" Threads::Threads dl)
+target_link_libraries(oclgrind
+  PRIVATE ${CORE_EXTRA_LIBS} ${CLANG_LIBS}
+  PUBLIC ${LLVM_LIBS})
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
@@ -290,9 +275,8 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 endif()
 
 add_library(oclgrind-rt-icd SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
-set_target_properties(oclgrind-rt-icd PROPERTIES COMPILE_FLAGS "-DOCLGRIND_ICD")
-set_target_properties(oclgrind-rt-icd PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
-target_link_libraries(oclgrind-rt-icd oclgrind)
+set_target_properties(oclgrind-rt-icd PROPERTIES COMPILE_FLAGS -DOCLGRIND_ICD)
+target_link_libraries(oclgrind-rt-icd ${CMAKE_DL_LIBS} oclgrind)
 
 # Add runtime exports on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
@@ -300,17 +284,13 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 endif()
 
 add_library(oclgrind-rt SHARED ${RUNTIME_SOURCES} ${DLL_EXPORTS})
-set_target_properties(oclgrind-rt PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
-target_link_libraries(oclgrind-rt oclgrind)
+target_link_libraries(oclgrind-rt ${CMAKE_DL_LIBS} oclgrind)
 
 if (UNIX AND NOT APPLE)
   # Change the SONAME of the library so that it gets recognized by dlopen
   set_target_properties(oclgrind-rt PROPERTIES
                         NO_SONAME ON
                         LINK_FLAGS "-Wl,-soname,libOpenCL.so")
-  set_target_properties(oclgrind-rt-icd PROPERTIES
-                        NO_SONAME ON
-                        LINK_FLAGS "-Wl,-soname,libOpenCL.so.1")
 endif()
 
 add_executable(oclgrind-exe src/runtime/oclgrind.cpp)
@@ -409,10 +389,6 @@ add_custom_command(
 
 # Generate config.h
 set(LLVM_VERSION ${LLVM_VERSION_MAJOR}${LLVM_VERSION_MINOR})
-if(NOT INSTALLED_LIBRARY_DIR)
-  set(INSTALLED_LIBRARY_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-endif()
-
 configure_file("config.h.in" "config.h")
 
 
