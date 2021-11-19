@@ -110,7 +110,7 @@ private:
     // uint32_t work_group_no;
     std::vector<std::vector<ledgerElement>> ledger;
   };
-  static THREAD_LOCAL WorkerState m_state;
+  static thread_local WorkerState m_state;
 
   std::mutex m_mtx;
 };
