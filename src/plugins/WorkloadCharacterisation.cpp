@@ -36,7 +36,7 @@ using namespace std;
 #define COUNTED_STORE_BASE (COUNTED_LOAD_BASE + 8)
 #define COUNTED_CALL_BASE (COUNTED_STORE_BASE + 8)
 
-THREAD_LOCAL WorkloadCharacterisation::WorkerState
+thread_local WorkloadCharacterisation::WorkerState
     WorkloadCharacterisation::m_state = {NULL};
 
 WorkloadCharacterisation::WorkloadCharacterisation(const Context *context) : WorkloadCharacterisation::Plugin(context) {
