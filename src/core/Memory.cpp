@@ -36,7 +36,6 @@ Memory::Memory(unsigned addrSpace, unsigned bufferBits, const Context* context)
   m_numBitsAddress = ((sizeof(size_t) << 3) - (m_numBitsAddrSpace + m_numBitsBuffer));
   m_maxNumBuffers = ((size_t)1 << m_numBitsBuffer) - 1; // 0 reserved for NULL
   m_maxBufferSize = ((size_t)1 << m_numBitsAddress);
-
   m_maskBitsAddress = (((size_t)1 << m_numBitsAddress) - 1);
   m_maskBitsBuffer = (((size_t)1 << m_numBitsBuffer) - 1) << m_numBitsAddress;
 
@@ -333,7 +332,7 @@ void Memory::dump() const
   cout << endl;
 }
 
-unsigned int Memory::extractAddressSpace(size_t address)
+size_t Memory::extractAddressSpace(size_t address)
 {
   return (address >> ((sizeof(size_t) * 8) - m_numBitsAddrSpace));
 }

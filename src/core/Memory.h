@@ -44,7 +44,7 @@ public:
   void* mapBuffer(size_t address, size_t offset, size_t size);
   bool store(const unsigned char* source, size_t address, size_t size = 1);
 
-  static unsigned int extractAddressSpace(size_t address);
+  static size_t extractAddressSpace(size_t address);
   size_t extractBuffer(size_t address) const;
   size_t extractOffset(size_t address) const;
 

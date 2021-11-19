@@ -1230,20 +1230,9 @@ INSTRUCTION(itrunc)
 INSTRUCTION(load)
 {
   const llvm::LoadInst* loadInst = (const llvm::LoadInst*)instruction;
-  unsigned instAddressSpace = loadInst->getPointerAddressSpace();
+  unsigned addressSpace = loadInst->getPointerAddressSpace();
   const llvm::Value* opPtr = loadInst->getPointerOperand();
   size_t address = getOperand(opPtr).getPointer();
-
-  unsigned addressSpace = Memory::extractAddressSpace(address);
-  if (instAddressSpace != AddrSpaceGeneric && instAddressSpace != addressSpace &&
-     !((addressSpace == AddrSpaceGlobal && instAddressSpace == AddrSpaceConstant) ||
-      (addressSpace == AddrSpaceConstant && instAddressSpace == AddrSpaceGlobal))) {
-
-    std::string err = "Invalid memory load - source pointer is incorrect address space "
-                      "(ptr=" + std::string(getAddressSpaceName(addressSpace)) +
-                      ", inst=" + std::string(getAddressSpaceName(instAddressSpace)) + ")";
-    m_context->logError(err.c_str());
-  }
 
   // Check address is correctly aligned
   unsigned alignment = loadInst->getAlignment();
@@ -1458,19 +1447,9 @@ INSTRUCTION(srem)
 INSTRUCTION(store)
 {
   const llvm::StoreInst* storeInst = (const llvm::StoreInst*)instruction;
-  unsigned instAddressSpace = storeInst->getPointerAddressSpace();
+  unsigned addressSpace = storeInst->getPointerAddressSpace();
   const llvm::Value* opPtr = storeInst->getPointerOperand();
   size_t address = getOperand(opPtr).getPointer();
-
-  unsigned addressSpace = Memory::extractAddressSpace(address);
-  if (instAddressSpace != AddrSpaceGeneric && instAddressSpace != addressSpace &&
-     !((addressSpace == AddrSpaceGlobal && instAddressSpace == AddrSpaceConstant) ||
-      (addressSpace == AddrSpaceConstant && instAddressSpace == AddrSpaceGlobal))) {
-    std::string err = "Invalid memory store - source pointer is incorrect address space "
-                      "(ptr=" + std::string(getAddressSpaceName(addressSpace)) +
-                      ", inst=" + std::string(getAddressSpaceName(instAddressSpace)) + ")";
-    m_context->logError(err.c_str());
-  }
 
   // Check address is correctly aligned
   unsigned alignment = storeInst->getAlignment();
