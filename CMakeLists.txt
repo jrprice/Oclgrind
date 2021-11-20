@@ -46,7 +46,10 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 endif()
 
 if (APPLE)
-  find_package(Curses REQUIRED)
+  #find_package(Curses REQUIRED)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurses")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lcurses")
+  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -lcurses")
 endif()
 
 # Suppress warnings from OpenCL runtime API headers
