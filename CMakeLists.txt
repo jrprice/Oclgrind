@@ -261,6 +261,10 @@ target_link_libraries(oclgrind
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
 endif()
+if (APPLE)
+  target_link_libraries(oclgrind "curses") 
+endif()
+
 
 # Sources for OpenCL runtime API frontend
 set(RUNTIME_SOURCES
