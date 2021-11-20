@@ -45,6 +45,10 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   add_definitions(-DNOMINMAX)
 endif()
 
+if (APPLE)
+  find_package(Curses REQUIRED)
+endif()
+
 # Suppress warnings from OpenCL runtime API headers
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes")
@@ -261,10 +265,6 @@ target_link_libraries(oclgrind
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
 endif()
-if (APPLE)
-  target_link_libraries(oclgrind "curses") 
-endif()
-
 
 # Sources for OpenCL runtime API frontend
 set(RUNTIME_SOURCES
