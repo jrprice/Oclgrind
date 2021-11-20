@@ -45,15 +45,6 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   add_definitions(-DNOMINMAX)
 endif()
 
-if (APPLE)
-  find_package(Curses REQUIRED)
-  message("CURSES! appending: ${CURSES_LIBRARIES}")
-  append(CORE_EXTRA_LIBS "${CURSES_LIBRARIES}")
-  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurses")
-  #set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lcurses")
-  #set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -lcurses")
-endif()
-
 # Suppress warnings from OpenCL runtime API headers
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes")
@@ -270,6 +261,17 @@ target_link_libraries(oclgrind
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
 endif()
+
+if (APPLE)
+  target_link_libraries(oclgrind PRIVATE "-lcurses")
+  #find_package(Curses REQUIRED)
+  #message("CURSES! appending: ${CURSES_LIBRARIES}")
+  #append(CORE_EXTRA_LIBS "${CURSES_LIBRARIES}")
+  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurses")
+  #set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lcurses")
+  #set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -lcurses")
+endif()
+
 
 # Sources for OpenCL runtime API frontend
 set(RUNTIME_SOURCES
