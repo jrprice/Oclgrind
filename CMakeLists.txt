@@ -43,8 +43,6 @@ endif()
 # Disable min/max macros on Windows
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   add_definitions(-DNOMINMAX)
-  add_definitions(-DWINDLL)
-  add_definitions(-DWIN32)
 endif()
 
 # Suppress warnings from OpenCL runtime API headers

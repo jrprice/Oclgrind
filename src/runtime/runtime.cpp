@@ -15,7 +15,12 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
+#if defined(_WIN32) && !defined(__MINGW32__)
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
 
 #include "async_queue.h"
 #include "icd.h"
