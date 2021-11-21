@@ -321,8 +321,8 @@ CL_API_ENTRY cl_int CL_API_CALL clIcdGetPlatformIDsKHR(
     // reloads and correctly initialises these links.
     // Since we know that our library does correctly use pthreads if we force a reload by association the correct version of POSIX threads should also be initialized.
     // **NOTE** this has the assumption that both liboclgrind-rt.so and liboclgrind-rt-icd.so are installed in the same location; INSTALLED_LIBRARY_DIR is passed from cmake and is defined in config.h
-    std::string library_path = std::string(INSTALLED_LIBRARY_DIR)+std::string("/liboclgrind-rt-icd.so");
-    dlopen(library_path.c_str(), RTLD_NOW|RTLD_GLOBAL);
+    //std::string library_path = std::string(INSTALLED_LIBRARY_DIR)+std::string("/liboclgrind-rt-icd.so");
+    //dlopen(library_path.c_str(), RTLD_NOW|RTLD_GLOBAL);
 
     m_platform = new _cl_platform_id;
     m_platform->dispatch = m_dispatchTable;
