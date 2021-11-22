@@ -262,15 +262,15 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
 endif()
 
-#if (APPLE)
+if (APPLE)
 #  target_link_libraries(oclgrind PRIVATE "-lcurses")
-#  #find_package(Curses REQUIRED)
+   find_package(Curses REQUIRED)
 #  #message("CURSES! appending: ${CURSES_LIBRARIES}")
 #  #append(CORE_EXTRA_LIBS "${CURSES_LIBRARIES}")
 #  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurses")
 #  #set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lcurses")
 #  #set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -lcurses")
-#endif()
+endif()
 
 
 # Sources for OpenCL runtime API frontend
