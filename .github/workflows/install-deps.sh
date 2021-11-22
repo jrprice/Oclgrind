@@ -25,7 +25,7 @@ elif [ "`uname`" == "Darwin" ]; then
     ARCHIVE="clang+llvm-${LLVM_VERSION}.0.0-x86_64-apple-darwin.tar.xz"
 
     if [ ${LLVM_VERSION} -lt 13 ]; then
-        ln -sfn /Applications/Xcode_12.4.app /Applications/Xcode.app
+        ln -sfn /Applications/Xcode_12.5.app /Applications/Xcode.app
     fi
 
     mkdir -p llvm-${LLVM_VERSION}
