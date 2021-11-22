@@ -27,15 +27,20 @@ jobs:
       INSTALL_DIR: "${{ github.workspace }}/install"
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11.0]
-        compiler: [gcc, clang]
-        build_type: [Release, Debug]
-        llvm: [11, 12, 13]
-        exclude:
-          - os: ubuntu-20.04
-            llvm: 11
-          - os: macos-11.0
-            compiler: gcc
+        os: [macos-11.0]
+        compiler: [clang]
+        build_type: [Debug]
+        llvm: [13]
+      #matrix:
+      #  os: [ubuntu-20.04, macos-11.0]
+      #  compiler: [gcc, clang]
+      #  build_type: [Release, Debug]
+      #  llvm: [11, 12, 13]
+      #  exclude:
+      #    - os: ubuntu-20.04
+      #      llvm: 11
+      #    - os: macos-11.0
+      #      compiler: gcc
 
     steps:
       - uses: actions/checkout@v2
