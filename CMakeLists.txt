@@ -27,6 +27,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable rpath on OS X
 set(CMAKE_MACOSX_RPATH 1)
+set(_CMAKE_OSX_SYSROOT_PATH "")
+set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
+
+if (APPLE)
+#  target_link_libraries(oclgrind PRIVATE "-lcurses")
+   find_package(Curses REQUIRED)
+#  #message("CURSES! appending: ${CURSES_LIBRARIES}")
+#  #append(CORE_EXTRA_LIBS "${CURSES_LIBRARIES}")
+#  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurses")
+#  #set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lcurses")
+#  #set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -lcurses")
+endif()
+
+
 
 # Enable WIP 3.0 support.
 option(ENABLE_EXPERIMENTAL_OPENCL_3, "Enable experimental OpenCL 3.0 support.")
@@ -261,17 +275,6 @@ target_link_libraries(oclgrind
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
 endif()
-
-if (APPLE)
-#  target_link_libraries(oclgrind PRIVATE "-lcurses")
-   find_package(Curses REQUIRED)
-#  #message("CURSES! appending: ${CURSES_LIBRARIES}")
-#  #append(CORE_EXTRA_LIBS "${CURSES_LIBRARIES}")
-#  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurses")
-#  #set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lcurses")
-#  #set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -lcurses")
-endif()
-
 
 # Sources for OpenCL runtime API frontend
 set(RUNTIME_SOURCES
