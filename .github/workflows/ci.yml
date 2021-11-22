@@ -70,7 +70,8 @@ jobs:
         run: >
           cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                    -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
-                   -DLLVM_DIR="$LLVM_DIR"
+                   -DLLVM_DIR="$LLVM_DIR" \
+                   -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
         working-directory: build
       - name: Build
         run: cmake --build . --config ${{ matrix.build_type }}
