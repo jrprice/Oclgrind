@@ -34,8 +34,10 @@ jobs:
         exclude:
           - os: ubuntu-20.04
             llvm: 11
-          - os: macos-11.0
+          - os: macos-11
             compiler: gcc
+          - os: macos-11
+            llvm: 12
 
     steps:
       - uses: actions/checkout@v2
