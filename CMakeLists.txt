@@ -35,6 +35,7 @@ if (APPLE)
    find_package(Curses REQUIRED)
 #  #message("CURSES! appending: ${CURSES_LIBRARIES}")
    list(APPEND CORE_EXTRA_LIBS "${CURSES_LIBRARIES}")
+   message("Using: ${CORE_EXTRA_LIBS}")
 #  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcurses")
 #  #set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -lcurses")
 #  #set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -lcurses")
@@ -268,9 +269,7 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/Uninitialized.cpp
   src/plugins/WorkloadCharacterisation.h
   src/plugins/WorkloadCharacterisation.cpp)
-target_link_libraries(oclgrind
-  PRIVATE ${CORE_EXTRA_LIBS} ${CLANG_LIBS}
-  PUBLIC ${LLVM_LIBS})
+target_link_libraries(oclgrind PUBLIC ${CORE_EXTRA_LIBS} ${CLANG_LIBS} ${LLVM_LIBS})
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
