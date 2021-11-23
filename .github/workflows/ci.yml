@@ -73,7 +73,7 @@ jobs:
                    -DLLVM_DIR="$LLVM_DIR"
         working-directory: build
       - name: Build
-        run: cmake --build . --config ${{ matrix.build_type }}
+        run: make VERBOSE=1 #cmake --build . --config ${{ matrix.build_type }}
         working-directory: build
       - name: Test
         run: ctest -C ${{ matrix.build_type }} --output-on-failure

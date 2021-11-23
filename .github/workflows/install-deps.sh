@@ -28,7 +28,6 @@ elif [ "`uname`" == "Darwin" ]; then
         ln -sfn /Applications/Xcode_12.4.app /Applications/Xcode.app
     fi
 
-    sudo rm -rf /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk/usr/lib/libcurses.tbd
     mkdir -p llvm-${LLVM_VERSION}
     wget "$URL/$ARCHIVE"
     tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}
