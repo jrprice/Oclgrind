@@ -10,6 +10,7 @@ config.h
 build.ninja
 rules.ninja
 build
+llvm-*
 
 # Compiler output
 *.o
