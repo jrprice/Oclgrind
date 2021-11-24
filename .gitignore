@@ -10,7 +10,6 @@ config.h
 build.ninja
 rules.ninja
 build
-llvm-*
 
 # Compiler output
 *.o
@@ -28,7 +27,9 @@ tests/runtime/map_buffer
 # Misc
 oclgrind-*.tar.gz
 oclgrind-*.zip
+clang+llvm-*.tar.xz
 .clang_complete
 .DS_Store
 *.kdev4
 *.sublime-*
+llvm-*
