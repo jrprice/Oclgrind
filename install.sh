@@ -19,3 +19,6 @@ cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo\
          -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
          -DLLVM_ROOT_DIR="${PROJ_DIR}/llvm-${LLVM_VERSION}"
 make install
+
+#clean up
+cd .. && rm -r ${ARCHIVE} llvm-${LLVM_VERSION}
