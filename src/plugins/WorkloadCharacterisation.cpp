@@ -360,6 +360,10 @@ vector<double> parallelSpatialLocality(vector < vector < WorkloadCharacterisatio
 }
 
 void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocation) {
+  uint32_t total_instruction_count = std::accumulate(std::begin(m_computeOps), std::end(m_computeOps), 0,
+                                          [](const std::size_t previous, const auto& element)
+                                          { return previous + element.second; });
+
   std::vector<std::pair<unsigned, size_t>> sorted_ops(m_computeOps.size());
   std::partial_sort_copy(m_computeOps.begin(), m_computeOps.end(), sorted_ops.begin(), sorted_ops.end(), [](const std::pair<unsigned, size_t> &left, const std::pair<unsigned, size_t> &right) {
     return (left.second > right.second);
@@ -522,6 +526,19 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
     return left.first < right.first;
   });
 
+  size_t branch_op_count = 0;
+  for (auto const &e : sorted_branch_ops) {
+    branch_op_count += e.second;
+  }
+
+  size_t significant_branch_op_count = (size_t)ceil(branch_op_count * 0.9);
+  size_t unique_branch_addresses = 0;
+  size_t branch_count = 0;
+  while (branch_count < significant_branch_op_count) {
+    branch_count += sorted_branch_ops[unique_branch_addresses].second;
+    unique_branch_addresses++;
+  }
+
   //generate a history pattern
   //(arbitarily selected to a history of m=16 branches?)
   const unsigned m = 16;
@@ -566,6 +583,12 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
 
   const char *result_path = getenv("OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_PATH");
   const char *result_dir = getenv("OCLGRIND_WORKLOAD_CHARACTERISATION_OUTPUT_DIR");
+  const char *pretty_arg = getenv("OCLGRIND_WORKLOAD_CHARACTERISATION_PRETTY_LOG");
+
+  bool pretty = false;
+  if (pretty_arg != nullptr) {
+    pretty = atoi(pretty_arg);
+  }
   if (result_path != nullptr) {
     if (result_dir != nullptr) {
       std::cerr << "[AIWC warning] both output path and directory set, using path" << std::endl;
@@ -603,17 +626,24 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
   logfile << "kernel_name,Meta," << kernelInvocation->getKernel()->getName() << "\n";
   logfile << "work_group_size_specified,Meta," << (kernelInvocation->workGroupSizeSpecified() ? "1" : "0") << "\n";
 
-  logfile << "opcode_counts,Compute,";
-  for (const auto &item : sorted_ops) {
-    logfile << llvm::Instruction::getOpcodeName(item.first) << keyval_sep << item.second << list_delim;
+  logfile << "opcode,Compute," << m_computeOps.size() << "\n";
+  logfile << "total_instruction_count,Compute," << total_instruction_count << "\n";
+  if (pretty) {
+    logfile << "opcode_counts,Compute,";
+    for (const auto &item : sorted_ops) {
+      logfile << llvm::Instruction::getOpcodeName(item.first) << keyval_sep << item.second << list_delim;
+    }
+    logfile << "\n";
   }
-  logfile << "\n";
 
   logfile << "freedom_to_reorder,Compute," << freedom_to_reorder << "\n";
   logfile << "resource_pressure,Compute," << resource_pressure << "\n";
   logfile << "work_items,Parallelism," << m_threads_invoked << "\n";
-  logfile << "work_groups,Parallelism," << m_group_num[0] << list_delim << m_group_num[1] << list_delim << m_group_num[2] << list_delim << "\n";
-  logfile << "work_items_per_work_group,Parallelism," << m_local_num[0] << list_delim << m_local_num[1] << list_delim << m_local_num[2] << list_delim << "\n";
+  //*todo* log these workgroup numbers in a sensible way that can be readily loaded into R
+  if (pretty) {
+    logfile << "work_groups,Parallelism," << m_group_num[0] << list_delim << m_group_num[1] << list_delim << m_group_num[2] << list_delim << "\n";
+    logfile << "work_items_per_work_group,Parallelism," << m_local_num[0] << list_delim << m_local_num[1] << list_delim << m_local_num[2] << list_delim << "\n";
+  }
   logfile << "SIMD_operand_sum,Parallelism," << simd_sum << "\n";
   logfile << "total_barriers_hit,Parallelism," << m_barriers_hit << "\n";
   logfile << "min_ITB,Parallelism," << itb_min << "\n";
@@ -639,29 +669,41 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
 
   logfile << "memory_footprint_90pc,Memory," << unique_memory_addresses << "\n";
   logfile << "global_memory_address_entropy,Memory," << mem_entropy << "\n";
+  if (pretty) {
+    logfile << "LMAE,Memory,";
+    for (int nskip = 1; nskip < 11; nskip++) {
+      logfile << nskip << keyval_sep << loc_entropy[nskip - 1] << list_delim;
+    }
+    logfile << "\n";
 
-  logfile << "LMAE,Memory,";
-  for (int nskip = 1; nskip < 11; nskip++) {
-    logfile << nskip << keyval_sep << loc_entropy[nskip - 1] << list_delim;
+    logfile << "normed_PSL,Memory,";
+    for (int nskip = 0; nskip < 11; nskip++) {
+      logfile << nskip << keyval_sep << avg_psl[nskip] << list_delim;
+    }
+    logfile << "\n";
   }
-  logfile << "\n";
-
-  logfile << "normed_PSL,Memory,";
-  for (int nskip = 0; nskip < 11; nskip++) {
-    logfile << nskip << keyval_sep << avg_psl[nskip] << list_delim;
+  else {
+    for (int nskip = 1; nskip < 11; nskip++) {
+      logfile << "LMAE_" << nskip << ",Memory," << loc_entropy[nskip - 1] << "\n";
+    }
+    for (int nskip = 0; nskip < 11; nskip++) {
+      logfile << "normed_PSL_" << nskip << ",Memory," << avg_psl[nskip] << "\n";
+    }
   }
-  logfile << "\n";
-
   logfile << "total_global_memory_accessed,Memory," << m_global_memory_access << "\n";
   logfile << "total_local_memory_accessed,Memory," << m_local_memory_access << "\n";
   logfile << "total_constant_memory_accessed,Memory," << m_constant_memory_access << "\n";
 
-  logfile << "branch_counts,Control,";
-  for (auto const &item : sorted_branch_ops) {
-    logfile << item.first << keyval_sep << item.second << list_delim;
-  }
-  logfile << "\n";
+  logfile << "unique_branches,Control," << unique_branch_addresses << "\n";
+  logfile << "branches_90pc,Control," << branch_count << "\n";
 
+  if (pretty) {
+    logfile << "branch_counts,Control,";
+    for (auto const &item : sorted_branch_ops) {
+      logfile << item.first << keyval_sep << item.second << list_delim;
+    }
+    logfile << "\n";
+  }
   logfile << "branch_history_size,Memory," << m << "\n";
   logfile << "yokota_branch_entropy,Memory," << yokota_entropy_per_workload << "\n";
   logfile << "average_linear_branch_entropy,Memory," << average_entropy << "\n";
