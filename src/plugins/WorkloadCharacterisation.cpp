@@ -704,9 +704,9 @@ void WorkloadCharacterisation::logMetrics(const KernelInvocation *kernelInvocati
     }
     logfile << "\n";
   }
-  logfile << "branch_history_size,Memory," << m << "\n";
-  logfile << "yokota_branch_entropy,Memory," << yokota_entropy_per_workload << "\n";
-  logfile << "average_linear_branch_entropy,Memory," << average_entropy << "\n";
+  logfile << "branch_history_size,Control," << m << "\n";
+  logfile << "yokota_branch_entropy,Control," << yokota_entropy_per_workload << "\n";
+  logfile << "average_linear_branch_entropy,Control," << average_entropy << "\n";
 
   logfile.close();
 
