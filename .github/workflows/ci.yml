@@ -30,7 +30,7 @@ jobs:
         os: [ubuntu-20.04, macos-11.0]
         compiler: [gcc, clang]
         build_type: [Release, Debug]
-        llvm: [11, 12, 13]
+        llvm: [11, 12, 13, 14]
         exclude:
           - os: ubuntu-20.04
             llvm: 11
@@ -103,7 +103,7 @@ jobs:
     strategy:
       matrix:
         platform: [Win32, x64]
-        llvm: [11, 12, 13]
+        llvm: [11, 12, 13, 14]
 
     steps:
       - uses: actions/checkout@v2
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [build]
     env:
-      LLVM_VERSION: 13
+      LLVM_VERSION: 14
       cts_hash: 3dab3df48d7dbc22accf6c37c59e54e35a35de7f
 
     steps:
@@ -246,7 +246,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [build-cts]
     env:
-      LLVM_VERSION: 13
+      LLVM_VERSION: 14
       cts_hash: 3dab3df48d7dbc22accf6c37c59e54e35a35de7f
     strategy:
       fail-fast: false
