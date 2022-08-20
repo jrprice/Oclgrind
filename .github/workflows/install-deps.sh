@@ -47,13 +47,19 @@ elif [[ "`uname`" == "MINGW64"* ]]; then
         curl -OL "$URL/$ARCHIVE"
         tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/tools/clang
 
+        if [ ${LLVM_VERSION} == 14 ]; then
+            mkdir -p cmake
+            mv "llvm-${LLVM_VERSION}/Modules" cmake
+        fi
+
         # Build LLVM + Clang
         mkdir -p llvm-${LLVM_VERSION}/build
         cd llvm-${LLVM_VERSION}/build
         cmake .. \
-        -G "Visual Studio 16 2019" -A ${BUILD_PLATFORM} \
-        -DCMAKE_INSTALL_PREFIX=$PWD/../install \
-        -DLLVM_TARGETS_TO_BUILD=host
+            -G "Visual Studio 16 2019" -A ${BUILD_PLATFORM} \
+            -DCMAKE_INSTALL_PREFIX=$PWD/../install \
+            -DLLVM_TARGETS_TO_BUILD=host \
+            -DLLVM_INCLUDE_BENCHMARKS=OFF
         cmake --build . --config Release --target ALL_BUILD
         cmake --build . --config Release --target INSTALL
     fi
