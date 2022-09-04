@@ -35,6 +35,8 @@ jobs:
           - os: ubuntu-20.04
             llvm: 11
           - os: macos-11.0
+            llvm: 13
+          - os: macos-11.0
             compiler: gcc
 
     steps:
