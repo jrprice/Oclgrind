@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   RELEASE_VERSION: "21.10"
-  RELEASE_LLVM: "13"
+  RELEASE_LLVM: "14"
 
 jobs:
   check-format:
