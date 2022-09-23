@@ -181,7 +181,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [build]
     env:
-      cts_hash: 3dab3df48d7dbc22accf6c37c59e54e35a35de7f
+      cts_hash: 92285f7c9de965ddc41e7dfaaab8c7c75aa55dbe
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -246,7 +246,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [build-cts]
     env:
-      cts_hash: 3dab3df48d7dbc22accf6c37c59e54e35a35de7f
+      cts_hash: 92285f7c9de965ddc41e7dfaaab8c7c75aa55dbe
     strategy:
       fail-fast: false
       matrix:

@@ -19,7 +19,7 @@ if [ "`uname`" == "Linux" ]; then
         /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 20
 
     # Other dependencies
-    sudo apt-get install -y libedit-dev
+    sudo apt-get install -y libedit-dev libvulkan-dev
 elif [ "`uname`" == "Darwin" ]; then
     URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}.0.0"
     ARCHIVE="clang+llvm-${LLVM_VERSION}.0.0-x86_64-apple-darwin.tar.xz"
