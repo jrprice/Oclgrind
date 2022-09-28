@@ -1,0 +1,23 @@
+step
+step
+step
+step
+step
+step
+step
+step
+step
+print gi
+print gi[0]
+print gc
+print gc[0]
+print li
+print li[0]
+print ci
+print ci[0]
+print pi
+print pi[0]
+print ps
+print ps->b
+print psm
+print psm[0]
