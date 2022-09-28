@@ -62,8 +62,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 # Check LLVM version
-if (${LLVM_PACKAGE_VERSION} VERSION_LESS "11.0")
-  message(FATAL_ERROR "LLVM version must be >= 11.0")
+if (${LLVM_PACKAGE_VERSION} VERSION_LESS "12.0")
+  message(FATAL_ERROR "LLVM version must be >= 12.0")
 endif()
 
 # Add flags for LLVM
