@@ -95,7 +95,7 @@ void Uninitialized::checkStructMemcpy(const WorkItem* workItem,
   const llvm::PointerType* srcPtrTy =
     llvm::dyn_cast<llvm::PointerType>(src->getType());
   const llvm::StructType* structTy =
-    llvm::dyn_cast<llvm::StructType>(srcPtrTy->getElementType());
+    llvm::dyn_cast<llvm::StructType>(srcPtrTy->getPointerElementType());
   size_t srcAddr = workItem->getOperand(src).getPointer();
   unsigned srcAddrSpace = srcPtrTy->getPointerAddressSpace();
 
@@ -960,7 +960,7 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem* workItem,
       llvm::dyn_cast<llvm::PointerType>(memcpyInst->getSource()->getType());
 
     if (dstAddrSpace != AddrSpacePrivate &&
-        srcPtrTy->getElementType()->isStructTy())
+        srcPtrTy->getPointerElementType()->isStructTy())
     {
       checkStructMemcpy(workItem, memcpyInst->getSource());
     }
