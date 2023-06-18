@@ -1229,7 +1229,7 @@ class WorkItemBuiltins
     int coordIndex = 1;
 
     // Check for sampler version
-    if (callInst->getNumArgOperands() > 2)
+    if (callInst->arg_size() > 2)
     {
       sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
       coordIndex = 2;
@@ -1346,7 +1346,7 @@ class WorkItemBuiltins
     int coordIndex = 1;
 
     // Check for sampler version
-    if (callInst->getNumArgOperands() > 2)
+    if (callInst->arg_size() > 2)
     {
       sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
       coordIndex = 2;
@@ -1419,7 +1419,7 @@ class WorkItemBuiltins
     int coordIndex = 1;
 
     // Check for sampler version
-    if (callInst->getNumArgOperands() > 2)
+    if (callInst->arg_size() > 2)
     {
       sampler = ((llvm::ConstantInt*)PARG(1))->getZExtValue();
       coordIndex = 2;

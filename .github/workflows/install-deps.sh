@@ -19,7 +19,7 @@ if [ "`uname`" == "Linux" ]; then
         /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 20
 
     # Other dependencies
-    sudo apt-get install -y libedit-dev
+    sudo apt-get install -y libedit-dev libvulkan-dev
 elif [ "`uname`" == "Darwin" ]; then
     URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}.0.0"
     ARCHIVE="clang+llvm-${LLVM_VERSION}.0.0-x86_64-apple-darwin.tar.xz"
@@ -47,13 +47,19 @@ elif [[ "`uname`" == "MINGW64"* ]]; then
         curl -OL "$URL/$ARCHIVE"
         tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/tools/clang
 
+        if [ ${LLVM_VERSION} == 14 ]; then
+            mkdir -p cmake
+            mv "llvm-${LLVM_VERSION}/Modules" cmake
+        fi
+
         # Build LLVM + Clang
         mkdir -p llvm-${LLVM_VERSION}/build
         cd llvm-${LLVM_VERSION}/build
         cmake .. \
-        -G "Visual Studio 16 2019" -A ${BUILD_PLATFORM} \
-        -DCMAKE_INSTALL_PREFIX=$PWD/../install \
-        -DLLVM_TARGETS_TO_BUILD=host
+            -G "Visual Studio 16 2019" -A ${BUILD_PLATFORM} \
+            -DCMAKE_INSTALL_PREFIX=$PWD/../install \
+            -DLLVM_TARGETS_TO_BUILD=host \
+            -DLLVM_INCLUDE_BENCHMARKS=OFF
         cmake --build . --config Release --target ALL_BUILD
         cmake --build . --config Release --target INSTALL
     fi

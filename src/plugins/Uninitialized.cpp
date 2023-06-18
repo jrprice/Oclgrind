@@ -2062,7 +2062,7 @@ void Uninitialized::SimpleOrAtomic(const WorkItem* workItem,
     newShadow = ShadowContext::getPoisonedValue(4);
   }
 
-  if (CI->getNumArgOperands() > 1)
+  if (CI->arg_size() > 1)
   {
     TypedValue argShadow =
       shadowContext.getValue(workItem, CI->getArgOperand(1));

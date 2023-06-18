@@ -1,6 +1,10 @@
 For more information, please visit the Oclgrind Wiki:
 https://github.com/jrprice/Oclgrind/wiki
 
+Oclgrind Next
+=============
+- Added support for LLVM 14
+- Dropped support for LLVM 11
 
 Oclgrind 21.10
 ==============

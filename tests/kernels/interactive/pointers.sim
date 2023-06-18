@@ -1,0 +1,10 @@
+# ARGS: -i
+pointers.cl
+pointers
+1 1 1
+1 1 1
+
+<size=4 int fill=7>
+<size=1 char fill=42>
+<size=4>
+<size=4 int fill=99>
