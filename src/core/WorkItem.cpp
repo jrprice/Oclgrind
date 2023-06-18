@@ -20,6 +20,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Module.h"
+#include "llvm/BinaryFormat/Dwarf.h"
 
 #include "Context.h"
 #include "Kernel.h"
@@ -1247,7 +1248,7 @@ INSTRUCTION(load)
   }
 
   // Check address is correctly aligned
-  unsigned alignment = loadInst->getAlignment();
+  unsigned alignment = loadInst->getAlign().value();
   if (!alignment)
     alignment = getTypeAlignment(opPtr->getType()->getPointerElementType());
   if (address & (alignment - 1))
@@ -1475,7 +1476,7 @@ INSTRUCTION(store)
   }
 
   // Check address is correctly aligned
-  unsigned alignment = storeInst->getAlignment();
+  unsigned alignment = storeInst->getAlign().value();
   if (!alignment)
     alignment = getTypeAlignment(opPtr->getType()->getPointerElementType());
   if (address & (alignment - 1))

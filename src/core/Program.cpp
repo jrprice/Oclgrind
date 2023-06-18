@@ -1014,7 +1014,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
       // Replace value in store with the input to the insertelement instruction
       llvm::StoreInst* _store = new llvm::StoreInst(
         vector, store->getPointerOperand(), store->isVolatile(),
-        llvm::Align(store->getAlignment()));
+        llvm::Align(store->getAlign()));
       _store->setDebugLoc(store->getDebugLoc());
       _store->insertAfter(store);
 
