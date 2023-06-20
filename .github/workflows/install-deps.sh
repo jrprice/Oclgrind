@@ -12,16 +12,12 @@ if [ "`uname`" == "Linux" ]; then
         llvm-${LLVM_VERSION}-dev \
         libclang-${LLVM_VERSION}-dev \
         clang-${LLVM_VERSION} \
+        libpolly-${LLVM_VERSION}-dev \
         libomp-${LLVM_VERSION}-dev
     sudo update-alternatives --install \
         /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 20
     sudo update-alternatives --install \
         /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 20
-
-    if [ "$LLVM_VERSION" -ge 14 ] ; then \
-      apt download libpolly-${LLVM_VERSION}-dev && \
-      dpkg --force-all -i libpolly-${LLVM_VERSION}-dev*.deb ; \
-    fi
 
     # Other dependencies
     sudo apt-get install -y libedit-dev libvulkan-dev
