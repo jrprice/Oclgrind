@@ -19,7 +19,7 @@ if [ "`uname`" == "Linux" ]; then
         /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 20
 
     if [ "$LLVM_VERSION" -ge 14 ] ; then \
-      sudo apt download libpolly-${LLVM_VERSION}-dev && \
+      apt download libpolly-${LLVM_VERSION}-dev && \
       sudo dpkg --force-all -i libpolly-${LLVM_VERSION}-dev*.deb ; \
     fi
 
