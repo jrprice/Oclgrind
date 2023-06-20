@@ -18,6 +18,11 @@ if [ "`uname`" == "Linux" ]; then
     sudo update-alternatives --install \
         /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 20
 
+    if [ "$LLVM_VERSION" -ge 14 ] ; then \
+      apt download libpolly-${LLVM_VERSION}-dev && \
+      dpkg --force-all -i libpolly-${LLVM_VERSION}-dev*.deb ; \
+    fi
+
     # Other dependencies
     sudo apt-get install -y libedit-dev libvulkan-dev
 elif [ "`uname`" == "Darwin" ]; then
