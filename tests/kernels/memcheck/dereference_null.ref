@@ -1,5 +1,3 @@
-ERROR Invalid read of size 4 at global memory address 0x0
-ERROR Uninitialized value
-
-EXACT Argument 'output': 4 bytes
-EXACT   output[0] = 0
+ERROR Invalid memory load - source pointer is incorrect address space (ptr=private, inst=global)
+ERROR Invalid read of size 4 at private memory address 0x0
+EXACT Uninitialized value written to global memory address 0x4000400000000000

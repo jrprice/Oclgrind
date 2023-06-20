@@ -54,7 +54,6 @@ interactive/struct_member
 memcheck/async_copy_out_of_bounds
 memcheck/atomic_out_of_bounds
 memcheck/casted_static_array
-memcheck/dereference_null
 memcheck/fake_out_of_bounds
 memcheck/read_out_of_bounds
 memcheck/read_write_only_memory
