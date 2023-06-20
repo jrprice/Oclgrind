@@ -12,7 +12,7 @@ if [ "`uname`" == "Linux" ]; then
         llvm-${LLVM_VERSION}-dev \
         libclang-${LLVM_VERSION}-dev \
         clang-${LLVM_VERSION} \
-        libpolly-${LLVM_VERSION}-dev \
+        libpolly-${LLVM_VERSION} \
         libomp-${LLVM_VERSION}-dev
     sudo update-alternatives --install \
         /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 20
