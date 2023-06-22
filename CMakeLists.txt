@@ -27,6 +27,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable rpath on OS X
 set(CMAKE_MACOSX_RPATH 1)
+# Fix rpath on unix systems
+if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif()
 
 # Enable WIP 3.0 support.
 option(ENABLE_EXPERIMENTAL_OPENCL_3, "Enable experimental OpenCL 3.0 support.")
