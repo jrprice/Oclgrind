@@ -21,6 +21,7 @@ if [ "`uname`" == "Linux" ]; then
     if [ "$LLVM_VERSION" -ge 14 ] ; then \
       sudo apt-get install -y libbsd-dev && \
       apt download libpolly-${LLVM_VERSION}-dev && \
+      sudo dpkg --auto-deconfigure && \
       sudo dpkg --force-depends -i libpolly-${LLVM_VERSION}-dev*.deb ; \
     fi
 
