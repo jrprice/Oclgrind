@@ -27,14 +27,6 @@
 using namespace oclgrind;
 using namespace std;
 
-// void Uninitialized::memoryAllocated(const Memory *memory, size_t address,
-//                                 size_t size, cl_mem_flags flags,
-//                                 const uint8_t *initData)
-//{
-//    cout << "Memory: " << memory << ", address: " << hex << address << dec <<
-//    ", size: " << size << endl;
-//}
-
 // Multiple mutexes to mitigate risk of unnecessary synchronisation in atomics
 #define NUM_ATOMIC_MUTEXES 64 // Must be power of two
 static std::mutex atomicShadowMutex[NUM_ATOMIC_MUTEXES];
@@ -103,7 +95,7 @@ void Uninitialized::checkStructMemcpy(const WorkItem* workItem,
   const llvm::PointerType* srcPtrTy =
     llvm::dyn_cast<llvm::PointerType>(src->getType());
   const llvm::StructType* structTy =
-    llvm::dyn_cast<llvm::StructType>(srcPtrTy->getElementType());
+    llvm::dyn_cast<llvm::StructType>(srcPtrTy->getPointerElementType());
   size_t srcAddr = workItem->getOperand(src).getPointer();
   unsigned srcAddrSpace = srcPtrTy->getPointerAddressSpace();
 
@@ -968,7 +960,7 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem* workItem,
       llvm::dyn_cast<llvm::PointerType>(memcpyInst->getSource()->getType());
 
     if (dstAddrSpace != AddrSpacePrivate &&
-        srcPtrTy->getElementType()->isStructTy())
+        srcPtrTy->getPointerElementType()->isStructTy())
     {
       checkStructMemcpy(workItem, memcpyInst->getSource());
     }
@@ -2390,8 +2382,10 @@ ShadowWorkGroup::~ShadowWorkGroup()
 
 ShadowMemory::ShadowMemory(AddressSpace addrSpace, unsigned bufferBits)
     : m_addrSpace(addrSpace), m_map(),
-      m_numBitsAddress((sizeof(size_t) << 3) - bufferBits),
-      m_numBitsBuffer(bufferBits)
+      m_numBitsAddress((sizeof(size_t) << 3) - (m_numBitsAddrSpace + bufferBits)),
+      m_numBitsBuffer(bufferBits),
+      m_maskBitsAddress(((size_t)1 << m_numBitsAddress) - 1),
+      m_maskBitsBuffer((((size_t)1 << m_numBitsBuffer) - 1) << m_numBitsAddress)
 {
 }
 
@@ -2472,12 +2466,12 @@ void ShadowMemory::dump() const
 
 size_t ShadowMemory::extractBuffer(size_t address) const
 {
-  return (address >> m_numBitsAddress);
+  return ((address & m_maskBitsBuffer) >> m_numBitsAddress);
 }
 
 size_t ShadowMemory::extractOffset(size_t address) const
 {
-  return (address & (((size_t)-1) >> m_numBitsBuffer));
+  return (address & m_maskBitsAddress);
 }
 
 void* ShadowMemory::getPointer(size_t address) const

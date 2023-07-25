@@ -456,11 +456,15 @@ llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr* expr)
                                            operands[2]);
   case llvm::Instruction::ExtractElement:
     return llvm::ExtractElementInst::Create(operands[0], operands[1]);
-  case llvm::Instruction::InsertValue:
+  case llvm::Instruction::InsertValue: {
+    const llvm::ExtractValueInst *EI = llvm::cast<llvm::ExtractValueInst>(expr);
     return llvm::InsertValueInst::Create(operands[0], operands[1],
-                                         expr->getIndices());
-  case llvm::Instruction::ExtractValue:
-    return llvm::ExtractValueInst::Create(operands[0], expr->getIndices());
+                                         EI->getIndices());
+  }
+  case llvm::Instruction::ExtractValue: {
+    const llvm::ExtractValueInst *EI = llvm::cast<llvm::ExtractValueInst>(expr);
+    return llvm::ExtractValueInst::Create(operands[0], EI->getIndices());
+  }
   case llvm::Instruction::ShuffleVector:
     return new llvm::ShuffleVectorInst(operands[0], operands[1], operands[2]);
   case llvm::Instruction::GetElementPtr:

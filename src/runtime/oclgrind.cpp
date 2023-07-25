@@ -257,6 +257,14 @@ static bool parseArguments(int argc, char* argv[])
     {
       setEnvironment("OCLGRIND_INST_COUNTS", "1");
     }
+    else if (!strcmp(argv[i], "--aiwc"))
+    {
+      setEnvironment("OCLGRIND_WORKLOAD_CHARACTERISATION", "1");
+    }
+    else if (!strcmp(argv[i], "--workload-characterisation"))
+    {
+      setEnvironment("OCLGRIND_WORKLOAD_CHARACTERISATION", "1");
+    }
     else if (!strcmp(argv[i], "-i") || !strcmp(argv[i], "--interactive"))
     {
       setEnvironment("OCLGRIND_INTERACTIVE", "1");
@@ -450,80 +458,68 @@ static string getLibDirPath()
 
 static void printUsage()
 {
-  cout << "Usage: oclgrind [OPTIONS] COMMAND" << endl
-       << "       oclgrind [--help | --version]" << endl
-       << endl
-       << "Options:" << endl
-       << "  --build-options     OPTIONS  "
-          "Additional options to pass to the OpenCL compiler"
-       << endl
-       << "  --check-api                  "
-          "Report errors on API calls"
-       << endl
-       << "  --compute-units     UNITS    "
-          "Change the number of compute units reported"
-       << endl
-       << "  --constant-mem-size BYTES    "
-          "Change the constant memory size of the device"
-       << endl
-       << "  --data-races                 "
-          "Enable data-race detection"
-       << endl
-       << "  --disable-pch                "
-          "Don't use precompiled headers"
-       << endl
-       << "  --dump-spir                  "
-          "Dump SPIR to /tmp/oclgrind_*.{ll,bc}"
-       << endl
-       << "  --global-mem-size   BYTES    "
-          "Change the global memory size of the device"
-       << endl
-       << "  --help [-h]                  "
-          "Display usage information"
-       << endl
-       << "  --inst-counts                "
-          "Output histograms of instructions executed"
-       << endl
-       << "  --interactive [-i]           "
-          "Enable interactive mode"
-       << endl
-       << "  --local-mem-size    BYTES    "
-          "Change the local memory size of the device"
-       << endl
-       << "  --log               LOGFILE  "
-          "Redirect log/error messages to a file"
-       << endl
-       << "  --max-errors        NUM      "
-          "Limit the number of error/warning messages"
-       << endl
-       << "  --max-wgsize        WGSIZE   "
-          "Change the maximum work-group size of the device"
-       << endl
-       << "  --num-threads       NUM      "
-          "Set the number of worker threads to use"
-       << endl
-       << "  --pch-dir           DIR      "
-          "Override directory containing precompiled headers"
-       << endl
-       << "  --plugins           PLUGINS  "
-          "Load colon separated list of plugin libraries"
-       << endl
-       << "  --quick [-q]                 "
-          "Only run first and last work-group"
-       << endl
-       << "  --uniform-writes             "
-          "Don't suppress uniform write-write data-races"
-       << endl
-       << "  --uninitialized              "
-          "Report usage of uninitialized values"
-       << endl
-       << "  --version [-v]               "
-          "Display version information"
-       << endl
-       << endl
-       << "For more information, please visit the Oclgrind wiki page:" << endl
-       << "-> https://github.com/jrprice/Oclgrind/wiki" << endl
-       << endl;
+  cout
+    << "Usage: oclgrind [OPTIONS] COMMAND" << endl
+    << "       oclgrind [--help | --version]" << endl
+    << endl
+    << "Options:" << endl
+    << "     --aiwc                    "
+          "Perform Architecture Independent Workload Characterization" << endl <<
+          "                               For examples on how these features can be used for diversity " << endl <<
+          "                               analysis and device predictions see:  " << endl <<
+          "                               -> https://github.com/BeauJoh/aiwc-opencl-based-architecture-independent-workload-characterization-artefact " << endl <<
+          "                               and "<< endl <<
+          "                               -> https://github.com/BeauJoh/opencl-predictions-with-aiwc " << endl <<
+          "                               If you have any questions or comments" << endl <<
+          "                               please contact <beau.johnston@anu.edu.au>" << endl
+    << "  --build-options     OPTIONS  "
+          "Additional options to pass to the OpenCL compiler" << endl
+    << "  --check-api                  "
+          "Report errors on API calls"  << endl
+    << "  --compute-units     UNITS    "
+          "Change the number of compute units reported" << endl
+    << "  --constant-mem-size BYTES    "
+          "Change the constant memory size of the device" << endl
+    << "  --data-races                 "
+          "Enable data-race detection" << endl
+    << "  --disable-pch                "
+          "Don't use precompiled headers" << endl
+    << "  --dump-spir                  "
+          "Dump SPIR to /tmp/oclgrind_*.{ll,bc}" << endl
+    << "  --global-mem-size   BYTES    "
+          "Change the global memory size of the device" << endl
+    << "  --help [-h]                  "
+          "Display usage information" << endl
+    << "  --inst-counts                "
+          "Output histograms of instructions executed" << endl
+    << "  --interactive [-i]           "
+          "Enable interactive mode" << endl
+    << "  --local-mem-size    BYTES    "
+          "Change the local memory size of the device" << endl
+    << "  --log               LOGFILE  "
+          "Redirect log/error messages to a file" << endl
+    << "  --max-errors        NUM      "
+          "Limit the number of error/warning messages" << endl
+    << "  --max-wgsize        WGSIZE   "
+          "Change the maximum work-group size of the device" << endl
+    << "  --num-threads       NUM      "
+          "Set the number of worker threads to use" << endl
+    << "  --pch-dir           DIR      "
+          "Override directory containing precompiled headers" << endl
+    << "  --plugins           PLUGINS  "
+          "Load colon separated list of plugin libraries" << endl
+    << "  --quick [-q]                 "
+          "Only run first and last work-group" << endl
+    << "  --uniform-writes             "
+          "Don't suppress uniform write-write data-races" << endl
+    << "  --uninitialized              "
+          "Report usage of uninitialized values" << endl
+    << "  --version [-v]               "
+          "Display version information" << endl
+    << endl
+    << "For more information, please visit the Oclgrind wiki page:" << endl
+    << "-> https://github.com/jrprice/Oclgrind/wiki" << endl
+    << endl;
 }
 
 static void setEnvironment(const char* name, const char* value)

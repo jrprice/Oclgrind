@@ -62,6 +62,8 @@ public:
   void notifyWorkGroupComplete(const WorkGroup* workGroup) const;
   void notifyWorkItemBegin(const WorkItem* workItem) const;
   void notifyWorkItemComplete(const WorkItem* workItem) const;
+  void notifyWorkItemBarrier(const WorkItem *workItem) const;
+  void notifyWorkItemClearBarrier(const WorkItem *workItem) const;
 
   // Plugins
   void registerPlugin(Plugin* plugin);

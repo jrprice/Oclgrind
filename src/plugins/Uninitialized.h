@@ -127,8 +127,11 @@ private:
 
   AddressSpace m_addrSpace;
   MemoryMap m_map;
+  static const size_t m_numBitsAddrSpace = 2;
   unsigned m_numBitsAddress;
   unsigned m_numBitsBuffer;
+  size_t m_maskBitsAddress;
+  size_t m_maskBitsBuffer;
 
   void clear();
   void deallocate(size_t address);

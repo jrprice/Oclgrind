@@ -18,15 +18,21 @@ if [ "`uname`" == "Linux" ]; then
     sudo update-alternatives --install \
         /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 20
 
+    if [ "$LLVM_VERSION" -ge 14 ] ; then \
+      sudo apt-get install -y libbsd-dev && \
+      apt download libpolly-${LLVM_VERSION}-dev && \
+      sudo dpkg --auto-deconfigure --force-all -i libpolly-${LLVM_VERSION}-dev*.deb ; \
+    fi
+
     # Other dependencies
     sudo apt-get install -y libedit-dev libvulkan-dev
 elif [ "`uname`" == "Darwin" ]; then
     URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}.0.0"
     ARCHIVE="clang+llvm-${LLVM_VERSION}.0.0-x86_64-apple-darwin.tar.xz"
 
-    if [ ${LLVM_VERSION} -lt 13 ]; then
-        ln -sfn /Applications/Xcode_12.4.app /Applications/Xcode.app
-    fi
+    #hopefully temporary dirty hack to resolve bad pathing: No rule to make target `/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk/usr/lib/libcurses.tbd', needed by `liboclgrind.dylib'
+    ln -s /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.3.sdk
+    ln -s /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk
 
     mkdir -p llvm-${LLVM_VERSION}
     wget "$URL/$ARCHIVE"

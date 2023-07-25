@@ -31,6 +31,7 @@
 #include "WorkItem.h"
 
 #include "plugins/InstructionCounter.h"
+#include "plugins/WorkloadCharacterisation.h"
 #include "plugins/InteractiveDebugger.h"
 #include "plugins/Logger.h"
 #include "plugins/MemCheck.h"
@@ -87,6 +88,9 @@ void Context::loadPlugins()
 
   if (checkEnv("OCLGRIND_INST_COUNTS"))
     m_plugins.push_back(make_pair(new InstructionCounter(this), true));
+
+  if (checkEnv("OCLGRIND_WORKLOAD_CHARACTERISATION"))
+    m_plugins.push_back(make_pair(new WorkloadCharacterisation(this), true));
 
   if (checkEnv("OCLGRIND_DATA_RACES"))
     m_plugins.push_back(make_pair(new RaceDetector(this), true));
@@ -351,6 +355,16 @@ void Context::notifyWorkItemBegin(const WorkItem* workItem) const
 void Context::notifyWorkItemComplete(const WorkItem* workItem) const
 {
   NOTIFY(workItemComplete, workItem);
+}
+
+void Context::notifyWorkItemBarrier(const WorkItem *workItem) const
+{
+  NOTIFY(workItemBarrier, workItem);
+}
+
+void Context::notifyWorkItemClearBarrier(const WorkItem *workItem) const
+{
+  NOTIFY(workItemClearBarrier, workItem);
 }
 
 #undef NOTIFY

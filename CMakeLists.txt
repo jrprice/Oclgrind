@@ -6,7 +6,9 @@
 # license terms please see the LICENSE file distributed with this
 # source code.
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.3)
+cmake_policy(SET CMP0057 NEW)
+
 project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 21)
 set(Oclgrind_VERSION_MINOR 10)
@@ -27,6 +29,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable rpath on OS X
 set(CMAKE_MACOSX_RPATH 1)
+# Fix rpath on unix systems
+if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif()
 
 # Enable WIP 3.0 support.
 option(ENABLE_EXPERIMENTAL_OPENCL_3, "Enable experimental OpenCL 3.0 support.")
@@ -55,6 +61,9 @@ endif()
 # Detect endianness
 test_big_endian(IS_BIG_ENDIAN)
 
+if (LLVM_ROOT_DIR)
+  set(LLVM_DIR "${LLVM_ROOT_DIR}/lib/cmake/llvm")
+endif()
 
 # Find LLVM
 find_package(LLVM REQUIRED CONFIG NO_CMAKE_BUILDS_PATH)
@@ -248,10 +257,10 @@ add_library(oclgrind ${CORE_LIB_TYPE}
   src/plugins/RaceDetector.h
   src/plugins/RaceDetector.cpp
   src/plugins/Uninitialized.h
-  src/plugins/Uninitialized.cpp)
-target_link_libraries(oclgrind
-  PRIVATE ${CORE_EXTRA_LIBS} ${CLANG_LIBS}
-  PUBLIC ${LLVM_LIBS})
+  src/plugins/Uninitialized.cpp
+  src/plugins/WorkloadCharacterisation.h
+  src/plugins/WorkloadCharacterisation.cpp)
+target_link_libraries(oclgrind PUBLIC ${CORE_EXTRA_LIBS} ${CLANG_LIBS} ${LLVM_LIBS})
 
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
   target_link_libraries(oclgrind PRIVATE Version)
