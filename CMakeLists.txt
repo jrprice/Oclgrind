@@ -7,7 +7,7 @@
 # source code.
 
 cmake_minimum_required(VERSION 3.3)
-cmake_policy(SET CMP0057 OLD)
+cmake_policy(SET CMP0057 NEW)
 
 project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 21)
