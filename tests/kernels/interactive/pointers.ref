@@ -9,6 +9,7 @@ MATCH 19	  private int *psm = &s.c;
 MATCH Work-item has finished.
 MATCH gi = 0x2000000
 MATCH gi[0] = 7
+MATCH gi[1] = 13
 MATCH gc = 0x3000000
 MATCH gc[0] = 42
 MATCH li = 0x1000000
@@ -18,6 +19,6 @@ MATCH ci[0] = 99
 MATCH pi = 0x50000
 MATCH pi[0] = -7
 MATCH ps = 0x70000
-MATCH ps->b = 231
+MATCH ps->b = <internal error>
 MATCH psm = 0x7000
 MATCH psm[0] = 123

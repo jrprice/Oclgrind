@@ -92,14 +92,28 @@ void InstructionCounter::instructionExecuted(
   // Check for loads and stores
   if (opcode == llvm::Instruction::Load || opcode == llvm::Instruction::Store)
   {
+    const llvm::Type* type;
+    unsigned addrSpace;
+    if (opcode == llvm::Instruction::Load)
+    {
+      const llvm::LoadInst* load = ((const llvm::LoadInst*)instruction);
+      opcode = COUNTED_LOAD_BASE;
+      type = load->getType();
+      addrSpace = load->getPointerAddressSpace();
+    }
+    else
+    {
+      const llvm::StoreInst* store = ((const llvm::StoreInst*)instruction);
+      opcode = COUNTED_STORE_BASE;
+      type = store->getValueOperand()->getType();
+      addrSpace = store->getPointerAddressSpace();
+    }
+
     // Track operations in separate address spaces
-    bool load = (opcode == llvm::Instruction::Load);
-    const llvm::Type* type = instruction->getOperand(load ? 0 : 1)->getType();
-    unsigned addrSpace = type->getPointerAddressSpace();
-    opcode = (load ? COUNTED_LOAD_BASE : COUNTED_STORE_BASE) + addrSpace;
+    opcode += addrSpace;
 
     // Count total number of bytes loaded/stored
-    unsigned bytes = getTypeSize(type->getPointerElementType());
+    unsigned bytes = getTypeSize(type);
     (*m_state.memopBytes)[opcode - COUNTED_LOAD_BASE] += bytes;
   }
   else if (opcode == llvm::Instruction::Call)

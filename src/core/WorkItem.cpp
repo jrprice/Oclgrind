@@ -11,6 +11,7 @@
 
 #include <math.h>
 
+#include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/InstIterator.h"
@@ -446,6 +447,26 @@ bool WorkItem::hasValue(const llvm::Value* key) const
   return m_cache->hasValue(key);
 }
 
+namespace
+{
+static llvm::Type* getLLVMType(const llvm::DIType* type,
+                               llvm::LLVMContext* context)
+{
+  if (auto* basic = llvm::dyn_cast<llvm::DIBasicType>(type))
+  {
+    if (basic->getName() == "char")
+    {
+      return llvm::Type::getInt8Ty(*context);
+    }
+    if (basic->getName() == "int")
+    {
+      return llvm::Type::getInt32Ty(*context);
+    }
+  }
+  return nullptr;
+}
+} // namespace
+
 void WorkItem::printExpression(string expr) const
 {
   // Split base variable name from rest of expression
@@ -520,7 +541,10 @@ void WorkItem::printExpression(string expr) const
     size_t address = result.getPointer();
     Memory* memory = getMemory(type->getPointerAddressSpace());
     data = (unsigned char*)memory->getPointer(address);
-    type = type->getPointerElementType();
+    if (baseValue->getValueID() == llvm::Value::GlobalVariableVal)
+      type = ((const llvm::GlobalVariable*)baseValue)->getValueType();
+    else
+      type = ((const llvm::AllocaInst*)baseValue)->getAllocatedType();
   }
 
   // Handle rest of print expression
@@ -585,8 +609,7 @@ void WorkItem::printExpression(string expr) const
       Memory* memory = getMemory(type->getPointerAddressSpace());
 
       // Check address is valid
-      auto elemType = type->getPointerElementType();
-      size_t elemSize = getTypeSize(elemType);
+      size_t elemSize = ptrtype->getBaseType()->getSizeInBits() / 8;
       if (!memory->isAddressValid(address + subscript * elemSize, elemSize))
       {
         cout << "invalid memory address";
@@ -599,7 +622,12 @@ void WorkItem::printExpression(string expr) const
 
       // Update types
       mdtype = ptrtype->getRawBaseType();
-      type = elemType;
+      type = getLLVMType(ptrtype->getBaseType(), m_context->getLLVMContext());
+      if (!type)
+      {
+        cout << "<internal error> unhandled pointer store type";
+        return;
+      }
     }
 
     // Deal with structure elements
@@ -849,7 +877,7 @@ INSTRUCTION(call)
       {
         // Make new copy of value in private memory
         void* data = m_privateMemory->getPointer(value.getPointer());
-        size_t size = getTypeSize(argItr->getType()->getPointerElementType());
+        size_t size = getTypeSize(argItr->getParamByValType());
         size_t ptr = m_privateMemory->allocateBuffer(size, 0, (uint8_t*)data);
         m_position->allocations.top().push_back(ptr);
 
@@ -1080,7 +1108,6 @@ INSTRUCTION(gep)
 
   // Get base address
   size_t base = getOperand(gepInst->getPointerOperand()).getPointer();
-  const llvm::Type* ptrType = gepInst->getPointerOperandType();
 
   // Get indices
   std::vector<int64_t> offsets;
@@ -1090,7 +1117,7 @@ INSTRUCTION(gep)
     offsets.push_back(getOperand(opItr->get()).getSInt());
   }
 
-  result.setPointer(resolveGEP(base, ptrType, offsets));
+  result.setPointer(resolveGEP(base, gepInst->getSourceElementType(), offsets));
 }
 
 INSTRUCTION(icmp)
@@ -1224,9 +1251,9 @@ INSTRUCTION(load)
   size_t address = getOperand(opPtr).getPointer();
 
   // Check address is correctly aligned
-  unsigned alignment = loadInst->getAlignment();
+  unsigned alignment = loadInst->getAlign().value();
   if (!alignment)
-    alignment = getTypeAlignment(opPtr->getType()->getPointerElementType());
+    alignment = getTypeAlignment(loadInst->getType());
   if (address & (alignment - 1))
   {
     m_context->logError("Invalid memory load - source pointer is "
@@ -1441,9 +1468,9 @@ INSTRUCTION(store)
   size_t address = getOperand(opPtr).getPointer();
 
   // Check address is correctly aligned
-  unsigned alignment = storeInst->getAlignment();
+  unsigned alignment = storeInst->getAlign().value();
   if (!alignment)
-    alignment = getTypeAlignment(opPtr->getType()->getPointerElementType());
+    alignment = getTypeAlignment(storeInst->getValueOperand()->getType());
   if (address & (alignment - 1))
   {
     m_context->logError("Invalid memory store - source pointer is "

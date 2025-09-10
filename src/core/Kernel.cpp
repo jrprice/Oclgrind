@@ -312,7 +312,7 @@ size_t Kernel::getArgumentSize(unsigned int index) const
   // Check if pointer argument
   if (type->isPointerTy() && argument->hasByValAttr())
   {
-    return getTypeSize(type->getPointerElementType());
+    return getTypeSize(argument->getParamByValType());
   }
 
   return getTypeSize(type);

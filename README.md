@@ -20,7 +20,7 @@ Binary releases can be found on the GitHub releases page:
 
 Build dependencies
 ------------------
-To build this project, you will need LLVM and Clang 11.0 (or newer)
+To build this project, you will need LLVM and Clang 13.0 (or newer)
 development libraries and headers. If you build LLVM from source, it
 is recommended to enable optimizations to significantly improve the
 performance of Oclgrind (set `CMAKE_BUILD_TYPE` to `Release` or

@@ -204,7 +204,7 @@ void printTypedData(const llvm::Type* type, const unsigned char* data);
 size_t resolveConstantPointer(const llvm::Value* ptr, TypedValueMap& values);
 
 // Resolve a GEP from a base address and list of offsets
-size_t resolveGEP(size_t base, const llvm::Type* ptrType,
+size_t resolveGEP(size_t base, const llvm::Type* sourceElementType,
                   std::vector<int64_t>& offsets);
 
 // Exception class for raising fatal errors
@@ -227,7 +227,7 @@ protected:
   {                                                                            \
     int sz = snprintf(NULL, 0, format, ##__VA_ARGS__);                         \
     char* str = new char[sz + 1];                                              \
-    sprintf(str, format, ##__VA_ARGS__);                                       \
+    snprintf(str, sz + 1, format, ##__VA_ARGS__);                              \
     string msg = str;                                                          \
     delete[] str;                                                              \
     throw FatalError(msg, __FILE__, __LINE__);                                 \

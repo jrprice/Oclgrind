@@ -80,6 +80,10 @@ else()
     bitreader bitwriter core coroutines coverage frontendopenmp instrumentation
     ipo irreader linker lto mcparser objcarcopts option target)
 endif()
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "15.0")
+  llvm_map_components_to_libnames(LLVM_WINDOWS_DRIVER windowsdriver)
+  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_WINDOWS_DRIVER})
+endif()
 
 # https://bugs.llvm.org/show_bug.cgi?id=44870
 list(FIND LLVM_AVAILABLE_LIBS Polly _POLLY_INDEX)
@@ -121,6 +125,9 @@ set(CLANG_LIBS
   clangCodeGen clangFrontend clangSerialization clangDriver
   clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
   clangLex clangBasic)
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "15.0")
+  set(CLANG_LIBS ${CLANG_LIBS} clangSupport)
+endif()
 
 if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")
   # https://releases.llvm.org/10.0.0/tools/clang/docs/ReleaseNotes.html#build-system-changes

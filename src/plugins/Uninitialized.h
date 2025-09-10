@@ -10,9 +10,10 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IntrinsicInst.h"
 
-//#define DUMP_SHADOW
-//#define PARANOID_CHECK(W, I) assert(checkAllOperandsDefined(W, I) && "Not all
-// operands defined") #define PARANOID_CHECK(W, I) checkAllOperandsDefined(W, I)
+// #define DUMP_SHADOW
+// #define PARANOID_CHECK(W, I) assert(checkAllOperandsDefined(W, I) && "Not all
+//  operands defined") #define PARANOID_CHECK(W, I) checkAllOperandsDefined(W,
+//  I)
 #define PARANOID_CHECK(W, I) (void*)0
 
 namespace oclgrind
@@ -292,7 +293,6 @@ private:
                                  bool unchecked = false);
   bool checkAllOperandsDefined(const WorkItem* workItem,
                                const llvm::Instruction* I);
-  void checkStructMemcpy(const WorkItem* workItem, const llvm::Value* src);
   void copyShadowMemory(unsigned dstAddrSpace, size_t dst,
                         unsigned srcAddrSpace, size_t src, unsigned size,
                         const WorkItem* workItem = NULL,
@@ -304,7 +304,8 @@ private:
                                const WorkItem* workItem = NULL,
                                const WorkGroup* workGroup = NULL,
                                bool unchecked = false);
-  static std::string extractUnmangledName(const std::string fullname);
+  static std::string extractUnmangledName(const std::string fullname,
+                                          std::string& paramTypes);
   ShadowMemory* getShadowMemory(unsigned addrSpace,
                                 const WorkItem* workItem = NULL,
                                 const WorkGroup* workGroup = NULL) const;
