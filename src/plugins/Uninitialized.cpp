@@ -97,48 +97,6 @@ bool Uninitialized::checkAllOperandsDefined(const WorkItem* workItem,
   return true;
 }
 
-void Uninitialized::checkStructMemcpy(const WorkItem* workItem,
-                                      const llvm::Value* src)
-{
-  const llvm::PointerType* srcPtrTy =
-    llvm::dyn_cast<llvm::PointerType>(src->getType());
-  const llvm::StructType* structTy =
-    llvm::dyn_cast<llvm::StructType>(srcPtrTy->getElementType());
-  size_t srcAddr = workItem->getOperand(src).getPointer();
-  unsigned srcAddrSpace = srcPtrTy->getPointerAddressSpace();
-
-  ShadowMemory* shadowMemory;
-
-  switch (srcAddrSpace)
-  {
-  case AddrSpacePrivate:
-  {
-    shadowMemory =
-      shadowContext.getShadowWorkItem(workItem)->getPrivateMemory();
-    break;
-  }
-  case AddrSpaceLocal:
-  {
-    shadowMemory = shadowContext.getShadowWorkGroup(workItem->getWorkGroup())
-                     ->getLocalMemory();
-    break;
-  }
-  case AddrSpaceConstant:
-    // TODO: Constants should always be clean?!
-    return;
-  case AddrSpaceGlobal:
-    shadowMemory = shadowContext.getGlobalMemory();
-    break;
-  default:
-    FATAL_ERROR("Unsupported addressspace %d", srcAddrSpace);
-  }
-
-  if (!ShadowContext::isCleanStruct(shadowMemory, srcAddr, structTy))
-  {
-    logUninitializedWrite(srcAddrSpace, srcAddr);
-  }
-}
-
 void Uninitialized::copyShadowMemory(unsigned dstAddrSpace, size_t dst,
                                      unsigned srcAddrSpace, size_t src,
                                      unsigned size, const WorkItem* workItem,
@@ -166,13 +124,15 @@ void Uninitialized::copyShadowMemoryStrided(
   delete[] v.data;
 }
 
-std::string Uninitialized::extractUnmangledName(const std::string fullname)
+std::string Uninitialized::extractUnmangledName(const std::string fullname,
+                                                std::string& paramTypes)
 {
   // Extract unmangled name
   if (fullname.compare(0, 2, "_Z") == 0)
   {
     int len = atoi(fullname.c_str() + 2);
     int start = fullname.find_first_not_of("0123456789", 2);
+    paramTypes = fullname.substr(start + len);
     return fullname.substr(start, len);
   }
   else
@@ -223,7 +183,8 @@ bool Uninitialized::handleBuiltinFunction(const WorkItem* workItem, string name,
                                           const llvm::CallInst* CI,
                                           const TypedValue result)
 {
-  name = extractUnmangledName(name);
+  string paramTypes;
+  name = extractUnmangledName(name, paramTypes);
   ShadowValues* shadowValues =
     shadowContext.getShadowWorkItem(workItem)->getValues();
 
@@ -239,7 +200,17 @@ bool Uninitialized::handleBuiltinFunction(const WorkItem* workItem, string name,
     size_t src = workItem->getOperand(srcOp).getPointer();
 
     // Get size of copy
-    unsigned elemSize = getTypeSize(dstOp->getType()->getPointerElementType());
+    unsigned elemSize;
+    char ptrtype = paramTypes[6];
+    switch (ptrtype)
+    {
+    case 'i':
+      elemSize = 4;
+      break;
+    default:
+      FATAL_ERROR("Unsupported argument type: %c", ptrtype);
+      break;
+    }
 
     const llvm::Value* numOp = CI->getArgOperand(arg++);
     uint64_t num = workItem->getOperand(numOp).getUInt();
@@ -944,12 +915,10 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem* workItem,
   switch (I->getIntrinsicID())
   {
   case llvm::Intrinsic::fmuladd:
-#if LLVM_VERSION >= 120
   case llvm::Intrinsic::smax:
   case llvm::Intrinsic::smin:
   case llvm::Intrinsic::umax:
   case llvm::Intrinsic::umin:
-#endif
   {
     SimpleOr(workItem, I);
     break;
@@ -966,12 +935,6 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem* workItem,
     unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
     const llvm::PointerType* srcPtrTy =
       llvm::dyn_cast<llvm::PointerType>(memcpyInst->getSource()->getType());
-
-    if (dstAddrSpace != AddrSpacePrivate &&
-        srcPtrTy->getElementType()->isStructTy())
-    {
-      checkStructMemcpy(workItem, memcpyInst->getSource());
-    }
 
     copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size, workItem, NULL,
                      true);
@@ -1219,7 +1182,7 @@ void Uninitialized::instructionExecuted(const WorkItem* workItem,
         ShadowMemory* mem = shadowWorkItem->getPrivateMemory();
         unsigned char* origShadowData =
           (unsigned char*)mem->getPointer(origShadowAddress);
-        size_t size = getTypeSize(argItr->getType()->getPointerElementType());
+        size_t size = getTypeSize(argItr->getParamByValType());
 
         // Set new shadow memory
         TypedValue v = ShadowContext::getCleanValue(size);
@@ -1840,9 +1803,9 @@ void Uninitialized::kernelBegin(const KernelInvocation* kernelInvocation)
         TypedValue cleanValue =
           m_pool.clone(ShadowContext::getCleanValue(value->first));
         shadowContext.setGlobalValue(value->first, cleanValue);
-        const llvm::Type* elementTy = type->getPointerElementType();
-        allocAndStoreShadowMemory(AddrSpaceConstant, value->second.getPointer(),
-                                  ShadowContext::getCleanValue(elementTy));
+        allocAndStoreShadowMemory(
+          AddrSpaceConstant, value->second.getPointer(),
+          ShadowContext::getCleanValue(value->second.size));
         break;
       }
       case AddrSpaceGlobal:

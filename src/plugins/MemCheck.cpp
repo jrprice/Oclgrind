@@ -139,7 +139,8 @@ void MemCheck::checkArrayAccess(const WorkItem* workItem,
     }
     else if (ptrType->isPointerTy())
     {
-      ptrType = ptrType->getPointerElementType();
+      assert(opIndex == GEPI->idx_begin());
+      ptrType = GEPI->getSourceElementType();
     }
     else if (ptrType->isVectorTy())
     {

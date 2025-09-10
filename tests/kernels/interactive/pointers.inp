@@ -9,6 +9,7 @@ step
 step
 print gi
 print gi[0]
+print gi[1]
 print gc
 print gc[0]
 print li

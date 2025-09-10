@@ -191,7 +191,45 @@ class WorkItemBuiltins
     size_t src = workItem->getOperand(srcOp).getPointer();
 
     // Get size of copy
-    unsigned elemSize = getTypeSize(destOp->getType()->getPointerElementType());
+    unsigned elemSize;
+    unsigned vecwidth = 1;
+    char ptrtype = overload[6];
+    if (ptrtype == 'D')
+    {
+      char* typestr;
+      vecwidth = strtol(overload.c_str() + 8, &typestr, 10);
+      if (vecwidth == 3)
+      {
+        vecwidth = 4;
+      }
+      ptrtype = typestr[1];
+    }
+    switch (ptrtype)
+    {
+    case 'c':
+    case 'h':
+      elemSize = 1;
+      break;
+    case 's':
+    case 't':
+      elemSize = 2;
+      break;
+    case 'f':
+    case 'i':
+    case 'j':
+      elemSize = 4;
+      break;
+    case 'd':
+    case 'l':
+    case 'm':
+      elemSize = 8;
+      break;
+    default:
+      FATAL_ERROR("Unsupported argument type: %c", ptrtype);
+      break;
+    }
+    elemSize *= vecwidth;
+
     uint64_t num = UARG(arg++);
 
     // Get stride
@@ -279,8 +317,7 @@ class WorkItemBuiltins
     Memory* memory =
       workItem->getMemory(ARG(0)->getType()->getPointerAddressSpace());
 
-    const bool is_64bit(
-      ARG(0)->getType()->getPointerElementType()->getScalarSizeInBits() == 64);
+    const bool is_64bit(result.size == 8);
     const bool is_signed_type(_is_signed_type(overload.back()));
     const auto op(name_to_op.at(fnName));
 

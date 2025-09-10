@@ -166,7 +166,7 @@ void Program::allocateProgramScopeVars()
       continue;
 
     // Allocate global variable
-    const llvm::Type* type = itr->getType()->getPointerElementType();
+    const llvm::Type* type = itr->getValueType();
     size_t size = getTypeSize(type);
     size_t ptr = globalMemory->allocateBuffer(size);
     m_totalProgramScopeVarSize += size;
@@ -957,8 +957,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
       }
       indices.push_back(index);
       scalarPtr = llvm::GetElementPtrInst::Create(
-        gep->getPointerOperandType()->getPointerElementType(),
-        gep->getPointerOperand(), indices);
+        gep->getSourceElementType(), gep->getPointerOperand(), indices);
     }
     else
     {
@@ -967,7 +966,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
       indices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
       indices.push_back(index);
       scalarPtr = llvm::GetElementPtrInst::Create(
-        vectorPtr->getType()->getPointerElementType(), vectorPtr, indices);
+        store->getValueOperand()->getType(), vectorPtr, indices);
     }
     scalarPtr->setDebugLoc(store->getDebugLoc());
     scalarPtr->insertAfter(store);
@@ -985,9 +984,9 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
     if (!(load && load->getPointerOperand() == store->getPointerOperand()))
     {
       // Replace value in store with the input to the insertelement instruction
-      llvm::StoreInst* _store = new llvm::StoreInst(
-        vector, store->getPointerOperand(), store->isVolatile(),
-        llvm::Align(store->getAlignment()));
+      llvm::StoreInst* _store =
+        new llvm::StoreInst(vector, store->getPointerOperand(),
+                            store->isVolatile(), store->getAlign());
       _store->setDebugLoc(store->getDebugLoc());
       _store->insertAfter(store);
 
@@ -1083,8 +1082,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
         }
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
         scalarPtr = llvm::GetElementPtrInst::Create(
-          gep->getPointerOperandType()->getPointerElementType(),
-          gep->getPointerOperand(), gepIndices);
+          gep->getSourceElementType(), gep->getPointerOperand(), gepIndices);
       }
       else
       {
@@ -1093,7 +1091,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
         gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
         scalarPtr = llvm::GetElementPtrInst::Create(
-          vectorPtr->getType()->getPointerElementType(), vectorPtr, gepIndices);
+          store->getValueOperand()->getType(), vectorPtr, gepIndices);
       }
       scalarPtr->setDebugLoc(store->getDebugLoc());
       scalarPtr->insertAfter(store);

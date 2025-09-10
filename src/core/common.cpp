@@ -456,26 +456,29 @@ llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr* expr)
                                            operands[2]);
   case llvm::Instruction::ExtractElement:
     return llvm::ExtractElementInst::Create(operands[0], operands[1]);
+#if LLVM_VERSION < 150
   case llvm::Instruction::InsertValue:
     return llvm::InsertValueInst::Create(operands[0], operands[1],
                                          expr->getIndices());
   case llvm::Instruction::ExtractValue:
     return llvm::ExtractValueInst::Create(operands[0], expr->getIndices());
+#endif
   case llvm::Instruction::ShuffleVector:
     return new llvm::ShuffleVectorInst(operands[0], operands[1], operands[2]);
   case llvm::Instruction::GetElementPtr:
-    if (((const llvm::GEPOperator*)expr)->isInBounds())
+  {
+    const llvm::GEPOperator* gep = ((const llvm::GEPOperator*)expr);
+    if (gep->isInBounds())
     {
       return llvm::GetElementPtrInst::CreateInBounds(
-        operands[0]->getType()->getPointerElementType(), operands[0],
-        operands.slice(1));
+        gep->getSourceElementType(), operands[0], operands.slice(1));
     }
     else
     {
-      return llvm::GetElementPtrInst::Create(
-        operands[0]->getType()->getPointerElementType(), operands[0],
-        operands.slice(1));
+      return llvm::GetElementPtrInst::Create(gep->getSourceElementType(),
+                                             operands[0], operands.slice(1));
     }
+  }
   case llvm::Instruction::ICmp:
   case llvm::Instruction::FCmp:
     return llvm::CmpInst::Create((llvm::Instruction::OtherOps)opcode,
@@ -795,7 +798,6 @@ size_t resolveConstantPointer(const llvm::Value* ptr, TypedValueMap& values)
   {
     // Get base address
     size_t base = resolveConstantPointer(gep->getPointerOperand(), values);
-    const llvm::Type* ptrType = gep->getPointerOperandType();
 
     // Get indices
     std::vector<int64_t> offsets;
@@ -806,7 +808,7 @@ size_t resolveConstantPointer(const llvm::Value* ptr, TypedValueMap& values)
       offsets.push_back(idx->getSExtValue());
     }
 
-    return resolveGEP(base, ptrType, offsets);
+    return resolveGEP(base, gep->getSourceElementType(), offsets);
   }
   else if (auto bc = llvm::dyn_cast<llvm::BitCastOperator>(ptr))
   {
@@ -825,24 +827,22 @@ size_t resolveConstantPointer(const llvm::Value* ptr, TypedValueMap& values)
   return 0;
 }
 
-size_t resolveGEP(size_t base, const llvm::Type* ptrType,
+size_t resolveGEP(size_t base, const llvm::Type* sourceElementType,
                   std::vector<int64_t>& offsets)
 {
   size_t address = base;
+  const llvm::Type* ptrType = sourceElementType;
+
+  // Index into base pointer.
+  assert(offsets.size() > 0 && "expected at least one offset");
+  address += offsets[0] * getTypeSize(sourceElementType);
 
   // Iterate over indices
-  for (int i = 0; i < offsets.size(); i++)
+  for (int i = 1; i < offsets.size(); i++)
   {
     int64_t offset = offsets[i];
 
-    if (ptrType->isPointerTy())
-    {
-      // Get pointer element size
-      const llvm::Type* elemType = ptrType->getPointerElementType();
-      address += offset * getTypeSize(elemType);
-      ptrType = elemType;
-    }
-    else if (ptrType->isArrayTy())
+    if (ptrType->isArrayTy())
     {
       // Get array element size
       const llvm::Type* elemType = ptrType->getArrayElementType();

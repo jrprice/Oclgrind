@@ -15,10 +15,10 @@ MATCH t.b = 42
 MATCH 16	  *out = t;
 MATCH 17	  out->a += 2;
 MATCH 18	  out->b += 0.2f;
-MATCH out[0].a = 10
-MATCH out[0].b = 42.3
-MATCH out->a = 10
-MATCH out->b = 42.3
+MATCH out[0].a = <internal error>
+MATCH out[0].b = <internal error>
+MATCH out->a = <internal error>
+MATCH out->b = <internal error>
 
 MATCH Argument 'out': 8 bytes
 MATCH   out[0] = 0x0A

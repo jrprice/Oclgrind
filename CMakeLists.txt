@@ -62,8 +62,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 # Check LLVM version
-if (${LLVM_PACKAGE_VERSION} VERSION_LESS "12.0")
-  message(FATAL_ERROR "LLVM version must be >= 12.0")
+if (${LLVM_PACKAGE_VERSION} VERSION_LESS "13.0")
+  message(FATAL_ERROR "LLVM version must be >= 13.0")
 endif()
 
 # Add flags for LLVM
@@ -79,6 +79,10 @@ else()
   llvm_map_components_to_libnames(LLVM_LIBS
     bitreader bitwriter core coroutines coverage frontendopenmp instrumentation
     ipo irreader linker lto mcparser objcarcopts option target)
+endif()
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "15.0")
+  llvm_map_components_to_libnames(LLVM_WINDOWS_DRIVER windowsdriver)
+  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_WINDOWS_DRIVER})
 endif()
 
 # https://bugs.llvm.org/show_bug.cgi?id=44870
@@ -121,6 +125,9 @@ set(CLANG_LIBS
   clangCodeGen clangFrontend clangSerialization clangDriver
   clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
   clangLex clangBasic)
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "15.0")
+  set(CLANG_LIBS ${CLANG_LIBS} clangSupport)
+endif()
 
 if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")
   # https://releases.llvm.org/10.0.0/tools/clang/docs/ReleaseNotes.html#build-system-changes
