@@ -4,7 +4,7 @@ if [ "`uname`" == "Linux" ]; then
     # Add repositories
     wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
     sudo add-apt-repository -y \
-        "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-${LLVM_VERSION} main"
+        "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-${LLVM_VERSION} main"
     sudo apt-get update -qq
 
     # Install Clang + LLVM
