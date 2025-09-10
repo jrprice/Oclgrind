@@ -3,12 +3,12 @@ on: [push, pull_request]
 
 env:
   RELEASE_VERSION: "21.10"
-  RELEASE_LLVM: "14"
+  RELEASE_LLVM: "13"
 
 jobs:
   check-format:
     name: Check formatting
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
         with:
@@ -27,14 +27,16 @@ jobs:
       INSTALL_DIR: "${{ github.workspace }}/install"
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11.0]
+        os: [ubuntu-22.04, macos-13]
         compiler: [gcc, clang]
         build_type: [Release, Debug]
-        llvm: [12, 13, 14]
+        llvm: [12, 13]
         exclude:
-          - os: macos-11.0
+          - os: macos-13
+            llvm: 12
+          - os: macos-13
             llvm: 13
-          - os: macos-11.0
+          - os: macos-13
             compiler: gcc
 
     steps:
@@ -88,14 +90,14 @@ jobs:
           mkdir -p artifact
           tar czf artifact/oclgrind-${RELEASE_VERSION}.tgz oclgrind-${RELEASE_VERSION}
       - name: Upload build artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: Oclgrind-${{ env.RELEASE_VERSION }}-${{ matrix.os }}-llvm${{ matrix.llvm }}-${{ matrix.build_type }}-${{ matrix.compiler }}
           path: artifact
 
   build-windows:
     name: Build ${{ matrix.platform }} llvm-${{ matrix.llvm }}
-    runs-on: windows-2019
+    runs-on: windows-2022
     needs: [check-format]
     env:
       LLVM_VERSION: ${{ matrix.llvm }}
@@ -108,7 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: cache-llvm
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: llvm-${{ matrix.llvm }}
           key: llvm-${{ matrix.llvm }}-${{ matrix.platform }}
@@ -119,7 +121,7 @@ jobs:
       - name: CMake
         shell: bash
         run: >
-          cmake .. -G "Visual Studio 16 2019" -A ${{ matrix.platform }}
+          cmake .. -G "Visual Studio 17 2022" -A ${{ matrix.platform }}
           -DLLVM_DIR=$PWD/../llvm-${{ matrix.llvm }}/install/lib/cmake/llvm
           -DCMAKE_INSTALL_PREFIX=$PWD/../install/
         working-directory: build
@@ -135,7 +137,7 @@ jobs:
         run: cmake --build . --config Release --target INSTALL
         working-directory: build
       - name: Upload build artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: Oclgrind-${{ env.RELEASE_VERSION }}-Windows-${{ matrix.platform }}-llvm${{ matrix.llvm }}
           path: install
@@ -143,7 +145,7 @@ jobs:
 
   upload-windows-binaries:
     name: Upload Windows binaries
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [build-windows]
     steps:
       - uses: actions/checkout@v2
@@ -169,20 +171,22 @@ jobs:
           rm -rf $outdir/include/oclgrind/*.pch
           rm -rf $outdir/x86/include/CL
       - name: Upload binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: Oclgrind-${{ env.RELEASE_VERSION }}-Windows
           path: artifact
 
   build-cts:
     name: Build OpenCL CTS
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [build]
     env:
       cts_hash: 92285f7c9de965ddc41e7dfaaab8c7c75aa55dbe
+      headers_hash: 5e2f8c66476bcf60eb8c2921807e34efb30294ee
+      loader_hash: 4aa683775c4ee55594196c79def7a75103d75e4c
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         id: cache-cts
         with:
           path: opencl-cts
@@ -201,11 +205,13 @@ jobs:
         with:
           repository: KhronosGroup/OpenCL-Headers
           path: opencl-cts/opencl-headers
+          ref: ${{ env.headers_hash }}
       - uses: actions/checkout@v2
         if: steps.cache-cts.outputs.cache-hit != 'true'
         with:
           repository: KhronosGroup/OpenCL-ICD-Loader
           path: opencl-cts/opencl-icd-loader
+          ref: ${{ env.loader_hash }}
       - name: Create ICD loader build dir
         run: cmake -E make_directory opencl-cts/opencl-icd-loader/build
       - name: CMake ICD Loader
@@ -241,7 +247,7 @@ jobs:
 
   run-cts:
     name: Run OpenCL CTS ${{ matrix.suite[0] }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [build-cts]
     env:
       cts_hash: 92285f7c9de965ddc41e7dfaaab8c7c75aa55dbe
@@ -289,13 +295,13 @@ jobs:
       - name: Download Oclgrind
         uses: actions/download-artifact@v4.1.7
         with:
-          name: Oclgrind-${{ env.RELEASE_VERSION }}-ubuntu-20.04-llvm${{ env.RELEASE_LLVM }}-Release-gcc
+          name: Oclgrind-${{ env.RELEASE_VERSION }}-ubuntu-22.04-llvm${{ env.RELEASE_LLVM }}-Release-gcc
       - name: Unpack Oclgrind
         shell: bash
         run: |
           tar xf oclgrind-${RELEASE_VERSION}.tgz
       - name: cache-cts
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: opencl-cts
           key: opencl-cts-${{ env.cts_hash }}

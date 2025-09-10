@@ -13,6 +13,9 @@ if [ "`uname`" == "Linux" ]; then
         libclang-${LLVM_VERSION}-dev \
         clang-${LLVM_VERSION} \
         libomp-${LLVM_VERSION}-dev
+    if [ ${LLVM_VERSION} -ge 14 ]; then
+      sudo apt-get install -y libpolly-${LLVM_VERSION}-dev
+    fi
     sudo update-alternatives --install \
         /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 20
     sudo update-alternatives --install \
@@ -56,7 +59,7 @@ elif [[ "`uname`" == "MINGW64"* ]]; then
         mkdir -p llvm-${LLVM_VERSION}/build
         cd llvm-${LLVM_VERSION}/build
         cmake .. \
-            -G "Visual Studio 16 2019" -A ${BUILD_PLATFORM} \
+            -G "Visual Studio 17 2022" -A ${BUILD_PLATFORM} \
             -DCMAKE_INSTALL_PREFIX=$PWD/../install \
             -DLLVM_TARGETS_TO_BUILD=host \
             -DLLVM_INCLUDE_BENCHMARKS=OFF
