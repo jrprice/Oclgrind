@@ -147,11 +147,11 @@ jobs:
     needs: [build-windows]
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: Oclgrind-${{ env.RELEASE_VERSION }}-Windows-Win32-llvm${{ env.RELEASE_LLVM }}
           path: artifact/oclgrind-${{ env.RELEASE_VERSION }}/x86
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: Oclgrind-${{ env.RELEASE_VERSION }}-Windows-x64-llvm${{ env.RELEASE_LLVM }}
           path: artifact/oclgrind-${{ env.RELEASE_VERSION }}/x64
@@ -287,7 +287,7 @@ jobs:
           LLVM_VERSION=${{ env.RELEASE_LLVM }} \
             bash .github/workflows/install-deps.sh
       - name: Download Oclgrind
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4.1.7
         with:
           name: Oclgrind-${{ env.RELEASE_VERSION }}-ubuntu-20.04-llvm${{ env.RELEASE_LLVM }}-Release-gcc
       - name: Unpack Oclgrind
