@@ -21,8 +21,8 @@ if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 endif()
 
-# Require C++14 (hard requirement for LLVM >10)
-set(CMAKE_CXX_STANDARD 14)
+# Require C++17 (hard requirement for LLVM 16+)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable rpath on OS X
@@ -82,6 +82,10 @@ else()
 endif()
 if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "15.0")
   llvm_map_components_to_libnames(LLVM_WINDOWS_DRIVER windowsdriver)
+  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_WINDOWS_DRIVER})
+endif()
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "16.0")
+  llvm_map_components_to_libnames(LLVM_WINDOWS_DRIVER frontendhlsl)
   set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_WINDOWS_DRIVER})
 endif()
 
@@ -144,18 +148,22 @@ endif()
 
 # Get path to Clang's opencl-c.h header
 get_filename_component(CLANG_LIB_DIR "${CLANG_LIB}" DIRECTORY)
-set(CLANG_FULL_VERSION
-    "${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}")
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "16.0")
+  set(CLANG_DIR_VERSION ${LLVM_VERSION_MAJOR})
+else()
+  set(CLANG_DIR_VERSION
+      "${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}")
+endif()
 set(CLANG_OPENCL_C_H
-    "${CLANG_LIB_DIR}/clang/${CLANG_FULL_VERSION}/include/opencl-c.h")
+    "${CLANG_LIB_DIR}/clang/${CLANG_DIR_VERSION}/include/opencl-c.h")
 if (NOT EXISTS "${CLANG_OPENCL_C_H}")
   message(FATAL_ERROR "\nClang opencl-c.h not found:\n\t${CLANG_OPENCL_C_H}")
 else()
   message(STATUS "Using opencl-c.h: ${CLANG_OPENCL_C_H}")
 endif()
 
-if (EXISTS "${CLANG_LIB_DIR}/clang/${CLANG_FULL_VERSION}/include/opencl-c-base.h")
-  set(CLANG_OPENCL_C_BASE_H "${CLANG_LIB_DIR}/clang/${CLANG_FULL_VERSION}/include/opencl-c-base.h")
+if (EXISTS "${CLANG_LIB_DIR}/clang/${CLANG_DIR_VERSION}/include/opencl-c-base.h")
+  set(CLANG_OPENCL_C_BASE_H "${CLANG_LIB_DIR}/clang/${CLANG_DIR_VERSION}/include/opencl-c-base.h")
 endif()
 
 # Check for clang

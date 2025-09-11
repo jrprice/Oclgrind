@@ -26,7 +26,7 @@ is recommended to enable optimizations to significantly improve the
 performance of Oclgrind (set `CMAKE_BUILD_TYPE` to `Release` or
 `RelWithDebInfo`).
 
-You will need to use a compiler that supports C++14. Python should
+You will need to use a compiler that supports C++17. Python should
 also be available in order to run the test suite.
 
 
