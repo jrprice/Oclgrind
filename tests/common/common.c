@@ -1,6 +1,7 @@
 #include "common.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 void checkError(cl_int err, const char* operation)

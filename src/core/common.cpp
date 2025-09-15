@@ -420,6 +420,18 @@ void getConstantData(unsigned char* data, const llvm::Constant* constant)
     }
     break;
   }
+#if LLVM_VERSION >= 170
+  case llvm::Type::TargetExtTyID:
+  {
+    auto name = type->getTargetExtName();
+    if (name != "spirv.Event")
+    {
+      FATAL_ERROR("Unsupported target ext type: %s", name.str().c_str());
+    }
+    *((size_t*)data) = 0;
+    break;
+  }
+#endif
   default:
     FATAL_ERROR("Unsupported constant type: %d", type->getTypeID());
   }
@@ -456,13 +468,6 @@ llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr* expr)
                                            operands[2]);
   case llvm::Instruction::ExtractElement:
     return llvm::ExtractElementInst::Create(operands[0], operands[1]);
-#if LLVM_VERSION < 150
-  case llvm::Instruction::InsertValue:
-    return llvm::InsertValueInst::Create(operands[0], operands[1],
-                                         expr->getIndices());
-  case llvm::Instruction::ExtractValue:
-    return llvm::ExtractValueInst::Create(operands[0], expr->getIndices());
-#endif
   case llvm::Instruction::ShuffleVector:
     return new llvm::ShuffleVectorInst(operands[0], operands[1], operands[2]);
   case llvm::Instruction::GetElementPtr:
@@ -608,6 +613,21 @@ unsigned getTypeSize(const llvm::Type* type)
   {
     return sizeof(size_t);
   }
+#if LLVM_VERSION >= 170
+  else if (type->isTargetExtTy())
+  {
+    auto name = type->getTargetExtName();
+    if (name == "spirv.Event")
+    {
+      return sizeof(size_t);
+    }
+    if (name == "spirv.Image" || name == "spirv.Sampler")
+    {
+      return sizeof(void*);
+    }
+    FATAL_ERROR("Unsupported target ext type: %s", name.str().c_str());
+  }
+#endif
   else
   {
     // Round up for types that have a bit size not multiple of 8
@@ -665,6 +685,26 @@ pair<unsigned, unsigned> getValueSize(const llvm::Value* value)
     bits = getTypeSize(type) << 3;
     numElements = 1;
   }
+#if LLVM_VERSION >= 170
+  else if (type->isTargetExtTy())
+  {
+    auto name = type->getTargetExtName();
+    if (name == "spirv.Event")
+    {
+      bits = sizeof(size_t) * 8;
+      numElements = 1;
+    }
+    else if (name == "spirv.Image" || name == "spirv.Sampler")
+    {
+      bits = sizeof(void*) * 8;
+      numElements = 1;
+    }
+    else
+    {
+      FATAL_ERROR("Unsupported target ext type: %s", name.str().c_str());
+    }
+  }
+#endif
   else
   {
     bits = type->getPrimitiveSizeInBits();

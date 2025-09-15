@@ -6,7 +6,7 @@
 # license terms please see the LICENSE file distributed with this
 # source code.
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.22)
 project(Oclgrind)
 set(Oclgrind_VERSION_MAJOR 21)
 set(Oclgrind_VERSION_MINOR 10)
@@ -307,6 +307,12 @@ add_executable(oclgrind-exe src/runtime/oclgrind.cpp)
 set_target_properties(oclgrind-exe PROPERTIES OUTPUT_NAME oclgrind)
 target_compile_definitions(oclgrind-exe PRIVATE
                            "-DLIBDIR_SUFFIX=\"${LIBDIR_SUFFIX}\"")
+if (APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+  add_custom_command(TARGET oclgrind-exe
+      POST_BUILD COMMAND
+      ${CMAKE_INSTALL_NAME_TOOL} -add_rpath "${LLVM_LIBRARY_DIRS}"
+      $<TARGET_FILE:oclgrind-exe>)
+endif()
 
 add_executable(oclgrind-kernel
   src/kernel/oclgrind-kernel.cpp

@@ -100,6 +100,7 @@ def run(output_suffix):
   out.close()
   if retval != 0:
     print('Test returned non-zero value (' + str(retval) + ')')
+    print(open(test_out).read())
     fail(retval)
 
   # Compare output to reference file (if provided)

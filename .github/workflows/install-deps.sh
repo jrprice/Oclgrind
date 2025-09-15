@@ -1,5 +1,12 @@
 #!/bin/bash
 
+LLVM_FULL_VERSION=${LLVM_VERSION}.0.0
+if [ ${LLVM_VERSION} == 16 ]; then
+    LLVM_FULL_VERSION=16.0.6
+elif [ ${LLVM_VERSION} == 17 ]; then
+    LLVM_FULL_VERSION=17.0.1
+fi
+
 if [ "`uname`" == "Linux" ]; then
     # Add repositories
     wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
@@ -24,44 +31,33 @@ if [ "`uname`" == "Linux" ]; then
     # Other dependencies
     sudo apt-get install -y libedit-dev libvulkan-dev
 elif [ "`uname`" == "Darwin" ]; then
-    URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}.0.0"
-    ARCHIVE="clang+llvm-${LLVM_VERSION}.0.0-x86_64-apple-darwin.tar.xz"
+    URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_FULL_VERSION}"
+    ARCHIVE="clang+llvm-${LLVM_FULL_VERSION}-arm64-apple-darwin22.0.tar.xz"
 
     mkdir -p llvm-${LLVM_VERSION}
     wget "$URL/$ARCHIVE"
     tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}
 elif [[ "`uname`" == "MINGW64"* ]]; then
     if [ ! -r llvm-${LLVM_VERSION}/install/lib/cmake/llvm/LLVMConfig.cmake ]; then
-        PACKAGE_VERSION=${LLVM_VERSION}.0.0
-        if [ ${LLVM_VERSION} == 16 ]; then
-            PACKAGE_VERSION=16.0.6
-        fi
-
-        URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${PACKAGE_VERSION}"
+        URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_FULL_VERSION}"
 
         # Get LLVM
-        ARCHIVE="llvm-${PACKAGE_VERSION}.src.tar.xz"
+        ARCHIVE="llvm-${LLVM_FULL_VERSION}.src.tar.xz"
         mkdir -p llvm-${LLVM_VERSION}/llvm
         curl -OL "$URL/$ARCHIVE"
         tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/llvm
 
         # Get Clang
-        ARCHIVE="clang-${PACKAGE_VERSION}.src.tar.xz"
+        ARCHIVE="clang-${LLVM_FULL_VERSION}.src.tar.xz"
         mkdir -p llvm-${LLVM_VERSION}/clang
         curl -OL "$URL/$ARCHIVE"
         tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/clang
 
-        if [ ${LLVM_VERSION} == 14 ]; then
-            mkdir -p cmake
-            mv "llvm-${LLVM_VERSION}/Modules" cmake
-        elif [ ${LLVM_VERSION} -ge 15 ]; then
-            mkdir -p llvm-${LLVM_VERSION}/cmake
-
-            # Get CMake helpers
-            ARCHIVE="cmake-${PACKAGE_VERSION}.src.tar.xz"
-            curl -OL "$URL/$ARCHIVE"
-            tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/cmake
-        fi
+        # Get CMake helpers
+        mkdir -p llvm-${LLVM_VERSION}/cmake
+        ARCHIVE="cmake-${LLVM_FULL_VERSION}.src.tar.xz"
+        curl -OL "$URL/$ARCHIVE"
+        tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/cmake
 
         # Build LLVM + Clang
         mkdir -p llvm-${LLVM_VERSION}/build

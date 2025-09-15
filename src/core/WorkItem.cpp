@@ -1418,7 +1418,11 @@ INSTRUCTION(shuffle)
   {
     const llvm::Value* src = v1;
     int index = shuffle->getMaskValue(i);
+#if LLVM_VERSION < 170
     if (index == llvm::UndefMaskElem)
+#else
+    if (index == llvm::PoisonMaskElem)
+#endif
     {
       // Don't care / undef
       continue;
