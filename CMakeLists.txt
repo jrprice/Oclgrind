@@ -62,8 +62,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 # Check LLVM version
-if (${LLVM_PACKAGE_VERSION} VERSION_LESS "13.0")
-  message(FATAL_ERROR "LLVM version must be >= 13.0")
+if (${LLVM_PACKAGE_VERSION} VERSION_LESS "15.0")
+  message(FATAL_ERROR "LLVM version must be >= 15.0")
 endif()
 
 # Add flags for LLVM
@@ -78,15 +78,15 @@ if (${_LLVM_SHARED_INDEX} GREATER -1)
 else()
   llvm_map_components_to_libnames(LLVM_LIBS
     bitreader bitwriter core coroutines coverage frontendopenmp instrumentation
-    ipo irreader linker lto mcparser objcarcopts option target)
-endif()
-if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "15.0")
-  llvm_map_components_to_libnames(LLVM_WINDOWS_DRIVER windowsdriver)
-  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_WINDOWS_DRIVER})
+    ipo irreader linker lto mcparser objcarcopts option target windowsdriver)
 endif()
 if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "16.0")
-  llvm_map_components_to_libnames(LLVM_WINDOWS_DRIVER frontendhlsl)
-  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_WINDOWS_DRIVER})
+  llvm_map_components_to_libnames(LLVM_FRONTEND_HLSL frontendhlsl)
+  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_FRONTEND_HLSL})
+endif()
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "18.0")
+  llvm_map_components_to_libnames(LLVM_FRONTEND_DRIVER frontenddriver)
+  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_FRONTEND_DRIVER})
 endif()
 
 # https://bugs.llvm.org/show_bug.cgi?id=44870
@@ -125,12 +125,16 @@ find_library(CLANG_LIB "clangFrontend"
              PATHS "${CLANG_ROOT}/lib" "${LLVM_LIBRARY_DIRS}"
              NO_DEFAULT_PATH)
 find_library(CLANG_LIB "clangFrontend")
-set(CLANG_LIBS
-  clangCodeGen clangFrontend clangSerialization clangDriver
-  clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
-  clangLex clangBasic)
-if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "15.0")
-  set(CLANG_LIBS ${CLANG_LIBS} clangSupport)
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "18.0")
+  set(CLANG_LIBS
+    clangCodeGen clangFrontend clangSerialization clangDriver
+    clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
+    clangLex clangAPINotes clangBasic clangSupport)
+else()
+  set(CLANG_LIBS
+    clangCodeGen clangFrontend clangSerialization clangDriver
+    clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
+    clangLex clangBasic clangSupport)
 endif()
 
 if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")

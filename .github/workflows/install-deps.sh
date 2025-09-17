@@ -5,6 +5,8 @@ if [ ${LLVM_VERSION} == 16 ]; then
     LLVM_FULL_VERSION=16.0.6
 elif [ ${LLVM_VERSION} == 17 ]; then
     LLVM_FULL_VERSION=17.0.1
+elif [ ${LLVM_VERSION} == 18 ]; then
+    LLVM_FULL_VERSION=18.1.0
 fi
 
 if [ "`uname`" == "Linux" ]; then
@@ -31,12 +33,7 @@ if [ "`uname`" == "Linux" ]; then
     # Other dependencies
     sudo apt-get install -y libedit-dev libvulkan-dev
 elif [ "`uname`" == "Darwin" ]; then
-    URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_FULL_VERSION}"
-    ARCHIVE="clang+llvm-${LLVM_FULL_VERSION}-arm64-apple-darwin22.0.tar.xz"
-
-    mkdir -p llvm-${LLVM_VERSION}
-    wget "$URL/$ARCHIVE"
-    tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}
+    brew install llvm@${LLVM_VERSION}
 elif [[ "`uname`" == "MINGW64"* ]]; then
     if [ ! -r llvm-${LLVM_VERSION}/install/lib/cmake/llvm/LLVMConfig.cmake ]; then
         URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_FULL_VERSION}"

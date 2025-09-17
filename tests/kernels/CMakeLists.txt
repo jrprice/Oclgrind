@@ -22,5 +22,11 @@ endforeach(${test})
 set_tests_properties(${KERNEL_TESTS} PROPERTIES
     ENVIRONMENT "OCLGRIND_PCH_DIR=${CMAKE_BINARY_DIR}/include/oclgrind")
 
+# https://github.com/jrprice/Oclgrind/218
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" AND
+    ${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "18.0")
+  set(XFAIL ${XFAIL} memcheck/static_array_padded_struct)
+endif()
+
 # Expected failures
 set_tests_properties(${XFAIL} PROPERTIES WILL_FAIL TRUE)

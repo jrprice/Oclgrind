@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   RELEASE_VERSION: "21.10"
-  RELEASE_LLVM: "17"
+  RELEASE_LLVM: "18"
 
 jobs:
   check-format:
@@ -31,7 +31,7 @@ jobs:
         os: [ubuntu-22.04, macos-15]
         compiler: [gcc, clang]
         build_type: [Release, Debug]
-        llvm: [15, 16, 17]
+        llvm: [15, 16, 17, 18]
         exclude:
           - os: macos-15
             llvm: 15
@@ -50,7 +50,7 @@ jobs:
           if [[ "${{ matrix.os }}" =~ ubuntu-.* ]]; then
             echo LLVM_DIR=/usr/lib/llvm-${{ matrix.llvm }}/lib/cmake/llvm >>$GITHUB_ENV
           elif [[ "${{ matrix.os }}" =~ macos-.* ]]; then
-            echo LLVM_DIR=$PWD/llvm-${LLVM_VERSION}/lib/cmake/llvm >>$GITHUB_ENV
+            echo LLVM_DIR=$(brew --prefix llvm@${{ matrix.llvm }})/lib/cmake/llvm >>$GITHUB_ENV
           fi
       - name: Set compiler
         shell: bash
@@ -107,7 +107,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [Win32, x64]
-        llvm: [15, 16, 17]
+        llvm: [15, 16, 17, 18]
 
     steps:
       - uses: actions/checkout@v2
