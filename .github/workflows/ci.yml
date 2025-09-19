@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 env:
   RELEASE_VERSION: "21.10"
-  RELEASE_LLVM: "18"
+  RELEASE_LLVM: "19"
 
 jobs:
   check-format:
@@ -31,12 +31,8 @@ jobs:
         os: [ubuntu-22.04, macos-15]
         compiler: [gcc, clang]
         build_type: [Release, Debug]
-        llvm: [15, 16, 17, 18]
+        llvm: [18, 19]
         exclude:
-          - os: macos-15
-            llvm: 15
-          - os: macos-15
-            llvm: 16
           - os: macos-15
             compiler: gcc
 
@@ -107,17 +103,24 @@ jobs:
       fail-fast: false
       matrix:
         platform: [Win32, x64]
-        llvm: [15, 16, 17, 18]
+        llvm: [18, 19]
 
     steps:
       - uses: actions/checkout@v2
       - name: cache-llvm
+        id: cache-llvm
         uses: actions/cache@v4
         with:
           path: llvm-${{ matrix.llvm }}
           key: llvm-${{ matrix.llvm }}-${{ matrix.platform }}
       - name: Install dependencies
         run: bash .github/workflows/install-deps.sh
+      - name: save-llvm
+        if: steps.cache-llvm.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: llvm-${{ matrix.llvm }}
+          key: llvm-${{ matrix.llvm }}-${{ matrix.platform }}
       - name: Create build dir
         run: cmake -E make_directory build
       - name: CMake

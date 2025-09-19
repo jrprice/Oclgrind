@@ -24,8 +24,13 @@ set_tests_properties(${KERNEL_TESTS} PROPERTIES
 
 # https://github.com/jrprice/Oclgrind/218
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" AND
-    ${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "18.0")
+    ${LLVM_VERSION_MAJOR} VERSION_EQUAL "18")
   set(XFAIL ${XFAIL} memcheck/static_array_padded_struct)
+endif()
+
+if (${LLVM_PACKAGE_VERSION} VERSION_LESS "19.0")
+  set(XFAIL ${XFAIL} interactive/pointers)
+  set(XFAIL ${XFAIL} interactive/struct_member)
 endif()
 
 # Expected failures

@@ -1,13 +1,6 @@
 #!/bin/bash
 
-LLVM_FULL_VERSION=${LLVM_VERSION}.0.0
-if [ ${LLVM_VERSION} == 16 ]; then
-    LLVM_FULL_VERSION=16.0.6
-elif [ ${LLVM_VERSION} == 17 ]; then
-    LLVM_FULL_VERSION=17.0.1
-elif [ ${LLVM_VERSION} == 18 ]; then
-    LLVM_FULL_VERSION=18.1.0
-fi
+LLVM_FULL_VERSION=${LLVM_VERSION}.1.0
 
 if [ "`uname`" == "Linux" ]; then
     # Add repositories
@@ -21,10 +14,8 @@ if [ "`uname`" == "Linux" ]; then
         llvm-${LLVM_VERSION}-dev \
         libclang-${LLVM_VERSION}-dev \
         clang-${LLVM_VERSION} \
-        libomp-${LLVM_VERSION}-dev
-    if [ ${LLVM_VERSION} -ge 14 ]; then
-      sudo apt-get install -y libpolly-${LLVM_VERSION}-dev
-    fi
+        libomp-${LLVM_VERSION}-dev \
+        libpolly-${LLVM_VERSION}-dev
     sudo update-alternatives --install \
         /usr/bin/clang clang /usr/bin/clang-${LLVM_VERSION} 20
     sudo update-alternatives --install \

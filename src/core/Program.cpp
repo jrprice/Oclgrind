@@ -19,7 +19,9 @@
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/AssemblyAnnotationWriter.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
@@ -928,6 +930,57 @@ void Program::removeLValueLoads()
   }
 }
 
+namespace
+{
+llvm::GetElementPtrInst* createScalarGEP(llvm::Value* ptr, llvm::Value* index,
+                                         llvm::StoreInst* store,
+                                         llvm::IntegerType* indexType)
+{
+  // Create GEP for scalar value
+  llvm::GetElementPtrInst* scalarPtr = NULL;
+  if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(ptr))
+  {
+    // Create GEP from existing GEP
+    std::vector<llvm::Value*> indices;
+    for (auto idx = gep->idx_begin(); idx != gep->idx_end(); idx++)
+    {
+      indices.push_back(*idx);
+    }
+
+    auto* gepResultType = gep->getResultElementType();
+    if (gepResultType->isIntegerTy(8))
+    {
+      auto byteOffset =
+        getTypeSize(store->getValueOperand()->getType()->getScalarType());
+      auto* mul = llvm::BinaryOperator::CreateMul(
+        index, llvm::Constant::getIntegerValue(index->getType(),
+                                               llvm::APInt(32, byteOffset)));
+      mul->insertBefore(store);
+      indices.push_back(mul);
+    }
+    else
+    {
+      indices.push_back(index);
+    }
+    scalarPtr = llvm::GetElementPtrInst::Create(
+      gep->getSourceElementType(), gep->getPointerOperand(), indices);
+  }
+  else
+  {
+    // Create GEP from non-GEP pointer
+    std::vector<llvm::Value*> indices;
+    indices.push_back(llvm::ConstantInt::getSigned(indexType, 0));
+    indices.push_back(index);
+    scalarPtr = llvm::GetElementPtrInst::Create(
+      store->getValueOperand()->getType(), ptr, indices);
+  }
+  scalarPtr->setDebugLoc(store->getDebugLoc());
+  scalarPtr->insertBefore(store);
+
+  return scalarPtr;
+}
+} // namespace
+
 void Program::scalarizeAggregateStore(llvm::StoreInst* store)
 {
   llvm::IntegerType* gepIndexType =
@@ -945,30 +998,8 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
     llvm::Value* index = insert->getOperand(2);
 
     // Create GEP for scalar value
-    llvm::GetElementPtrInst* scalarPtr = NULL;
-    if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(vectorPtr))
-    {
-      // Create GEP from existing GEP
-      std::vector<llvm::Value*> indices;
-      for (auto idx = gep->idx_begin(); idx != gep->idx_end(); idx++)
-      {
-        indices.push_back(*idx);
-      }
-      indices.push_back(index);
-      scalarPtr = llvm::GetElementPtrInst::Create(
-        gep->getSourceElementType(), gep->getPointerOperand(), indices);
-    }
-    else
-    {
-      // Create GEP from non-GEP pointer
-      std::vector<llvm::Value*> indices;
-      indices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
-      indices.push_back(index);
-      scalarPtr = llvm::GetElementPtrInst::Create(
-        store->getValueOperand()->getType(), vectorPtr, indices);
-    }
-    scalarPtr->setDebugLoc(store->getDebugLoc());
-    scalarPtr->insertAfter(store);
+    llvm::GetElementPtrInst* scalarPtr =
+      createScalarGEP(vectorPtr, index, store, gepIndexType);
 
     // Create direct scalar store
     llvm::StoreInst* scalarStore =
@@ -987,7 +1018,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
         new llvm::StoreInst(vector, store->getPointerOperand(),
                             store->isVolatile(), store->getAlign());
       _store->setDebugLoc(store->getDebugLoc());
-      _store->insertAfter(store);
+      _store->insertBefore(scalarStore);
 
       // Repeat process with new store
       if (_store)
@@ -1070,30 +1101,9 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
       indices.pop();
 
       // Create GEP for scalar value
-      llvm::GetElementPtrInst* scalarPtr = NULL;
-      if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(vectorPtr))
-      {
-        // Create GEP from existing GEP
-        std::vector<llvm::Value*> gepIndices;
-        for (auto idx = gep->idx_begin(); idx != gep->idx_end(); idx++)
-        {
-          gepIndices.push_back(*idx);
-        }
-        gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
-        scalarPtr = llvm::GetElementPtrInst::Create(
-          gep->getSourceElementType(), gep->getPointerOperand(), gepIndices);
-      }
-      else
-      {
-        // Create GEP from non-GEP pointer
-        std::vector<llvm::Value*> gepIndices;
-        gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, 0));
-        gepIndices.push_back(llvm::ConstantInt::getSigned(gepIndexType, index));
-        scalarPtr = llvm::GetElementPtrInst::Create(
-          store->getValueOperand()->getType(), vectorPtr, gepIndices);
-      }
-      scalarPtr->setDebugLoc(store->getDebugLoc());
-      scalarPtr->insertAfter(store);
+      llvm::GetElementPtrInst* scalarPtr = createScalarGEP(
+        vectorPtr, llvm::ConstantInt::getSigned(gepIndexType, index), store,
+        gepIndexType);
 
       // Get source vector and index
       unsigned idx = shuffle->getMaskValue(index);
@@ -1169,7 +1179,7 @@ void Program::stripDebugIntrinsics()
         llvm::CallInst* call = (llvm::CallInst*)&*I;
         llvm::Function* function =
           (llvm::Function*)call->getCalledFunction()->stripPointerCasts();
-        if (function->getName().startswith("llvm.dbg"))
+        if (function->getName().starts_with("llvm.dbg"))
         {
           intrinsics.insert(&*I);
         }

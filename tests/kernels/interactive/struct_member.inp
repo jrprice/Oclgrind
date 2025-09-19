@@ -1,7 +1,5 @@
 step
 step
-step
-step
 print s
 print s.a
 print s.b

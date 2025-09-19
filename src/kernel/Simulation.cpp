@@ -451,7 +451,7 @@ void Simulation::parseArgument(size_t index)
   if (type == TYPE_NONE)
   {
 #define MATCH_TYPE_PREFIX(str, value, sz)                                      \
-  else if (argType.startswith(str))                                            \
+  else if (argType.starts_with(str))                                           \
   {                                                                            \
     type = value;                                                              \
     typeSize = sz;                                                             \

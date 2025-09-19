@@ -51,7 +51,7 @@ Kernel::Kernel(const Program* program, const llvm::Function* function,
     case AddrSpaceLocal:
     {
       // Check that local memory variable belongs to this kernel
-      if (!itr->getName().startswith(m_name))
+      if (!itr->getName().starts_with(m_name))
         continue;
 
       // Get size of allocation
@@ -74,7 +74,7 @@ Kernel::Kernel(const Program* program, const llvm::Function* function,
     if (AS.hasAttribute("uniform-work-group-size"))
     {
       const llvm::Attribute& A = AS.getAttribute("uniform-work-group-size");
-      if (A.getValueAsString().equals("true"))
+      if (A.getValueAsString() == "true")
         m_requiresUniformWorkGroups = true;
       break;
     }

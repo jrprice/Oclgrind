@@ -5,8 +5,6 @@ step
 step
 step
 step
-step
-step
 print gi
 print gi[0]
 print gi[1]

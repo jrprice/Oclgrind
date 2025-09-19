@@ -13,6 +13,7 @@
 
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/IR/DebugInfo.h"
+#include "llvm/IR/DebugProgramInstruction.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/InstrTypes.h"
@@ -20,6 +21,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/Casting.h"
 
 #include "Context.h"
 #include "Kernel.h"
@@ -322,6 +324,22 @@ void WorkItem::execute(const llvm::Instruction* instruction)
       m_phiTemps[instruction] = result;
     }
   }
+
+#if LLVM_VERSION >= 190
+  // Handle debug records.
+  if (auto* dbgMarker = instruction->DebugMarker)
+  {
+    for (auto& record : dbgMarker->getDbgRecordRange())
+    {
+      if (auto* dbgVar = llvm::dyn_cast<llvm::DbgVariableRecord>(&record))
+      {
+        const llvm::Value* value = dbgVar->getValue();
+        const llvm::DILocalVariable* var = dbgVar->getVariable();
+        m_variables[var->getName().str()] = {value, var};
+      }
+    }
+  }
+#endif
 
   m_context->notifyInstructionExecuted(this, instruction, result);
 }
@@ -1418,11 +1436,7 @@ INSTRUCTION(shuffle)
   {
     const llvm::Value* src = v1;
     int index = shuffle->getMaskValue(i);
-#if LLVM_VERSION < 170
-    if (index == llvm::UndefMaskElem)
-#else
     if (index == llvm::PoisonMaskElem)
-#endif
     {
       // Don't care / undef
       continue;

@@ -62,8 +62,8 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 # Check LLVM version
-if (${LLVM_PACKAGE_VERSION} VERSION_LESS "15.0")
-  message(FATAL_ERROR "LLVM version must be >= 15.0")
+if (${LLVM_PACKAGE_VERSION} VERSION_LESS "18.0")
+  message(FATAL_ERROR "LLVM version must be >= 18.0")
 endif()
 
 # Add flags for LLVM
@@ -77,16 +77,9 @@ if (${_LLVM_SHARED_INDEX} GREATER -1)
   set(LLVM_LIBS LLVM)
 else()
   llvm_map_components_to_libnames(LLVM_LIBS
-    bitreader bitwriter core coroutines coverage frontendopenmp instrumentation
-    ipo irreader linker lto mcparser objcarcopts option target windowsdriver)
-endif()
-if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "16.0")
-  llvm_map_components_to_libnames(LLVM_FRONTEND_HLSL frontendhlsl)
-  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_FRONTEND_HLSL})
-endif()
-if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "18.0")
-  llvm_map_components_to_libnames(LLVM_FRONTEND_DRIVER frontenddriver)
-  set(LLVM_LIBS ${LLVM_LIBS} ${LLVM_FRONTEND_DRIVER})
+    bitreader bitwriter core coroutines coverage frontenddriver frontendhlsl
+    frontendopenmp instrumentation ipo irreader linker lto mcparser objcarcopts
+    option target windowsdriver)
 endif()
 
 # https://bugs.llvm.org/show_bug.cgi?id=44870
@@ -125,17 +118,10 @@ find_library(CLANG_LIB "clangFrontend"
              PATHS "${CLANG_ROOT}/lib" "${LLVM_LIBRARY_DIRS}"
              NO_DEFAULT_PATH)
 find_library(CLANG_LIB "clangFrontend")
-if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "18.0")
-  set(CLANG_LIBS
-    clangCodeGen clangFrontend clangSerialization clangDriver
-    clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
-    clangLex clangAPINotes clangBasic clangSupport)
-else()
-  set(CLANG_LIBS
-    clangCodeGen clangFrontend clangSerialization clangDriver
-    clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
-    clangLex clangBasic clangSupport)
-endif()
+set(CLANG_LIBS
+  clangCodeGen clangFrontend clangSerialization clangDriver
+  clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
+  clangLex clangAPINotes clangBasic clangSupport)
 
 if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")
   # https://releases.llvm.org/10.0.0/tools/clang/docs/ReleaseNotes.html#build-system-changes
@@ -152,12 +138,7 @@ endif()
 
 # Get path to Clang's opencl-c.h header
 get_filename_component(CLANG_LIB_DIR "${CLANG_LIB}" DIRECTORY)
-if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "16.0")
-  set(CLANG_DIR_VERSION ${LLVM_VERSION_MAJOR})
-else()
-  set(CLANG_DIR_VERSION
-      "${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH}")
-endif()
+set(CLANG_DIR_VERSION ${LLVM_VERSION_MAJOR})
 set(CLANG_OPENCL_C_H
     "${CLANG_LIB_DIR}/clang/${CLANG_DIR_VERSION}/include/opencl-c.h")
 if (NOT EXISTS "${CLANG_OPENCL_C_H}")

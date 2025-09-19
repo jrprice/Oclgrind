@@ -420,7 +420,6 @@ void getConstantData(unsigned char* data, const llvm::Constant* constant)
     }
     break;
   }
-#if LLVM_VERSION >= 170
   case llvm::Type::TargetExtTyID:
   {
     auto name = type->getTargetExtName();
@@ -431,7 +430,6 @@ void getConstantData(unsigned char* data, const llvm::Constant* constant)
     *((size_t*)data) = 0;
     break;
   }
-#endif
   default:
     FATAL_ERROR("Unsupported constant type: %d", type->getTypeID());
   }
@@ -486,9 +484,13 @@ llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr* expr)
   }
   case llvm::Instruction::ICmp:
   case llvm::Instruction::FCmp:
+#if LLVM_VERSION < 190
     return llvm::CmpInst::Create((llvm::Instruction::OtherOps)opcode,
                                  (llvm::CmpInst::Predicate)expr->getPredicate(),
                                  operands[0], operands[1]);
+#else
+    FATAL_ERROR("Unsupported constant expression: icmp/fcmp");
+#endif
   case llvm::Instruction::AddrSpaceCast:
     FATAL_ERROR("Unsupported constant expression: addrspacecast");
   default:
@@ -613,7 +615,6 @@ unsigned getTypeSize(const llvm::Type* type)
   {
     return sizeof(size_t);
   }
-#if LLVM_VERSION >= 170
   else if (type->isTargetExtTy())
   {
     auto name = type->getTargetExtName();
@@ -627,7 +628,6 @@ unsigned getTypeSize(const llvm::Type* type)
     }
     FATAL_ERROR("Unsupported target ext type: %s", name.str().c_str());
   }
-#endif
   else
   {
     // Round up for types that have a bit size not multiple of 8
@@ -685,7 +685,6 @@ pair<unsigned, unsigned> getValueSize(const llvm::Value* value)
     bits = getTypeSize(type) << 3;
     numElements = 1;
   }
-#if LLVM_VERSION >= 170
   else if (type->isTargetExtTy())
   {
     auto name = type->getTargetExtName();
@@ -704,7 +703,6 @@ pair<unsigned, unsigned> getValueSize(const llvm::Value* value)
       FATAL_ERROR("Unsupported target ext type: %s", name.str().c_str());
     }
   }
-#endif
   else
   {
     bits = type->getPrimitiveSizeInBits();
@@ -902,6 +900,10 @@ size_t resolveGEP(size_t base, const llvm::Type* sourceElementType,
       address +=
         getStructMemberOffset((const llvm::StructType*)ptrType, offset);
       ptrType = ptrType->getStructElementType(offset);
+    }
+    else if (ptrType->isIntegerTy(8))
+    {
+      address += offset;
     }
     else
     {

@@ -1,5 +1,3 @@
-MATCH 7	kernel void struct_member(global int *i, global float *f, global struct S *out)
-MATCH 9	  struct S s;
 MATCH 11	  s.a = *i;
 MATCH 12	  s.b = *f;
 MATCH 13	  t = s;
