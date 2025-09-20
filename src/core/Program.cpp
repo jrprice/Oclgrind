@@ -27,6 +27,7 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Linker/Linker.h"
+#include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 
 #if defined(_WIN32) && !defined(__MINGW32__)
@@ -495,7 +496,12 @@ bool Program::build(BuildType buildType, const char* options,
 
   // Create compiler instance
   clang::CompilerInstance compiler;
+#if LLVM_VERSION >= 200
+  compiler.createDiagnostics(*llvm::vfs::getRealFileSystem(), diagConsumer,
+                             false);
+#else
   compiler.createDiagnostics(diagConsumer, false);
+#endif
 
   // Create compiler invocation
   std::shared_ptr<clang::CompilerInvocation> invocation(
