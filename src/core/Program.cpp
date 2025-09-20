@@ -331,8 +331,9 @@ bool Program::build(BuildType buildType, const char* options,
     mainOptions = "";
   if (!extraOptions)
     extraOptions = "";
-  char* tmpOptions = new char[strlen(mainOptions) + strlen(extraOptions) + 2];
-  sprintf(tmpOptions, "%s %s", mainOptions, extraOptions);
+  auto optionsLen = strlen(mainOptions) + strlen(extraOptions) + 2;
+  char* tmpOptions = new char[optionsLen];
+  snprintf(tmpOptions, optionsLen, "%s %s", mainOptions, extraOptions);
   char* opt = tmpOptions;
   char* next = NULL;
   while (strlen(opt) > 0)
@@ -443,9 +444,10 @@ bool Program::build(BuildType buildType, const char* options,
     if (pchdir)
     {
       // Select precompiled header
-      pch = new char[strlen(pchdir) + 24];
-      sprintf(pch, "%s/opencl-c-%s-%d.pch", pchdir, clstd + 10,
-              (sizeof(size_t) == 4 ? 32 : 64));
+      auto pchLength = strlen(pchdir) + 24;
+      pch = new char[pchLength];
+      snprintf(pch, pchLength, "%s/opencl-c-%s-%d.pch", pchdir, clstd + 10,
+               (sizeof(size_t) == 4 ? 32 : 64));
 
       // Check if precompiled header exists
       ifstream pchfile(pch);
@@ -571,9 +573,9 @@ bool Program::build(BuildType buildType, const char* options,
     char* tempCL = new char[sz];
     char* tempIR = new char[sz];
     char* tempBC = new char[sz];
-    sprintf(tempCL, "%s/oclgrind_%lX.cl", tmpdir, m_uid);
-    sprintf(tempIR, "%s/oclgrind_%lX.ll", tmpdir, m_uid);
-    sprintf(tempBC, "%s/oclgrind_%lX.bc", tmpdir, m_uid);
+    snprintf(tempCL, sz, "%s/oclgrind_%lX.cl", tmpdir, m_uid);
+    snprintf(tempIR, sz, "%s/oclgrind_%lX.ll", tmpdir, m_uid);
+    snprintf(tempBC, sz, "%s/oclgrind_%lX.bc", tmpdir, m_uid);
 
     // Dump source
     ofstream cl;

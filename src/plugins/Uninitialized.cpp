@@ -933,8 +933,6 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem* workItem,
     size_t size = workItem->getOperand(memcpyInst->getLength()).getUInt();
     unsigned dstAddrSpace = memcpyInst->getDestAddressSpace();
     unsigned srcAddrSpace = memcpyInst->getSourceAddressSpace();
-    const llvm::PointerType* srcPtrTy =
-      llvm::dyn_cast<llvm::PointerType>(memcpyInst->getSource()->getType());
 
     copyShadowMemory(dstAddrSpace, dst, srcAddrSpace, src, size, workItem, NULL,
                      true);
