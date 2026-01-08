@@ -1326,6 +1326,11 @@ void Uninitialized::instructionExecuted(const WorkItem* workItem,
     VectorOr(workItem, instruction);
     break;
   }
+  case llvm::Instruction::Freeze:
+  {
+    shadowValues->setValue(instruction, ShadowContext::getCleanValue(instruction));
+    break;
+  }
   case llvm::Instruction::GetElementPtr:
   {
     SimpleOr(workItem, instruction);
