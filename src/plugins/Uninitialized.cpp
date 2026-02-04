@@ -1640,7 +1640,11 @@ void Uninitialized::instructionExecuted(const WorkItem* workItem,
     for (unsigned i = 0; i < newShadow.num; i++)
     {
       int index = shuffleInst->getMaskValue(i);
+#if LLVM_VERSION >= 210
+      if (index == llvm::PoisonMaskElem)
+#else
       if (index == llvm::Value::UndefValueVal)
+#endif
       {
         // Undef value are poisoned
         memcpy(newShadow.data + i * newShadow.size, pv.data, newShadow.size);

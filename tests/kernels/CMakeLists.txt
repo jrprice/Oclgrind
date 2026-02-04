@@ -22,13 +22,19 @@ endforeach(${test})
 set_tests_properties(${KERNEL_TESTS} PROPERTIES
     ENVIRONMENT "OCLGRIND_PCH_DIR=${CMAKE_BINARY_DIR}/include/oclgrind")
 
-# https://github.com/jrprice/Oclgrind/218
+# https://github.com/jrprice/Oclgrind/issues/218
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" AND
     ${LLVM_VERSION_MAJOR} VERSION_EQUAL "18")
   set(XFAIL ${XFAIL} memcheck/static_array_padded_struct)
 endif()
 
 if (${LLVM_PACKAGE_VERSION} VERSION_LESS "19.0")
+  set(XFAIL ${XFAIL} interactive/pointers)
+  set(XFAIL ${XFAIL} interactive/struct_member)
+endif()
+
+# https://github.com/jrprice/Oclgrind/issues/221
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "21.0")
   set(XFAIL ${XFAIL} interactive/pointers)
   set(XFAIL ${XFAIL} interactive/struct_member)
 endif()
