@@ -999,6 +999,9 @@ void Uninitialized::handleIntrinsicInstruction(const WorkItem* workItem,
   case llvm::Intrinsic::lifetime_start:
     // Do nothing
     break;
+  case llvm::Intrinsic::experimental_noalias_scope_decl:
+    // Do nothing
+    break;
   default:
     FATAL_ERROR("Unsupported intrinsic %s",
                 llvm::Intrinsic::getName(I->getIntrinsicID()).data());
@@ -1646,7 +1649,11 @@ void Uninitialized::instructionExecuted(const WorkItem* workItem,
     for (unsigned i = 0; i < newShadow.num; i++)
     {
       int index = shuffleInst->getMaskValue(i);
+#if LLVM_VERSION >= 210
+      if (index == llvm::PoisonMaskElem)
+#else
       if (index == llvm::Value::UndefValueVal)
+#endif
       {
         // Undef value are poisoned
         memcpy(newShadow.data + i * newShadow.size, pv.data, newShadow.size);

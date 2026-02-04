@@ -47,6 +47,12 @@ elif [[ "`uname`" == "MINGW64"* ]]; then
         curl -OL "$URL/$ARCHIVE"
         tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/cmake
 
+        # Get third_party
+        mkdir -p llvm-${LLVM_VERSION}/third-party
+        ARCHIVE="third-party-${LLVM_FULL_VERSION}.src.tar.xz"
+        curl -OL "$URL/$ARCHIVE"
+        tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/third-party
+
         # Build LLVM + Clang
         mkdir -p llvm-${LLVM_VERSION}/build
         cd llvm-${LLVM_VERSION}/build

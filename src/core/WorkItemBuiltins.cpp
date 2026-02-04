@@ -3557,6 +3557,11 @@ class WorkItemBuiltins
     // TODO: Implement?
   }
 
+  DEFINE_BUILTIN(llvm_noalias_scope_decl)
+  {
+    // TODO: Implement?
+  }
+
   DEFINE_BUILTIN(llvm_memcpy)
   {
     const llvm::MemCpyInst* memcpyInst = (const llvm::MemCpyInst*)callInst;
@@ -3866,6 +3871,8 @@ BuiltinFunctionMap WorkItemBuiltins::initBuiltins()
   ADD_PREFIX_BUILTIN("llvm.fabs.f", f1arg, F1ARG(fabs));
   ADD_PREFIX_BUILTIN("llvm.lifetime.start", llvm_lifetime_start, NULL);
   ADD_PREFIX_BUILTIN("llvm.lifetime.end", llvm_lifetime_end, NULL);
+  ADD_PREFIX_BUILTIN("llvm.experimental.noalias.scope.decl",
+                     llvm_noalias_scope_decl, NULL);
   ADD_PREFIX_BUILTIN("llvm.memcpy", llvm_memcpy, NULL);
   ADD_PREFIX_BUILTIN("llvm.memmove", llvm_memcpy, NULL);
   ADD_PREFIX_BUILTIN("llvm.memset", llvm_memset, NULL);

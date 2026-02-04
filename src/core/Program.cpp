@@ -399,6 +399,7 @@ bool Program::build(BuildType buildType, const char* options,
   // Pre-compiled header
   char* pchdir = NULL;
   char* pch = NULL;
+#if LLVM_VERSION < 210 || LLVM_VERSION >= 230
   if (!checkEnv("OCLGRIND_DISABLE_PCH") &&
       (!strcmp(clstd, "-cl-std=CL1.2") || !strcmp(clstd, "-cl-std=CL2.0")))
   {
@@ -466,6 +467,7 @@ bool Program::build(BuildType buildType, const char* options,
       buildLog << "WARNING: Unable to determine precompiled header path\n";
     }
   }
+#endif
 
   if (pch)
   {
@@ -490,6 +492,20 @@ bool Program::build(BuildType buildType, const char* options,
   clang::DiagnosticOptions* diagOpts = new clang::DiagnosticOptions();
   llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(
     new clang::DiagnosticIDs());
+
+#if LLVM_VERSION >= 210
+  clang::TextDiagnosticPrinter* diagConsumer =
+    new clang::TextDiagnosticPrinter(buildLog, *diagOpts, false);
+  clang::DiagnosticsEngine diags(diagID, *diagOpts, diagConsumer);
+
+  // Create compiler invocation and instance.
+  std::shared_ptr<clang::CompilerInvocation> invocation(
+    new clang::CompilerInvocation);
+  clang::CompilerInvocation::CreateFromArgs(*invocation, args, diags);
+  clang::CompilerInstance compiler(invocation);
+  compiler.createDiagnostics(*llvm::vfs::getRealFileSystem(), diagConsumer,
+                             false);
+#else
   clang::TextDiagnosticPrinter* diagConsumer =
     new clang::TextDiagnosticPrinter(buildLog, diagOpts);
   clang::DiagnosticsEngine diags(diagID, diagOpts, diagConsumer);
@@ -509,6 +525,7 @@ bool Program::build(BuildType buildType, const char* options,
   clang::CompilerInvocation::CreateFromArgs(*invocation, args,
                                             compiler.getDiagnostics());
   compiler.setInvocation(invocation);
+#endif
 
   // Remap include files
   std::unique_ptr<llvm::MemoryBuffer> buffer;
@@ -961,8 +978,10 @@ llvm::GetElementPtrInst* createScalarGEP(llvm::Value* ptr, llvm::Value* index,
       auto byteOffset =
         getTypeSize(store->getValueOperand()->getType()->getScalarType());
       auto* mul = llvm::BinaryOperator::CreateMul(
-        index, llvm::Constant::getIntegerValue(index->getType(),
-                                               llvm::APInt(32, byteOffset)));
+        index,
+        llvm::Constant::getIntegerValue(
+          index->getType(),
+          llvm::APInt(index->getType()->getIntegerBitWidth(), byteOffset)));
       mul->insertBefore(store);
       indices.push_back(mul);
     }
