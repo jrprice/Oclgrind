@@ -1328,7 +1328,8 @@ void Uninitialized::instructionExecuted(const WorkItem* workItem,
   }
   case llvm::Instruction::Freeze:
   {
-    shadowValues->setValue(instruction, ShadowContext::getCleanValue(instruction));
+    shadowValues->setValue(instruction,
+                           ShadowContext::getCleanValue(instruction));
     break;
   }
   case llvm::Instruction::GetElementPtr:
