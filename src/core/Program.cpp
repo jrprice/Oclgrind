@@ -490,9 +490,15 @@ bool Program::build(BuildType buildType, const char* options,
   clang::DiagnosticOptions* diagOpts = new clang::DiagnosticOptions();
   llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagID(
     new clang::DiagnosticIDs());
+#if LLVM_VERSION < 210
   clang::TextDiagnosticPrinter* diagConsumer =
     new clang::TextDiagnosticPrinter(buildLog, diagOpts);
   clang::DiagnosticsEngine diags(diagID, diagOpts, diagConsumer);
+#else
+  clang::TextDiagnosticPrinter* diagConsumer =
+    new clang::TextDiagnosticPrinter(buildLog, *diagOpts);
+  clang::DiagnosticsEngine diags(diagID, *diagOpts, diagConsumer);
+#endif
 
   // Create compiler instance
   clang::CompilerInstance compiler;
@@ -504,11 +510,17 @@ bool Program::build(BuildType buildType, const char* options,
 #endif
 
   // Create compiler invocation
+#if LLVM_VERSION < 210
   std::shared_ptr<clang::CompilerInvocation> invocation(
     new clang::CompilerInvocation);
   clang::CompilerInvocation::CreateFromArgs(*invocation, args,
                                             compiler.getDiagnostics());
   compiler.setInvocation(invocation);
+#else
+  std::shared_ptr<clang::CompilerInvocation> invocation( compiler.getInvocationPtr() );
+  clang::CompilerInvocation::CreateFromArgs(*invocation, args,
+                                            compiler.getDiagnostics());
+#endif
 
   // Remap include files
   std::unique_ptr<llvm::MemoryBuffer> buffer;
