@@ -503,8 +503,13 @@ bool Program::build(BuildType buildType, const char* options,
     new clang::CompilerInvocation);
   clang::CompilerInvocation::CreateFromArgs(*invocation, args, diags);
   clang::CompilerInstance compiler(invocation);
+#if LLVM_VERSION >= 220
+  compiler.createDiagnostics(diagConsumer, false);
+#else
   compiler.createDiagnostics(*llvm::vfs::getRealFileSystem(), diagConsumer,
                              false);
+#endif
+
 #else
   clang::TextDiagnosticPrinter* diagConsumer =
     new clang::TextDiagnosticPrinter(buildLog, diagOpts);

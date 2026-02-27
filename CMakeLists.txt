@@ -118,10 +118,17 @@ find_library(CLANG_LIB "clangFrontend"
              PATHS "${CLANG_ROOT}/lib" "${LLVM_LIBRARY_DIRS}"
              NO_DEFAULT_PATH)
 find_library(CLANG_LIB "clangFrontend")
-set(CLANG_LIBS
-  clangCodeGen clangFrontend clangSerialization clangDriver
-  clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
-  clangLex clangAPINotes clangBasic clangSupport)
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "22.0")
+  set(CLANG_LIBS
+    clangCodeGen clangFrontend clangOptions clangSerialization clangDriver
+    clangParse clangSema clangAnalysis clangAnalysisLifetimeSafety clangEdit
+    clangAST clangASTMatchers clangLex clangAPINotes clangBasic clangSupport)
+else()
+  set(CLANG_LIBS
+    clangCodeGen clangFrontend clangSerialization clangDriver
+    clangParse clangSema clangAnalysis clangEdit clangAST clangASTMatchers
+    clangLex clangAPINotes clangBasic clangSupport)
+endif()
 
 if ("${CLANG_LIB}" STREQUAL "CLANG_LIB-NOTFOUND")
   # https://releases.llvm.org/10.0.0/tools/clang/docs/ReleaseNotes.html#build-system-changes

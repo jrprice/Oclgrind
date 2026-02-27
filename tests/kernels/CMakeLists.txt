@@ -39,5 +39,12 @@ if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "21.0")
   set(XFAIL ${XFAIL} interactive/struct_member)
 endif()
 
+# https://github.com/jrprice/Oclgrind/issues/224
+if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "22.0")
+  set(XFAIL ${XFAIL} memcheck/casted_static_array)
+  set(XFAIL ${XFAIL} memcheck/static_array)
+  set(XFAIL ${XFAIL} memcheck/static_array_padded_struct)
+endif()
+
 # Expected failures
 set_tests_properties(${XFAIL} PROPERTIES WILL_FAIL TRUE)

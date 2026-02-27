@@ -492,7 +492,8 @@ llvm::Instruction* getConstExprAsInstruction(const llvm::ConstantExpr* expr)
     FATAL_ERROR("Unsupported constant expression: icmp/fcmp");
 #endif
   case llvm::Instruction::AddrSpaceCast:
-    FATAL_ERROR("Unsupported constant expression: addrspacecast");
+    return llvm::AddrSpaceCastInst::CreatePointerBitCastOrAddrSpaceCast(
+      operands[0], expr->getType());
   default:
     assert(expr->getNumOperands() == 2 && "Must be binary operator?");
 

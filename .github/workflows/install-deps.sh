@@ -29,29 +29,11 @@ elif [[ "`uname`" == "MINGW64"* ]]; then
     if [ ! -r llvm-${LLVM_VERSION}/install/lib/cmake/llvm/LLVMConfig.cmake ]; then
         URL="https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_FULL_VERSION}"
 
-        # Get LLVM
-        ARCHIVE="llvm-${LLVM_FULL_VERSION}.src.tar.xz"
-        mkdir -p llvm-${LLVM_VERSION}/llvm
+        # Get the monolithic LLVM project source package.
+        ARCHIVE="llvm-project-${LLVM_FULL_VERSION}.src.tar.xz"
+        mkdir -p llvm-${LLVM_VERSION}/
         curl -OL "$URL/$ARCHIVE"
-        tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/llvm
-
-        # Get Clang
-        ARCHIVE="clang-${LLVM_FULL_VERSION}.src.tar.xz"
-        mkdir -p llvm-${LLVM_VERSION}/clang
-        curl -OL "$URL/$ARCHIVE"
-        tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/clang
-
-        # Get CMake helpers
-        mkdir -p llvm-${LLVM_VERSION}/cmake
-        ARCHIVE="cmake-${LLVM_FULL_VERSION}.src.tar.xz"
-        curl -OL "$URL/$ARCHIVE"
-        tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/cmake
-
-        # Get third_party
-        mkdir -p llvm-${LLVM_VERSION}/third-party
-        ARCHIVE="third-party-${LLVM_FULL_VERSION}.src.tar.xz"
-        curl -OL "$URL/$ARCHIVE"
-        tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}/third-party
+        tar xf "$ARCHIVE" --strip-components 1 -C llvm-${LLVM_VERSION}
 
         # Build LLVM + Clang
         mkdir -p llvm-${LLVM_VERSION}/build
