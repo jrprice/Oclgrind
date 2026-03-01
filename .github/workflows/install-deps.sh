@@ -22,7 +22,7 @@ if [ "`uname`" == "Linux" ]; then
         /usr/bin/clang++ clang++ /usr/bin/clang++-${LLVM_VERSION} 20
 
     # Other dependencies
-    sudo apt-get install -y libedit-dev libvulkan-dev
+    sudo apt-get install -y libedit-dev libvulkan-dev spirv-tools
 elif [ "`uname`" == "Darwin" ]; then
     brew install llvm@${LLVM_VERSION}
 elif [[ "`uname`" == "MINGW64"* ]]; then

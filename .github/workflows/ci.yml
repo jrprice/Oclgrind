@@ -190,9 +190,10 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build]
     env:
-      cts_hash: 92285f7c9de965ddc41e7dfaaab8c7c75aa55dbe
-      headers_hash: 5e2f8c66476bcf60eb8c2921807e34efb30294ee
-      loader_hash: 4aa683775c4ee55594196c79def7a75103d75e4c
+      cts_hash: 5673883005aad3f8bec6fa64e1bfb663e85ee1af
+      headers_hash: 6c4028a1ded61881ede75c0d6b3247436a423d78
+      loader_hash: b1c57534df7ac82519b04606f51b71fb5d4053c3
+      spirv_headers_hash: f88a2d766840fc825af1fc065977953ba1fa4a91
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v4
@@ -215,6 +216,12 @@ jobs:
           repository: KhronosGroup/OpenCL-Headers
           path: opencl-cts/opencl-headers
           ref: ${{ env.headers_hash }}
+      - uses: actions/checkout@v2
+        if: steps.cache-cts.outputs.cache-hit != 'true'
+        with:
+          repository: KhronosGroup/SPIRV-Headers
+          path: opencl-cts/spirv-headers
+          ref: ${{ env.spirv_headers_hash }}
       - uses: actions/checkout@v2
         if: steps.cache-cts.outputs.cache-hit != 'true'
         with:
@@ -246,7 +253,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=$PWD/../install \
             -DCL_INCLUDE_DIR=$PWD/../opencl-headers \
             -DCL_LIB_DIR=$PWD/../install/lib \
-            -DCL_LIBCLCXX_DIR=. \
+            -DSPIRV_INCLUDE_DIR=$PWD/../spirv-headers \
             -DCLConform_LIBRARIES=OpenCL
         working-directory: opencl-cts/build
       - name: Build CTS
@@ -259,7 +266,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build-cts]
     env:
-      cts_hash: 92285f7c9de965ddc41e7dfaaab8c7c75aa55dbe
+      cts_hash: 5673883005aad3f8bec6fa64e1bfb663e85ee1af
     strategy:
       fail-fast: false
       matrix:
