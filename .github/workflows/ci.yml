@@ -8,7 +8,7 @@ env:
 jobs:
   check-format:
     name: Check formatting
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
         with:
@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-15]
+        os: [ubuntu-24.04, macos-15]
         compiler: [gcc, clang]
         build_type: [Release, Debug]
         llvm: [18, 19, 20, 21]
@@ -154,7 +154,7 @@ jobs:
 
   upload-windows-binaries:
     name: Upload Windows binaries
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [build-windows]
     steps:
       - uses: actions/checkout@v2
@@ -187,7 +187,7 @@ jobs:
 
   build-cts:
     name: Build OpenCL CTS
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [build]
     env:
       cts_hash: 5673883005aad3f8bec6fa64e1bfb663e85ee1af
@@ -263,7 +263,7 @@ jobs:
 
   run-cts:
     name: Run OpenCL CTS ${{ matrix.suite[0] }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [build-cts]
     env:
       cts_hash: 5673883005aad3f8bec6fa64e1bfb663e85ee1af
@@ -311,7 +311,7 @@ jobs:
       - name: Download Oclgrind
         uses: actions/download-artifact@v4.1.7
         with:
-          name: Oclgrind-${{ env.RELEASE_VERSION }}-ubuntu-22.04-llvm${{ env.RELEASE_LLVM }}-Release-gcc
+          name: Oclgrind-${{ env.RELEASE_VERSION }}-ubuntu-24.04-llvm${{ env.RELEASE_LLVM }}-Release-gcc
       - name: Unpack Oclgrind
         shell: bash
         run: |
