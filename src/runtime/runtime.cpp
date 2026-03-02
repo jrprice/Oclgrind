@@ -517,14 +517,20 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     {CL_MAKE_VERSION(3, 0, 0), "OpenCL C"},
   };
 
+  static constexpr cl_name_version opencl_c_features[] = {
+    {CL_MAKE_VERSION(3, 0, 0), "__opencl_c_fp64"},
+    {CL_MAKE_VERSION(3, 0, 0), "__opencl_c_int64"},
+    {CL_MAKE_VERSION(3, 0, 0), "__opencl_c_program_scope_global_variables"},
+    {CL_MAKE_VERSION(3, 0, 0), "__opencl_c_images"},
+    {CL_MAKE_VERSION(3, 0, 0), "__opencl_c_read_write_images"},
+    {CL_MAKE_VERSION(3, 0, 0), "__opencl_c_3d_image_writes"},
+  };
+
   // TODO: Populate this
   // static constexpr cl_name_version il_versions[] = {};
 
   // TODO: Populate this
   // static constexpr cl_name_version built_in_kernel_versions[] = {};
-
-  // TODO: Populate this
-  // static constexpr cl_name_version opencl_c_features[] = {};
 
   switch (param_name)
   {
@@ -925,10 +931,8 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     result_data.clbool = CL_FALSE;
     break;
   case CL_DEVICE_OPENCL_C_FEATURES:
-    // TODO: Enable when supported.
-    // result_size = sizeof(opencl_c_features);
-    // data = opencl_c_features;
-    result_size = 0;
+    result_size = sizeof(opencl_c_features);
+    data = opencl_c_features;
     break;
   case CL_DEVICE_DEVICE_ENQUEUE_CAPABILITIES:
     result_size = sizeof(cl_device_device_enqueue_capabilities);

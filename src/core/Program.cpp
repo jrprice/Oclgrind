@@ -68,6 +68,8 @@ const char* EXTENSIONS[] = {
   "cl_khr_int64_extended_atomics",
   "cl_khr_byte_addressable_store",
   "__opencl_c_fp64",
+  "__opencl_c_int64",
+  "__opencl_c_program_scope_global_variables",
   "__opencl_c_images",
   "__opencl_c_read_write_images",
   "__opencl_c_3d_image_writes",
