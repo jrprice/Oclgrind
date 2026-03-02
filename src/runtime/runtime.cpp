@@ -5997,6 +5997,12 @@ clGetDeviceAndHostTimer(cl_device_id device, cl_ulong* device_timestamp,
 {
   REGISTER_API;
 
+  // Check device is valid
+  if (device != m_device)
+  {
+    ReturnErrorArg(NULL, CL_INVALID_DEVICE, device);
+  }
+
   ReturnErrorInfo(nullptr, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.1 API");
 }
@@ -6005,6 +6011,12 @@ CL_API_ENTRY cl_int CL_API_CALL clGetHostTimer(
   cl_device_id device, cl_ulong* host_timestamp) CL_API_SUFFIX__VERSION_2_1
 {
   REGISTER_API;
+
+  // Check device is valid
+  if (device != m_device)
+  {
+    ReturnErrorArg(NULL, CL_INVALID_DEVICE, device);
+  }
 
   ReturnErrorInfo(nullptr, CL_INVALID_OPERATION,
                   "Unimplemented OpenCL 2.1 API");
