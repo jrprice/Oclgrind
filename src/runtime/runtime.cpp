@@ -33,22 +33,14 @@ using namespace std;
 
 #define PLATFORM_NAME "Oclgrind"
 #define PLATFORM_VENDOR "Oclgrind"
-#ifdef ENABLE_OPENCL_3
 #define PLATFORM_VERSION "OpenCL 3.0 (Oclgrind " PACKAGE_VERSION ")"
-#else
-#define PLATFORM_VERSION "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
-#endif
 #define PLATFORM_PROFILE "FULL_PROFILE"
 #define PLATFORM_SUFFIX "oclg"
 
 #define DEVICE_NAME "Oclgrind Simulator"
 #define DEVICE_VENDOR "Oclgrind"
 #define DEVICE_VENDOR_ID 0x0042
-#ifdef ENABLE_OPENCL_3
 #define DEVICE_VERSION "OpenCL 3.0 (Oclgrind " PACKAGE_VERSION ")"
-#else
-#define DEVICE_VERSION "OpenCL 1.2 (Oclgrind " PACKAGE_VERSION ")"
-#endif
 #define DEVICE_LANG_VERSION "OpenCL C 1.2 (Oclgrind " PACKAGE_VERSION ")"
 #define DRIVER_VERSION "Oclgrind " PACKAGE_VERSION
 #define DEVICE_PROFILE "FULL_PROFILE"

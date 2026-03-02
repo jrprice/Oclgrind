@@ -67,6 +67,10 @@ const char* EXTENSIONS[] = {
   "cl_khr_int64_base_atomics",
   "cl_khr_int64_extended_atomics",
   "cl_khr_byte_addressable_store",
+  "__opencl_c_fp64",
+  "__opencl_c_images",
+  "__opencl_c_read_write_images",
+  "__opencl_c_3d_image_writes",
 };
 
 #define OCLGRIND_BINARY_TYPE "oclgrind_binary_type"
@@ -299,7 +303,7 @@ bool Program::build(BuildType buildType, const char* options,
   vector<const char*> args;
   args.push_back("-cl-kernel-arg-info");
   args.push_back("-D__IMAGE_SUPPORT__=1");
-  args.push_back("-D__OPENCL_VERSION__=120");
+  args.push_back("-D__OPENCL_VERSION__=300");
   args.push_back("-fno-builtin");
   args.push_back("-fgnu89-inline");
   args.push_back("-debug-info-kind=standalone");
