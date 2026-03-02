@@ -5047,16 +5047,18 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNDRangeKernel(
       command_queue->context, CL_INVALID_WORK_DIMENSION,
       "Kernels must be 1, 2 or 3 dimensional (work_dim = " << work_dim << ")");
   }
-  if (!global_work_size)
-  {
-    ReturnErrorInfo(command_queue->context, CL_INVALID_GLOBAL_WORK_SIZE,
-                    "global_work_size cannot be NULL");
-  }
   if (auto err = checkEventWaitList(command_queue->context,
                                     num_events_in_wait_list, event_wait_list);
       err != CL_SUCCESS)
   {
     return err;
+  }
+
+  // If global_work_size is NULL then the kernel should trivially succeed.
+  size_t null_size[3] = {0, 0, 0};
+  if (!global_work_size)
+  {
+    global_work_size = null_size;
   }
 
   // Check global and local sizes are valid
