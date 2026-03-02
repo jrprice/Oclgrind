@@ -366,6 +366,10 @@ bool Program::build(BuildType buildType, const char* options,
       if (strcmp(opt, "-cl-no-signed-zeros") == 0)
         continue;
 
+      // Clang does not support this flag (last tested in Clang 22).
+      if (strcmp(opt, "-cl-no-subgroup-ifp") == 0)
+        continue;
+
       // Handle -cl-denorms-are-zero
       if (strcmp(opt, "-cl-denorms-are-zero") == 0)
       {
