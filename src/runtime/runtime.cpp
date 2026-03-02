@@ -187,18 +187,18 @@ void releaseCommand(oclgrind::Command* command)
 namespace
 {
 // Name of the API function currently being executed
-thread_local static std::stack<const char*> g_apiCallStack;
+thread_local static std::vector<const char*> g_apiCallStack;
 
 class APICallEntry
 {
 public:
   APICallEntry(const char* name)
   {
-    g_apiCallStack.push(name);
+    g_apiCallStack.push_back(name);
   }
   ~APICallEntry()
   {
-    g_apiCallStack.pop();
+    g_apiCallStack.pop_back();
   }
 };
 
@@ -209,7 +209,7 @@ public:
   {                                                                            \
     ostringstream oss;                                                         \
     oss << info;                                                               \
-    notifyAPIError(context, err, g_apiCallStack.top(), oss.str());             \
+    notifyAPIError(context, err, g_apiCallStack.front(), oss.str());           \
     return err;                                                                \
   }
 #define ReturnErrorArg(context, err, arg)                                      \
@@ -221,7 +221,7 @@ public:
   {                                                                            \
     ostringstream oss;                                                         \
     oss << info;                                                               \
-    notifyAPIError(context, err, g_apiCallStack.top(), oss.str());             \
+    notifyAPIError(context, err, g_apiCallStack.front(), oss.str());           \
   }                                                                            \
   if (errcode_ret)                                                             \
   {                                                                            \
