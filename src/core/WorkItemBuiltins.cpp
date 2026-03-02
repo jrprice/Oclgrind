@@ -3011,7 +3011,7 @@ class WorkItemBuiltins
   DEFINE_BUILTIN(get_global_size)
   {
     uint64_t dim = UARG(0);
-    size_t r = dim < 3 ? workItem->m_kernelInvocation->getGlobalSize()[dim] : 0;
+    size_t r = dim < 3 ? workItem->m_kernelInvocation->getGlobalSize()[dim] : 1;
     result.setUInt(r);
   }
 
@@ -3040,25 +3040,21 @@ class WorkItemBuiltins
   DEFINE_BUILTIN(get_local_size)
   {
     uint64_t dim = UARG(0);
-    size_t r = dim < 3 ? workItem->m_workGroup->getGroupSize()[dim] : 0;
+    size_t r = dim < 3 ? workItem->m_workGroup->getGroupSize()[dim] : 1;
     result.setUInt(r);
   }
 
   DEFINE_BUILTIN(get_enqueued_local_size)
   {
     uint64_t dim = UARG(0);
-    size_t r = dim < 3 ? workItem->m_kernelInvocation->getLocalSize()[dim] : 0;
+    size_t r = dim < 3 ? workItem->m_kernelInvocation->getLocalSize()[dim] : 1;
     result.setUInt(r);
   }
 
   DEFINE_BUILTIN(get_num_groups)
   {
     uint64_t dim = UARG(0);
-    size_t r = 0;
-    if (dim < 3)
-    {
-      r = workItem->m_kernelInvocation->getNumGroups()[dim];
-    }
+    size_t r = dim < 3 ? workItem->m_kernelInvocation->getNumGroups()[dim] : 1;
     result.setUInt(r);
   }
 
