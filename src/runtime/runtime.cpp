@@ -235,6 +235,31 @@ public:
   "param_value_size is " << param_value_size << ", but result requires "       \
                          << result_size << " bytes"
 
+cl_int checkEventWaitList(cl_context context, cl_uint num_events_in_wait_list,
+                          const cl_event* event_wait_list)
+{
+  if (num_events_in_wait_list > 0 && !event_wait_list)
+  {
+    ReturnError(context, CL_INVALID_EVENT_WAIT_LIST);
+  }
+  if (num_events_in_wait_list == 0 && event_wait_list)
+  {
+    ReturnError(context, CL_INVALID_EVENT_WAIT_LIST);
+  }
+  for (cl_uint i = 0; i < num_events_in_wait_list; i++)
+  {
+    if (!event_wait_list[i])
+    {
+      ReturnError(context, CL_INVALID_EVENT_WAIT_LIST);
+    }
+    if (event_wait_list[i]->context != context)
+    {
+      ReturnError(context, CL_INVALID_CONTEXT);
+    }
+  }
+  return CL_SUCCESS;
+}
+
 static struct _cl_platform_id* m_platform = NULL;
 static struct _cl_device_id* m_device = NULL;
 
@@ -1205,6 +1230,12 @@ clCreateCommandQueue(cl_context context, cl_device_id device,
   if (device != m_device)
   {
     SetErrorArg(context, CL_INVALID_DEVICE, device);
+    return NULL;
+  }
+  if (properties &
+      ~(CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE | CL_QUEUE_PROFILING_ENABLE))
+  {
+    SetErrorArg(context, CL_INVALID_VALUE, properties);
     return NULL;
   }
 
@@ -3086,6 +3117,15 @@ clSetKernelArg(cl_kernel kernel, cl_uint arg_index, size_t arg_size,
   case CL_KERNEL_ARG_ADDRESS_PRIVATE:
     if (isSampler)
     {
+      if (!arg_value)
+      {
+        ReturnError(kernel->program->context, CL_INVALID_SAMPLER);
+        return CL_INVALID_SAMPLER;
+      }
+      if (arg_size != sizeof(cl_sampler))
+      {
+        ReturnError(kernel->program->context, CL_INVALID_ARG_SIZE);
+      }
       memcpy(value.data, &(*(cl_sampler*)arg_value)->sampler, 4);
     }
     else
@@ -3756,6 +3796,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadBuffer(
     ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                     "Buffer flags specify host will not read data");
   }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
 
   // Enqueue command
   oclgrind::BufferCommand* cmd =
@@ -3801,6 +3847,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadBufferRect(
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                     "Buffer flags specify host will not read data");
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
   }
 
   // Compute pitches if neccessary
@@ -3893,6 +3945,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteBuffer(
     ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                     "Buffer flags specify host will not write data");
   }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
 
   // Enqueue command
   oclgrind::BufferCommand* cmd =
@@ -3938,6 +3996,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteBufferRect(
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                     "Buffer flags specify host will not write data");
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
   }
 
   // Compute pitches if necessary
@@ -4057,6 +4121,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBuffer(
                       << dst_offset << " + " << cb << ") overlaps src_offset ("
                       << src_offset << ")");
   }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
 
   // Enqueue command
   oclgrind::CopyCommand* cmd = new oclgrind::CopyCommand();
@@ -4096,6 +4166,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBufferRect(
   if (!region || region[0] == 0 || region[1] == 0 || region[2] == 0)
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, region);
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
   }
 
   // Compute pitches if necessary
@@ -4205,6 +4281,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueFillBuffer(
                            << " not a multiple of pattern_size ("
                            << pattern_size << ")");
   }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
 
   // Enqueue command
   oclgrind::FillBufferCommand* cmd = new oclgrind::FillBufferCommand(
@@ -4242,6 +4324,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueFillImage(
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
                     "Values in region cannot be 0");
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
   }
 
   // Get image dimensions
@@ -4407,6 +4495,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadImage(
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, image);
   }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
 
   cl_image* img = (cl_image*)image;
 
@@ -4454,6 +4548,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteImage(
   if (!image)
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, image);
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
   }
 
   cl_image* img = (cl_image*)image;
@@ -4522,6 +4622,13 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyImage(
                     "Channel data types do no match");
   }
 
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
+
   size_t srcPixelSize = getPixelSize(&src->format);
   size_t dstPixelSize = getPixelSize(&dst->format);
 
@@ -4569,6 +4676,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyImageToBuffer(
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, dst_buffer);
   }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
 
   cl_image* src = (cl_image*)src_image;
   size_t pixel_size = getPixelSize(&src->format);
@@ -4612,6 +4725,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBufferToImage(
   if (!dst_image)
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_MEM_OBJECT, dst_image);
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
   }
 
   cl_image* dst = (cl_image*)dst_image;
@@ -4668,6 +4787,16 @@ CL_API_ENTRY void* CL_API_CALL clEnqueueMapBuffer(
     SetErrorInfo(command_queue->context, CL_INVALID_OPERATION,
                  "Buffer flags specify host will not read data");
     return NULL;
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    if (errcode_ret)
+    {
+      *errcode_ret = err;
+    }
+    return nullptr;
   }
 
   // Check map region
@@ -4751,6 +4880,16 @@ CL_API_ENTRY void* CL_API_CALL clEnqueueMapImage(
   {
     SetErrorInfo(command_queue->context, CL_INVALID_VALUE,
                  "Values in region cannot be 0");
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    if (errcode_ret)
+    {
+      *errcode_ret = err;
+    }
+    return nullptr;
   }
 
   // Get image dimensions
@@ -4851,6 +4990,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueUnmapMemObject(
   {
     ReturnErrorArg(command_queue->context, CL_INVALID_VALUE, mapped_ptr);
   }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
 
   // Enqueue command
   oclgrind::UnmapCommand* cmd = new oclgrind::UnmapCommand();
@@ -4875,6 +5020,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueMigrateMemObjects(
   if (!command_queue)
   {
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
   }
 
   // Enqueue command
@@ -4908,6 +5059,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNDRangeKernel(
   {
     ReturnErrorInfo(command_queue->context, CL_INVALID_GLOBAL_WORK_SIZE,
                     "global_work_size cannot be NULL");
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
   }
 
   // Check global and local sizes are valid
@@ -5066,6 +5223,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNativeKernel(
     ReturnErrorInfo(command_queue->context, CL_INVALID_VALUE,
                     "num_mem_objects is 0 but mem_list|args_mem_loc not NULL");
   }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
 
   // Replace mem objects with real pointers
   oclgrind::Memory* memory = command_queue->context->context->getGlobalMemory();
@@ -5122,6 +5285,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueMarkerWithWaitList(
   {
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
   }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
+  }
 
   // Enqueue command
   oclgrind::Command* cmd = new oclgrind::Command();
@@ -5141,6 +5310,12 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueBarrierWithWaitList(
   if (!command_queue)
   {
     ReturnErrorArg(NULL, CL_INVALID_COMMAND_QUEUE, command_queue);
+  }
+  if (auto err = checkEventWaitList(command_queue->context,
+                                    num_events_in_wait_list, event_wait_list);
+      err != CL_SUCCESS)
+  {
+    return err;
   }
 
   // Enqueue command
