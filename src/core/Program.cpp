@@ -192,9 +192,11 @@ void Program::allocateProgramScopeVars()
          itr++)
     {
       auto var = llvm::cast<llvm::GlobalVariable>(itr->first);
-      const llvm::Constant* initializer = var->getInitializer();
-      if (!initializer)
+      if (!var->hasInitializer())
+      {
         continue;
+      }
+      const llvm::Constant* initializer = var->getInitializer();
 
       size_t varptr = itr->second.getPointer();
       if (initializer->getType()->getTypeID() == llvm::Type::PointerTyID)
