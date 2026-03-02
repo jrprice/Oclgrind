@@ -3511,6 +3511,11 @@ class WorkItemBuiltins
   // LLVM Intrinsics //
   /////////////////////
 
+  DEFINE_BUILTIN(llvm_assume)
+  {
+    // No-op.
+  }
+
   DEFINE_BUILTIN(llvm_bswap)
   {
     uint64_t r = 0;
@@ -3861,6 +3866,7 @@ BuiltinFunctionMap WorkItemBuiltins::initBuiltins()
   ADD_BUILTIN("printf", printf_builtin, NULL);
 
   // LLVM Intrinsics
+  ADD_BUILTIN("llvm.assume", llvm_assume, NULL);
   ADD_PREFIX_BUILTIN("llvm.bswap.", llvm_bswap, NULL);
   ADD_BUILTIN("llvm.dbg.declare", llvm_dbg_declare, NULL);
   ADD_BUILTIN("llvm.dbg.value", llvm_dbg_value, NULL);
