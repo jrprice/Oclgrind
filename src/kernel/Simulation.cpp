@@ -256,7 +256,7 @@ bool Simulation::load(const char* filename)
 void Simulation::parseArgument(size_t index)
 {
   // Argument parsing parameters
-  size_t size = -1;
+  size_t size = SIZE_MAX;
   cl_mem_flags flags = 0;
   ArgDataType type = TYPE_NONE;
   size_t typeSize = 0;
@@ -437,13 +437,13 @@ void Simulation::parseArgument(size_t index)
   // Ensure size given
   if (null)
   {
-    if (size != -1 || !fill.empty() || !range.empty() || noinit || dump)
+    if (size != SIZE_MAX || !fill.empty() || !range.empty() || noinit || dump)
     {
       throw "'null' not valid with other argument descriptors";
     }
     size = 0;
   }
-  else if (size == -1)
+  else if (size == SIZE_MAX)
   {
     throw "size required";
   }
@@ -643,7 +643,7 @@ template <typename T>
 void Simulation::parseArgumentData(unsigned char* result, size_t size)
 {
   vector<T> data;
-  for (int i = 0; i < size / sizeof(T); i++)
+  for (size_t i = 0; i < size / sizeof(T); i++)
   {
     T value;
     if (sizeof(T) == 1)
@@ -666,7 +666,7 @@ void Simulation::parseFill(unsigned char* result, size_t size,
                            istringstream& fill)
 {
   T value = readValue<T>(fill);
-  for (int i = 0; i < size / sizeof(T); i++)
+  for (size_t i = 0; i < size / sizeof(T); i++)
   {
     ((T*)result)[i] = value;
   }

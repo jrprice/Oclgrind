@@ -877,7 +877,7 @@ size_t resolveGEP(size_t base, const llvm::Type* sourceElementType,
   address += offsets[0] * getTypeSize(sourceElementType);
 
   // Iterate over indices
-  for (int i = 1; i < offsets.size(); i++)
+  for (size_t i = 1; i < offsets.size(); i++)
   {
     int64_t offset = offsets[i];
 

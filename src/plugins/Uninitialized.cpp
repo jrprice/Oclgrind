@@ -1644,8 +1644,8 @@ void Uninitialized::instructionExecuted(const WorkItem* workItem,
     TypedValue newShadow = ShadowContext::getCleanValue(result);
     TypedValue pv = ShadowContext::getPoisonedValue(newShadow.size);
 
-    unsigned num =
-      llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements();
+    int num = static_cast<int>(
+      llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements());
     for (unsigned i = 0; i < newShadow.num; i++)
     {
       int index = shuffleInst->getMaskValue(i);

@@ -1439,8 +1439,8 @@ INSTRUCTION(shuffle)
   const llvm::Value* v1 = shuffle->getOperand(0);
   const llvm::Value* v2 = shuffle->getOperand(1);
 
-  unsigned num =
-    llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements();
+  int num = static_cast<int>(
+    llvm::cast<llvm::FixedVectorType>(v1->getType())->getNumElements());
   for (unsigned i = 0; i < result.num; i++)
   {
     const llvm::Value* src = v1;

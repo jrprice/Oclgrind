@@ -14,7 +14,7 @@
 // #define PARANOID_CHECK(W, I) assert(checkAllOperandsDefined(W, I) && "Not all
 //  operands defined") #define PARANOID_CHECK(W, I) checkAllOperandsDefined(W,
 //  I)
-#define PARANOID_CHECK(W, I) (void*)0
+#define PARANOID_CHECK(W, I) static_assert(true)
 
 namespace oclgrind
 {
