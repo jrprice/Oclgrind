@@ -650,6 +650,11 @@ CL_API_ENTRY cl_int CL_API_CALL clGetDeviceInfo(
     result_data.devicefpconfig =
       CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN | CL_FP_DENORM;
     break;
+  case CL_DEVICE_HALF_FP_CONFIG:
+    result_size = sizeof(cl_device_fp_config);
+    result_data.devicefpconfig =
+      CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN | CL_FP_DENORM;
+    break;
   case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:
     result_size = sizeof(cl_device_mem_cache_type);
     result_data.devicememcachetype = CL_NONE;
