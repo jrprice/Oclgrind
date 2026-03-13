@@ -999,7 +999,7 @@ llvm::GetElementPtrInst* createScalarGEP(llvm::Value* ptr, llvm::Value* index,
         llvm::Constant::getIntegerValue(
           index->getType(),
           llvm::APInt(index->getType()->getIntegerBitWidth(), byteOffset)));
-      mul->insertBefore(store);
+      mul->insertBefore(store->getIterator());
       indices.push_back(mul);
     }
     else
@@ -1019,7 +1019,7 @@ llvm::GetElementPtrInst* createScalarGEP(llvm::Value* ptr, llvm::Value* index,
       store->getValueOperand()->getType(), ptr, indices);
   }
   scalarPtr->setDebugLoc(store->getDebugLoc());
-  scalarPtr->insertBefore(store);
+  scalarPtr->insertBefore(store->getIterator());
 
   return scalarPtr;
 }
@@ -1062,7 +1062,7 @@ void Program::scalarizeAggregateStore(llvm::StoreInst* store)
         new llvm::StoreInst(vector, store->getPointerOperand(),
                             store->isVolatile(), store->getAlign());
       _store->setDebugLoc(store->getDebugLoc());
-      _store->insertBefore(scalarStore);
+      _store->insertBefore(scalarStore->getIterator());
 
       // Repeat process with new store
       if (_store)
