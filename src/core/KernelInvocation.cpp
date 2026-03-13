@@ -247,7 +247,7 @@ void KernelInvocation::runWorker(int id)
       workerState.workGroup = NULL;
     }
   }
-  catch (FatalError& err)
+  catch (const FatalError& err)
   {
     ostringstream info;
     info << "OCLGRIND FATAL ERROR "

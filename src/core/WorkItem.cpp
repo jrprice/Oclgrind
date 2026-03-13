@@ -422,7 +422,7 @@ TypedValue WorkItem::getOperand(const llvm::Value* operand) const
   }
   else
   {
-    FATAL_ERROR("Unhandled operand type: %d", operand->getValueID());
+    FATAL_ERROR("Unhandled operand type: %5d", operand->getValueID());
   }
 
   // Unreachable

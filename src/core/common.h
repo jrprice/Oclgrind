@@ -109,8 +109,8 @@ enum MessageType
 // 3-dimensional size
 struct Size3
 {
-  size_t x, y, z;
-  Size3();
+  size_t x = 0, y = 0, z = 0;
+  Size3() = default;
   Size3(size_t x, size_t y, size_t z);
   Size3(size_t linear, Size3 dimensions);
   size_t& operator[](unsigned i);
@@ -118,6 +118,7 @@ struct Size3
   bool operator==(const Size3& rhs) const;
   bool operator!=(const Size3& rhs) const;
   friend std::ostream& operator<<(std::ostream& stream, const Size3& sz);
+  void set(const size_t* values, cl_uint count);
 };
 
 // Structure for a value with a size/type

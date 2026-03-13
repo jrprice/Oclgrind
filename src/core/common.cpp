@@ -25,11 +25,6 @@ using namespace std;
 
 namespace oclgrind
 {
-Size3::Size3()
-{
-  x = y = z = 0;
-}
-
 Size3::Size3(size_t _x, size_t _y, size_t _z)
 {
   x = _x;
@@ -90,6 +85,17 @@ ostream& operator<<(ostream& stream, const Size3& size)
 {
   stream << dec << "(" << size.x << "," << size.y << "," << size.z << ")";
   return stream;
+}
+
+void Size3::set(const size_t* values, cl_uint count)
+{
+  assert(count <= 3);
+  if (count > 0)
+    x = values[0];
+  if (count > 1)
+    y = values[1];
+  if (count > 2)
+    z = values[2];
 }
 
 double TypedValue::getFloat(unsigned index) const

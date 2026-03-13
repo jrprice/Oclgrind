@@ -3256,7 +3256,7 @@ class WorkItemBuiltins
           {
             r = 0;
           }
-          else if (si > max)
+          else if (r > max)
           {
             r = max;
           }

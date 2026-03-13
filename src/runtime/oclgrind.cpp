@@ -430,7 +430,12 @@ static string getLibDirPath()
     exit(1);
   }
   // Resolve symbolic links and normalise path
-  realpath(exepath, path);
+  if (realpath(exepath, path) == NULL)
+  {
+    cerr << "[Oclgrind] Unable to resolve path to Oclgrind installation"
+         << endl;
+    exit(1);
+  }
   libdir = path;
 #endif
 

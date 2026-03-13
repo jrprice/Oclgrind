@@ -214,7 +214,7 @@ void Program::allocateProgramScopeVars()
       }
     }
   }
-  catch (FatalError& err)
+  catch (const FatalError& err)
   {
     cerr << endl
          << "OCLGRIND FATAL ERROR "
@@ -769,7 +769,7 @@ Kernel* Program::createKernel(const string name)
 
     return new Kernel(this, function, m_module.get());
   }
-  catch (FatalError& err)
+  catch (const FatalError& err)
   {
     cerr << endl
          << "OCLGRIND FATAL ERROR "

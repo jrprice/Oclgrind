@@ -5158,14 +5158,14 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueNDRangeKernel(
   cmd->globalSize = oclgrind::Size3(1, 1, 1);
   cmd->globalOffset = oclgrind::Size3(0, 0, 0);
   cmd->localSize = oclgrind::Size3(1, 1, 1);
-  memcpy(&cmd->globalSize, global_work_size, work_dim * sizeof(size_t));
+  cmd->globalSize.set(global_work_size, work_dim);
   if (global_work_offset)
   {
-    memcpy(&cmd->globalOffset, global_work_offset, work_dim * sizeof(size_t));
+    cmd->globalOffset.set(global_work_offset, work_dim);
   }
   if (local_work_size)
   {
-    memcpy(&cmd->localSize, local_work_size, work_dim * sizeof(size_t));
+    cmd->localSize.set(local_work_size, work_dim);
   }
 
   // Enqueue command

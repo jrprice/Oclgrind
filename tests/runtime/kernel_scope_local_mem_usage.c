@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
   if (localSize != 40)
   {
     fprintf(stderr, "Incorrect kernel1 local memory size %llu (expected 40)\n",
-            localSize);
+            (unsigned long long)localSize);
     return 1;
   }
 
@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
   if (localSize != 80)
   {
     fprintf(stderr, "Incorrect kernel2 local memory size %llu (expected 80)\n",
-            localSize);
+            (unsigned long long)localSize);
     return 1;
   }
 

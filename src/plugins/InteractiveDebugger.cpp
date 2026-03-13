@@ -841,7 +841,7 @@ bool InteractiveDebugger::print(vector<string> args)
     {
       workItem->printExpression(args[i]);
     }
-    catch (FatalError err)
+    catch (const FatalError& err)
     {
       cout << "fatal error: " << err.what();
     }
