@@ -2,7 +2,7 @@ name: CI
 on: [push, pull_request]
 
 env:
-  RELEASE_VERSION: "21.10"
+  RELEASE_VERSION: "26.03.1"
   RELEASE_LLVM: "22"
 
 jobs:
