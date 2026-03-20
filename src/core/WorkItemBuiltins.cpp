@@ -938,7 +938,7 @@ class WorkItemBuiltins
       *c1 = *c0 + 1;
       if (*c0 < 0)
         *c0 += size;
-      if (*c1 >= size)
+      if (*c1 >= (int)size)
         *c1 -= size;
       return u;
     }
@@ -1044,8 +1044,9 @@ class WorkItemBuiltins
                                           int k, int layer, int c)
   {
     // Check for out-of-range coordinages
-    if (i < 0 || i >= image->desc.image_width || j < 0 ||
-        j >= image->desc.image_height || k < 0 || k >= image->desc.image_depth)
+    if (i < 0 || i >= (int)image->desc.image_width || j < 0 ||
+        j >= (int)image->desc.image_height || k < 0 ||
+        k >= (int)image->desc.image_depth)
     {
       // Return border color
       if (c == 3 && !hasZeroAlphaBorder(image->format))
@@ -1115,8 +1116,9 @@ class WorkItemBuiltins
                                         int i, int j, int k, int layer, int c)
   {
     // Check for out-of-range coordinages
-    if (i < 0 || i >= image->desc.image_width || j < 0 ||
-        j >= image->desc.image_height || k < 0 || k >= image->desc.image_depth)
+    if (i < 0 || i >= (int)image->desc.image_width || j < 0 ||
+        j >= (int)image->desc.image_height || k < 0 ||
+        k >= (int)image->desc.image_depth)
     {
       // Return border color
       if (c == 3 && !hasZeroAlphaBorder(image->format))
@@ -1178,8 +1180,9 @@ class WorkItemBuiltins
                                            int k, int layer, int c)
   {
     // Check for out-of-range coordinages
-    if (i < 0 || i >= image->desc.image_width || j < 0 ||
-        j >= image->desc.image_height || k < 0 || k >= image->desc.image_depth)
+    if (i < 0 || i >= (int)image->desc.image_width || j < 0 ||
+        j >= (int)image->desc.image_height || k < 0 ||
+        k >= (int)image->desc.image_depth)
     {
       // Return border color
       if (c == 3 && !hasZeroAlphaBorder(image->format))
