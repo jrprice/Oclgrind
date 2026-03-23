@@ -117,7 +117,7 @@ jobs:
         id: cache-llvm
         uses: actions/cache@v4
         with:
-          path: llvm-${{ matrix.llvm }}
+          path: llvm-${{ matrix.llvm }}/install
           key: llvm-${{ matrix.llvm }}-${{ matrix.platform }}
       - name: Install dependencies
         run: bash .github/workflows/install-deps.sh
@@ -125,7 +125,7 @@ jobs:
         if: steps.cache-llvm.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: llvm-${{ matrix.llvm }}
+          path: llvm-${{ matrix.llvm }}/install
           key: llvm-${{ matrix.llvm }}-${{ matrix.platform }}
       - name: Create build dir
         run: cmake -E make_directory build
